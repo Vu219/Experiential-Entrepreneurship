@@ -22,15 +22,25 @@
 ## 🚀 Hướng dẫn bắt đầu (Getting Started)
 
 1. **Khởi tạo môi trường ảo và cài đặt thư viện:**
-   Dựa vào `pyproject.toml` và `.python-version` để setup môi trường (khuyến khích dùng `uv`, `poetry`, hoặc `venv`).
+   Dự án sử dụng `uv` để quản lý gói thư viện và phiên bản Python cực nhanh. Chạy các lệnh:
+   ```bash
+   uv python install 3.14
+   uv sync
+   ```
+
+2. **Chạy luồng mô phỏng vận hành:**
+   Chạy chương trình mô phỏng quy trình tự động hóa nội dung bằng lệnh:
+   ```bash
+   uv run main.py
+   ```
    
-2. **Setup dữ liệu ban đầu:**
+3. **Setup dữ liệu ban đầu:**
    Lưu trữ các tập dataset sử dụng trong quá trình làm việc vào thư mục `data/`.
    
-3. **Phân tích với Notebook:**
+4. **Phân tích với Notebook:**
    Mở `baseline.ipynb` để khám phá dữ liệu, lên ý tưởng phương pháp phân tích và xây dựng baseline.
 
-4. **Module hóa logic:**
+5. **Module hóa logic:**
    Đưa các đoạn code đã kiểm chứng ở baseline vào các file `.py` riêng trong thư mục `src/`, và chỉ xuất kết quả ra từ tập lệnh điều khiển `main.py`.
 
 *Chúc bạn đạt kết quả thật tốt và code ít bug!*

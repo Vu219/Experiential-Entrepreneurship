@@ -22,15 +22,25 @@ This is a meticulously structured project template designed to save you time and
 ## 🚀 Getting Started
 
 1. **Initialize Virtual Environment and Install Dependencies:**
-   Check `pyproject.toml` and `.python-version` to set up your environment (using `venv`, `poetry`, or `uv`).
+   This project uses `uv` for fast package and python version management. Run:
+   ```bash
+   uv python install 3.14
+   uv sync
+   ```
 
-2. **Setup Initial Data:**
+2. **Run the Project Demo Workflow:**
+   Execute the automated social content flow using:
+   ```bash
+   uv run main.py
+   ```
+
+3. **Setup Initial Data:**
    Store any datasets you intend to use into the `data/` directory.
 
-3. **Analyze with Notebook:**
+4. **Analyze with Notebook:**
    Open `baseline.ipynb` to explore data, brainstorm analytical methods, and build a baseline.
 
-4. **Modularize Logic:**
+5. **Modularize Logic:**
    Move verified code snippets from the baseline notebook into separate `.py` files within the `src/` directory, and output results via the `main.py` control script.
 
 *Good luck and happy coding!*
