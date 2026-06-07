@@ -1,47 +1,88 @@
-# Python Project Template
+# AIMA — AI-powered Social Media Management
 
-This is a meticulously structured project template designed to save you time and eliminate the need to set up from scratch every time you start a new Python, Data Science, Machine Learning, or AI Agent project.
+AIMA automates social media content generation, scheduling, and analytics through a coordinated AI agent system connected to a full-stack web platform.
 
-## 📂 Directory Structure
+> Vietnamese version: [README.vi.md](README.vi.md)
 
-- **`data/`**: Directory dedicated to data storage (raw, processed, external, etc.). Ensure that large or sensitive data files are properly handled in `.gitignore`.
-- **`docs/`**: Directory containing project-related documentation, reports, and system design files.
-- **`src/`**: The core source code of the project. Organize sub-modules (e.g., `data_processing`, `training`, `utils`) within this directory to maintain modular and reusable code.
-- **`.agents/` / `.claude/`**: Configuration directories specific to AI Agent systems or Claude workflows.
+---
 
-## 📄 Key Files
+## Repository Structure
 
-- **`baseline.ipynb`**: A ready-to-use Jupyter Notebook for Exploratory Data Analysis (EDA) and rapidly building the initial baseline model/solution.
-- **`main.py`**: The main entry point of the project. Used to orchestrate modules and run the application (e.g., model training pipeline, app execution).
-- **`pyproject.toml`**: The project configuration file, storing metadata and managing dependencies, replacing the traditional `requirements.txt` with modern standards.
-- **`.python-version`**: Defines the standard Python version for the project (currently `3.14`), allowing tools like `pyenv` or `uv` to automatically select the correct environment.
-- **`CLAUDE.md`**: Behavioral guidelines for pre-installed AI Agents, outlining principles and coding standards to follow within this project.
-- **`ANTIGRAVITY.md`**: Behavioral guidelines for pre-installed AI Agents, outlining principles and coding standards to follow within this project.
-- **`skills-lock.json`**: A skills lock file that remembers configured skills and tools to ensure consistent project operation.
-- **`.gitignore`**: Specifies files and directories that should not be pushed to Git, keeping the repository clean and secure.
+```
+repo/
+├── frontend/          # React + TypeScript web app
+├── backend/           # Java 21 + Spring Boot REST API
+├── ai/                # Python 3.14 AI agent backend
+└── docs/              # Project documentation
+```
 
-## 🚀 Getting Started
+---
 
-1. **Initialize Virtual Environment and Install Dependencies:**
-   This project uses `uv` for fast package and python version management. Run:
-   ```bash
-   uv python install 3.14
-   uv sync
-   ```
+## Services
 
-2. **Run the Project Demo Workflow:**
-   Execute the automated social content flow using:
-   ```bash
-   uv run main.py
-   ```
+### Frontend (`frontend/`)
+React 18 single-page application built with TypeScript, Tailwind CSS, and React Router. Communicates with the backend via RESTful APIs through Axios.
 
-3. **Setup Initial Data:**
-   Store any datasets you intend to use into the `data/` directory.
+**Stack:** TypeScript · React · Tailwind CSS · React Router DOM · Axios · Vite
 
-4. **Analyze with Notebook:**
-   Open `baseline.ipynb` to explore data, brainstorm analytical methods, and build a baseline.
+```bash
+cd frontend
+npm install
+npm run dev       # http://localhost:3000
+npm run build     # production build → dist/
+```
 
-5. **Modularize Logic:**
-   Move verified code snippets from the baseline notebook into separate `.py` files within the `src/` directory, and output results via the `main.py` control script.
+---
 
-*Good luck and happy coding!*
+### Backend (`backend/`)
+Spring Boot 3 REST API handling business logic, authentication, scheduling, and database operations.
+
+**Stack:** Java 21 · Spring Boot · Spring Security + JWT · OAuth2 · PostgreSQL · Spring Data JPA · Hibernate · Lombok · MapStruct · Validation · Email Service
+
+```bash
+cd backend
+./mvnw spring-boot:run    # http://localhost:8080
+./mvnw package            # build → target/*.jar
+```
+
+Configure secrets in `backend/src/main/resources/application.yml` or via environment variables:
+
+| Variable | Description |
+|---|---|
+| `DB_USERNAME` / `DB_PASSWORD` | PostgreSQL credentials |
+| `JWT_SECRET` | JWT signing key |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth2 |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` | SMTP credentials |
+
+---
+
+### AI Backend (`ai/`)
+Python AI agent system that fetches social platform data, runs trend analysis, and generates content using LangChain and the Antigravity SDK.
+
+**Stack:** Python 3.14 · uv · LangChain · Antigravity SDK · Requests
+
+```bash
+cd ai
+uv python install 3.14
+uv sync
+uv run main.py
+```
+
+Copy `ai/.env.example` to `ai/.env` and fill in credentials:
+
+| Variable | Description |
+|---|---|
+| `FACEBOOK_PAGE_ACCESS_TOKEN` | Meta Graph API token |
+| `FACEBOOK_PAGE_ID` | Target Facebook Page ID |
+| `TIKTOK_ACCESS_TOKEN` | TikTok API token |
+| `INSTAGRAM_ACCESS_TOKEN` | Instagram API token |
+
+---
+
+## Documentation
+
+| File | Description |
+|---|---|
+| [`docs/Technical.md`](docs/Technical.md) | Technology stack details |
+| [`docs/Business_Analysis.md`](docs/Business_Analysis.md) | Business context and requirements |
+| [`docs/Implementation_Strategy.md`](docs/Implementation_Strategy.md) | Implementation roadmap |

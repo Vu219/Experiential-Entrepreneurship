@@ -1,47 +1,88 @@
-# Project Template (Mẫu Dự Án)
+# AIMA — Quản lý Mạng xã hội bằng AI
 
-Đây là một template dự án được thiết kế với cấu trúc chuẩn mực, giúp bạn tiết kiệm thời gian và không phải thiết lập từ đầu mỗi khi bắt đầu một dự án Python, Data Science, Machine Learning hay AI Agent mới.
+AIMA tự động hóa việc tạo nội dung, lên lịch đăng và phân tích mạng xã hội thông qua hệ thống AI Agent phối hợp với nền tảng web full-stack.
 
-## 📂 Cấu trúc thư mục
+> English version: [README.md](README.md)
 
-- **`data/`**: Thư mục dùng để chứa dữ liệu (raw, processed, external,...). Cần đảm bảo dữ liệu lớn hoặc nhạy cảm đã được xử lý trong `.gitignore`.
-- **`docs/`**: Thư mục chứa các tài liệu liên quan đến dự án, báo cáo, file thiết kế hệ thống.
-- **`src/`**: Nơi chứa mã nguồn chính (core logic) của dự án. Gói gọn các module con (ví dụ: data_processing, training, utils) vào thư mục này để code luôn module-hóa, dễ tái sử dụng.
-- **`.agents/` / `.claude/`**: Các thư mục cấu hình dành riêng cho hệ thống AI Agent hoặc các workflow của Claude.
+---
 
-## 📄 Các tệp tin quan trọng
+## Cấu trúc Repository
 
-- **`baseline.ipynb`**: File Jupyter Notebook chuẩn bị sẵn cho quá trình EDA (Exploratory Data Analysis) và xây dựng mô hình/giải pháp baseline đầu tiên rất nhanh chóng.
-- **`main.py`**: File chạy chính (entry point) của dự án. Dùng để liên kết các module và khởi chạy chương trình (như pipeline huấn luyện mô hình, chạy ứng dụng,...).
-- **`pyproject.toml`**: File cấu hình dự án, lưu trữ metadata và quản lý các thư viện phụ thuộc (dependencies) thay thế cho `requirements.txt` theo tiêu chuẩn hiện đại.
-- **`.python-version`**: Định nghĩa chuẩn phiên bản Python của dự án (hiện tại `3.14`), giúp các công cụ như `pyenv` hoặc `uv` tự động chọn đúng môi trường.
-- **`CLAUDE.md`**: File chỉ dẫn hành vi (Guidelines) cho AI Agent cài đặt sẵn những nguyên tắc cần tuân thủ về tư duy và coding khi làm việc trong project này.
-- **`ANTIGRAVITY.md`**: File chỉ dẫn hành vi (Guidelines) cho AI Agent cài đặt sẵn những nguyên tắc cần tuân thủ về tư duy và coding khi làm việc trong project này.
-- **`skills-lock.json`**: Tập tin khoá kỹ năng, giúp ghi nhớ các công cụ đã cấu hình để dự án hoạt động đồng nhất.
-- **`.gitignore`**: Chứa danh sách các thư mục/file không được push lên Git để giữ repo gọn nhẹ và bảo mật.
+```
+repo/
+├── frontend/          # Ứng dụng web React + TypeScript
+├── backend/           # REST API Java 21 + Spring Boot
+├── ai/                # Backend AI Agent Python 3.14
+└── docs/              # Tài liệu dự án
+```
 
-## 🚀 Hướng dẫn bắt đầu (Getting Started)
+---
 
-1. **Khởi tạo môi trường ảo và cài đặt thư viện:**
-   Dự án sử dụng `uv` để quản lý gói thư viện và phiên bản Python cực nhanh. Chạy các lệnh:
-   ```bash
-   uv python install 3.14
-   uv sync
-   ```
+## Các Service
 
-2. **Chạy luồng mô phỏng vận hành:**
-   Chạy chương trình mô phỏng quy trình tự động hóa nội dung bằng lệnh:
-   ```bash
-   uv run main.py
-   ```
-   
-3. **Setup dữ liệu ban đầu:**
-   Lưu trữ các tập dataset sử dụng trong quá trình làm việc vào thư mục `data/`.
-   
-4. **Phân tích với Notebook:**
-   Mở `baseline.ipynb` để khám phá dữ liệu, lên ý tưởng phương pháp phân tích và xây dựng baseline.
+### Frontend (`frontend/`)
+Ứng dụng SPA React 18 xây dựng bằng TypeScript, Tailwind CSS và React Router. Giao tiếp với backend thông qua RESTful API qua Axios.
 
-5. **Module hóa logic:**
-   Đưa các đoạn code đã kiểm chứng ở baseline vào các file `.py` riêng trong thư mục `src/`, và chỉ xuất kết quả ra từ tập lệnh điều khiển `main.py`.
+**Công nghệ:** TypeScript · React · Tailwind CSS · React Router DOM · Axios · Vite
 
-*Chúc bạn đạt kết quả thật tốt và code ít bug!*
+```bash
+cd frontend
+npm install
+npm run dev       # http://localhost:3000
+npm run build     # build production → dist/
+```
+
+---
+
+### Backend (`backend/`)
+REST API Spring Boot 3 xử lý business logic, xác thực, lên lịch đăng và thao tác cơ sở dữ liệu.
+
+**Công nghệ:** Java 21 · Spring Boot · Spring Security + JWT · OAuth2 · PostgreSQL · Spring Data JPA · Hibernate · Lombok · MapStruct · Validation · Email Service
+
+```bash
+cd backend
+./mvnw spring-boot:run    # http://localhost:8080
+./mvnw package            # build → target/*.jar
+```
+
+Cấu hình biến môi trường trong `backend/src/main/resources/application.yml`:
+
+| Biến | Mô tả |
+|---|---|
+| `DB_USERNAME` / `DB_PASSWORD` | Thông tin đăng nhập PostgreSQL |
+| `JWT_SECRET` | Khóa ký JWT |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth2 Google |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` | Thông tin SMTP |
+
+---
+
+### AI Backend (`ai/`)
+Hệ thống AI Agent Python thu thập dữ liệu từ các nền tảng mạng xã hội, phân tích xu hướng và tạo nội dung bằng LangChain và Antigravity SDK.
+
+**Công nghệ:** Python 3.14 · uv · LangChain · Antigravity SDK · Requests
+
+```bash
+cd ai
+uv python install 3.14
+uv sync
+uv run main.py
+```
+
+Sao chép `ai/.env.example` thành `ai/.env` và điền thông tin:
+
+| Biến | Mô tả |
+|---|---|
+| `FACEBOOK_PAGE_ACCESS_TOKEN` | Token Meta Graph API |
+| `FACEBOOK_PAGE_ID` | ID Fanpage Facebook |
+| `TIKTOK_ACCESS_TOKEN` | Token TikTok API |
+| `INSTAGRAM_ACCESS_TOKEN` | Token Instagram API |
+
+---
+
+## Tài liệu
+
+| File | Mô tả |
+|---|---|
+| [`docs/Technical.md`](docs/Technical.md) | Chi tiết công nghệ sử dụng |
+| [`docs/Business_Analysis.md`](docs/Business_Analysis.md) | Phân tích nghiệp vụ và yêu cầu |
+| [`docs/Implementation_Strategy.md`](docs/Implementation_Strategy.md) | Lộ trình triển khai |
