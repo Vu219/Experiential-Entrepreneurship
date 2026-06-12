@@ -1,50 +1,50 @@
-# CHIẾN LƯỢC THỰC HIỆN CÁC CHỨC NĂNG DỰ ÁN
+# PROJECT FEATURE IMPLEMENTATION STRATEGY
 ## AI CONTENT AUTOMATION SYSTEM
 
-Tài liệu này trình bày chiến lược công nghệ, lộ trình phát triển và thiết kế hệ thống chi tiết nhằm hiện thực hóa các chức năng được mô tả trong tài liệu [Business_Analysis.md](file:///D:/FPTU/SEMESTER%207/EXE101/repo/docs/Business_Analysis.md).
+This document presents the technology strategy, development roadmap, and detailed system design for implementing the features described in [Business_Analysis.md](./Business_Analysis.md).
 
 ---
 
-## 1. Kiến Trúc Hệ Thống Tổng Quan (System Architecture)
+## 1. System Architecture Overview
 
-Hệ thống được thiết kế theo mô hình **Event-Driven & Microservices** nhằm đảm bảo tính mở rộng cao và khả năng xử lý bất đồng bộ các tác vụ nặng (như sinh nội dung bằng AI, xử lý media, và đăng tải bài viết lên API của bên thứ ba).
+The system follows an **Event-Driven & Microservices** model to ensure high scalability and asynchronous handling of heavy tasks (such as AI content generation, media processing, and publishing posts via third-party APIs).
 
 ```mermaid
 graph TD
-    User([Người dùng / Chủ shop]) -->|Cấu hình Brand Voice & Lịch đăng| App[FastAPI Backend / Web Dashboard]
-    App -->|Lưu thông tin| DB[(PostgreSQL Database)]
-    App -->|Đưa tác vụ vào hàng đợi| Broker[(Redis Broker)]
-    Broker -->|Xử lý bất đồng bộ| Worker[Celery Background Workers]
+    User([User / Shop Owner]) -->|Configure Brand Voice & Posting Schedule| App[FastAPI Backend / Web Dashboard]
+    App -->|Persist data| DB[(PostgreSQL Database)]
+    App -->|Enqueue tasks| Broker[(Redis Broker)]
+    Broker -->|Process asynchronously| Worker[Celery Background Workers]
     
     subgraph Agent AI Core
-        Worker -->|Tạo nội dung & Visual Prompt| GenModule[Content Generator Agent]
-        GenModule -->|Gọi LLM APIs| LLM[Claude Sonnet / Gemini Pro]
-        Worker -->|Đánh giá từ nhạy cảm| PolicyAgent[Policy Checker Agent]
-        Worker -->|Định dạng cho từng nền tảng| FormatAgent[Platform Formatter Agent]
+        Worker -->|Generate content & visual prompts| GenModule[Content Generator Agent]
+        GenModule -->|Call LLM APIs| LLM[Claude Sonnet / Gemini Pro]
+        Worker -->|Screen sensitive keywords| PolicyAgent[Policy Checker Agent]
+        Worker -->|Format per platform| FormatAgent[Platform Formatter Agent]
     end
 
     subgraph API Platforms Connectors
-        Worker -->|Đăng bài tự động| APIConnectors[Social API Connectors]
+        Worker -->|Auto-publish posts| APIConnectors[Social API Connectors]
         APIConnectors -->|Upload Video/Image| SocialMedia[TikTok, FB, IG Reels, LinkedIn, YT Shorts]
-        SocialMedia -->|Gửi Webhook thông báo vi phạm chính sách| App
+        SocialMedia -->|Send policy violation webhooks| App
     end
 
     subgraph Analytics & Trends
-        Worker -->|Thu thập số liệu tương tác| Analytics[Analytics System]
-        Analytics -->|Cập nhật chiến lược| OptimizeAgent[Optimizer Agent]
-        Worker -->|Cào dữ liệu & Tìm Trend| TrendAgent[Trend Research Agent]
-        TrendAgent -->|Đề xuất ý tưởng mới| DB
+        Worker -->|Collect engagement metrics| Analytics[Analytics System]
+        Analytics -->|Update strategy| OptimizeAgent[Optimizer Agent]
+        Worker -->|Scrape data & find trends| TrendAgent[Trend Research Agent]
+        TrendAgent -->|Suggest new ideas| DB
     end
 ```
 
 ---
 
-## 2. Thiết Kế Cơ Sở Dữ Liệu Chi Tiết (Database Schema Design)
+## 2. Database Schema Design
 
-Chúng tôi đề xuất sử dụng cơ sở dữ liệu quan hệ **PostgreSQL** để quản lý các thực thể của hệ thống. Dưới đây là cấu trúc bảng chi tiết:
+We propose using the **PostgreSQL** relational database to manage the system's entities. The detailed table structure is below:
 
-### Bảng `brand_personas`
-Lưu trữ thông tin cấu hình thương hiệu của người dùng.
+### Table `brand_personas`
+Stores the user's brand configuration.
 ```sql
 CREATE TABLE brand_personas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -52,8 +52,8 @@ CREATE TABLE brand_personas (
     industry VARCHAR(100) NOT NULL,
     tone VARCHAR(100) NOT NULL,
     target_audience TEXT NOT NULL,
-    goals TEXT[] NOT NULL, -- Mảng các mục tiêu
-    platforms VARCHAR(50)[] NOT NULL, -- Danh sách nền tảng kết nối
+    goals TEXT[] NOT NULL, -- Array of content goals
+    platforms VARCHAR(50)[] NOT NULL, -- List of connected platforms
     posting_frequency VARCHAR(50) NOT NULL,
     preferred_hours TIME[] NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -61,8 +61,8 @@ CREATE TABLE brand_personas (
 );
 ```
 
-### Bảng `content_drafts`
-Lưu trữ nội dung bản nháp do AI tạo ra.
+### Table `content_drafts`
+Stores AI-generated draft content.
 ```sql
 CREATE TABLE content_drafts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -72,15 +72,15 @@ CREATE TABLE content_drafts (
     caption TEXT NOT NULL,
     hashtags VARCHAR(100)[] NOT NULL,
     media_prompt TEXT,
-    media_url TEXT, -- Link file ảnh/video đã generate/upload
+    media_url TEXT, -- Link to the generated/uploaded image or video file
     cta TEXT,
     status VARCHAR(30) DEFAULT 'Draft', -- Draft, Need Review, Approved
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-### Bảng `scheduled_posts`
-Quản lý lịch đăng bài và trạng thái đăng cho từng nền tảng.
+### Table `scheduled_posts`
+Manages the posting schedule and publishing status per platform.
 ```sql
 CREATE TABLE scheduled_posts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -91,16 +91,16 @@ CREATE TABLE scheduled_posts (
     formatted_hashtags VARCHAR(100)[] NOT NULL,
     scheduled_time TIMESTAMP WITH TIME ZONE NOT NULL,
     status VARCHAR(30) DEFAULT 'Scheduled', -- Scheduled, Posting, Posted, Failed, Policy Violated
-    external_post_id VARCHAR(255), -- ID bài viết trả về từ TikTok, FB...
-    external_url TEXT, -- Link bài viết sau khi đăng thành công
-    error_message TEXT, -- Lưu chi tiết lỗi nếu đăng bài thất bại
+    external_post_id VARCHAR(255), -- Post ID returned by TikTok, FB, etc.
+    external_url TEXT, -- Link to the post after successful publishing
+    error_message TEXT, -- Error details if publishing fails
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-### Bảng `post_metrics`
-Lưu trữ số liệu hiệu quả của bài đăng theo thời gian.
+### Table `post_metrics`
+Stores post performance metrics over time.
 ```sql
 CREATE TABLE post_metrics (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -118,66 +118,66 @@ CREATE TABLE post_metrics (
 
 ---
 
-## 3. Lộ Trình Phát Triển Chi Tiết (Implementation Roadmap)
+## 3. Implementation Roadmap
 
-Chúng tôi chia quy trình thực hiện dự án thành **4 giai đoạn chính**:
+We divide the project delivery into **4 main phases**:
 
-### Giai đoạn 1: Nền tảng Core Logic & MVP (Tuần 1 - Tuần 3)
-* **Mục tiêu:** Xây dựng backend cốt lõi cho phép định nghĩa Brand Persona và kích hoạt Agent AI tạo nội dung thô.
-* **Các bước triển khai:**
-  1. Cài đặt môi trường dự án bằng `uv` để quản lý phiên bản Python 3.10 và cấu hình `pyproject.toml`.
-  2. Phát triển API cấu hình Brand Persona cho User.
-  3. Tích hợp thư viện OpenAI SDK / Anthropic SDK để gọi LLM (sử dụng kỹ thuật Prompt Engineering chuyên sâu) tạo bản nháp content dựa trên Brand Voice.
-  4. Triển khai bộ lọc chính sách nội bộ (Local Policy Filter) để quét các từ nhạy cảm và gán nhãn `Need Review` cho bài viết chứa rủi ro.
+### Phase 1: Core Logic Foundation & MVP (Weeks 1–3)
+* **Goal:** Build the core backend that lets users define a Brand Persona and triggers the Agent AI to generate raw content.
+* **Implementation steps:**
+  1. Set up the project environment with `uv` to manage Python 3.10 and configure `pyproject.toml`.
+  2. Develop the Brand Persona configuration API for users.
+  3. Integrate the OpenAI SDK / Anthropic SDK to call LLMs (using advanced prompt engineering) to generate content drafts based on the Brand Voice.
+  4. Implement an internal policy filter (Local Policy Filter) to scan for sensitive keywords and tag risky posts as `Need Review`.
 
-### Giai đoạn 2: Tích Hợp API Nền Tảng & Lập Lịch Đăng Bài (Tuần 4 - Tuần 7)
-* **Mục tiêu:** Kết nối API chính thức của các nền tảng mạng xã hội và hệ thống lập lịch tự động.
-* **Các bước triển khai:**
-  1. Triển khai luồng OAuth 2.0 để người dùng kết nối tài khoản TikTok Business, Facebook Pages, Instagram Graph, LinkedIn Organization.
-  2. Viết các connector tích hợp API đăng bài (sử dụng phương thức upload chunk đối với video dung lượng lớn trên TikTok và Facebook).
-  3. Cài đặt Redis và Celery Beat làm hệ thống hàng đợi tác vụ định kỳ, liên tục kiểm tra cơ sở dữ liệu để đăng tải các bài viết thuộc hàng đợi `Scheduled` khi đến giờ vàng.
-  4. Viết webhook endpoint tiếp nhận thông báo vi phạm chính sách của platform (ví dụ Facebook Webhooks cho Page Policy Violations) để tự động cập nhật trạng thái bài viết về `Policy Violated` và cảnh báo admin.
+### Phase 2: Platform API Integration & Post Scheduling (Weeks 4–7)
+* **Goal:** Connect the official social media platform APIs and the automatic scheduling system.
+* **Implementation steps:**
+  1. Implement the OAuth 2.0 flow so users can connect TikTok Business, Facebook Pages, Instagram Graph, and LinkedIn Organization accounts.
+  2. Write API connectors for publishing posts (using chunked upload for large video files on TikTok and Facebook).
+  3. Set up Redis and Celery Beat as the periodic task queue, continuously checking the database to publish `Scheduled` posts when their golden hour arrives.
+  4. Build a webhook endpoint to receive platform policy violation notifications (e.g., Facebook Webhooks for Page Policy Violations), automatically set the post status to `Policy Violated`, and alert the admin.
 
-### Giai đoạn 3: AI Trend Research & Lắng Nghe Mạng Xã Hội (Tuần 8 - Tuần 10)
-* **Mục tiêu:** AI tự động phát hiện xu hướng ngành hàng và chủ động chuyển đổi thành ý tưởng nội dung.
-* **Các bước triển khai:**
-  1. Xây dựng dịch vụ cào dữ liệu từ các từ khóa hot trên Google Trends, TikTok Trend Discovery API và Twitter/X Search.
-  2. Phát triển thuật toán lọc trend theo độ phù hợp ngành hàng bằng mô hình Embedding / Vector Database (như ChromaDB hoặc pgvector).
-  3. Thiết kế luồng Agent đề xuất ý tưởng content dựa trên trend mới tìm thấy và đưa vào danh sách chờ phê duyệt của user.
+### Phase 3: AI Trend Research & Social Listening (Weeks 8–10)
+* **Goal:** The AI automatically detects industry trends and proactively converts them into content ideas.
+* **Implementation steps:**
+  1. Build a data collection service for hot keywords from Google Trends, the TikTok Trend Discovery API, and Twitter/X Search.
+  2. Develop a trend-relevance filtering algorithm using embedding models / a vector database (such as ChromaDB or pgvector).
+  3. Design the agent flow that proposes content ideas based on newly discovered trends and adds them to the user's approval queue.
 
-### Giai đoạn 4: Vòng Lặp Tối Ưu Tự Động (Closed-Loop Optimization) (Tuần 11 - Tuần 12)
-* **Mục tiêu:** AI tự động học hỏi từ số liệu hiệu suất thực tế để cải thiện chất lượng nội dung của chu kỳ tiếp theo.
-* **Các bước triển khai:**
-  1. Xây dựng tác vụ định kỳ quét và lấy metrics của các bài đã đăng (views, likes, shares, CTR) sau 24h, 48h, 7d.
-  2. Phát triển thuật toán Optimizer: Phân tích xem tone giọng nào, khung giờ nào, hashtag nào mang lại CTR cao nhất.
-  3. Xây dựng mô hình Prompt Tuning động: Hệ thống sẽ tự động ghép thêm các bài học kinh nghiệm này vào System Prompt của Content Generator trong lần sinh nội dung tiếp theo.
-
----
-
-## 4. Chiến Lược Xử Lý Ngoại Lệ & Đảm Bảo Bảo Mật
-
-### A. Quản lý Token Bảo Mật
-* **Vấn đề:** Token API của các nền tảng (đặc biệt là Facebook Page Token) thường hết hạn sau 60 ngày hoặc khi người dùng đổi mật khẩu.
-* **Chiến lược thực hiện:**
-  * Lưu trữ Token được mã hóa trong Database bằng thuật toán **AES-256**.
-  * Sử dụng cơ chế tự động làm mới token bằng **Refresh Token** chạy ẩn dưới nền trước khi token chính hết hạn.
-  * Nếu Refresh Token hết hạn, lập tức chuyển trạng thái các bài đăng tương lai sang `Failed` do lỗi kết nối và gửi email/thông báo đẩy yêu cầu người dùng kết nối lại tài khoản.
-
-### B. Cơ chế Tự Động Thử Lại (Retry Policy)
-* **Vấn đề:** API của mạng xã hội thỉnh thoảng bị lỗi gián đoạn hoặc bị nghẽn mạng.
-* **Chiến lược thực hiện:**
-  * Sử dụng cấu hình retry của Celery với chiến thuật **Exponential Backoff** (thử lại sau 1 phút, 5 phút, 15 phút, tối đa 3 lần).
-  * Chỉ thử lại với các mã lỗi mạng hoặc lỗi hệ thống của Platform (HTTP 5xx). Không thử lại đối với lỗi xác thực (401) hoặc vi phạm dữ liệu (400) để tránh lãng phí tài nguyên.
+### Phase 4: Closed-Loop Optimization (Weeks 11–12)
+* **Goal:** The AI automatically learns from real performance data to improve content quality in the next cycle.
+* **Implementation steps:**
+  1. Build a periodic task that scans and collects metrics for published posts (views, likes, shares, CTR) at 24h, 48h, and 7d.
+  2. Develop the Optimizer algorithm: analyze which tone, time slot, and hashtags yield the highest CTR.
+  3. Build a dynamic Prompt Tuning mechanism: the system automatically appends these lessons learned to the Content Generator's System Prompt for the next content generation run.
 
 ---
 
-## 5. Khuyến Nghị Công Nghệ (Recommended Tech Stack)
+## 4. Exception Handling & Security Strategy
 
-| Thành phần | Công nghệ lựa chọn | Lý do |
+### A. Secure Token Management
+* **Problem:** Platform API tokens (especially Facebook Page Tokens) typically expire after 60 days or when the user changes their password.
+* **Strategy:**
+  * Store tokens encrypted in the database using **AES-256**.
+  * Use an automatic token renewal mechanism via **Refresh Token**, running in the background before the main token expires.
+  * If the Refresh Token has expired, immediately move future posts to `Failed` due to the connection error and send an email/push notification asking the user to reconnect their account.
+
+### B. Automatic Retry Policy
+* **Problem:** Social media APIs occasionally suffer transient failures or network congestion.
+* **Strategy:**
+  * Use Celery's retry configuration with an **Exponential Backoff** strategy (retry after 5 minutes, 15 minutes, then 30 minutes — maximum 3 attempts).
+  * Only retry on network errors or platform-side system errors (HTTP 5xx). Do not retry on authentication errors (401) or invalid-data errors (400) to avoid wasting resources.
+
+---
+
+## 5. Recommended Tech Stack
+
+| Component | Chosen technology | Rationale |
 | --- | --- | --- |
-| **Ngôn ngữ lập trình** | Python 3.10 | Hỗ trợ tốt nhất các thư viện AI/ML và có tính năng gõ kiểu dữ liệu mạnh mẽ. |
-| **Package Manager** | `uv` | Tốc độ cài đặt thư viện nhanh hơn gấp 10-100 lần so với pip/poetry, hỗ trợ tốt quản lý môi trường ảo. |
-| **Backend Framework** | FastAPI | Tốc độ thực thi cực nhanh, hỗ trợ lập trình bất đồng bộ (async/await), tự động tạo tài liệu API Swagger. |
-| **Database** | PostgreSQL | Hỗ trợ dữ liệu quan hệ mạnh mẽ, hỗ trợ lưu trữ mảng/JSONB và mở rộng tốt bằng pgvector cho AI. |
-| **Task Queue** | Celery + Redis | Hỗ trợ lập lịch đăng bài chuẩn xác, chịu tải tốt khi phân chia nhiệm vụ cho nhiều Worker chạy ngầm. |
-| **AI LLM API** | Claude 3.5 Sonnet / Gemini 1.5 Pro | Claude cho kết quả sáng tạo kịch bản tự nhiên nhất; Gemini có context window lớn thích hợp xử lý video dài. |
+| **Programming language** | Python 3.10 | Best support for AI/ML libraries and strong type-hinting features. |
+| **Package Manager** | `uv` | 10–100× faster dependency installation than pip/poetry, with solid virtual environment management. |
+| **Backend Framework** | FastAPI | Very fast execution, async/await support, and automatic Swagger API documentation. |
+| **Database** | PostgreSQL | Strong relational data support, array/JSONB storage, and good AI extensibility via pgvector. |
+| **Task Queue** | Celery + Redis | Accurate post scheduling and good load handling by distributing tasks across background workers. |
+| **AI LLM API** | Claude 3.5 Sonnet / Gemini 1.5 Pro | Claude produces the most natural creative scripts; Gemini's large context window suits long video processing. |
