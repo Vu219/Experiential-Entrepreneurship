@@ -183,7 +183,7 @@ The trend entities (`trend_research_sessions`, `trends`, `content_ideas`) and op
 
 ## 3. Implementation Roadmap
 
-We divide the project delivery into **4 main phases**:
+We divide the project delivery into **4 main phases**. The phases suggest a sensible order, but individual items can be delivered independently — completion status for every function is tracked as a checklist in [PLAN.md](./PLAN.md), which **must be updated whenever a function is completed**.
 
 ### Phase 1: Core Foundation & MVP (Weeks 1–3)
 * **Goal:** Build the core backend and AI service so users can define a Brand Profile and the Agent AI can generate draft content.

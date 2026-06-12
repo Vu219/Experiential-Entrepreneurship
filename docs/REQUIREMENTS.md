@@ -1,6 +1,6 @@
 # REQUIREMENTS.md — Functional Requirements (AIMA)
 
-> FRs listed by feature group. Use as a checklist during implementation.
+> FRs listed by feature group. Implementation status is tracked in [PLAN.md](./PLAN.md) — **whenever an FR is completed, check it off there in the same commit/PR.**
 > Current platform scope: **Facebook → Instagram → Threads** (in that order).
 
 ---

@@ -37,6 +37,14 @@ cd backend
 ./mvnw package           # Build JAR
 ```
 
+## 📋 Progress Tracking (MANDATORY)
+
+`docs/PLAN.md` is the implementation checklist for the whole project.
+
+- **Whenever any function/feature is completed (implemented + verified), update `docs/PLAN.md` in the same commit/PR**: change its `[ ]` to `[x]` and append the completion date.
+- Checklist items can be done in **any order** — there is no required sequence.
+- If scope changes, update `docs/PLAN.md` together with the related doc (REQUIREMENTS.md, etc.).
+
 ## 🧠 Behavioral Guidelines
 
 These principles help ensure clean code, surgical changes, and effective problem-solving.
