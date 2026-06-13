@@ -1,10 +1,17 @@
 [project]
-name = "datathon"
+name = "aima-ai"
 version = "0.1.0"
-description = "Add your description here"
+description = "AIMA AI service — LangChain agents (trend research, content generation, platform formatting, optimization)"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "dotenv>=0.9.9",
-    "requests>=2.34.2",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.5.0",
+    "langchain>=0.3.0",
+    "langchain-anthropic>=0.3.0",
+    "langchain-google-genai>=2.0.0",
+    "python-dotenv>=1.0.1",
+    "requests>=2.32.0",
 ]

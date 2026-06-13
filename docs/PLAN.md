@@ -40,18 +40,18 @@
 - [ ] FR-18b Expired token → account `Expired`, scheduled posts → `On Hold` `[BE]`
 
 ## 5. Trend Research (Agent AI)
-- [ ] FR-19 Scheduled research (2:00 AM daily) + "Research now" button; requires active Brand Profile & Strategy; no overlapping sessions `[BE][AI]`
-- [ ] FR-20 Filter trends by industry `[AI]`
-- [ ] FR-21 Relevance rating (High / Medium / Low) `[AI]`
-- [ ] FR-22 Create content ideas from trends `[AI]`
+- [ ] FR-19 Scheduled research (2:00 AM daily) + "Research now" button; requires active Brand Profile & Strategy; no overlapping sessions `[BE][AI]` — AI analysis (`POST /research`) done 2026-06-13; BE scheduling/session-guard pending
+- [x] FR-20 Filter trends by industry `[AI]` — done 2026-06-13 (AI svc)
+- [x] FR-21 Relevance rating (High / Medium / Low) `[AI]` — done 2026-06-13 (AI svc)
+- [x] FR-22 Create content ideas from trends `[AI]` — done 2026-06-13 (AI svc)
 - [ ] FR-23 Save research sessions `[BE]`
 
 ## 6. Content Generation (Agent AI)
-- [ ] FR-24 Generate from brand profile + strategy + trend + idea + platform `[AI]`
-- [ ] FR-25 Video script (hook, main content, shot suggestions, CTA) `[AI]`
-- [ ] FR-26 Caption / FR-27 Hashtags / FR-28 CTA `[AI]`
-- [ ] FR-29 Media prompt (text only — no media generation in MVP) `[AI]`
-- [ ] FR-30 Brand voice check `[AI]`
+- [x] FR-24 Generate from brand profile + strategy + trend + idea + platform `[AI]` — done 2026-06-13 (AI svc)
+- [x] FR-25 Video script (hook, main content, shot suggestions, CTA) `[AI]` — done 2026-06-13 (AI svc)
+- [x] FR-26 Caption / FR-27 Hashtags / FR-28 CTA `[AI]` — done 2026-06-13 (AI svc)
+- [x] FR-29 Media prompt (text only — no media generation in MVP) `[AI]` — done 2026-06-13 (AI svc)
+- [x] FR-30 Brand voice check `[AI]` — done 2026-06-13 (AI svc)
 - [ ] FR-31 Save drafts (`Draft`/`Generated`) `[BE]`
 - [ ] FR-32 Regenerate / FR-33 Manual edit / FR-34 Review before posting `[BE][FE]`
 
@@ -63,17 +63,17 @@
 - [ ] FR-39 Edit/regenerate then reschedule `[BE][FE]`
 
 ## 8. Platform Formatting
-- [ ] FR-40 Create one version per selected platform `[AI]`
-- [ ] FR-44 Facebook formatting (longer caption, clear CTA, image/video/link) `[AI]`
-- [ ] FR-42 Instagram formatting (vertical/square media, emotive caption, brand hashtags) `[AI]`
-- [ ] Threads formatting (short, conversational; per Threads API) `[AI]`
+- [x] FR-40 Create one version per selected platform `[AI]` — done 2026-06-13 (AI svc)
+- [x] FR-44 Facebook formatting (longer caption, clear CTA, image/video/link) `[AI]` — done 2026-06-13 (AI svc)
+- [x] FR-42 Instagram formatting (vertical/square media, emotive caption, brand hashtags) `[AI]` — done 2026-06-13 (AI svc)
+- [x] Threads formatting (short, conversational; per Threads API) `[AI]` — done 2026-06-13 (AI svc)
 - [ ] FR-46 Save each formatted `ContentVersion` `[BE]`
 
 *(FR-41 TikTok, FR-43 YouTube Shorts, FR-45 LinkedIn — out of current scope, do not implement yet.)*
 
 ## 9. Scheduling
 - [ ] FR-47 Create schedule (content, platform, date, time, status) `[BE][FE]`
-- [ ] FR-48 Golden hour suggestions (platform defaults → data-driven after ≥10 analyzed posts) `[BE][AI]`
+- [ ] FR-48 Golden hour suggestions (platform defaults → data-driven after ≥10 analyzed posts) `[BE][AI]` — AI endpoint (`POST /golden-hours`, defaults + data-driven) done 2026-06-13; BE scheduling integration pending
 - [ ] FR-49 Posting queue `[BE]`
 - [ ] FR-50 Update schedule / FR-51 Cancel schedule (unpublished only) `[BE][FE]`
 
@@ -87,12 +87,12 @@
 ## 11. Performance Analysis
 - [ ] FR-59 Collect metrics (views, likes, comments, shares, saves, CTR, conversion, watch time) at 24h/48h/7d `[BE]`
 - [ ] FR-60 Store in DB / FR-61 display to user / FR-62 compare posts `[BE][FE]`
-- [ ] FR-63 Success factor analysis (hook, caption, hashtags, CTA, media, timing, platform) `[AI]`
-- [ ] FR-64 Produce optimization insights `[AI]`
+- [x] FR-63 Success factor analysis (hook, caption, hashtags, CTA, media, timing, platform) `[AI]` — done 2026-06-13 (AI svc)
+- [x] FR-64 Produce optimization insights `[AI]` — done 2026-06-13 (AI svc)
 
 ## 12. Strategy Optimization
-- [ ] FR-65 Propose strategy adjustments from data `[AI]`
-- [ ] FR-66 Propose improvements for future posts `[AI]`
+- [x] FR-65 Propose strategy adjustments from data `[AI]` — done 2026-06-13 (AI svc)
+- [x] FR-66 Propose improvements for future posts `[AI]` — done 2026-06-13 (AI svc)
 - [ ] FR-67 Store adjustment history `[BE]`
 - [ ] FR-68 User accepts/rejects proposals `[BE][FE]`
 
@@ -119,7 +119,7 @@
 
 ## 17. Content Library
 - [ ] FR-87 View/filter/search all ContentItems `[BE][FE]`
-- [ ] FR-88 Reuse (regenerate creates a new item) `[BE][AI]`
+- [ ] FR-88 Reuse (regenerate creates a new item) `[BE][AI]` — AI supports it (`regenerate_from` on `POST /generate`) 2026-06-13; BE new-item creation pending
 - [ ] FR-89 Delete rules (`Draft`/`Generated` only; cascades to ContentVersions) `[BE]`
 
 ## UI Pages (UI_API.md)
