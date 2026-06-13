@@ -20,9 +20,9 @@
 - [x] FR-04 Profile — view/update personal information `[BE][FE]` — done 2026-06-12
 
 ## 2. Brand Profile
-- [ ] FR-05 Create brand profile (name, industry, description, voice, audience, goals, platforms, frequency, time slots) `[BE][FE]`
-- [ ] FR-06 Update / FR-07 View / FR-08 Delete `[BE][FE]`
-- [ ] FR-09 Validation (required fields, ≥1 platform, valid frequency) `[BE]`
+- [x] FR-05 Create brand profile (name, industry, description, voice, audience, goals, platforms, frequency, time slots) `[BE][FE]` — done 2026-06-13
+- [x] FR-06 Update / FR-07 View / FR-08 Delete `[BE][FE]` — done 2026-06-13
+- [x] FR-09 Validation (required fields, ≥1 platform, valid frequency) `[BE]` — done 2026-06-13
 
 ## 3. Content Strategy
 - [ ] FR-10 Create strategy (goals, content types, frequency, platforms, slots, audience, style, CTA) `[BE][FE]`

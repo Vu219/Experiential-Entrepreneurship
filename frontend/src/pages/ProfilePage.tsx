@@ -39,12 +39,20 @@ export default function ProfilePage() {
       <div className="mx-auto w-full max-w-lg bg-white rounded-lg shadow p-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900">My profile</h1>
-          <button
-            onClick={handleLogout}
-            className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
-          >
-            Log out
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate("/brand-profiles")}
+              className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              Brand profiles
+            </button>
+            <button
+              onClick={handleLogout}
+              className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              Log out
+            </button>
+          </div>
         </div>
         {message && (
           <p className="mb-4 rounded bg-green-50 border border-green-200 text-green-700 px-3 py-2 text-sm">
