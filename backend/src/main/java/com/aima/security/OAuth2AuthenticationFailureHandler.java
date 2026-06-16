@@ -22,10 +22,10 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
                                         AuthenticationException exception) throws IOException {
-        log.error("OAuth2 Ä‘Äƒng nháº­p tháº¥t báº¡i: {}", exception.getMessage());
+        log.error("OAuth2 đăng nhập thất bại: {}", exception.getMessage());
 
         String errorMsg = URLEncoder.encode(
-                exception.getMessage() != null ? exception.getMessage() : "ÄÄƒng nháº­p Google tháº¥t báº¡i",
+                exception.getMessage() != null ? exception.getMessage() : "Đăng nhập Google thất bại",
                 StandardCharsets.UTF_8
         );
 

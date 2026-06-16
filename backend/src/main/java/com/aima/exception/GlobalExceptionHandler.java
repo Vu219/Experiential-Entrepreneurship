@@ -88,7 +88,8 @@ public class GlobalExceptionHandler {
 
             log.info(attributes.toString());
         } catch (IllegalArgumentException e) {
-
+            // Validation message does not match an ErrorCode enum key -> deliberate fallback to INVALID_KEY.
+            log.warn("Validation message key '{}' not found in ErrorCode enum; falling back to INVALID_KEY", enumKey);
         }
 
         ApiResponse apiResponse = new ApiResponse();

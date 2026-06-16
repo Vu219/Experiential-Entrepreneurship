@@ -19,8 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,10 +37,11 @@ public class BrandProfileServiceImpl implements BrandProfileService {
     @Override
     public ApiResponse<BrandProfileResponse> create(String email, BrandProfileRequest request) {
         User user = currentUser(email);
-        BrandProfile profile = new BrandProfile();
+
+        BrandProfile profile = brandProfileMapper.toBrandProfile(request);
         profile.setUser(user);
-        apply(profile, request);
         BrandProfile saved = brandProfileRepository.save(profile);
+
         return ApiResponse.success("Tạo hồ sơ thương hiệu thành công",
                 brandProfileMapper.toBrandProfileResponse(saved));
     }
@@ -52,6 +51,7 @@ public class BrandProfileServiceImpl implements BrandProfileService {
     @Transactional(readOnly = true)
     public ApiResponse<List<BrandProfileResponse>> list(String email) {
         List<BrandProfile> profiles = brandProfileRepository.findByUser_IdAndDeletedAtIsNull(currentUser(email).getId());
+
         return ApiResponse.success("Lấy danh sách hồ sơ thương hiệu thành công",
                 brandProfileMapper.toBrandProfileResponseList(profiles));
     }
@@ -61,6 +61,7 @@ public class BrandProfileServiceImpl implements BrandProfileService {
     @Transactional(readOnly = true)
     public ApiResponse<BrandProfileResponse> get(String email, UUID id) {
         BrandProfile profile = find(currentUser(email).getId(), id);
+
         return ApiResponse.success("Lấy hồ sơ thương hiệu thành công",
                 brandProfileMapper.toBrandProfileResponse(profile));
     }
@@ -69,8 +70,10 @@ public class BrandProfileServiceImpl implements BrandProfileService {
     @Override
     public ApiResponse<BrandProfileResponse> update(String email, UUID id, BrandProfileRequest request) {
         BrandProfile profile = find(currentUser(email).getId(), id);
-        apply(profile, request);
+
+        brandProfileMapper.updateBrandProfile(profile, request);
         BrandProfile saved = brandProfileRepository.save(profile);
+
         return ApiResponse.success("Cập nhật hồ sơ thương hiệu thành công",
                 brandProfileMapper.toBrandProfileResponse(saved));
     }
@@ -92,19 +95,5 @@ public class BrandProfileServiceImpl implements BrandProfileService {
     private BrandProfile find(UUID userId, UUID id) {
         return brandProfileRepository.findByIdAndUser_IdAndDeletedAtIsNull(id, userId)
                 .orElseThrow(() -> new AppException(ErrorCode.BRAND_PROFILE_NOT_FOUND));
-    }
-
-    private void apply(BrandProfile profile, BrandProfileRequest request) {
-        profile.setBrandName(request.getBrandName().trim());
-        profile.setIndustry(request.getIndustry().trim());
-        profile.setDescription(request.getDescription());
-        profile.setBrandVoice(request.getBrandVoice());
-        profile.setTargetAudience(request.getTargetAudience().trim());
-        profile.setContentGoal(request.getContentGoal());
-        profile.setPlatforms(new HashSet<>(request.getPlatforms()));
-        profile.setPostingFrequency(request.getPostingFrequency());
-        profile.setPreferredTimes(request.getPreferredTimes() == null
-                ? new ArrayList<>()
-                : new ArrayList<>(request.getPreferredTimes()));
     }
 }

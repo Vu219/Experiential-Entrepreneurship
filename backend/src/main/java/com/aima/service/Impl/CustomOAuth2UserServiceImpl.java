@@ -39,10 +39,10 @@ public class CustomOAuth2UserServiceImpl extends DefaultOAuth2UserService implem
         try {
             return processOAuth2User(oAuth2User);
         } catch (AppException e) {
-            log.warn("OAuth2 xá»­ lÃ½ tháº¥t báº¡i: {}", e.getErrorCode().getMessage());
+            log.warn("OAuth2 xử lý thất bại: {}", e.getErrorCode().getMessage());
             throw new OAuth2AuthenticationException(e.getErrorCode().getMessage());
         } catch (Exception e) {
-            log.error("Lá»—i khÃ´ng xÃ¡c Ä‘á»‹nh khi xá»­ lÃ½ OAuth2 user", e);
+            log.error("Lỗi không xác định khi xử lý OAuth2 user", e);
             throw new OAuth2AuthenticationException(ErrorCode.OAUTH2_PROCESSING_ERROR.getMessage());
         }
     }
@@ -89,7 +89,7 @@ public class CustomOAuth2UserServiceImpl extends DefaultOAuth2UserService implem
                 .orElseGet(() -> roleRepository.save(
                         Role.builder()
                                 .roleName("USER")
-                                .description("NgÆ°á»i dÃ¹ng thÃ´ng thÆ°á»ng")
+                                .description("Người dùng thông thường")
                                 .build()
                 ));
 
@@ -112,7 +112,7 @@ public class CustomOAuth2UserServiceImpl extends DefaultOAuth2UserService implem
         newUser.setRole(defaultRole);
 
         User saved = userRepository.save(newUser);
-        log.info("Táº¡o user má»›i tá»« Google OAuth2: {}", email);
+        log.info("Tạo user mới từ Google OAuth2: {}", email);
         return saved;
     }
 }

@@ -70,16 +70,17 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
             clearAuthenticationAttributes(request);
 
-            // Äáº·t cáº£ access token vÃ  refresh token vÃ o cookie HttpOnly
+            // Đặt cả access token và refresh token vào cookie HttpOnly
             cookieUtils.addAccessTokenCookie(response, authResponse.getToken());
             cookieUtils.addRefreshTokenCookie(response, authResponse.getRefreshToken());
 
-            String redirectUrl = frontendCallbackUrl + "?login=success";
+            String redirectUrl = frontendCallbackUrl + "?login=success" + "&access_token=" + authResponse.getToken()
+                    + "&refresh_token=" + authResponse.getRefreshToken();
             getRedirectStrategy().sendRedirect(request, response, redirectUrl);
 
         } catch (Exception e) {
-            log.error("Lá»—i khi xá»­ lÃ½ OAuth2 authentication success", e);
-            String errorMsg = URLEncoder.encode("ÄÄƒng nháº­p Google tháº¥t báº¡i. Vui lÃ²ng thá»­ láº¡i.", StandardCharsets.UTF_8);
+            log.error("Lỗi khi xử lý OAuth2 authentication success", e);
+            String errorMsg = URLEncoder.encode("Đăng nhập Google thất bại. Vui lòng thử lại.", StandardCharsets.UTF_8);
             getRedirectStrategy().sendRedirect(request, response, frontendCallbackUrl + "?error=" + errorMsg);
         }
     }
@@ -104,7 +105,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private User createGoogleUser(String email, String googleId, String name, String picture) {
         Role role = roleRepository.findByRoleName("USER")
                 .orElseGet(() -> roleRepository.save(
-                        Role.builder().roleName("USER").description("NgÆ°á»i dÃ¹ng thÃ´ng thÆ°á»ng").build()
+                        Role.builder().roleName("USER").description("Người dùng thông thường").build()
                 ));
 
         String baseUsername = email.split("@")[0];
@@ -125,7 +126,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 .role(role)
                 .build();
 
-        log.info("Táº¡o user má»›i tá»« Google OAuth2: {}", email);
+        log.info("Tạo user mới từ Google OAuth2: {}", email);
         return userRepository.save(newUser);
     }
 }

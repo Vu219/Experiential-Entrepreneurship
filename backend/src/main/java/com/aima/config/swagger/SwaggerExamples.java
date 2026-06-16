@@ -34,12 +34,10 @@ public final class SwaggerExamples {
     // ─── Users ──────────────────────────────────────────
     public static final String REGISTER_REQUEST = """
             {
-              "username": "johndoe",
               "password": "Passw0rd",
               "fullName": "John Doe",
               "email": "john.doe@gmail.com",
-              "phone": "0901234567",
-              "roleId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+              "phone": "0901234567"
             }""";
 
     public static final String REGISTER_RESPONSE = """

@@ -63,7 +63,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     .valid(isValid)
                     .build();
         } catch (Exception e) {
-            log.error("Lá»—i khi xÃ¡c thá»±c token", e);
+            log.error("Lỗi khi xác thực token", e);
             return IntrospectResponse.builder().valid(false).build();
         }
     }
@@ -72,7 +72,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Transactional
     public void logout(LogoutRequest request, HttpServletRequest httpRequest, HttpServletResponse response)
             throws ParseException, JOSEException {
-        // Thu há»“i refresh token trong Redis + xoÃ¡ cookie.
+        // Thu hồi refresh token trong Redis + xoá cookie.
         cookieUtils.extractRefreshToken(httpRequest)
                 .ifPresent(token -> {
                     try {
@@ -89,7 +89,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         cookieUtils.clearRefreshTokenCookie(response);
         cookieUtils.clearAccessTokenCookie(response);
 
-        // Náº¿u FE cÃ²n gá»­i kÃ¨m access token thÃ¬ blacklist luÃ´n.
+        // Nếu FE còn gửi kèm access token thì blacklist luôn.
         if (request != null && request.getToken() != null && !request.getToken().isBlank()) {
             try {
                 var claims = jwtService.parseClaims(request.getToken());

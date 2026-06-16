@@ -1,5 +1,6 @@
 package com.aima.service.Impl;
 
+import com.aima.dto.response.MeResponse;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -37,17 +38,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public ApiResponse<UserResponse> registerUser(UserRegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername()))
-            throw new AppException(ErrorCode.USER_EXISTED);
-
         if (userRepository.existsByEmail(request.getEmail()))
             throw new AppException(ErrorCode.EMAIL_EXISTED);
 
         User user = userMapper.toUser(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        Role role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+        Role role = roleRepository.findByRoleName("USER")
+                .orElseThrow(() -> new AppException(ErrorCode.DEFAULT_ROLE_NOT_FOUND));
         user.setRole(role);
 
         user.setStatus("ACTIVE");
@@ -79,5 +77,16 @@ public class UserServiceImpl implements UserService {
         UserResponse userResponse = userMapper.toUserResponse(user);
 //        resolveAvatar(userResponse);
         return ApiResponse.success("Lấy thông tin Người dùng thành công", userResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApiResponse<MeResponse> getCurrentUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        MeResponse meResponse = userMapper.toMeResponse(user);
+
+        return ApiResponse.success("Lấy thông tin người dùng hiện tại thành công", meResponse);
     }
 }

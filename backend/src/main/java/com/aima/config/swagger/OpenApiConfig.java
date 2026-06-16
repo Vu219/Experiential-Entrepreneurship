@@ -26,17 +26,24 @@ public class OpenApiConfig {
     public static final String BEARER_SCHEME = "bearerAuth";
     public static final String COOKIE_SCHEME = "cookieAuth";
 
-    @Value("${server.port:8088}")
+    @Value("${server.port:8082}")
     private String serverPort;
 
-    @Value("${server.servlet.context-path:/api/uml}")
+    @Value("${server.servlet.context-path:/api/aima}")
     private String contextPath;
 
+//    @Value("${PRODUCTION_URL:...}")
+//    private String productionUrl;
+
     @Bean
-    public OpenAPI umlOpenAPI() {
+    public OpenAPI aimaOpenAPI() {
         final Server localServer = new Server()
                 .url("http://localhost:" + serverPort + contextPath)
                 .description("Local development server");
+
+//        final Server productionServer = new Server()
+//                .url(productionUrl)
+//                .description("Production server");
 
         final SecurityScheme bearerScheme = new SecurityScheme()
                 .name(BEARER_SCHEME)
@@ -99,10 +106,10 @@ public class OpenApiConfig {
 
     private Info apiInfo() {
         return new Info()
-                .title("UML Diagram Studio API")
+                .title("AIMA API")
                 .version("0.0.1-SNAPSHOT")
                 .description("""
-                        REST API for the DiaUML Studio platform: authentication (HS512 JWT),
+                        REST API for the AIMA platform: authentication (HS512 JWT),
                         user registration and account management.
 
                         **Authentication**
@@ -124,8 +131,8 @@ public class OpenApiConfig {
                         - `AccessDeniedException` → 403
                         - Uncaught `Exception` → 500 (code 9999)""")
                 .contact(new Contact()
-                        .name("SU26 UML Project Team")
-                        .email("uml-admin@educare.com"))
+                        .name("AIMA Project Team")
+                        .email("aima-admin@educare.com"))
                 .license(new License().name("Proprietary"));
     }
 }

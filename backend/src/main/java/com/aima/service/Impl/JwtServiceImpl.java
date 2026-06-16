@@ -39,7 +39,7 @@ public class JwtServiceImpl implements JwtService {
 
             JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
                     .subject(user.getEmail())
-                    .issuer("DiaUML-Studio")
+                    .issuer("AIMA")
                     .issueTime(new Date())
                     .expirationTime(new Date(
                             Instant.now().plusSeconds(expirationSeconds).toEpochMilli()
