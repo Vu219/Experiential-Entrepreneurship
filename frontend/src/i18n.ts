@@ -1,0 +1,122 @@
+import type { Lang } from './types';
+
+// All UI strings, keyed by language. Keep keys identical across vi/en.
+export const STRINGS = {
+  vi: {
+    // nav / landing
+    nHome: 'Trang chủ', nFeatures: 'Tính năng', nPricing: 'Bảng giá', nResources: 'Tài nguyên',
+    bookDemo: 'Đặt Demo', tryAima: 'Dùng thử AIMA', langLabel: 'Tiếng Việt',
+    heroBadge: 'Trợ lý marketing thông minh', heroT1: 'Tương lai của Marketing là', heroT2: 'Tự động hoá',
+    heroSub: 'AIMA giúp bạn tự động hoá toàn bộ quy trình marketing — từ nghiên cứu xu hướng, tạo nội dung, lên lịch đăng bài đến phân tích hiệu quả trên mọi nền tảng.',
+    statPlatforms: 'Nền tảng tích hợp', statAuto: 'Đăng bài tự động', statSpeed: 'Tốc độ sáng tạo',
+    flowTitle: 'Một quy trình, trọn vẹn', flowSub: 'AIMA đồng hành cùng bạn qua từng bước của content marketing.',
+    authIntro: 'AIMA giúp bạn tự động hoá toàn bộ quy trình marketing từ nghiên cứu xu hướng, tạo nội dung, lên lịch đăng bài đến phân tích hiệu quả.',
+    // auth
+    loginSub: 'Đăng nhập để tiếp tục cùng AIMA', lPassword: 'MẬT KHẨU', phEmail: 'Nhập email của bạn', phPassword: 'Nhập mật khẩu',
+    remember: 'Ghi nhớ đăng nhập', forgot: 'Quên mật khẩu?', signIn: 'ĐĂNG NHẬP', orSignIn: 'Hoặc đăng nhập với',
+    noAccount: 'Chưa có tài khoản?', signUpNow: 'Đăng ký ngay',
+    regTitle: 'Tạo tài khoản AIMA', regSub: 'Bắt đầu hành trình marketing thông minh cùng AIMA',
+    lName: 'HỌ TÊN', phName: 'Nhập họ và tên của bạn', lConfirm: 'XÁC NHẬN MẬT KHẨU', phConfirm: 'Nhập lại mật khẩu',
+    agreePre: 'Tôi đồng ý với', terms: 'Điều khoản sử dụng', and: 'và', privacy: 'Chính sách bảo mật',
+    signUp: 'ĐĂNG KÝ', haveAccount: 'Đã có tài khoản?', signInNow: 'Đăng nhập ngay',
+    logoutTitle: 'Đăng xuất', logoutMsg: 'Bạn đã đăng xuất khỏi tài khoản AIMA. Hẹn gặp lại bạn!', signOut: 'Đăng xuất',
+    loginAgain: 'ĐĂNG NHẬP LẠI', or: 'Hoặc', backHome: 'Về trang chủ',
+    processing: 'Đang xử lý...',
+    // validation
+    errEmailReq: 'Vui lòng nhập email', errEmailBad: 'Email không hợp lệ', errPwReq: 'Vui lòng nhập mật khẩu',
+    errPwShort: 'Mật khẩu tối thiểu 6 ký tự', errNameReq: 'Vui lòng nhập họ tên', errConfirmReq: 'Vui lòng xác nhận mật khẩu',
+    errConfirmBad: 'Mật khẩu không khớp', errAgree: 'Bạn cần đồng ý với điều khoản',
+    // shell
+    secMain: 'TỔNG QUAN', upgradeTitle: 'Nâng cấp Pro', upgradeMsg: 'Mở khoá AI không giới hạn & phân tích nâng cao.', upgradeBtn: 'Nâng cấp ngay',
+    searchPh: 'Tìm nội dung, chiến dịch...', greeting: 'Chào', dashHeadline: 'Hôm nay AIMA đã sẵn sàng',
+    dashHeadSub: '3 ý tưởng nội dung mới và 2 bài đăng đang chờ duyệt. Hãy bắt đầu sáng tạo!', createNew: 'Tạo nội dung mới',
+    perfTitle: 'Hiệu quả nội dung', perfSub: 'Lượt tiếp cận 7 ngày qua', platTitle: 'Theo nền tảng', platSub: 'Phân bổ tương tác',
+    recentTitle: 'Bài đăng gần đây', viewAll: 'Xem tất cả', colPost: 'Nội dung', colPlatform: 'Nền tảng', colStatus: 'Trạng thái', colReach: 'Tiếp cận', colDate: 'Ngày',
+    navDashboard: 'Bảng điều khiển', navCreate: 'Tạo nội dung', navCalendar: 'Lịch đăng bài', navAnalytics: 'Phân tích',
+    navTrends: 'Xu hướng', navBrand: 'Hồ sơ thương hiệu', navProfile: 'Hồ sơ', navSettings: 'Cài đặt', navAdmin: 'Quản trị hệ thống',
+    stTotalReach: 'Tổng tiếp cận', stEngagement: 'Tỷ lệ tương tác', stPosts: 'Bài đã đăng', stScheduled: 'Đang lên lịch',
+    stPublished: 'Đã đăng', stScheduledS: 'Lên lịch', stDraft: 'Nháp', stReview: 'Chờ duyệt',
+    // generic actions
+    save: 'Lưu thay đổi', saved: '✓ Đã lưu', cancel: 'Huỷ', connect: 'Kết nối', connected: 'Đã kết nối', regenerate: 'Tạo lại', use: 'Sử dụng', notConnected: 'Chưa kết nối',
+    // create
+    crStudio: 'Xưởng nội dung', crIdeaTitle: 'Ý tưởng đề xuất', crIdeaSub: 'AI gợi ý dựa trên xu hướng ngành & thương hiệu của bạn', crScore: 'Điểm tiềm năng',
+    crTopic: 'Chủ đề / Prompt', crPlatform: 'Nền tảng', crTone: 'Giọng điệu', crGenerate: '✨ Tạo nội dung với AI',
+    crTopicPh: 'VD: 5 mẹo giúp content creator tiết kiệm thời gian...',
+    crScript: 'Kịch bản', crCaption: 'Caption', crHashtag: 'Hashtag', crMedia: 'Gợi ý hình ảnh', crMediaHint: 'AIMA sẽ tạo media phù hợp với từng nền tảng',
+    // calendar
+    calMonth: 'Tháng 6, 2026', calUpcoming: 'Sắp đăng', calAuto: 'Tự động đăng', calNew: '+ Lên lịch bài mới',
+    // analytics
+    anReach: 'Lượt tiếp cận theo tháng', anTop: 'Nội dung hiệu quả nhất', anAudience: 'Phân bổ khán giả', anExport: 'Xuất báo cáo',
+    // trends
+    trIndustry: 'Ngành hàng', trHot: 'Chủ đề thịnh hành', trTags: 'Hashtag nổi bật', trVol: 'lượt nhắc',
+    // brand
+    brName: 'Tên thương hiệu', brIndustry: 'Ngành hàng', brSlogan: 'Slogan', brAudience: 'Khách hàng mục tiêu', brToneT: 'Giọng điệu thương hiệu', brColors: 'Màu thương hiệu', brChannels: 'Kênh kết nối',
+    brLoadErr: 'Không tải được hồ sơ thương hiệu',
+    // profile
+    prEdit: 'Chỉnh sửa hồ sơ', prBio: 'Giới thiệu', prActivity: 'Hoạt động gần đây',
+    prPhone: 'SỐ ĐIỆN THOẠI', prDob: 'NGÀY SINH',
+    // settings
+    seAccounts: 'Tài khoản liên kết', seAccountsSub: 'Kết nối mạng xã hội để tự động đăng bài', seNotif: 'Thông báo', seLang: 'Ngôn ngữ', seTheme: 'Giao diện', seThemeSub: 'Chọn bảng màu thương hiệu',
+    // admin
+    adRecent: 'Người dùng gần đây', adPlanDist: 'Phân bổ gói', adHealth: 'Tình trạng hệ thống',
+    colName: 'Tên', colPlan: 'Gói', colPosts: 'Bài đăng', colJoined: 'Tham gia',
+    pageSubDashboard: 'Trung tâm điều khiển nội dung', pageSubCreate: 'Xưởng nội dung AI', pageSubCalendar: 'Lên lịch & tự động đăng bài',
+    pageSubAnalytics: 'Đo lường điều quan trọng', pageSubTrends: 'Điều gì đang thịnh hành', pageSubBrand: 'Bản sắc thương hiệu của bạn',
+    pageSubProfile: 'Tài khoản của bạn', pageSubSettings: 'Tùy chọn & tích hợp', pageSubAdmin: 'Quản trị toàn hệ thống',
+    userPlan: 'Gói Premium',
+  },
+  en: {
+    nHome: 'Home', nFeatures: 'Features', nPricing: 'Pricing', nResources: 'Resources',
+    bookDemo: 'Book Demo', tryAima: 'Try AIMA', langLabel: 'English',
+    heroBadge: 'Your smart marketing assistant', heroT1: 'The Future of Marketing is', heroT2: 'Autonomous',
+    heroSub: 'AIMA automates your entire marketing workflow — from trend research and content creation to scheduling and performance analytics across every platform.',
+    statPlatforms: 'Integrated platforms', statAuto: 'Auto publishing', statSpeed: 'Creation speed',
+    flowTitle: 'One seamless workflow', flowSub: 'AIMA walks with you through every step of content marketing.',
+    authIntro: 'AIMA automates your entire marketing workflow from trend research, content creation, scheduling to performance analytics.',
+    loginSub: 'Sign in to continue with AIMA', lPassword: 'PASSWORD', phEmail: 'Enter your email', phPassword: 'Enter your password',
+    remember: 'Remember me', forgot: 'Forgot password?', signIn: 'SIGN IN', orSignIn: 'Or sign in with',
+    noAccount: "Don't have an account?", signUpNow: 'Sign up now',
+    regTitle: 'Create your AIMA account', regSub: 'Start your smart marketing journey with AIMA',
+    lName: 'FULL NAME', phName: 'Enter your full name', lConfirm: 'CONFIRM PASSWORD', phConfirm: 'Re-enter your password',
+    agreePre: 'I agree to the', terms: 'Terms of Service', and: 'and', privacy: 'Privacy Policy',
+    signUp: 'SIGN UP', haveAccount: 'Already have an account?', signInNow: 'Sign in now',
+    logoutTitle: 'Logged out', logoutMsg: "You've been logged out of your AIMA account. See you soon!", signOut: 'Log out',
+    loginAgain: 'LOG IN AGAIN', or: 'Or', backHome: 'Back to home',
+    processing: 'Processing...',
+    errEmailReq: 'Please enter your email', errEmailBad: 'Invalid email', errPwReq: 'Please enter your password',
+    errPwShort: 'Password must be at least 6 characters', errNameReq: 'Please enter your name', errConfirmReq: 'Please confirm your password',
+    errConfirmBad: 'Passwords do not match', errAgree: 'You must accept the terms',
+    secMain: 'OVERVIEW', upgradeTitle: 'Upgrade to Pro', upgradeMsg: 'Unlock unlimited AI & advanced analytics.', upgradeBtn: 'Upgrade now',
+    searchPh: 'Search content, campaigns...', greeting: 'Hi', dashHeadline: 'AIMA is ready for you today',
+    dashHeadSub: '3 new content ideas and 2 posts awaiting approval. Let’s start creating!', createNew: 'Create content',
+    perfTitle: 'Content performance', perfSub: 'Reach over last 7 days', platTitle: 'By platform', platSub: 'Engagement split',
+    recentTitle: 'Recent posts', viewAll: 'View all', colPost: 'Content', colPlatform: 'Platform', colStatus: 'Status', colReach: 'Reach', colDate: 'Date',
+    navDashboard: 'Dashboard', navCreate: 'Create', navCalendar: 'Calendar', navAnalytics: 'Analytics',
+    navTrends: 'Trends', navBrand: 'Brand profile', navProfile: 'Profile', navSettings: 'Settings', navAdmin: 'Administration',
+    stTotalReach: 'Total reach', stEngagement: 'Engagement rate', stPosts: 'Posts published', stScheduled: 'Scheduled',
+    stPublished: 'Published', stScheduledS: 'Scheduled', stDraft: 'Draft', stReview: 'In review',
+    save: 'Save changes', saved: '✓ Saved', cancel: 'Cancel', connect: 'Connect', connected: 'Connected', regenerate: 'Regenerate', use: 'Use', notConnected: 'Not connected',
+    crStudio: 'Content studio', crIdeaTitle: 'Suggested ideas', crIdeaSub: 'AI suggestions based on industry trends & your brand', crScore: 'Potential',
+    crTopic: 'Topic / Prompt', crPlatform: 'Platform', crTone: 'Tone', crGenerate: '✨ Generate with AI',
+    crTopicPh: 'e.g. 5 tips that save content creators time...',
+    crScript: 'Script', crCaption: 'Caption', crHashtag: 'Hashtags', crMedia: 'Media suggestion', crMediaHint: 'AIMA will generate media tailored per platform',
+    calMonth: 'June 2026', calUpcoming: 'Upcoming', calAuto: 'Auto-publish', calNew: '+ Schedule new post',
+    anReach: 'Monthly reach', anTop: 'Top performing content', anAudience: 'Audience breakdown', anExport: 'Export report',
+    trIndustry: 'Industry', trHot: 'Trending topics', trTags: 'Hot hashtags', trVol: 'mentions',
+    brName: 'Brand name', brIndustry: 'Industry', brSlogan: 'Slogan', brAudience: 'Target audience', brToneT: 'Brand voice', brColors: 'Brand colors', brChannels: 'Connected channels',
+    brLoadErr: 'Could not load brand profile',
+    prEdit: 'Edit profile', prBio: 'Bio', prActivity: 'Recent activity',
+    prPhone: 'PHONE', prDob: 'DATE OF BIRTH',
+    seAccounts: 'Connected accounts', seAccountsSub: 'Connect social accounts to auto-publish', seNotif: 'Notifications', seLang: 'Language', seTheme: 'Appearance', seThemeSub: 'Choose your brand palette',
+    adRecent: 'Recent users', adPlanDist: 'Plan distribution', adHealth: 'System health',
+    colName: 'Name', colPlan: 'Plan', colPosts: 'Posts', colJoined: 'Joined',
+    pageSubDashboard: 'Your content command center', pageSubCreate: 'AI content studio', pageSubCalendar: 'Plan & auto-publish',
+    pageSubAnalytics: 'Measure what matters', pageSubTrends: 'What is trending now', pageSubBrand: 'Your brand identity',
+    pageSubProfile: 'Your account', pageSubSettings: 'Preferences & integrations', pageSubAdmin: 'System administration',
+    userPlan: 'Premium Plan',
+  },
+} as const;
+
+export type Dict = (typeof STRINGS)['vi'];
+
+export const getDict = (lang: Lang): Dict => STRINGS[lang] as Dict;

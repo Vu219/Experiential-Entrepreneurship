@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
+    strictPort: true,
     proxy: {
       // Backend chạy ở cổng 8082 với context-path /api/aima (xem backend/.env).
       // FE gọi /api/... → proxy đổi thành /api/aima/... rồi forward sang backend.
