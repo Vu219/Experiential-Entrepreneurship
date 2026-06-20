@@ -14,7 +14,7 @@ interface Item {
 }
 
 export default function Sidebar() {
-  const { t, route, go, brandGradient } = useApp();
+  const { t, route, go, brandGradient, logout } = useApp();
   const { isMobile } = useBreakpoint();
   const { sidebarCollapsed, toggleSidebar, autoCollapse, toggleAutoCollapse, setSidebarCollapsed } = useUiStore();
   const [hover, setHover] = useState(false);
@@ -84,18 +84,22 @@ export default function Sidebar() {
     );
   };
 
-  const arrowBtn: CSSProperties = {
+  const floatBtn: CSSProperties = {
+    position: 'absolute',
+    top: 78,
+    right: -15,
     width: 30,
     height: 30,
-    borderRadius: 9,
+    borderRadius: '50%',
     border: '1px solid #ece8f6',
-    background: '#faf8ff',
+    background: '#fff',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
     color: '#7c5cff',
-    flex: 'none',
+    boxShadow: '0 6px 16px -6px rgba(124,92,255,.55)',
+    zIndex: 5,
   };
   const arrowTitle = autoCollapse ? t.sbPin : collapsed ? t.sbExpand : t.sbCollapse;
 
@@ -121,8 +125,8 @@ export default function Sidebar() {
         transition: 'width .2s ease, padding .2s ease',
       }}
     >
-      {/* Hàng trên: logo + nút mũi tên đóng/mở */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : collapsed ? 'center' : 'space-between', gap: 10, padding: isMobile ? '0 6px 0 0' : '4px 4px 18px', flex: 'none' }}>
+      {/* Hàng trên: logo */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : collapsed ? 'center' : 'flex-start', gap: 10, padding: isMobile ? '0 6px 0 0' : '4px 4px 18px', flex: 'none' }}>
         <button
           onClick={() => go('landing')}
           title={t.nHome}
@@ -131,17 +135,14 @@ export default function Sidebar() {
         >
           <img src="/aima-logo.png" alt="AIMA" style={{ height: 38, width: 'auto' }} />
         </button>
-        {!isMobile && !collapsed && (
-          <button onClick={onArrow} title={arrowTitle} aria-label={arrowTitle} style={arrowBtn}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M15 6l-6 6 6 6" /></svg>
-          </button>
-        )}
       </div>
 
-      {/* Khi thu gọn: nút mở rộng đặt ngay dưới logo */}
-      {!isMobile && collapsed && (
-        <button onClick={onArrow} title={arrowTitle} aria-label={arrowTitle} style={{ ...arrowBtn, alignSelf: 'center', marginBottom: 12 }}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+      {/* Nút tròn nổi đè lên viền phân cách: thu gọn/mở rộng sidebar */}
+      {!isMobile && (
+        <button onClick={onArrow} title={arrowTitle} aria-label={arrowTitle} style={floatBtn}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+            <path d={collapsed ? 'M9 6l6 6-6 6' : 'M15 6l-6 6 6 6'} />
+          </svg>
         </button>
       )}
 
@@ -163,6 +164,31 @@ export default function Sidebar() {
           )}
           <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {bottomItems.map(renderItem)}
+            <button
+              onClick={logout}
+              title={collapsed ? t.signOut : undefined}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                width: '100%',
+                whiteSpace: 'nowrap',
+                border: 'none',
+                borderRadius: 12,
+                padding: collapsed ? '11px 0' : '11px 13px',
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'background .15s',
+                textAlign: 'left',
+                background: 'transparent',
+                color: '#d6336c',
+              }}
+            >
+              <Icon path={ICON.logout} stroke="#e25c84" />
+              {!collapsed && <span style={{ flex: 1, textAlign: 'left' }}>{t.signOut}</span>}
+            </button>
           </nav>
         </div>
       )}

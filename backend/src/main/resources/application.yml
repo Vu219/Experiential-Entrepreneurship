@@ -68,7 +68,7 @@ spring:
             scope: openid,profile,email
         provider:
           google:
-            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth?prompt=select_account
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth?prompt=select_account%20consent
 
 jwt:
   signerKey: ${JWT_SIGNER_KEY}

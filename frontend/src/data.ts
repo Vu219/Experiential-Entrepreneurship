@@ -16,6 +16,7 @@ export const ICON = {
   admin: 'M12 3l8 3v6c0 4.5-3 7.5-8 9-5-1.5-8-4.5-8-9V6z',
   eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z',
   bell: 'M18 8a6 6 0 10-12 0c0 7-3 8-3 8h18s-3-1-3-8M13.7 21a2 2 0 01-3.4 0',
+  logout: 'M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3 M10 17l5-5-5-5 M15 12H3',
 } as const;
 
 const P = (lang: Lang, vi: string, en: string) => (lang === 'en' ? en : vi);

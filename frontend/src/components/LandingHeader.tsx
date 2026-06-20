@@ -51,6 +51,14 @@ export default function LandingHeader() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [setScrolled]);
 
+  // Khoá cuộn body khi menu mobile mở (overflow:hidden) để nền không trôi.
+  useEffect(() => {
+    if (!(isMobile && mobileOpen)) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [isMobile, mobileOpen]);
+
   const items = navItems(t);
 
   const innerStyle: CSSProperties = {
@@ -125,9 +133,18 @@ export default function LandingHeader() {
         </header>
       </div>
 
+      {/* Backdrop tối mờ phủ toàn trang khi menu mobile mở (click để đóng) */}
+      {isMobile && mobileOpen && (
+        <div
+          onClick={closeMobile}
+          aria-hidden
+          style={{ position: "fixed", inset: 0, zIndex: 98, background: "rgba(0,0,0,.4)", backdropFilter: "blur(1px)", WebkitBackdropFilter: "blur(1px)", pointerEvents: "auto" }}
+        />
+      )}
+
       {/* Panel menu mobile */}
       {isMobile && mobileOpen && (
-        <div style={{ position: "fixed", top: scrolled ? 70 : 78, left: "50%", transform: "translateX(-50%)", width: "92%", maxWidth: 460, zIndex: 99, background: "#fff", border: "1px solid #ece8f6", borderRadius: 18, boxShadow: "0 28px 56px -26px rgba(80,40,140,.5)", padding: 16, pointerEvents: "auto" }}>
+        <div style={{ position: "fixed", top: scrolled ? 70 : 78, left: "50%", transform: "translateX(-50%)", width: "90%", maxWidth: 460, zIndex: 99, background: "#fff", border: "1px solid #ece8f6", borderRadius: 18, boxShadow: "0 28px 56px -26px rgba(80,40,140,.5)", padding: 16, pointerEvents: "auto" }}>
           <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {items.map((it, i) => (
               <a

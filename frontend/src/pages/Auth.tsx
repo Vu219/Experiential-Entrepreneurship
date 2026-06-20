@@ -151,7 +151,13 @@ export default function Auth() {
       )}
 
       {/* Form panel */}
-      <div style={{ width: isMobile ? '100%' : 'min(48%,640px)', background: '#fff', padding: isMobile ? '30px 20px' : '40px 56px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
+      <div style={{ width: isMobile ? '100%' : 'min(48%,640px)', background: '#fff', padding: isMobile ? '64px 20px 30px' : '56px 64px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
+        <div style={{ position: 'absolute', top: isMobile ? 18 : 32, left: isMobile ? 18 : 48 }}>
+          <button onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', fontSize: 15, fontWeight: 600, color: '#4b4660', cursor: 'pointer' }}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6b6680" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+            {t.backToHome}
+          </button>
+        </div>
         <div style={{ position: 'absolute', top: isMobile ? 18 : 32, right: isMobile ? 18 : 48 }}>
           <button onClick={toggleLang} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', fontSize: 15, fontWeight: 600, color: '#4b4660', cursor: 'pointer' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b6680" strokeWidth={1.7}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" strokeLinecap="round" /></svg>
@@ -160,8 +166,8 @@ export default function Auth() {
         </div>
 
         {route === 'login' && (
-          <div style={{ maxWidth: 400, width: '100%', margin: '0 auto' }}>
-            <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 40, margin: 0, letterSpacing: '-.02em' }}>Welcome to AIMA!!</h2>
+          <div style={{ maxWidth: 400, width: '100%', margin: '0 auto', padding: isMobile ? 0 : '8px 0' }}>
+            <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 40, margin: 0, letterSpacing: '-.02em' }}>{t.loginTitle}</h2>
             <p style={{ fontSize: 15, color: '#6b6680', margin: '8px 0 30px' }}>{t.loginSub}</p>
             {notice && <div style={{ fontSize: 13, color: '#16a34a', background: '#e8f8ee', border: '1px solid #cdeed8', borderRadius: 10, padding: '10px 13px', marginBottom: 16 }}>{notice}</div>}
             <form onSubmit={submitLogin}>
@@ -190,7 +196,7 @@ export default function Auth() {
               {errors.submit && <div style={{ ...errStyle, marginTop: 0, marginBottom: 12 }}>{errors.submit}</div>}
               <button type="submit" disabled={submitting} style={btnPrimary}>{submitting ? t.processing : t.signIn}</button>
             </form>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '24px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '36px 0 24px' }}>
               <div style={{ flex: 1, height: 1, background: '#ece8f5' }} />
               <span style={{ fontSize: 13, color: '#8a85a0' }}>{t.orSignIn}</span>
               <div style={{ flex: 1, height: 1, background: '#ece8f5' }} />

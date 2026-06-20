@@ -12,6 +12,7 @@ export const STRINGS = {
     flowTitle: 'Một quy trình, trọn vẹn', flowSub: 'AIMA đồng hành cùng bạn qua từng bước của content marketing.',
     authIntro: 'AIMA giúp bạn tự động hoá toàn bộ quy trình marketing từ nghiên cứu xu hướng, tạo nội dung, lên lịch đăng bài đến phân tích hiệu quả.',
     // auth
+    loginTitle: 'Chào mừng đến với AIMA', backToHome: 'Quay lại trang chủ',
     loginSub: 'Đăng nhập để tiếp tục cùng AIMA', lPassword: 'MẬT KHẨU', phEmail: 'Nhập email của bạn', phPassword: 'Nhập mật khẩu',
     remember: 'Ghi nhớ đăng nhập', forgot: 'Quên mật khẩu?', signIn: 'ĐĂNG NHẬP', orSignIn: 'Hoặc đăng nhập với',
     noAccount: 'Chưa có tài khoản?', signUpNow: 'Đăng ký ngay',
@@ -85,6 +86,7 @@ export const STRINGS = {
     statPlatforms: 'Integrated platforms', statAuto: 'Auto publishing', statSpeed: 'Creation speed',
     flowTitle: 'One seamless workflow', flowSub: 'AIMA walks with you through every step of content marketing.',
     authIntro: 'AIMA automates your entire marketing workflow from trend research, content creation, scheduling to performance analytics.',
+    loginTitle: 'Welcome to AIMA', backToHome: 'Back to home',
     loginSub: 'Sign in to continue with AIMA', lPassword: 'PASSWORD', phEmail: 'Enter your email', phPassword: 'Enter your password',
     remember: 'Remember me', forgot: 'Forgot password?', signIn: 'SIGN IN', orSignIn: 'Or sign in with',
     noAccount: "Don't have an account?", signUpNow: 'Sign up now',
