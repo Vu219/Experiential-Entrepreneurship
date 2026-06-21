@@ -19,7 +19,7 @@ export default function GoogleCallbackPage() {
     // Gọi /me để lấy danh tính rồi điều hướng theo trạng thái hồ sơ.
     refreshUser().then((me) => {
       if (me) {
-        navigate(me.profileCompleted ? "/profile" : "/complete-profile", {
+        navigate(me.profileCompleted ? "/dashboard" : "/complete-profile", {
           replace: true,
         });
       } else {

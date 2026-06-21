@@ -9,7 +9,7 @@ const CONTACT_EMAIL = 'aimarketing.aima@gmail.com';
 
 export default function LandingPage() {
   const { t, lang, go, brandGradient, toggleLang } = useApp();
-  const { isMobile, isTablet } = useBreakpoint();
+  const { isMobile, isTablet, width } = useBreakpoint();
   const cards = flowCards(lang);
   const stacked = isMobile || isTablet;
 
@@ -21,7 +21,7 @@ export default function LandingPage() {
       <LandingHeader />
 
       <div
-        className="view-pop"
+        className="view-pop overflow-x-hidden"
         style={{
           minHeight: '100vh',
           background:
@@ -29,35 +29,35 @@ export default function LandingPage() {
         }}
       >
         <section id="home" className="scroll-anchor" style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '96px 18px 44px' : '120px 28px 60px', display: 'grid', gridTemplateColumns: stacked ? '1fr' : '1.05fr .95fr', gap: stacked ? 28 : 40, alignItems: 'center' }}>
-          <div style={{ textAlign: isMobile ? 'center' : 'left' }}>
+          <div className="min-w-0 max-w-full" style={{ textAlign: isMobile ? 'center' : 'left' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: '#fff', border: '1px solid #ece8f7', borderRadius: 999, padding: '7px 15px', fontSize: 13, fontWeight: 600, color: '#7c3aed', boxShadow: '0 6px 18px -12px rgba(124,58,237,.5)' }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: brandGradient }} />
               {t.heroBadge}
             </div>
-            <h1 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: isMobile ? 34 : 62, lineHeight: 1.06, letterSpacing: '-.02em', margin: '20px 0 0', color: '#171327' }}>
+            <h1 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: isMobile ? (width >= 640 ? 36 : 30) : 62, lineHeight: 1.06, letterSpacing: '-.02em', margin: '20px 0 0', color: '#171327', overflowWrap: 'break-word' }}>
               {t.heroT1}
               <br />
               <span className="gradtext">{t.heroT2}</span>
             </h1>
             <p style={{ fontSize: isMobile ? 16 : 18, lineHeight: 1.6, color: '#5b5670', maxWidth: 480, margin: isMobile ? '20px auto 0' : '22px 0 0', padding: isMobile ? '0 6px' : 0 }}>{t.heroSub}</p>
             <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 14, marginTop: 34, flexWrap: 'wrap', alignItems: isMobile ? 'stretch' : 'center' }}>
-              <button className="btn-grad" onClick={() => go('register')} style={{ border: 'none', borderRadius: 14, padding: '16px 30px', fontWeight: 700, fontSize: 16, color: '#fff', background: brandGradient, boxShadow: '0 18px 34px -14px rgba(139,92,246,.65)', cursor: 'pointer', width: isMobile ? '100%' : undefined }}>{t.bookDemo}</button>
-              <button className="btn-outline" onClick={() => go('login')} style={{ border: '1.5px solid #d9cef5', borderRadius: 14, padding: '16px 30px', fontWeight: 700, fontSize: 16, color: '#7c3aed', background: '#fff', cursor: 'pointer', width: isMobile ? '100%' : undefined }}>{t.tryAima}</button>
+              <button className="btn-grad" onClick={() => go('register')} style={{ border: 'none', borderRadius: 14, padding: isMobile ? '13px 20px' : '16px 30px', fontWeight: 700, fontSize: isMobile ? 14 : 16, color: '#fff', background: brandGradient, boxShadow: '0 18px 34px -14px rgba(139,92,246,.65)', cursor: 'pointer', width: isMobile ? '100%' : undefined, maxWidth: '100%' }}>{t.bookDemo}</button>
+              <button className="btn-outline" onClick={() => go('login')} style={{ border: '1.5px solid #d9cef5', borderRadius: 14, padding: isMobile ? '13px 20px' : '16px 30px', fontWeight: 700, fontSize: isMobile ? 14 : 16, color: '#7c3aed', background: '#fff', cursor: 'pointer', width: isMobile ? '100%' : undefined, maxWidth: '100%' }}>{t.tryAima}</button>
             </div>
-            <div style={{ display: isMobile ? 'grid' : 'flex', gridTemplateColumns: isMobile ? 'repeat(3,1fr)' : undefined, gap: isMobile ? 14 : 30, marginTop: isMobile ? 38 : 46, justifyContent: isMobile ? undefined : 'flex-start' }}>
+            <div style={{ display: isMobile ? 'grid' : 'flex', gridTemplateColumns: isMobile ? 'repeat(3,1fr)' : undefined, gap: isMobile ? 10 : 30, marginTop: isMobile ? 38 : 46, justifyContent: isMobile ? undefined : 'flex-start' }}>
               {[['3+', t.statPlatforms], ['24/7', t.statAuto], ['10×', t.statSpeed]].map(([v, l], i) => (
                 <div key={i} style={{ display: 'flex', gap: isMobile ? 0 : 30, minWidth: 0 }}>
                   {i > 0 && !isMobile && <div style={{ width: 1, background: '#e7e2f2' }} />}
                   <div style={{ minWidth: 0, textAlign: isMobile ? 'center' : 'left' }}>
-                    <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 26 : 30, color: '#171327' }}>{v}</div>
-                    <div style={{ fontSize: 13, color: '#6b6680', marginTop: 2 }}>{l}</div>
+                    <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 24 : 30, color: '#171327' }}>{v}</div>
+                    <div style={{ fontSize: isMobile ? 12 : 13, color: '#6b6680', marginTop: 2 }}>{l}</div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: 460, height: 460, maxWidth: '100%' }}>
+          <div className="min-w-0 max-w-full" style={{ display: 'flex', justifyContent: 'center' }}>
+            <div style={{ width: '100%', maxWidth: isMobile ? 300 : 460, aspectRatio: '1 / 1' }}>
               <AimaHero />
             </div>
           </div>
@@ -82,8 +82,8 @@ export default function LandingPage() {
         </section>
 
         <footer id="resources" className="scroll-anchor" style={{ position: 'relative', zIndex: 1, borderTop: '1px solid #ece7f6', background: 'linear-gradient(180deg,rgba(247,246,253,0),rgba(244,243,251,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.12),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.10),transparent 60%),#fbfafe', overflow: 'hidden' }}>
-          <div style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '48px 24px 26px' : '64px 28px 30px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2,1fr)' : '1.7fr 1fr 1fr 1fr 1.4fr', gap: isMobile ? 44 : 34, textAlign: 'left', justifyItems: 'stretch' }}>
+          <div style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '48px 24px 104px' : '64px 28px 30px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : isTablet ? 'repeat(2,1fr)' : '1.7fr 1fr 1fr 1fr 1.4fr', gap: isMobile ? 28 : 34, textAlign: 'left', justifyItems: 'stretch' }}>
               {/* Brand */}
               <div style={{ gridColumn: stacked ? '1 / -1' : undefined }}>
                 <img src="/aima-logo.png" alt="AIMA" style={{ height: 44, width: 'auto', display: 'block' }} />

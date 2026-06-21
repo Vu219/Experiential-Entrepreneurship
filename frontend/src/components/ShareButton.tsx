@@ -106,9 +106,8 @@ export default function ShareButton() {
     <div
       ref={wrapRef}
       className={`share-fab-wrap${open ? " open" : ""}`}
-      onMouseEnter={openMenu}
-      onMouseLeave={() => scheduleClose()}
-      onFocus={openMenu}
+      onPointerEnter={(e) => { if (e.pointerType === "mouse") openMenu(); }}
+      onPointerLeave={(e) => { if (e.pointerType === "mouse") scheduleClose(); }}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node)) scheduleClose(0);
       }}
