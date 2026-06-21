@@ -41,8 +41,8 @@ export default function LandingPage() {
             </h1>
             <p style={{ fontSize: isMobile ? 16 : 18, lineHeight: 1.6, color: '#5b5670', maxWidth: 480, margin: isMobile ? '20px auto 0' : '22px 0 0', padding: isMobile ? '0 6px' : 0 }}>{t.heroSub}</p>
             <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 14, marginTop: 34, flexWrap: 'wrap', alignItems: isMobile ? 'stretch' : 'center' }}>
-              <button onClick={() => go('register')} style={{ border: 'none', borderRadius: 14, padding: '16px 30px', fontWeight: 700, fontSize: 16, color: '#fff', background: brandGradient, boxShadow: '0 18px 34px -14px rgba(139,92,246,.65)', cursor: 'pointer', width: isMobile ? '100%' : undefined }}>{t.bookDemo}</button>
-              <button onClick={() => go('login')} style={{ border: '1.5px solid #d9cef5', borderRadius: 14, padding: '16px 30px', fontWeight: 700, fontSize: 16, color: '#7c3aed', background: '#fff', cursor: 'pointer', width: isMobile ? '100%' : undefined }}>{t.tryAima}</button>
+              <button className="btn-grad" onClick={() => go('register')} style={{ border: 'none', borderRadius: 14, padding: '16px 30px', fontWeight: 700, fontSize: 16, color: '#fff', background: brandGradient, boxShadow: '0 18px 34px -14px rgba(139,92,246,.65)', cursor: 'pointer', width: isMobile ? '100%' : undefined }}>{t.bookDemo}</button>
+              <button className="btn-outline" onClick={() => go('login')} style={{ border: '1.5px solid #d9cef5', borderRadius: 14, padding: '16px 30px', fontWeight: 700, fontSize: 16, color: '#7c3aed', background: '#fff', cursor: 'pointer', width: isMobile ? '100%' : undefined }}>{t.tryAima}</button>
             </div>
             <div style={{ display: isMobile ? 'grid' : 'flex', gridTemplateColumns: isMobile ? 'repeat(3,1fr)' : undefined, gap: isMobile ? 14 : 30, marginTop: isMobile ? 38 : 46, justifyContent: isMobile ? undefined : 'flex-start' }}>
               {[['3+', t.statPlatforms], ['24/7', t.statAuto], ['10×', t.statSpeed]].map(([v, l], i) => (
@@ -70,7 +70,7 @@ export default function LandingPage() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2,1fr)' : 'repeat(3,1fr)', gap: 20 }}>
             {cards.map((c, i) => (
-              <div key={i} style={{ background: '#fff', border: '1px solid #efeaf8', borderRadius: 20, padding: 26, boxShadow: '0 22px 44px -34px rgba(80,40,140,.5)' }}>
+              <div key={i} className="lift-card" style={{ background: '#fff', border: '1px solid #efeaf8', borderRadius: 20, padding: 26, boxShadow: '0 22px 44px -34px rgba(80,40,140,.5)' }}>
                 <div style={{ width: 48, height: 48, borderRadius: 13, background: 'linear-gradient(135deg,#edf9ff,#f6effc)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <GradIcon path={c.icon} size={24} />
                 </div>
@@ -88,26 +88,30 @@ export default function LandingPage() {
               <div style={{ gridColumn: stacked ? '1 / -1' : undefined }}>
                 <img src="/aima-logo.png" alt="AIMA" style={{ height: 44, width: 'auto', display: 'block' }} />
                 <p style={{ fontSize: 14, lineHeight: 1.65, color: '#6b6680', maxWidth: 300, margin: '18px 0 0' }}>{t.ftTagline}</p>
-                <a href={`mailto:${CONTACT_EMAIL}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 16, fontSize: 14, color: '#6b6680', textDecoration: 'none' }}>
+                <a className="link-underline" href={`mailto:${CONTACT_EMAIL}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 16, fontSize: 14, color: '#6b6680', textDecoration: 'none' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="M4 7l8 6 8-6" /></svg>
                   {CONTACT_EMAIL}
                 </a>
                 <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
                   {[
-                    ['Facebook', 'M14 9h3V5.5h-3c-2.2 0-3.8 1.7-3.8 3.9V11H8v3.4h2.2V21h3.4v-6.6H16L16.5 11h-2.9V9.4c0-.3.2-.4.4-.4z'],
-                    ['Instagram', ''],
-                    ['LinkedIn', 'M6.5 8.5A1.5 1.5 0 106.5 5.5a1.5 1.5 0 000 3zM5.2 10h2.6v9H5.2zM10 10h2.5v1.3c.4-.7 1.4-1.5 2.9-1.5 2.4 0 3.4 1.5 3.4 4.1V19h-2.6v-4.6c0-1.2-.4-2-1.5-2-.9 0-1.4.6-1.6 1.2-.1.2-.1.5-.1.8V19H10z'],
-                    ['YouTube', ''],
-                  ].map(([label, path]) => (
-                    <a key={label} aria-label={label} style={{ width: 38, height: 38, borderRadius: 11, background: '#fff', border: '1px solid #ece7f6', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 8px 18px -14px rgba(80,40,140,.5)', color: '#7c5cff' }}>
-                      {label === 'Instagram' ? (
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="4" y="4" width="16" height="16" rx="5" /><circle cx="12" cy="12" r="3.4" /><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" /></svg>
-                      ) : label === 'YouTube' ? (
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="6.5" width="18" height="11" rx="3.2" /><path d="M11 9.8l3.2 1.9-3.2 1.9z" fill="currentColor" stroke="none" /></svg>
-                      ) : (
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d={path} /></svg>
-                      )}
-                    </a>
+                    ['Facebook', 'facebook', 'M14 9h3V5.5h-3c-2.2 0-3.8 1.7-3.8 3.9V11H8v3.4h2.2V21h3.4v-6.6H16L16.5 11h-2.9V9.4c0-.3.2-.4.4-.4z'],
+                    ['Instagram', 'instagram', ''],
+                    ['LinkedIn', 'linkedin', 'M6.5 8.5A1.5 1.5 0 106.5 5.5a1.5 1.5 0 000 3zM5.2 10h2.6v9H5.2zM10 10h2.5v1.3c.4-.7 1.4-1.5 2.9-1.5 2.4 0 3.4 1.5 3.4 4.1V19h-2.6v-4.6c0-1.2-.4-2-1.5-2-.9 0-1.4.6-1.6 1.2-.1.2-.1.5-.1.8V19H10z'],
+                    ['YouTube', 'youtube', ''],
+                  ].map(([label, social, path]) => (
+                    <div key={label} className="social-item" data-social={social}>
+                      <a aria-label={label} className="social-icon">
+                        <span className="social-fill" />
+                        {label === 'Instagram' ? (
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="4" y="4" width="16" height="16" rx="5" /><circle cx="12" cy="12" r="3.4" /><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" /></svg>
+                        ) : label === 'YouTube' ? (
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="6.5" width="18" height="11" rx="3.2" /><path d="M11 9.8l3.2 1.9-3.2 1.9z" fill="currentColor" stroke="none" /></svg>
+                        ) : (
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d={path} /></svg>
+                        )}
+                      </a>
+                      <span className="social-tip">{label}</span>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -116,10 +120,10 @@ export default function LandingPage() {
               <div>
                 <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 14, color: '#211c38', marginBottom: 16 }}>{t.ftProduct}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-                  <a href="#features" onClick={(e) => { e.preventDefault(); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680', textDecoration: 'none' }}>{t.ftFeatures}</a>
-                  <span style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftPricing}</span>
-                  <a onClick={() => go('login')} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftDemo}</a>
-                  <a onClick={() => go('register')} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftTry}</a>
+                  <a className="link-underline" href="#features" onClick={(e) => { e.preventDefault(); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680', textDecoration: 'none' }}>{t.ftFeatures}</a>
+                  <span className="link-underline" style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftPricing}</span>
+                  <a className="link-underline" onClick={() => go('login')} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftDemo}</a>
+                  <a className="link-underline" onClick={() => go('register')} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftTry}</a>
                 </div>
               </div>
 
@@ -127,9 +131,9 @@ export default function LandingPage() {
               <div>
                 <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 14, color: '#211c38', marginBottom: 16 }}>{t.ftResources}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-                  <span style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftBlog}</span>
-                  <span style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftGuide}</span>
-                  <span style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftDocs}</span>
+                  <span className="link-underline" style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftBlog}</span>
+                  <span className="link-underline" style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftGuide}</span>
+                  <span className="link-underline" style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftDocs}</span>
                 </div>
               </div>
 
@@ -137,9 +141,9 @@ export default function LandingPage() {
               <div>
                 <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 14, color: '#211c38', marginBottom: 16 }}>{t.ftCompany}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-                  <span style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftAbout}</span>
-                  <a href={`mailto:${CONTACT_EMAIL}`} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680', textDecoration: 'none' }}>{t.ftContact}</a>
-                  <span style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftCareers}</span>
+                  <span className="link-underline" style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftAbout}</span>
+                  <a className="link-underline" href={`mailto:${CONTACT_EMAIL}`} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680', textDecoration: 'none' }}>{t.ftContact}</a>
+                  <span className="link-underline" style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftCareers}</span>
                 </div>
               </div>
 
@@ -149,7 +153,7 @@ export default function LandingPage() {
                 <div style={{ fontSize: 13, lineHeight: 1.55, color: '#6b6680', marginBottom: 14, maxWidth: 280 }}>{t.ftNewsSub}</div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: '#fff', border: '1px solid #e6e2f2', borderRadius: 12, padding: '5px 5px 5px 14px', width: '100%', maxWidth: isMobile ? '100%' : 300, boxShadow: '0 10px 24px -18px rgba(80,40,140,.5)' }}>
                   <input placeholder={t.ftEmailPh} style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: '#2b2740', minWidth: 0 }} />
-                  <button style={{ border: 'none', borderRadius: 9, padding: '10px 16px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer', whiteSpace: 'nowrap' }}>{t.ftSubscribe}</button>
+                  <button className="btn-grad" style={{ border: 'none', borderRadius: 9, padding: '10px 16px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer', whiteSpace: 'nowrap' }}>{t.ftSubscribe}</button>
                 </div>
               </div>
             </div>
@@ -158,16 +162,16 @@ export default function LandingPage() {
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'space-between', gap: isMobile ? 18 : 16, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row', textAlign: isMobile ? 'center' : 'left' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 12 : 18, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
-                <button onClick={toggleLang} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#fff', border: '1px solid #e6e2f2', borderRadius: 999, padding: '8px 14px', fontSize: 13, fontWeight: 600, color: '#4b4660', cursor: 'pointer' }}>
+                <button className="btn-soft" onClick={toggleLang} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#fff', border: '1px solid #e6e2f2', borderRadius: 999, padding: '8px 14px', fontSize: 13, fontWeight: 600, color: '#4b4660', cursor: 'pointer' }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth={1.8}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" strokeLinecap="round" /></svg>
                   {t.langLabel}
                 </button>
                 <span style={{ fontSize: 13, color: '#8a85a0' }}>{t.ftRights}</span>
               </div>
               <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', justifyContent: 'center' }}>
-                <span style={{ cursor: 'pointer', fontSize: 13, color: '#8a85a0' }}>{t.ftTerms}</span>
-                <span style={{ cursor: 'pointer', fontSize: 13, color: '#8a85a0' }}>{t.ftPrivacy}</span>
-                <span style={{ cursor: 'pointer', fontSize: 13, color: '#8a85a0' }}>{t.ftCookie}</span>
+                <span className="link-underline" style={{ cursor: 'pointer', fontSize: 13, color: '#8a85a0' }}>{t.ftTerms}</span>
+                <span className="link-underline" style={{ cursor: 'pointer', fontSize: 13, color: '#8a85a0' }}>{t.ftPrivacy}</span>
+                <span className="link-underline" style={{ cursor: 'pointer', fontSize: 13, color: '#8a85a0' }}>{t.ftCookie}</span>
               </div>
             </div>
           </div>

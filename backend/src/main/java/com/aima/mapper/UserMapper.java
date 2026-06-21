@@ -30,6 +30,7 @@ public interface UserMapper {
     MeResponse toMeResponse(User user);
 
     @Mapping(target = "password", ignore = true)
+    @Mapping(target = "dateOfBirth", source = "dob")
     void completeProfile(CompleteProfileRequest request, @MappingTarget User user);
 
 

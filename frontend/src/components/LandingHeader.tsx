@@ -122,7 +122,7 @@ export default function LandingHeader() {
             onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); closeMobile(); }}
             style={{ display: "flex", alignItems: "center", cursor: "pointer" }}
           >
-            <img src="/aima-logo.png" alt="AIMA" style={{ height: scrolled ? 38 : 46, width: "auto", display: "block", transition: "height .4s ease-in-out" }} />
+            <img className="logo-hover" src="/aima-logo.png" alt="AIMA" style={{ height: scrolled ? 38 : 46, width: "auto", display: "block", transition: "height .4s ease-in-out" }} />
           </a>
 
           {!isMobile && (
@@ -160,7 +160,7 @@ export default function LandingHeader() {
             {user ? (
               <UserMenu />
             ) : isMobile ? (
-              <button onClick={toggleMobile} aria-label="Menu" style={{ display: "flex", padding: 8, border: "1px solid #ece8f6", borderRadius: 12, background: "#fff", cursor: "pointer", color: "#4b4660" }}>
+              <button className="btn-soft" onClick={toggleMobile} aria-label="Menu" style={{ display: "flex", padding: 8, border: "1px solid #ece8f6", borderRadius: 12, background: "#fff", cursor: "pointer", color: "#4b4660" }}>
                 {mobileOpen ? <X size={20} /> : <Menu size={20} />}
               </button>
             ) : (
@@ -171,9 +171,9 @@ export default function LandingHeader() {
                     <span className="btn-text">{t.signIn}</span>
                   </button>
                 ) : (
-                  <button onClick={() => go("login")} style={outlineBtn}>{t.signIn}</button>
+                  <button className="btn-outline" onClick={() => go("login")} style={outlineBtn}>{t.signIn}</button>
                 )}
-                <button onClick={() => go("register")} style={gradientBtn(scrolled)}>{t.tryAima}</button>
+                <button className="btn-grad" onClick={() => go("register")} style={gradientBtn(scrolled)}>{t.tryAima}</button>
               </>
             )}
           </div>
@@ -212,8 +212,8 @@ export default function LandingHeader() {
             <LangButton />
             {!user && (
               <>
-                <button onClick={() => { closeMobile(); go("login"); }} style={{ ...outlineBtn, width: "100%" }}>{t.signIn}</button>
-                <button onClick={() => { closeMobile(); go("register"); }} style={{ ...gradientBtn(false), width: "100%" }}>{t.tryAima}</button>
+                <button className="btn-outline" onClick={() => { closeMobile(); go("login"); }} style={{ ...outlineBtn, width: "100%" }}>{t.signIn}</button>
+                <button className="btn-grad" onClick={() => { closeMobile(); go("register"); }} style={{ ...gradientBtn(false), width: "100%" }}>{t.tryAima}</button>
               </>
             )}
           </div>

@@ -179,6 +179,488 @@ html {
   transform: translate(1px, 1px);
 }
 
+/* ===== Landing footer social icons: hover fill-up + tooltip ===== */
+.social-item {
+  position: relative;
+  display: inline-flex;
+}
+.social-icon {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: #7c5cff;
+  background: #fff;
+  border: 1px solid #ece7f6;
+  box-shadow: 0 8px 18px -14px rgba(80, 40, 140, 0.5);
+  cursor: pointer;
+  transition: color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+.social-icon svg {
+  position: relative;
+  z-index: 1;
+}
+.social-fill {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 0;
+  transition: height 0.3s ease-in-out;
+}
+.social-item:hover .social-icon {
+  color: #fff;
+  box-shadow: 0 12px 26px -12px rgba(80, 40, 140, 0.45);
+}
+.social-item:hover .social-fill {
+  height: 100%;
+}
+.social-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease, bottom 0.3s ease;
+  z-index: 3;
+}
+.social-item:hover .social-tip {
+  opacity: 1;
+  visibility: visible;
+  bottom: calc(100% + 14px);
+}
+.social-item[data-social='facebook'] .social-fill,
+.social-item[data-social='facebook'] .social-tip {
+  background: #3b5998;
+}
+.social-item[data-social='instagram'] .social-fill,
+.social-item[data-social='instagram'] .social-tip {
+  background: linear-gradient(45deg, #405de6, #5b51db, #b33ab4, #c135b4, #e1306c, #fd1f1f);
+}
+.social-item[data-social='linkedin'] .social-fill,
+.social-item[data-social='linkedin'] .social-tip {
+  background: #0a66c2;
+}
+.social-item[data-social='youtube'] .social-fill,
+.social-item[data-social='youtube'] .social-tip {
+  background: #ff0000;
+}
+
+/* ===== Bouncing-ball loader (auth/profile/data fetch waits) ===== */
+.loader {
+  position: relative;
+  width: 120px;
+  height: 90px;
+  margin: 0 auto;
+}
+.loader:before {
+  content: '';
+  position: absolute;
+  bottom: 30px;
+  left: 50px;
+  height: 30px;
+  width: 30px;
+  border-radius: 50%;
+  background: #2a9d8f;
+  animation: loading-bounce 0.5s ease-in-out infinite alternate;
+}
+.loader:after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 7px;
+  width: 45px;
+  border-radius: 4px;
+  box-shadow: 0 5px 0 #e0ddee, -35px 50px 0 #e0ddee, -70px 95px 0 #e0ddee;
+  animation: loading-step 1s ease-in-out infinite;
+}
+@keyframes loading-bounce {
+  0% {
+    transform: scale(1, 0.7);
+  }
+  40% {
+    transform: scale(0.8, 1.2);
+  }
+  60% {
+    transform: scale(1, 1);
+  }
+  100% {
+    bottom: 140px;
+  }
+}
+@keyframes loading-step {
+  0% {
+    box-shadow: 0 10px 0 rgba(0, 0, 0, 0), 0 10px 0 #e0ddee, -35px 50px 0 #e0ddee, -70px 90px 0 #e0ddee;
+  }
+  100% {
+    box-shadow: 0 10px 0 #e0ddee, -35px 50px 0 #e0ddee, -70px 90px 0 #e0ddee, -70px 90px 0 rgba(0, 0, 0, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loader:before,
+  .loader:after {
+    animation: none;
+  }
+}
+
+/* ===== Floating share button (global, bottom-right) ===== */
+.share-fab-wrap {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+}
+
+/* --- Nút FAB --- */
+.share-fab {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, #6e8efb, #a777e3);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.12);
+  transition: background 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), transform 0.3s ease, box-shadow 0.4s ease;
+  animation: share-pulse 3s infinite;
+}
+/* hào quang mờ phía sau khi hover */
+.share-fab::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(110, 142, 251, 0.5), rgba(167, 119, 227, 0.5));
+  filter: blur(15px);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: -1;
+}
+.share-fab .share-icon {
+  width: 24px;
+  height: 24px;
+  fill: #fff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.12));
+  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), fill 0.3s ease;
+}
+.share-fab:hover {
+  background: linear-gradient(135deg, #a777e3, #6e8efb);
+  transform: translateY(-4px) scale(1.06);
+  box-shadow: 0 14px 26px rgba(110, 142, 251, 0.45);
+  animation: none; /* nhường chỗ cho box-shadow hover */
+}
+.share-fab:hover::before {
+  opacity: 1;
+}
+.share-fab:hover .share-icon {
+  transform: rotate(180deg) scale(1.1);
+}
+.share-fab:active {
+  transform: translateY(-2px) scale(0.97);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+}
+.share-fab:focus-visible {
+  outline: none;
+  animation: none;
+  box-shadow: 0 0 0 3px rgba(110, 142, 251, 0.55), 0 8px 15px rgba(0, 0, 0, 0.12);
+}
+
+/* --- Menu / tooltip mở LÊN TRÊN, neo cạnh phải --- */
+.share-menu {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  right: 0;
+  width: 220px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  border: 1px solid #efeaf8;
+  border-radius: 16px;
+  box-shadow: 0 15px 30px rgba(80, 40, 140, 0.22);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(12px) scale(0.85);
+  transform-origin: bottom right;
+  transition: opacity 0.45s cubic-bezier(0.68, -0.55, 0.265, 1.55),
+    transform 0.45s cubic-bezier(0.68, -0.55, 0.265, 1.55), visibility 0.45s ease;
+  z-index: 100;
+}
+.share-fab-wrap.open .share-menu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+/* mũi tên nhỏ chỉ xuống nút */
+.share-menu::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  right: 22px;
+  width: 14px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  border-right: 1px solid #efeaf8;
+  border-bottom: 1px solid #efeaf8;
+  transform: rotate(45deg);
+}
+.share-menu-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #6b6680;
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+/* --- Hàng icon tròn --- */
+.share-social-row {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+.share-social {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: #f1eefb;
+  box-shadow: 0 4px 8px rgba(80, 40, 140, 0.1);
+  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), background 0.3s ease, box-shadow 0.4s ease;
+}
+.share-social svg {
+  width: 22px;
+  height: 22px;
+  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+.share-social:hover {
+  transform: translateY(-5px) scale(1.12);
+  box-shadow: 0 10px 18px rgba(80, 40, 140, 0.18);
+}
+.share-social:active {
+  transform: translateY(-2px) scale(1.05);
+}
+.share-social:hover svg {
+  transform: scale(1.18);
+}
+.share-social:focus-visible {
+  outline: 2px solid #a777e3;
+  outline-offset: 2px;
+}
+.share-social.facebook:hover {
+  background: linear-gradient(135deg, #1877f2, #165ed0);
+}
+.share-social.threads:hover {
+  background: linear-gradient(135deg, #000000, #333333);
+}
+.share-social.copy:hover {
+  background: linear-gradient(135deg, #6e8efb, #a777e3);
+}
+/* icon đổi trắng khi hover (CSS thắng presentation attribute trên <path>) */
+.share-social.facebook:hover svg path,
+.share-social.threads:hover svg path {
+  fill: #fff;
+}
+.share-social.copy:hover .copy-glyph {
+  stroke: #fff;
+}
+
+/* --- Dòng trạng thái (đổi thành "Đã sao chép!") --- */
+.share-status {
+  margin-top: 13px;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  min-height: 16px;
+  color: #8a85a0;
+  transition: color 0.2s ease;
+}
+.share-status.copied {
+  color: #16a34a;
+}
+
+@keyframes share-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(110, 142, 251, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 18px rgba(110, 142, 251, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(110, 142, 251, 0);
+  }
+}
+
+@media (max-width: 600px) {
+  .share-fab-wrap {
+    right: 16px;
+    bottom: 16px;
+  }
+  .share-fab {
+    width: 48px;
+    height: 48px;
+  }
+  .share-fab .share-icon {
+    width: 21px;
+    height: 21px;
+  }
+  .share-menu {
+    width: min(220px, calc(100vw - 32px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-fab {
+    animation: none;
+  }
+  .share-fab,
+  .share-fab .share-icon,
+  .share-menu,
+  .share-social,
+  .share-social svg {
+    transition: none;
+  }
+  .share-fab:hover,
+  .share-fab:hover .share-icon,
+  .share-social:hover,
+  .share-social:hover svg {
+    transform: none;
+  }
+}
+
+@media print {
+  .share-fab-wrap {
+    display: none;
+  }
+}
+
+/* ===== Reusable hover / press micro-interactions =====
+   Dùng kèm inline-style sẵn có; :hover đặt !important cho các thuộc tính cũng
+   được set inline (box-shadow/background/border/color) để class thắng inline. */
+.btn-grad {
+  transition: transform 0.25s ease, box-shadow 0.3s ease, filter 0.3s ease;
+}
+.btn-grad:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 22px 40px -16px rgba(139, 92, 246, 0.7) !important;
+  filter: saturate(1.08) brightness(1.03);
+}
+.btn-grad:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+.btn-outline {
+  transition: transform 0.25s ease, box-shadow 0.3s ease, background 0.3s ease, border-color 0.3s ease, color 0.2s ease;
+}
+.btn-outline:hover {
+  transform: translateY(-3px);
+  background: #faf7ff !important;
+  border-color: #b79df0 !important;
+  color: #6d28d9 !important;
+  box-shadow: 0 16px 30px -18px rgba(124, 58, 237, 0.5) !important;
+}
+.btn-outline:active {
+  transform: translateY(-1px);
+}
+
+.btn-soft {
+  transition: transform 0.2s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+.btn-soft:hover {
+  transform: translateY(-2px);
+  background: #f1ecfc !important;
+  box-shadow: 0 10px 20px -14px rgba(124, 58, 237, 0.5) !important;
+}
+.btn-soft:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.lift-card {
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.lift-card:hover {
+  transform: translateY(-6px);
+  border-color: #e3d8f7 !important;
+  box-shadow: 0 30px 50px -28px rgba(80, 40, 140, 0.55) !important;
+}
+
+/* Link gạch chân trượt (footer / nav) */
+.link-underline {
+  position: relative;
+  align-self: flex-start; /* không bị flex-column kéo giãn → gạch chân vừa chữ */
+  transition: color 0.2s ease;
+}
+.link-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  height: 2px;
+  width: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #6e8efb, #a777e3);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.28s cubic-bezier(0.4, 0.7, 0.3, 1);
+}
+.link-underline:hover {
+  color: #7c3aed !important;
+}
+.link-underline:hover::after {
+  transform: scaleX(1);
+}
+
+.logo-hover {
+  transition: transform 0.3s ease;
+}
+.logo-hover:hover {
+  transform: scale(1.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-grad,
+  .btn-outline,
+  .btn-soft,
+  .lift-card,
+  .logo-hover,
+  .link-underline,
+  .link-underline::after {
+    transition: none;
+  }
+  .btn-grad:hover,
+  .btn-outline:hover,
+  .btn-soft:hover,
+  .lift-card:hover,
+  .logo-hover:hover,
+  .btn-grad:active,
+  .btn-outline:active,
+  .btn-soft:active {
+    transform: none;
+  }
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 1024px) {
   .grid-split-wide {

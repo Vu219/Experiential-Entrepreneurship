@@ -10,6 +10,7 @@ export function LangButton({ compact = false }: { compact?: boolean }) {
   const { t, toggleLang } = useApp();
   return (
     <button
+      className="btn-soft"
       onClick={toggleLang}
       style={{
         display: 'flex',

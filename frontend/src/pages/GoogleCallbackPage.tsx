@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { Loader } from "../components/ui";
 
 export default function GoogleCallbackPage() {
   const { refreshUser } = useAuth();
@@ -41,7 +42,7 @@ export default function GoogleCallbackPage() {
           </button>
         </div>
       ) : (
-        <p className="text-gray-500">Đang hoàn tất đăng nhập Google...</p>
+        <Loader label="Đang hoàn tất đăng nhập Google..." />
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { Loader } from "../components/ui";
 
 interface Props {
   children: ReactNode;
@@ -15,11 +16,7 @@ export default function ProtectedRoute({
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
-        Loading...
-      </div>
-    );
+    return <Loader fullScreen />;
   }
   if (!user) {
     return <Navigate to="/login" replace />;

@@ -4,6 +4,7 @@ import { useApp } from "./context/AppContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import GuestRoute from "./auth/GuestRoute";
 import AppShell from "./components/AppShell";
+import ShareButton from "./components/ShareButton";
 import { THEMES } from "./theme";
 
 import LandingPage from "./pages/LandingPage";
@@ -78,6 +79,9 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* Nút chia sẻ nổi — hiển thị trên mọi trang */}
+      <ShareButton />
     </div>
   );
 }

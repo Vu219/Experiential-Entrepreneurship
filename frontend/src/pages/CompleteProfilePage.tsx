@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { completeProfile } from "../api/auth";
 import { useAuth } from "../auth/AuthContext";
 import { useApp } from "../context/AppContext";
+import { Loader } from "../components/ui";
 
 // ---- Design tokens (khớp với Auth.tsx để onboarding nhất quán với app) ----
 const inputWrap = (error?: string): CSSProperties => ({
@@ -108,7 +109,7 @@ export default function CompleteProfilePage() {
   const step2Valid = pwScore >= MIN_STRENGTH && confirm.length > 0 && password === confirm;
 
   if (loading) {
-    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "#8a85a0" }}>Đang tải...</div>;
+    return <Loader fullScreen label="Đang tải..." />;
   }
   // Phải đăng nhập mới vào được; đã hoàn tất hồ sơ thì không cần trang này.
   if (!user) return <Navigate to="/login" replace />;
