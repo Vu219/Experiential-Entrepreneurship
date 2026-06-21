@@ -43,7 +43,9 @@ export interface CompleteProfileRequest {
 
 // Đăng nhập Google: điều hướng toàn trang tới endpoint OAuth2 của backend.
 // Backend xử lý redirect Google rồi set cookie và quay về app.
-export const GOOGLE_LOGIN_URL = "/oauth2/authorization/google";
+// Đây là điều hướng cả trang (không qua axios) nên phải ghép URL backend tuyệt đối
+// từ VITE_API_BASE_URL với đường dẫn endpoint OAuth2.
+export const GOOGLE_LOGIN_URL = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/google`;
 
 export async function register(request: RegisterRequest): Promise<void> {
   await client.post<ApiResponse<unknown>>("/users/register", request);

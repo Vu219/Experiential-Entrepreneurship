@@ -363,25 +363,36 @@ docker compose up -d                 # Start PostgreSQL + pgAdmin + Redis
 ./mvnw.cmd test                      # Run tests
 ```
 
-**Runtime URLs** (port/context-path are env-driven; the frontend dev proxy targets `http://localhost:8080`):
+**Runtime URLs** (port/context-path are env-driven — dev defaults `SERVER_PORT=8082`, `CONTEXT_PATH=/api/aima`):
 ```
+API base:     http://localhost:8082/api/aima        (= http://localhost:{SERVER_PORT}{CONTEXT_PATH})
 Swagger UI:   {CONTEXT_PATH}/swagger-ui.html
 OpenAPI JSON: {CONTEXT_PATH}/v3/api-docs
 Health:       {CONTEXT_PATH}/actuator/health
 ```
 
+**Frontend integration.** The frontend has **no dev proxy** — it calls this backend **directly** using
+the absolute base URL from its own `VITE_API_BASE_URL` env var (e.g. `http://localhost:8082/api/aima`;
+see `frontend/.env`). Cross-origin requests work because `SecurityConfig.corsConfigurationSource()`
+allows `http://localhost:*` (+ `*.vercel.app` etc.) **with credentials**, so the HttpOnly auth cookies
+flow in dev. When the API host/port/context-path changes, update the frontend's `VITE_API_BASE_URL`
+(and add the deployed FE origin to the CORS allow-list if it isn't already matched).
+
 **Required `.env` variables** (see `.env.example`):
 ```
-APP_NAME, SERVER_PORT, CONTEXT_PATH
+APP_NAME, SERVER_PORT (dev 8082), CONTEXT_PATH (dev /api/aima)
 DB_HOST, DB_PORT, DB_NAME, DB_USERNAME, DB_PASSWORD
 PGADMIN_EMAIL, PGADMIN_PASSWORD, PGADMIN_PORT
 APP_TIMEZONE, JWT_SIGNER_KEY
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
-FRONTEND_CALLBACK_URL                 # e.g. http://localhost:3000/login
+FRONTEND_CALLBACK_URL                 # OAuth2 success/failure redirect, e.g. http://localhost:3000/auth/google/callback
+FRONTEND_BASE_URL                     # FE origin, e.g. http://localhost:3000 (default in application.yml)
 MAIL_USERNAME, MAIL_PASSWORD          # SMTP (Gmail) for OTP emails
+SUPABASE_URL, SUPABASE_SERVICE_KEY    # Supabase Storage — service_role key is BACKEND ONLY, never expose to FE
 # Optional overrides (have defaults in application.yml):
+SUPABASE_ANON_KEY                     # kept for reference; not used by the backend
 JWT_ACCESS_TOKEN_EXPIRATION (3600s), JWT_REFRESH_TOKEN_EXPIRATION (604800s)
-REDIS_HOST, REDIS_PORT, REDIS_TIMEOUT, REDIS_SSL_ENABLED
+REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_TIMEOUT, REDIS_SSL_ENABLED
 OTP_TTL_SECONDS (90), OTP_MAX_ATTEMPTS (5), OTP_VERIFIED_TTL_SECONDS (300)
 AUTH_COOKIE_NAME (refresh_token), AUTH_COOKIE_SECURE (false), AUTH_COOKIE_SAME_SITE (Lax), AUTH_COOKIE_PATH (/)
 ```

@@ -9,7 +9,12 @@ export interface ApiResponse<T> {
 
 // Auth dùng cookie HttpOnly do backend set (access_token / refresh_token).
 // FE không đọc/ghi token — chỉ cần gửi kèm cookie trong mọi request.
-const client = axios.create({ baseURL: "/api", withCredentials: true });
+// baseURL đọc từ biến môi trường VITE_API_BASE_URL (xem .env / .env.example).
+// Mọi nơi gọi API dùng đường dẫn tương đối (vd client.get("/users/me")).
+const client = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  withCredentials: true,
+});
 
 // Error mang theo `code` của ErrorCode backend (vd 1072 = sai OTP quá số lần)
 // để UI xử lý theo từng trường hợp. Vẫn là Error nên `.message` không đổi.

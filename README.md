@@ -25,12 +25,18 @@ React 18 single-page application built with TypeScript, Tailwind CSS, and React 
 
 **Stack:** TypeScript · React · Tailwind CSS · React Router DOM · Axios · Vite
 
+**Docs:** [`frontend/README.md`](frontend/README.md) (setup) · [`frontend/CLAUDE.md`](frontend/CLAUDE.md) (architecture) · [`frontend/rule.md`](frontend/rule.md) (UI rules)
+
 ```bash
 cd frontend
 npm install
+cp .env.example .env   # set VITE_API_BASE_URL (backend URL); restart dev after changes
 npm run dev       # http://localhost:3000
 npm run build     # production build → dist/
 ```
+
+> The backend address is configured via `VITE_API_BASE_URL` in `frontend/.env` (e.g.
+> `http://localhost:8082/api/aima`) — it is never hardcoded in source.
 
 ---
 
@@ -39,9 +45,11 @@ Spring Boot 3 REST API handling business logic, authentication, scheduling, and 
 
 **Stack:** Java 21 · Spring Boot · Spring Security + JWT · OAuth2 · PostgreSQL · Spring Data JPA · Hibernate · Lombok · MapStruct · Validation · Email Service
 
+**Docs:** [`backend/README.md`](backend/README.md) (setup) · [`backend/CLAUDE.md`](backend/CLAUDE.md) (architecture & rules)
+
 ```bash
 cd backend
-./mvnw spring-boot:run    # http://localhost:8080
+./mvnw spring-boot:run    # http://localhost:8082/api/aima
 ./mvnw package            # build → target/*.jar
 ```
 

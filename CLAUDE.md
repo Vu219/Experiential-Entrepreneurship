@@ -6,14 +6,18 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 
 ```
 repo/
-├── frontend/   # React + TypeScript (Vite, Tailwind, React Router)
+├── frontend/   # React + TypeScript (Vite, Tailwind, React Router) — see frontend/CLAUDE.md
 ├── backend/    # Java 21 + Spring Boot (PostgreSQL, JWT, OAuth2) — see backend/CLAUDE.md
 ├── ai/         # Python 3.10 AI backend (LangChain, platform connectors)
 └── docs/       # Project documentation
 ```
 
-> **Module guides:** When working in the backend, read [`backend/CLAUDE.md`](backend/CLAUDE.md)
-> for its structure, conventions, authentication flow and rules.
+> **Module guides:**
+> - Frontend → read [`frontend/CLAUDE.md`](frontend/CLAUDE.md) (architecture & conventions),
+>   [`frontend/rule.md`](frontend/rule.md) (UI/design rules) and [`frontend/README.md`](frontend/README.md) (setup).
+>   Backend address is read from `VITE_API_BASE_URL` (`.env`) — never hardcoded.
+> - Backend → read [`backend/CLAUDE.md`](backend/CLAUDE.md) for its structure, conventions,
+>   authentication flow and rules.
 
 ## 🛠️ Project Commands
 
