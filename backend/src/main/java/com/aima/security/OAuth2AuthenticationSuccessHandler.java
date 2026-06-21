@@ -16,6 +16,7 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 import com.aima.entity.Role;
 import com.aima.entity.User;
+import com.aima.enums.UserStatus;
 import com.aima.repository.RoleRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.AuthenticationService;
@@ -150,7 +151,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 .googleId(googleId)
                 .provider("GOOGLE")
                 .avatarUrl(picture)
-                .status("ACTIVE")
+                .status(UserStatus.ACTIVE)
                 .role(role)
                 .build();
 

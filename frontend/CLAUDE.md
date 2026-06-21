@@ -32,7 +32,10 @@ src/
 ├── data.ts               — dữ liệu mock cho UI demo
 ├── api/
 │   ├── client.ts         — axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL }) + interceptor
-│   ├── auth.ts           — register/login/logout/getProfile/OTP/completeProfile + GOOGLE_LOGIN_URL
+│   ├── auth.ts           — register/login/logout/getProfile/OTP/completeProfile + GOOGLE_LOGIN_URL;
+│   │                       changePasswordInit/Confirm, requestDeleteAccount/restoreAccount (dùng ở trang Hồ sơ).
+│   │                       updateProfile nhận thêm avatarUrl (tuỳ chọn); uploadAvatar(file) → POST /files/avatar trả URL công khai.
+│   │                       User có thêm status + deletionDate (banner chờ xóa) + avatarUrl. Nút Đăng xuất trong Hồ sơ chỉ hiện ở mobile/tablet.
 │   └── brandProfile.ts   — list/create/update/delete brand profile
 ├── auth/
 │   ├── AuthContext.tsx   — user state, refreshUser() gọi /users/me, login/logout
@@ -42,7 +45,8 @@ src/
 │   ├── useAppStore.ts    — Zustand: lang, theme, profile, brand, notif
 │   └── useUiStore.ts     — trạng thái UI cục bộ
 ├── context/AppContext.tsx— useApp(): bọc store + điều hướng (go/route) + auth
-├── components/           — AppShell, Sidebar, LandingHeader, UserMenu, ShareButton, ui.tsx, …
+├── components/           — AppShell, Sidebar, LandingHeader, UserMenu, ShareButton, ui.tsx,
+│                           Modal (overlay dùng chung), ChangePasswordModal (đổi mật khẩu 3 bước), …
 ├── hooks/                — useBreakpoint (responsive), useReveal (scroll reveal)
 └── pages/                — 1 file / route: Landing, Auth, Dashboard, Create, Calendar,
                             Analytics, Trends, Brand, Profile, Settings, Admin,

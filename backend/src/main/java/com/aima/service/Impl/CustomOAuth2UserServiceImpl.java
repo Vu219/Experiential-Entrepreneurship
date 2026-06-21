@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.aima.dto.request.OAuth2UserInfo;
 import com.aima.entity.Role;
 import com.aima.entity.User;
+import com.aima.enums.UserStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.mapper.OAuth2UserMapper;
@@ -108,7 +109,7 @@ public class CustomOAuth2UserServiceImpl extends DefaultOAuth2UserService implem
                 .googleId(googleId)
                 .provider("GOOGLE")
                 .avatarUrl(picture)
-                .status("ACTIVE")
+                .status(UserStatus.ACTIVE)
                 .build();
 
         User newUser = oauth2UserMapper.toUser(info);

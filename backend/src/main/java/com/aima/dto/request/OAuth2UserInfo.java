@@ -1,5 +1,6 @@
 package com.aima.dto.request;
 
+import com.aima.enums.UserStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -15,5 +16,5 @@ public class OAuth2UserInfo {
     String googleId;
     String provider;
     String avatarUrl;
-    String status;
+    UserStatus status;
 }

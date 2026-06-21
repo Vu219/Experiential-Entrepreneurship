@@ -37,6 +37,8 @@ public enum ErrorCode {
     USER_LIST_EMPTY(1018, "Không có tài khoản nào trong hệ thống!!!", HttpStatus.NOT_FOUND),
     DATE_OF_BIRTH_REQUIRED(1025, "Ngày sinh không được để trống", HttpStatus.BAD_REQUEST),
     INVALID_DATE_OF_BIRTH(1026, "Ngày sinh phải là một ngày trong quá khứ", HttpStatus.BAD_REQUEST),
+    ACCOUNT_ALREADY_PENDING_DELETE(1026, "Tài khoản đã trong trạng thái chờ xóa", HttpStatus.BAD_REQUEST),
+    ACCOUNT_NOT_PENDING_DELETE(1027, "Tài khoản không trong trạng thái chờ xóa", HttpStatus.BAD_REQUEST),
 
     // ROLE ERRORS
     ROLE_NOT_FOUND(1019, "Role không tồn tại", HttpStatus.NOT_FOUND),

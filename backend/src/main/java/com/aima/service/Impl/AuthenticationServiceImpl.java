@@ -17,6 +17,7 @@ import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.AuthenticationResponse;
 import com.aima.dto.response.IntrospectResponse;
 import com.aima.entity.User;
+import com.aima.enums.UserStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.mapper.AuthenticationMapper;
@@ -120,7 +121,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             var user = userRepository.findById(UUID.fromString(userIdStr))
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-            if ("LOCKED".equalsIgnoreCase(user.getStatus())) {
+            if (user.getStatus() == UserStatus.LOCKED) {
                 throw new AppException(ErrorCode.USER_INACTIVE);
             }
 
@@ -157,7 +158,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             userOpt = userRepository.findByUsername(normalized);
         }
         return userOpt
-                .map(user -> "LOCKED".equalsIgnoreCase(user.getStatus()))
+                .map(user -> user.getStatus() == UserStatus.LOCKED)
                 .orElse(false);
     }
 
@@ -173,7 +174,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
-        if ("LOCKED".equalsIgnoreCase(user.getStatus())) {
+        if (user.getStatus() == UserStatus.LOCKED) {
             throw new AppException(ErrorCode.USER_INACTIVE);
         }
 
@@ -197,7 +198,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     @Transactional
     public AuthenticationResponse generateTokenForOAuth2User(User user) {
-        if ("LOCKED".equalsIgnoreCase(user.getStatus())) {
+        if (user.getStatus() == UserStatus.LOCKED) {
             throw new AppException(ErrorCode.USER_INACTIVE);
         }
 

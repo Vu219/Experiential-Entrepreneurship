@@ -58,9 +58,14 @@ backend/
     │   ├── RedisConfig.java                 — RedisTemplate / StringRedisTemplate bean(s)
     │   ├── TimezoneVerificationConfig.java   — Timezone setup on startup
     │   ├── DataInitializer.java             — Seed default roles / data on startup
-    │   └── swagger/
-    │       ├── OpenApiConfig.java           — OpenAPI bean, global error responses, bearer scheme
-    │       └── SwaggerExamples.java         — All Swagger @ExampleObject strings (constants only)
+    │   ├── AccountDeletionScheduler.java     — @Scheduled daily 00:00: hard-purge PENDING_DELETE users past their deletionDate
+    │   ├── swagger/
+    │   │   ├── OpenApiConfig.java           — OpenAPI bean, global error responses, bearer scheme
+    │   │   └── SwaggerExamples.java         — All Swagger @ExampleObject strings (constants only)
+    │   └── storage/
+    │       ├── SupabaseConfig.java          — supabaseWebClient bean (base URL + service-key headers)
+    │       ├── SupabaseProperties.java      — @ConfigurationProperties(supabase.*): url, anonKey, serviceKey
+    │       └── StorageBuckets.java          — Single source of truth for bucket names (AVATARS/DOCUMENTS) + AVATAR_PUBLIC_PREFIX
     ├── security/                            — Auth CONFIG / filter / handlers only. Token & user-detail
     │   │                                       logic lives in service/ (interface) + service/Impl/.
     │   ├── SecurityConfig.java              — SecurityFilterChain, CORS, oauth2Login, PUBLIC_ENDPOINTS, jwtAuthenticationFilter
@@ -73,8 +78,11 @@ backend/
     │   └── OAuth2AuthenticationSuccessHandler.java — issue JWT, set cookies, redirect FE with ?login=success
     ├── controller/
     │   ├── AuthenticationController.java    — POST /auth/{login,refresh,introspect,logout}, GET /auth/account-status
-    │   ├── UserController.java              — POST /users/register, GET /users, GET /users/{id}, GET /users/me, PUT /users/me, POST /users/{forgot-password,verify-otp,reset-password}
-    │   └── BrandProfileController.java      — Brand profile CRUD (BR-01..BR-04)
+    │   ├── UserController.java              — POST /users/register, GET /users, GET /users/{id}, GET /users/me, PUT /users/me, GET /users/me/profile,
+    │   │                                       POST /users/{forgot-password,verify-otp,reset-password}, POST /users/me/change-password/{init,confirm},
+    │   │                                       POST /users/me/deactivate-request (request delete), POST /users/me/restore (cancel delete)
+    │   ├── BrandProfileController.java      — Brand profile CRUD (BR-01..BR-04)
+    │   └── FileController.java              — POST /files/avatar, POST /files/documents, GET /files/documents/signed-url (thin: delegates to FileService)
     ├── dto/
     │   ├── request/
     │   │   ├── LoginRequest.java
@@ -82,25 +90,32 @@ backend/
     │   │   ├── LogoutRequest.java           — body optional (access token blacklist only)
     │   │   ├── UserRegisterRequest.java
     │   │   ├── UserRequest.java
-    │   │   ├── UpdateProfileRequest.java    — fullName + phone + dateOfBirth (complete-profile / edit)
+    │   │   ├── UpdateProfileRequest.java    — fullName + phone + dateOfBirth + optional avatarUrl (complete-profile / edit; avatarUrl IGNOREd when null)
     │   │   ├── ForgotPasswordRequest.java / VerifyOtpRequest.java / ResetPasswordRequest.java
+    │   │   ├── ChangePasswordInitRequest.java   — currentPassword (in-app change-password step 1)
+    │   │   ├── ChangePasswordConfirmRequest.java — otpCode + newPassword + confirmPassword (step 2)
     │   │   ├── OAuth2UserInfo.java          — intermediate DTO for Google → User mapping
     │   │   └── BrandProfileRequest.java
     │   └── response/
     │       ├── ApiResponse.java             — Universal response envelope {code, message, result}
     │       ├── AuthenticationResponse.java  — {token, authenticated}; refreshToken omitted from body
     │       ├── IntrospectResponse.java      — {valid}
-    │       ├── MeResponse.java              — current user identity + profileCompleted flag
+    │       ├── MeResponse.java              — current user identity + profileCompleted + status + deletionDate (for the FE pending-delete banner)
+    │       ├── DeleteAccountResponse.java   — status + deletionDate + daysRemaining + message (delete/restore result)
     │       ├── UserResponse.java            — User details + nested RoleResponse
-    │       └── BrandProfileResponse.java
+    │       ├── BrandProfileResponse.java
+    │       ├── FileUploadResponse.java      — bucket + path + url (avatar/document upload result)
+    │       └── SignedUrlResponse.java       — signedUrl + expiresInSeconds (private document access)
     ├── entity/
     │   ├── BaseEntity.java                  — @MappedSuperclass: UUID id (@UuidGenerator), createdAt, updatedAt, deletedAt (soft delete)
-    │   ├── User.java                        — @Table("users"); password + phone nullable (Google users); fields: provider, googleId, dateOfBirth
+    │   ├── User.java                        — @Table("users"); password + phone nullable (Google users); fields: provider, googleId, dateOfBirth,
+    │   │                                       status (UserStatus enum), deletionDate; @OneToMany brandProfiles (cascade ALL + orphanRemoval, for purge)
     │   ├── Role.java                        — @Table("roles"), 1:N to User
     │   └── BrandProfile.java                — @Table; belongs to a User
     ├── enums/
     │   ├── Platform.java                    — FACEBOOK / INSTAGRAM / THREADS (scope order)
-    │   └── PostingFrequency.java
+    │   ├── PostingFrequency.java
+    │   └── UserStatus.java                  — ACTIVE / LOCKED / PENDING_DELETE (User.status, @Enumerated STRING)
     ├── exception/
     │   ├── AppException.java                — Runtime exception carrying an ErrorCode
     │   ├── ErrorCode.java                   — Enum: code (int) + message (String) + HttpStatus
@@ -124,6 +139,8 @@ backend/
         ├── OtpService.java                  — Interface: OTP store/verify/markVerified/invalidate (Redis)
         ├── EmailService.java                — Interface: send OTP / password-reset emails
         ├── BrandProfileService.java         — Interface
+        ├── SupabaseStorageService.java      — Interface: low-level Storage I/O (returns raw String url/path); used by FileService, OAuth2 handler, UserService
+        ├── FileService.java                 — Interface: returns ApiResponse<FileUploadResponse>/<SignedUrlResponse> for FileController (thin-controller layer)
         └── Impl/
             ├── AuthenticationServiceImpl.java
             ├── TokenBlacklistServiceImpl.java
@@ -134,7 +151,9 @@ backend/
             ├── OtpServiceImpl.java          — Redis-backed OTP
             ├── EmailServiceImpl.java
             ├── BrandProfileServiceImpl.java
-            └── UserServiceImpl.java
+            ├── SupabaseStorageServiceImpl.java — WebClient upload/delete/sign against Supabase Storage REST API
+            ├── FileServiceImpl.java         — Wraps SupabaseStorageService + UserRepository; builds the ApiResponse envelope + result DTOs
+            └── UserServiceImpl.java         — updateCurrentUser persists avatarUrl + deletes the old avatar AFTER commit (TransactionSynchronization)
 ```
 
 > There are **no legacy/disabled token files** in this codebase (no `CustomJwtDecoder`,
@@ -305,7 +324,27 @@ A raw `JwtException` not wrapped in an `AuthenticationException` still falls thr
 500 — keep token-parse failures wrapped.
 
 ### Scheduled cleanup
-None needed — Redis TTL expires `blacklist:{jti}`, `rt:{jti}` and OTP keys automatically.
+- **Token/OTP state:** none needed — Redis TTL expires `blacklist:{jti}`, `rt:{jti}` and OTP keys automatically.
+- **Account deletion:** `AccountDeletionScheduler` (`@EnableScheduling` on `AimaApplication`) runs daily at `00:00`
+  (`@Scheduled(cron = "0 0 0 * * *")`) and **hard-deletes** users whose `status == PENDING_DELETE` and `deletionDate <= now`
+  (GDPR account deletion is the documented exception to soft-delete). Cascade on `User.brandProfiles` purges dependent rows.
+
+### In-app change password (authenticated, 2 endpoints)
+`POST /users/me/change-password/init` — verify current password + 7-day cool-down → email a 6-digit OTP (reuses `OtpService`).
+`POST /users/me/change-password/confirm` — re-validate OTP + password match + strength (≥ 8 chars, score ≥ 3) → update BCrypt password, consume OTP.
+The session is **not** revoked (unlike forgot-password reset). The FE verifies the OTP at an intermediate step by reusing public `POST /users/verify-otp` before submitting the new password.
+
+### Account deletion (30-day grace)
+`POST /users/me/deactivate-request` — set `status = PENDING_DELETE`, `deletionDate = now + 30 days`; rejects if already pending or LOCKED.
+`POST /users/me/restore` — within the window, set `status = ACTIVE`, clear `deletionDate`; rejects if not pending.
+A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can restore.
+
+### File / avatar storage (Supabase Storage)
+- **Layering:** `FileController` (thin) → `FileService`/`FileServiceImpl` (builds `ApiResponse<T>`) → `SupabaseStorageService`/`Impl` (low-level WebClient I/O, returns raw `String`). Bucket names come from `StorageBuckets`.
+- **Upload avatar:** `POST /files/avatar` (multipart, jpg/png/webp ≤ 2 MB) → stores at `{userId}/{uuid}_{filename}` in the public `avatars` bucket → returns the public URL. Multipart limits in `application.yml` are 11 MB/12 MB.
+- **Persist avatar:** the FE then calls `PUT /users/me` with `avatarUrl`. `UpdateProfileRequest.avatarUrl` is optional and the MapStruct update IGNOREs `null`, so a profile edit that omits it keeps the current avatar.
+- **Old-avatar cleanup:** `UserServiceImpl.updateCurrentUser` captures the previous `avatarUrl`; when it changes to a different Supabase-hosted image, it deletes the old object — **after commit** (rule #24) and only for our `/object/public/avatars/` URLs (external images like Google are skipped). Failures are logged, never fatal.
+- **Documents:** `POST /files/documents` (PDF ≤ 10 MB) → private `documents` bucket, returns a storage path; `GET /files/documents/signed-url` issues a time-limited signed URL. All `/files/**` endpoints require authentication (not in `PUBLIC_ENDPOINTS`).
 
 ---
 
@@ -340,7 +379,8 @@ Used for: ACCESS token blacklist (`blacklist:{jti}`), REFRESH token tracking (`r
 | `provider` | VARCHAR(20) | nullable; `"GOOGLE"` for OAuth2 users |
 | `google_id` | VARCHAR | unique, nullable |
 | `role_id` | UUID (FK→roles) | not null |
-| `status` | VARCHAR | `"ACTIVE"` or `"LOCKED"` |
+| `status` | VARCHAR | `UserStatus` enum (`@Enumerated(STRING)`): `ACTIVE`, `LOCKED`, `PENDING_DELETE` |
+| `deletion_date` | TIMESTAMP | nullable; set when status becomes `PENDING_DELETE`; the purge deadline (now + 30 days) |
 | `avatar_url` | VARCHAR(500) | nullable |
 | `last_active_at` / `last_password_change_at` | TIMESTAMP | nullable |
 | `created_at` / `updated_at` / `deleted_at` | TIMESTAMP | from `BaseEntity` (soft delete via `deleted_at`) |
@@ -403,6 +443,13 @@ AUTH_COOKIE_NAME (refresh_token), AUTH_COOKIE_SECURE (false), AUTH_COOKIE_SAME_S
 
 ## 7. Rules
 
+> ⚠️ **MANDATORY — these rules are binding, not advisory.** Every change to the backend MUST follow the
+> package layout in §2 and every rule below. Before finishing any backend task, Claude Code MUST
+> self-check the diff against this section and fix any deviation. If a requirement genuinely cannot be
+> met, STOP and call it out explicitly with the reason — never silently break the structure. New files
+> go in the package their role dictates (`controller/`, `service/` + `service/Impl/`, `dto/request|response/`,
+> `mapper/`, `config/...`); a controller is never the place for business logic or DTO assembly.
+
 1. **Never rename** existing packages, classes, or public interfaces — `AuthenticationService`, `UserService`, `ErrorCode` enum keys, etc. are referenced in many places.
 
 2. **ErrorCode enum keys are validation message keys.** Every `@NotBlank(message="KEY")` maps directly to `ErrorCode.KEY`. Adding a new validation requires a matching `ErrorCode` entry.
@@ -444,3 +491,9 @@ AUTH_COOKIE_NAME (refresh_token), AUTH_COOKIE_SECURE (false), AUTH_COOKIE_SAME_S
 20. **Auth-failure responses return a clean 401/403.** `GlobalExceptionHandler` has `@ExceptionHandler(AuthenticationException.class)` → `UNAUTHENTICATED` and `@ExceptionHandler(AccessDeniedException.class)` → `UNAUTHORIZED`. A raw `JwtException` thrown outside an `AuthenticationException` still falls through to the catch-all 500, so wrap token-parse failures in an `AuthenticationException` (or `AppException`) where possible.
 
 21. **Time-consuming AI / posting tasks must run async (background jobs)** and never block the request thread (root `CLAUDE.md` NFR-04). Return a job/handle immediately and process in the background.
+
+22. **Thin controllers — the service layer returns the `ApiResponse<T>`; controllers only delegate.** Every controller method body is a single `return xService.method(...)`; it MUST NOT contain business logic, URL/string parsing, entity lookups, or DTO assembly (`.builder()`/setters). Each `*Service` (interface in `service/`, impl in `service/Impl/`) is what builds the `ApiResponse<T>` envelope and result DTOs. If an endpoint needs a service that currently exposes lower-level primitives (e.g. `SupabaseStorageService` returns raw `String`), add a dedicated `*Service`/`*ServiceImpl` that wraps it and returns `ApiResponse<T>` (pattern: `FileController` → `FileService`/`FileServiceImpl` → `SupabaseStorageService`). This is consistent with `UserController`/`AuthenticationController`/`BrandProfileController`.
+
+23. **Centralize shared constants — never duplicate magic strings/values across files.** Supabase Storage bucket names and URL markers live ONLY in `config/storage/StorageBuckets` (`AVATARS`, `DOCUMENTS`, `AVATAR_PUBLIC_PREFIX`); reference them from `SupabaseStorageServiceImpl`, `FileServiceImpl`, `UserServiceImpl`, etc. Do not re-declare the literal `"avatars"`/`"documents"` (or any equivalent shared constant) inline in multiple classes.
+
+24. **No external/network I/O inside an open DB `@Transactional` boundary.** Calls to Supabase Storage (or any remote service) MUST NOT run while a DB transaction is held open. When a side-effect (e.g. deleting the old avatar object after a profile update) should happen only on success, defer it with `TransactionSynchronizationManager.registerSynchronization(...).afterCommit()` so it runs after commit and is skipped on rollback (see `UserServiceImpl.scheduleOldAvatarDeletion`). Best-effort cleanups still log on failure and never break the main flow.

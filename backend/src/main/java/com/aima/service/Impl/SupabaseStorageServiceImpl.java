@@ -11,6 +11,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import com.aima.config.storage.StorageBuckets;
 import com.aima.config.storage.SupabaseProperties;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
@@ -34,8 +35,8 @@ public class SupabaseStorageServiceImpl implements SupabaseStorageService {
     WebClient supabaseWebClient;
     SupabaseProperties supabaseProperties;
 
-    static final String BUCKET_AVATARS = "avatars";     // public
-    static final String BUCKET_DOCUMENTS = "documents";  // private
+    static final String BUCKET_AVATARS = StorageBuckets.AVATARS;     // public
+    static final String BUCKET_DOCUMENTS = StorageBuckets.DOCUMENTS; // private
 
     static final long MAX_AVATAR_SIZE = 2L * 1024 * 1024;   // 2 MB
     static final long MAX_DOCUMENT_SIZE = 10L * 1024 * 1024; // 10 MB

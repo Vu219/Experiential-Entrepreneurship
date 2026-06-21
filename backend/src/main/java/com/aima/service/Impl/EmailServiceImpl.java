@@ -52,7 +52,7 @@ public class EmailServiceImpl implements EmailService {
                 "Bạn đang thực hiện <b>đổi mật khẩu</b> cho tài khoản " + BRAND_NAME + " của mình.",
                 otpCode,
                 "#7c3aed",
-                "Mã có hiệu lực trong 2 phút.",
+                "MMã có hiệu lực trong 1 phút 30 giây.",
                 "Nếu bạn không thực hiện thao tác này, vui lòng đổi mật khẩu ngay hoặc liên hệ quản trị viên " + BRAND_NAME + "."
         );
 
@@ -93,7 +93,7 @@ public class EmailServiceImpl implements EmailService {
                 + "</div>"
                 + "<p style='margin:0 0 20px;font-size:14px;line-height:1.6;color:#334155;'>"
                 + "Bạn đã <b>tự đặt mật khẩu</b> cho tài khoản này. Vì lý do bảo mật, " + BRAND_NAME
-                + " không bao giờ lưu hay gửi mật khẩu của bạn qua email.</p>"
+                + " hệ thống sẽ không lưu hay gửi mật khẩu của bạn qua email.</p>"
                 + "<div style='text-align:center;margin:0 0 8px;'>"
                 + "<a href='" + forgotPasswordUrl + "' style='display:inline-block;padding:12px 24px;background:" + accentColor + ";"
                 + "color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;'>Quên mật khẩu?</a></div>"

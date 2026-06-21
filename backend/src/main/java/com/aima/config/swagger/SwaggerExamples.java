@@ -31,6 +31,82 @@ public final class SwaggerExamples {
     public static final String ACCOUNT_STATUS_RESPONSE =
             "{\"code\":0,\"result\":{\"locked\":false}}";
 
+    public static final String DEACTIVATE_ACCOUNT_RESPONSE = """
+            {
+              "code": 200,
+              "message": "Yêu cầu xóa tài khoản đã được ghi nhận",
+              "result": {
+                "status": "PENDING_DELETE",
+                "deletionDate": "2026-07-17T00:00:00",
+                "daysRemaining": 30,
+                "message": "Tài khoản sẽ bị xóa vĩnh viễn sau 30 ngày. Bạn có thể khôi phục trước thời hạn này."
+              }
+            }""";
+
+    public static final String RESTORE_ACCOUNT_RESPONSE = """
+            {
+              "code": 200,
+              "message": "Tài khoản đã được khôi phục thành công",
+              "result": {
+                "status": "ACTIVE",
+                "message": "Tài khoản của bạn đã được khôi phục và hoạt động bình thường."
+              }
+            }""";
+
+    // ─── Change password (authenticated, OTP) ──────────
+    public static final String CHANGE_PASSWORD_INIT_REQUEST = """
+            {
+              "currentPassword": "OldPass@123"
+            }""";
+
+    public static final String CHANGE_PASSWORD_INIT_RESPONSE = """
+            {
+              "code": 200,
+              "message": "Mã OTP đổi mật khẩu đã được gửi đến email của bạn",
+              "result": null
+            }""";
+
+    public static final String CHANGE_PASSWORD_CONFIRM_REQUEST = """
+            {
+              "otpCode": "123456",
+              "newPassword": "NewPass@123",
+              "confirmPassword": "NewPass@123"
+            }""";
+
+    public static final String CHANGE_PASSWORD_CONFIRM_RESPONSE = """
+            {
+              "code": 200,
+              "message": "Đổi mật khẩu thành công",
+              "result": null
+            }""";
+
+    public static final String UPDATE_USER_REQUEST = """
+            {
+              "fullName": "Nguyen Van B",
+              "phone": "0909999999",
+              "dob": "2000-01-15"
+            }""";
+
+    public static final String UPDATE_USER_RESPONSE = """
+            {
+              "code": 200,
+              "message": "Cập nhật thông tin thành công",
+              "result": {
+                "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "username": "john.doe@gmail.com",
+                "fullName": "Nguyen Van B",
+                "email": "john.doe@gmail.com",
+                "phone": "0909999999",
+                "dob": "2000-01-15",
+                "status": "ACTIVE",
+                "role": {
+                  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "roleName": "USER",
+                  "description": "Standard application user"
+                }
+              }
+            }""";
+
     // ─── Users ──────────────────────────────────────────
     public static final String REGISTER_REQUEST = """
             {

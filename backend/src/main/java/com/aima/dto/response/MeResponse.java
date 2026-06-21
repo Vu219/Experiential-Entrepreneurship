@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -37,6 +38,13 @@ public class MeResponse {
 
     @Schema(description = "Avatar image URL.", example = "https://cdn.example.com/avatars/johndoe.png")
     String avatarUrl;
+
+    @Schema(description = "Account status (ACTIVE, LOCKED, PENDING_DELETE).", example = "ACTIVE")
+    String status;
+
+    @Schema(description = "When the account will be permanently purged. Set only while status is PENDING_DELETE.",
+            example = "2026-07-21T00:00:00")
+    LocalDateTime deletionDate;
 
     @Schema(description = "True when the user has filled in all required profile fields " +
             "(fullName, phone, dateOfBirth). False forces the frontend to the complete-profile screen.",

@@ -36,7 +36,7 @@ public class UserResponse {
     @Schema(description = "Hashed password (BCrypt). Never serialized in responses.", hidden = true)
     String password;
 
-    @Schema(description = "Account status.", example = "ACTIVE", allowableValues = {"ACTIVE", "LOCKED"})
+    @Schema(description = "Account status.", example = "ACTIVE", allowableValues = {"ACTIVE", "LOCKED", "PENDING_DELETE"})
     String status;
 
     @Schema(description = "Avatar image URL.", example = "https://cdn.example.com/avatars/johndoe.png")

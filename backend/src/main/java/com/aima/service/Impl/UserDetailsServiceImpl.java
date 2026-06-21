@@ -7,6 +7,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import com.aima.enums.UserStatus;
 import com.aima.repository.UserRepository;
 
 import java.util.Collections;
@@ -30,7 +31,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .username(user.getEmail())
                 .password(user.getPassword())
                 .authorities(authorities)
-                .disabled("LOCKED".equalsIgnoreCase(user.getStatus()))
+                .disabled(user.getStatus() == UserStatus.LOCKED)
                 .build();
     }
 }

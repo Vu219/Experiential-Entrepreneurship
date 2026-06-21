@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../auth/AuthContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { Icon } from './ui';
 import { ICON } from '../data';
@@ -37,8 +38,10 @@ export function LangButton({ compact = false }: { compact?: boolean }) {
 
 function Topbar() {
   const { t, brandGradient, profile, go } = useApp();
+  const { user } = useAuth();
   const { isMobile } = useBreakpoint();
   const initials = (profile.name || 'A U').trim().split(/\s+/).map((w) => w[0]).slice(-2).join('').toUpperCase();
+  const avatarUrl = user?.avatarUrl ?? null;
 
   return (
     <header
@@ -82,7 +85,9 @@ function Topbar() {
         <span style={{ position: 'absolute', top: 9, right: 10, width: 8, height: 8, borderRadius: '50%', background: '#ec4899', border: '2px solid #f4f2fb' }} />
       </button>
       <div onClick={() => go('profile')} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', paddingLeft: 6, borderLeft: '1px solid #eee9f6' }}>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', background: brandGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 15 }}>{initials}</div>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', background: brandGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 15, overflow: 'hidden' }}>
+          {avatarUrl ? <img src={avatarUrl} alt={profile.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+        </div>
         {!isMobile && (
           <div>
             <div style={{ fontWeight: 700, fontSize: 14, color: '#211c38' }}>{profile.name}</div>

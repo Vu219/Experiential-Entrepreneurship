@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import com.aima.entity.Role;
 import com.aima.entity.User;
+import com.aima.enums.UserStatus;
 import com.aima.repository.RoleRepository;
 import com.aima.repository.UserRepository;
 
@@ -77,7 +78,7 @@ public class DataInitializer implements CommandLineRunner {
                     .password(passwordEncoder.encode("Admin123"))
                     .fullName("System Administrator")
                     .phone("0123456789")
-                    .status("ACTIVE")
+                    .status(UserStatus.ACTIVE)
                     .profileCompleted(true)
                     .role(adminRole)
                     .build();
