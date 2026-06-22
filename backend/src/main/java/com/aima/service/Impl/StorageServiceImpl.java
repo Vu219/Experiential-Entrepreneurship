@@ -15,7 +15,7 @@ import com.aima.config.storage.StorageBuckets;
 import com.aima.config.storage.SupabaseProperties;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
-import com.aima.service.SupabaseStorageService;
+import com.aima.service.StorageService;
 
 import java.io.IOException;
 import java.net.URI;
@@ -30,7 +30,7 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class SupabaseStorageServiceImpl implements SupabaseStorageService {
+public class StorageServiceImpl implements StorageService {
 
     WebClient supabaseWebClient;
     SupabaseProperties supabaseProperties;

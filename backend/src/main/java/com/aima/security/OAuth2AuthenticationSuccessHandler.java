@@ -1,6 +1,6 @@
 package com.aima.security;
 
-import com.aima.service.SupabaseStorageService;
+import com.aima.service.StorageService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
@@ -38,7 +38,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     AuthenticationService authenticationService;
     CookieUtils cookieUtils;
     PasswordEncoder passwordEncoder;
-    SupabaseStorageService supabaseStorageService;
+    StorageService storageService;
 
     @NonFinal
     @Value("${app.oauth2.frontend-callback-url}")
@@ -101,7 +101,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         if (!shouldMirror) return;
 
         try {
-            String supabaseUrl = supabaseStorageService.uploadAvatarFromUrl(googlePictureUrl, user.getId().toString());
+            String supabaseUrl = storageService.uploadAvatarFromUrl(googlePictureUrl, user.getId().toString());
             user.setAvatarUrl(supabaseUrl);
             userRepository.save(user);
             log.info("Đã đồng bộ avatar Google sang Supabase cho {}", user.getEmail());

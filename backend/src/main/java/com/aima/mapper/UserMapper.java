@@ -1,6 +1,7 @@
 package com.aima.mapper;
 
 import com.aima.dto.request.CompleteProfileRequest;
+import com.aima.dto.response.DeleteAccountResponse;
 import com.aima.dto.response.MeResponse;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
@@ -19,9 +20,6 @@ public interface UserMapper {
     @Mapping(target = "username", source = "email")
     User toUser(UserRegisterRequest request);
 
-    @Mapping(target = "role", source = "role")
-    @Mapping(target = "createdAt", source = "createdAt")
-//    @Mapping(target = "avatarUrl", source = "avatarUrl")
     UserResponse toUserResponse(User user);
 
     List<UserResponse> toUserResponseList(List<User> users);
@@ -37,4 +35,6 @@ public interface UserMapper {
     // Cập nhật hồ sơ: chỉ ghi đè các trường có giá trị (bỏ qua null).
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void updateUserFromProfile(UpdateProfileRequest request, @MappingTarget User user);
+
+    DeleteAccountResponse toDeleteAccountResponse(User user, Long daysRemaining, String message);
 }

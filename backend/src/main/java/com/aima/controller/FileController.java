@@ -2,9 +2,6 @@ package com.aima.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +11,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import com.aima.config.swagger.SwaggerExamples;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.FileUploadResponse;
 import com.aima.dto.response.SignedUrlResponse;
@@ -35,10 +31,6 @@ public class FileController {
             description = "Uploads an image (jpg/png/webp, max 2 MB) to the public 'avatars' bucket and " +
                     "returns its public URL. The file is stored at {userId}/{uuid}_{filename}."
     )
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200", description = "Avatar uploaded.",
-            content = @Content(schema = @Schema(implementation = ApiResponse.class),
-                    examples = @ExampleObject(value = SwaggerExamples.UPLOAD_AVATAR_RESPONSE)))
     public ApiResponse<FileUploadResponse> uploadAvatar(
             @AuthenticationPrincipal UserDetails userDetails,
             @Parameter(description = "Image file (jpg/png/webp, ≤ 2 MB)") @RequestParam("file") MultipartFile file) {
@@ -52,10 +44,6 @@ public class FileController {
                     "path to persist in the DB. The file is NOT publicly accessible — use GET /files/documents/signed-url " +
                     "to obtain a temporary link."
     )
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200", description = "Document uploaded.",
-            content = @Content(schema = @Schema(implementation = ApiResponse.class),
-                    examples = @ExampleObject(value = SwaggerExamples.UPLOAD_DOCUMENT_RESPONSE)))
     public ApiResponse<FileUploadResponse> uploadDocument(
             @AuthenticationPrincipal UserDetails userDetails,
             @Parameter(description = "PDF file (≤ 10 MB)") @RequestParam("file") MultipartFile file) {
@@ -68,10 +56,6 @@ public class FileController {
             description = "Generates a time-limited signed URL to view/download a private document stored in the " +
                     "'documents' bucket. Provide the storage path returned by the upload endpoint."
     )
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200", description = "Signed URL created.",
-            content = @Content(schema = @Schema(implementation = ApiResponse.class),
-                    examples = @ExampleObject(value = SwaggerExamples.SIGNED_URL_RESPONSE)))
     public ApiResponse<SignedUrlResponse> getDocumentSignedUrl(
             @Parameter(description = "Storage path inside the documents bucket ({userId}/{uuid}_{filename}).")
             @RequestParam("path") String path,

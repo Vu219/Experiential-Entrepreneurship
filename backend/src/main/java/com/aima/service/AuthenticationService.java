@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.text.ParseException;
+import java.util.Map;
 
 public interface AuthenticationService {
     ApiResponse<AuthenticationResponse> authenticate(LoginRequest request, HttpServletResponse response);
@@ -20,5 +21,5 @@ public interface AuthenticationService {
             throws ParseException, JOSEException;
     ApiResponse<AuthenticationResponse> refreshToken(HttpServletRequest httpRequest, HttpServletResponse response);
     AuthenticationResponse generateTokenForOAuth2User(User user);
-    boolean isAccountLocked(String identifier);
+    ApiResponse<Map<String, Object>> accountStatus(String identifier);
 }

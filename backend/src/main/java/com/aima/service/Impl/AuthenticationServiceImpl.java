@@ -33,6 +33,8 @@ import java.security.SecureRandom;
 import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -151,7 +153,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public boolean isAccountLocked(String identifier) {
+    public ApiResponse<Map<String, Object>> accountStatus(String identifier) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("LOCKED", isAccountLocked(identifier));
+
+        return ApiResponse.<Map<String, Object>>builder()
+                .result(result)
+                .build();
+    }
+
+    private boolean isAccountLocked(String identifier) {
         var normalized = identifier == null ? "" : identifier.trim();
         var userOpt = userRepository.findByEmail(normalized);
         if (userOpt.isEmpty()) {

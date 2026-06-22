@@ -8,7 +8,7 @@ import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.repository.UserRepository;
 import com.aima.service.FileService;
-import com.aima.service.SupabaseStorageService;
+import com.aima.service.StorageService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -20,13 +20,13 @@ import org.springframework.web.multipart.MultipartFile;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class FileServiceImpl implements FileService {
 
-    SupabaseStorageService supabaseStorageService;
+    StorageService storageService;
     UserRepository userRepository;
 
     @Override
     public ApiResponse<FileUploadResponse> uploadAvatar(String email, MultipartFile file) {
         String userId = currentUserId(email);
-        String url = supabaseStorageService.uploadAvatar(file, userId);
+        String url = storageService.uploadAvatar(file, userId);
 
         return ApiResponse.success("Tải ảnh đại diện thành công",
                 FileUploadResponse.builder()
@@ -39,7 +39,7 @@ public class FileServiceImpl implements FileService {
     @Override
     public ApiResponse<FileUploadResponse> uploadDocument(String email, MultipartFile file) {
         String userId = currentUserId(email);
-        String path = supabaseStorageService.uploadDocument(file, userId);
+        String path = storageService.uploadDocument(file, userId);
 
         return ApiResponse.success("Tải tài liệu thành công",
                 FileUploadResponse.builder()
@@ -50,7 +50,7 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public ApiResponse<SignedUrlResponse> getDocumentSignedUrl(String path, int expiresInSeconds) {
-        String signedUrl = supabaseStorageService.getSignedUrl(path, expiresInSeconds);
+        String signedUrl = storageService.getSignedUrl(path, expiresInSeconds);
 
         return ApiResponse.success("Tạo đường dẫn truy cập thành công",
                 SignedUrlResponse.builder()

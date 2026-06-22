@@ -37,7 +37,7 @@ public enum ErrorCode {
     USER_LIST_EMPTY(1018, "Không có tài khoản nào trong hệ thống!!!", HttpStatus.NOT_FOUND),
     DATE_OF_BIRTH_REQUIRED(1025, "Ngày sinh không được để trống", HttpStatus.BAD_REQUEST),
     INVALID_DATE_OF_BIRTH(1026, "Ngày sinh phải là một ngày trong quá khứ", HttpStatus.BAD_REQUEST),
-    ACCOUNT_ALREADY_PENDING_DELETE(1026, "Tài khoản đã trong trạng thái chờ xóa", HttpStatus.BAD_REQUEST),
+    ACCOUNT_ALREADY_PENDING_DELETE(1029, "Tài khoản đã trong trạng thái chờ xóa", HttpStatus.BAD_REQUEST),
     ACCOUNT_NOT_PENDING_DELETE(1027, "Tài khoản không trong trạng thái chờ xóa", HttpStatus.BAD_REQUEST),
 
     // ROLE ERRORS
@@ -64,7 +64,7 @@ public enum ErrorCode {
     CHAT_SESSION_ID_REQUIRED(1067, "Session chat không được để trống", HttpStatus.BAD_REQUEST),
     CHAT_SESSION_PROCESSING_ERROR(1068, "Không thể xử lý dữ liệu lịch sử chat", HttpStatus.INTERNAL_SERVER_ERROR),
     CHAT_SESSION_TITLE_REQUIRED(1069, "Tiêu đề phiên chat không được để trống", HttpStatus.BAD_REQUEST),
-    CHAT_SESSION_NOT_FOUND(1077, "Không tìm thấy phiên chat", HttpStatus.NOT_FOUND),
+    CHAT_SESSION_NOT_FOUND(1078, "Không tìm thấy phiên chat", HttpStatus.NOT_FOUND),
 
     PASSWORD_INCORRECT(1070, "Mật khẩu hiện tại không chính xác", HttpStatus.BAD_REQUEST),
     PASSWORD_CHANGE_LIMIT(1071, "Bạn chỉ được phép đổi mật khẩu 1 lần trong vòng 7 ngày", HttpStatus.BAD_REQUEST),
@@ -95,14 +95,14 @@ public enum ErrorCode {
     OAUTH2_PROCESSING_ERROR(2002, "Lỗi xử lý đăng nhập Google. Vui lòng thử lại.", HttpStatus.INTERNAL_SERVER_ERROR),
 
     // FILE / STORAGE ERRORS
-    FILE_REQUIRED(1700, "File không được để trống", HttpStatus.BAD_REQUEST),
-    INVALID_FILE_TYPE(1701, "Định dạng file không được hỗ trợ", HttpStatus.BAD_REQUEST),
-    FILE_TOO_LARGE(1702, "Kích thước file vượt quá giới hạn cho phép", HttpStatus.BAD_REQUEST),
-    FILE_READ_FAILED(1703, "Không thể đọc nội dung file", HttpStatus.INTERNAL_SERVER_ERROR),
-    FILE_UPLOAD_FAILED(1704, "Tải file lên thất bại, vui lòng thử lại", HttpStatus.INTERNAL_SERVER_ERROR),
-    FILE_DELETE_FAILED(1705, "Xóa file thất bại, vui lòng thử lại", HttpStatus.INTERNAL_SERVER_ERROR),
-    SIGNED_URL_FAILED(1706, "Không thể tạo đường dẫn truy cập file", HttpStatus.INTERNAL_SERVER_ERROR),
-    FILE_PATH_REQUIRED(1707, "Đường dẫn file không được để trống", HttpStatus.BAD_REQUEST),;
+    FILE_REQUIRED(1800, "File không được để trống", HttpStatus.BAD_REQUEST),
+    INVALID_FILE_TYPE(1801, "Định dạng file không được hỗ trợ", HttpStatus.BAD_REQUEST),
+    FILE_TOO_LARGE(1802, "Kích thước file vượt quá giới hạn cho phép", HttpStatus.BAD_REQUEST),
+    FILE_READ_FAILED(1803, "Không thể đọc nội dung file", HttpStatus.INTERNAL_SERVER_ERROR),
+    FILE_UPLOAD_FAILED(1804, "Tải file lên thất bại, vui lòng thử lại", HttpStatus.INTERNAL_SERVER_ERROR),
+    FILE_DELETE_FAILED(1805, "Xóa file thất bại, vui lòng thử lại", HttpStatus.INTERNAL_SERVER_ERROR),
+    SIGNED_URL_FAILED(1806, "Không thể tạo đường dẫn truy cập file", HttpStatus.INTERNAL_SERVER_ERROR),
+    FILE_PATH_REQUIRED(1807, "Đường dẫn file không được để trống", HttpStatus.BAD_REQUEST),;
 
     private int code;
     private String message;

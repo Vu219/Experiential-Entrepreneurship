@@ -2,7 +2,7 @@ package com.aima.service;
 
 import org.springframework.web.multipart.MultipartFile;
 
-public interface SupabaseStorageService {
+public interface StorageService {
     String uploadAvatar(MultipartFile file, String userId);
     String uploadDocument(MultipartFile file, String userId);
 

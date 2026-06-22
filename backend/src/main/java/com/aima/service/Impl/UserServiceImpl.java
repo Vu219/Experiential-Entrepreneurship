@@ -26,7 +26,7 @@ import com.aima.exception.ErrorCode;
 import com.aima.mapper.UserMapper;
 import com.aima.repository.RoleRepository;
 import com.aima.repository.UserRepository;
-import com.aima.service.SupabaseStorageService;
+import com.aima.service.StorageService;
 import com.aima.service.UserService;
 
 import java.security.SecureRandom;
@@ -47,7 +47,7 @@ public class UserServiceImpl implements UserService {
     EmailService emailService;
     OtpService otpService;
     RefreshTokenService refreshTokenService;
-    SupabaseStorageService supabaseStorageService;
+    StorageService storageService;
 
     UserMapper userMapper;
 
@@ -157,7 +157,7 @@ public class UserServiceImpl implements UserService {
 
     private void deleteAvatarQuietly(String path) {
         try {
-            supabaseStorageService.deleteFile(StorageBuckets.AVATARS, path);
+            storageService.deleteFile(StorageBuckets.AVATARS, path);
         } catch (Exception e) {
             log.warn("Không xoá được ảnh đại diện cũ '{}': {}", path, e.getMessage());
         }
@@ -358,13 +358,10 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
 
         return ApiResponse.success("Yêu cầu xóa tài khoản đã được ghi nhận",
-                DeleteAccountResponse.builder()
-                        .status(UserStatus.PENDING_DELETE.name())
-                        .deletionDate(deletionDate)
-                        .daysRemaining(ChronoUnit.DAYS.between(now, deletionDate))
-                        .message("Tài khoản sẽ bị xóa vĩnh viễn sau " + ACCOUNT_DELETION_GRACE_DAYS
-                                + " ngày. Bạn có thể khôi phục trước thời hạn này.")
-                        .build());
+                userMapper.toDeleteAccountResponse(user,
+                        ChronoUnit.DAYS.between(now, deletionDate),
+                        "Tài khoản sẽ bị xóa vĩnh viễn sau " + ACCOUNT_DELETION_GRACE_DAYS
+                                + " ngày. Bạn có thể khôi phục trước thời hạn này."));
     }
 
     @Override
@@ -380,10 +377,8 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
 
         return ApiResponse.success("Tài khoản đã được khôi phục thành công",
-                DeleteAccountResponse.builder()
-                        .status(UserStatus.ACTIVE.name())
-                        .message("Tài khoản của bạn đã được khôi phục và hoạt động bình thường.")
-                        .build());
+                userMapper.toDeleteAccountResponse(user, null,
+                        "Tài khoản của bạn đã được khôi phục và hoạt động bình thường."));
     }
 
     private String generateOtp() {

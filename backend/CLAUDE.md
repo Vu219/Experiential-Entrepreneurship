@@ -78,7 +78,8 @@ backend/
     │   └── OAuth2AuthenticationSuccessHandler.java — issue JWT, set cookies, redirect FE with ?login=success
     ├── controller/
     │   ├── AuthenticationController.java    — POST /auth/{login,refresh,introspect,logout}, GET /auth/account-status
-    │   ├── UserController.java              — POST /users/register, GET /users, GET /users/{id}, GET /users/me, PUT /users/me, GET /users/me/profile,
+    │   ├── AccountController.java           — Single controller for ALL account management (user + admin, not split — see rule #1):
+    │   │                                       POST /users/register, GET /users, GET /users/{id}, GET /users/me, PUT /users/me, GET /users/me/profile,
     │   │                                       POST /users/{forgot-password,verify-otp,reset-password}, POST /users/me/change-password/{init,confirm},
     │   │                                       POST /users/me/deactivate-request (request delete), POST /users/me/restore (cancel delete)
     │   ├── BrandProfileController.java      — Brand profile CRUD (BR-01..BR-04)
@@ -121,7 +122,8 @@ backend/
     │   ├── ErrorCode.java                   — Enum: code (int) + message (String) + HttpStatus
     │   └── GlobalExceptionHandler.java      — @ControllerAdvice: AppException, validation, AuthenticationException→401, AccessDeniedException→403, catch-all→500
     ├── mapper/                              — MapStruct (componentModel = "spring")
-    │   ├── UserMapper.java                  — UserRegisterRequest→User, User→UserResponse/MeResponse, UpdateProfileRequest→User (@MappingTarget)
+    │   ├── UserMapper.java                  — UserRegisterRequest→User, User→UserResponse/MeResponse, UpdateProfileRequest→User & CompleteProfileRequest→User (@MappingTarget),
+    │   │                                       User(+daysRemaining,message)→DeleteAccountResponse (delete/restore result; no separate DeleteAccountMapper)
     │   ├── AuthenticationMapper.java        — String token(+refresh)→AuthenticationResponse
     │   ├── OAuth2UserMapper.java            — OAuth2UserInfo→User + updateGoogleFields(@MappingTarget)
     │   └── BrandProfileMapper.java
@@ -218,7 +220,8 @@ This matches the product-wide API-01 format `{ "code", "message", "result" }`.
 ### Swagger
 - All `@ExampleObject` strings live as `public static final String` constants in `SwaggerExamples`.
 - Public endpoints carry `@SecurityRequirements({})` to remove the lock icon in Swagger UI.
-- `@Operation` and `@ApiResponse` are on every endpoint; `OpenApiConfig` injects global 400/401/403/500 responses.
+- `@Operation` is on every endpoint; `OpenApiConfig` injects global 200/400/401/403/500 responses.
+- **Controllers use ONLY our own `com.aima.dto.response.ApiResponse`** — do **not** use Swagger's response annotation `io.swagger.v3.oas.annotations.responses.ApiResponse` on controller methods. Having two `ApiResponse` types in a controller (ours as the return type, Swagger's as an annotation) is the inconsistency we removed; per-endpoint success/error docs come from the `ApiResponse<T>` return type plus the global responses in `OpenApiConfig`. (The OpenAPI *model* class `io.swagger.v3.oas.models.responses.ApiResponse` is fine in `OpenApiConfig` — it is config code, not a controller, and builds those global responses.)
 
 ### MapStruct
 ```java
@@ -231,7 +234,9 @@ public interface UserMapper { ... }
 - **Update:** use a MapStruct `void update(SourceDto dto, @MappingTarget Entity entity)` method (with `@BeanMapping(nullValuePropertyMappingStrategy = IGNORE)` for partial updates) instead of manually calling setters.
 - **Delete:** map the affected entity → response DTO via the mapper when returning the deleted record.
 
-If a target DTO has no mapper method yet, add one and call it from the service. Use `@Mapping(target = ..., source = ...)` for renamed/nested fields (e.g. `@Mapping(target = "role", source = "role.roleName")`).
+If a target DTO has no mapper method yet, add one and call it from the service. **Keep mappers in the existing files — don't create a new `*Mapper` per DTO** (e.g. the delete/restore result `toDeleteAccountResponse(User, Long daysRemaining, String message)` lives on `UserMapper`, not a separate mapper).
+
+**Only add `@Mapping` where MapStruct can't auto-resolve.** Same-name source/target fields, enum→`String` (via `.name()`), and source-parameter names that match a target property are mapped automatically — adding a redundant `@Mapping(target = "x", source = "x")` is noise. Reserve `@Mapping` for renamed/nested fields (`@Mapping(target = "role", source = "role.roleName")`), `ignore = true`, or constants. With multiple source params (e.g. `(User user, Long daysRemaining, String message)`) MapStruct matches a target first by parameter name, then by a property of the bean params — so `status`/`deletionDate` resolve from `user` and `daysRemaining`/`message` from the like-named params with **no** annotations.
 
 ---
 
@@ -452,9 +457,11 @@ AUTH_COOKIE_NAME (refresh_token), AUTH_COOKIE_SECURE (false), AUTH_COOKIE_SAME_S
 
 1. **Never rename** existing packages, classes, or public interfaces — `AuthenticationService`, `UserService`, `ErrorCode` enum keys, etc. are referenced in many places.
 
-2. **ErrorCode enum keys are validation message keys.** Every `@NotBlank(message="KEY")` maps directly to `ErrorCode.KEY`. Adding a new validation requires a matching `ErrorCode` entry.
+   **1a. One unified `AccountController` for account management — do NOT split user vs. admin into separate controllers.** All account-related endpoints (registration, profile, password reset/change, account deletion, and admin-only operations like `GET /users` / `GET /users/{id}`) live in a single `AccountController`. Admin-only operations are gated **per method** with `@PreAuthorize("hasRole('ADMIN')")`, never by carving out a separate `AdminUserController`/`AdminController`. New account/admin endpoints go here. (This controller is the renamed former `UserController`; the route prefix stays `/users` for FE/Security-config compatibility.)
 
-3. **Always use `ApiResponse<T>` as the return type** for every controller method. Never return raw types or `ResponseEntity` directly.
+2. **ErrorCode enum keys are validation message keys.** Every `@NotBlank(message="KEY")` maps directly to `ErrorCode.KEY`. Adding a new validation requires a matching `ErrorCode` entry. **The numeric `code` of each `ErrorCode` MUST be unique** — the FE distinguishes errors by `code`, so never reuse the same int across two constants (e.g. don't let a brand-profile and a file error both be `1700`).
+
+3. **Always use `ApiResponse<T>` as the return type** for every controller method. Never return raw types or `ResponseEntity` directly. `ApiResponse` here means **only** our `com.aima.dto.response.ApiResponse` — never the Swagger annotation `io.swagger.v3.oas.annotations.responses.ApiResponse` (see the Swagger convention in §3). Import our `ApiResponse` directly so the return type is plain `ApiResponse<T>`, not a fully-qualified name.
 
 4. **`@JsonInclude(NON_NULL)` on `ApiResponse` is intentional.** Do not remove it; absent fields must be omitted from JSON output.
 
@@ -492,7 +499,7 @@ AUTH_COOKIE_NAME (refresh_token), AUTH_COOKIE_SECURE (false), AUTH_COOKIE_SAME_S
 
 21. **Time-consuming AI / posting tasks must run async (background jobs)** and never block the request thread (root `CLAUDE.md` NFR-04). Return a job/handle immediately and process in the background.
 
-22. **Thin controllers — the service layer returns the `ApiResponse<T>`; controllers only delegate.** Every controller method body is a single `return xService.method(...)`; it MUST NOT contain business logic, URL/string parsing, entity lookups, or DTO assembly (`.builder()`/setters). Each `*Service` (interface in `service/`, impl in `service/Impl/`) is what builds the `ApiResponse<T>` envelope and result DTOs. If an endpoint needs a service that currently exposes lower-level primitives (e.g. `SupabaseStorageService` returns raw `String`), add a dedicated `*Service`/`*ServiceImpl` that wraps it and returns `ApiResponse<T>` (pattern: `FileController` → `FileService`/`FileServiceImpl` → `SupabaseStorageService`). This is consistent with `UserController`/`AuthenticationController`/`BrandProfileController`.
+22. **Thin controllers — the service layer returns the `ApiResponse<T>`; controllers only delegate.** Every controller method body is a single `return xService.method(...)`; it MUST NOT contain business logic, URL/string parsing, entity lookups, or DTO assembly (`.builder()`/setters). Each `*Service` (interface in `service/`, impl in `service/Impl/`) is what builds the `ApiResponse<T>` envelope and result DTOs. If an endpoint needs a service that currently exposes lower-level primitives (e.g. `SupabaseStorageService` returns raw `String`), add a dedicated `*Service`/`*ServiceImpl` that wraps it and returns `ApiResponse<T>` (pattern: `FileController` → `FileService`/`FileServiceImpl` → `SupabaseStorageService`). This is consistent with `AccountController`/`AuthenticationController`/`BrandProfileController`.
 
 23. **Centralize shared constants — never duplicate magic strings/values across files.** Supabase Storage bucket names and URL markers live ONLY in `config/storage/StorageBuckets` (`AVATARS`, `DOCUMENTS`, `AVATAR_PUBLIC_PREFIX`); reference them from `SupabaseStorageServiceImpl`, `FileServiceImpl`, `UserServiceImpl`, etc. Do not re-declare the literal `"avatars"`/`"documents"` (or any equivalent shared constant) inline in multiple classes.
 

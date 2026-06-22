@@ -59,7 +59,9 @@ Health:       http://localhost:8082/api/aima/actuator/health
 
 ## Kết nối với Frontend
 
-- API tuân theo envelope thống nhất: `{ "code", "message", "result" }` (API-01).
+- API tuân theo envelope thống nhất: `{ "code", "message", "result" }` (API-01). `code` là số định danh
+  **duy nhất** cho từng loại lỗi (định nghĩa trong `ErrorCode`) — FE có thể dựa vào `code` để phân biệt lỗi,
+  không phụ thuộc vào `message`.
 - Access/refresh token được trả qua **cookie HttpOnly** — FE không đọc token, chỉ gọi `GET /users/me`
   để biết danh tính.
 - **Frontend gọi thẳng backend** bằng URL tuyệt đối lấy từ `VITE_API_BASE_URL` (xem `frontend/.env`),

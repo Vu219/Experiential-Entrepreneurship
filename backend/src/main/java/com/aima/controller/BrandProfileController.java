@@ -4,6 +4,7 @@ import com.aima.dto.request.BrandProfileRequest;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.BrandProfileResponse;
 import com.aima.service.BrandProfileService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -34,6 +35,8 @@ public class BrandProfileController {
 
     // FR-05: create
     @PostMapping
+    @Operation(summary = "Create a brand profile",
+            description = "Creates a brand profile owned by the authenticated user (BR-01).")
     public ApiResponse<BrandProfileResponse> create(@AuthenticationPrincipal UserDetails principal,
                                                     @Valid @RequestBody BrandProfileRequest request) {
         return brandProfileService.create(principal.getUsername(), request);
@@ -41,12 +44,16 @@ public class BrandProfileController {
 
     // FR-07: list
     @GetMapping
+    @Operation(summary = "List the current user's brand profiles",
+            description = "Returns every non-deleted brand profile owned by the authenticated user.")
     public ApiResponse<List<BrandProfileResponse>> list(@AuthenticationPrincipal UserDetails principal) {
         return brandProfileService.list(principal.getUsername());
     }
 
     // FR-07: view one
     @GetMapping("/{id}")
+    @Operation(summary = "Get a brand profile by id",
+            description = "Returns a single brand profile owned by the authenticated user; 404 if not found.")
     public ApiResponse<BrandProfileResponse> get(@AuthenticationPrincipal UserDetails principal,
                                                  @PathVariable UUID id) {
         return brandProfileService.get(principal.getUsername(), id);
@@ -54,6 +61,8 @@ public class BrandProfileController {
 
     // FR-06: update
     @PutMapping("/{id}")
+    @Operation(summary = "Update a brand profile",
+            description = "Updates a brand profile owned by the authenticated user; 404 if not found.")
     public ApiResponse<BrandProfileResponse> update(@AuthenticationPrincipal UserDetails principal,
                                                     @PathVariable UUID id,
                                                     @Valid @RequestBody BrandProfileRequest request) {
@@ -62,6 +71,8 @@ public class BrandProfileController {
 
     // FR-08: delete
     @DeleteMapping("/{id}")
+    @Operation(summary = "Soft-delete a brand profile",
+            description = "Soft-deletes (marks deletedAt) a brand profile owned by the authenticated user; 404 if not found.")
     public ApiResponse<Void> delete(@AuthenticationPrincipal UserDetails principal, @PathVariable UUID id) {
         return brandProfileService.delete(principal.getUsername(), id);
     }

@@ -1,13 +1,13 @@
 package com.aima.controller;
 
 import com.aima.dto.request.*;
+import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.DeleteAccountResponse;
 import com.aima.dto.response.MeResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -29,8 +29,8 @@ import java.util.UUID;
 @RequestMapping("/users")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Tag(name = "Users", description = "User registration and account management.")
-public class UserController {
+@Tag(name = "Account", description = "Account management for both regular users and admins (registration, profile, password, deletion).")
+public class AccountController {
     UserService userService;
 
     @PostMapping("/register")
@@ -43,10 +43,7 @@ public class UserController {
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             content = @Content(schema = @Schema(implementation = UserRegisterRequest.class),
                     examples = @ExampleObject(value = SwaggerExamples.REGISTER_REQUEST)))
-    @ApiResponse(responseCode = "200", description = "User registered successfully.",
-            content = @Content(schema = @Schema(implementation = com.aima.dto.response.ApiResponse.class),
-                    examples = @ExampleObject(value = SwaggerExamples.REGISTER_RESPONSE)))
-    public com.aima.dto.response.ApiResponse<UserResponse> register(@Valid @RequestBody UserRegisterRequest request) {
+    public ApiResponse<UserResponse> register(@Valid @RequestBody UserRegisterRequest request) {
         return userService.registerUser(request);
     }
 
@@ -56,8 +53,7 @@ public class UserController {
             summary = "List all users",
             description = "Returns every user account. Restricted to ADMIN."
     )
-    @ApiResponse(responseCode = "200", description = "User list returned.")
-    public com.aima.dto.response.ApiResponse<List<UserResponse>> getAllUsers() {
+    public ApiResponse<List<UserResponse>> getAllUsers() {
         return userService.getAllUsers();
     }
 
@@ -67,8 +63,7 @@ public class UserController {
             summary = "Get a user by id",
             description = "Looks up a single user by UUID. Restricted to ADMIN."
     )
-    @ApiResponse(responseCode = "200", description = "User returned.")
-    public com.aima.dto.response.ApiResponse<UserResponse> getUserById(@PathVariable UUID userId) {
+    public ApiResponse<UserResponse> getUserById(@PathVariable UUID userId) {
         return userService.getUserById(userId);
     }
 
@@ -78,8 +73,7 @@ public class UserController {
             description = "Returns the identity (id, email, role) of the user resolved from the JWT in the " +
                     "Security Context. Requires a valid access token; the user is never passed as a parameter."
     )
-    @ApiResponse(responseCode = "200", description = "Current user returned.")
-    public com.aima.dto.response.ApiResponse<MeResponse> getCurrentUser(
+    public ApiResponse<MeResponse> getCurrentUser(
             @AuthenticationPrincipal UserDetails userDetails) {
         return userService.getCurrentUser(userDetails.getUsername());
     }
@@ -90,8 +84,7 @@ public class UserController {
             description = "Saves fullName, phone and dateOfBirth for the authenticated user. Used both by the " +
                     "complete-profile screen after a first Google login and by the regular profile editor."
     )
-    @ApiResponse(responseCode = "200", description = "Profile updated; current user returned.")
-    public com.aima.dto.response.ApiResponse<MeResponse> updateCurrentUser(
+    public ApiResponse<MeResponse> updateCurrentUser(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody UpdateProfileRequest request) {
         return userService.updateCurrentUser(userDetails.getUsername(), request);
@@ -105,9 +98,7 @@ public class UserController {
             description = "Validates the email exists, invalidates any previous reset tokens, generates a 6-digit OTP " +
                     "valid for 1 minute 30 seconds, and emails it to the user. Returns 404 if the email is not registered."
     )
-    @ApiResponse(responseCode = "200", description = "OTP sent to the user's email.")
-    @ApiResponse(responseCode = "404", description = "Email not found.")
-    public com.aima.dto.response.ApiResponse<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+    public ApiResponse<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         return userService.forgotPassword(request);
     }
 
@@ -118,9 +109,7 @@ public class UserController {
             description = "Checks that the OTP matches the email, has not been used, and has not expired. " +
                     "Does not consume the OTP — it is consumed only on POST /users/reset-password."
     )
-    @ApiResponse(responseCode = "200", description = "OTP is valid.")
-    @ApiResponse(responseCode = "400", description = "OTP is invalid, used, or expired.")
-    public com.aima.dto.response.ApiResponse<String> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+    public ApiResponse<String> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
         return userService.verifyOtp(request);
     }
 
@@ -131,9 +120,7 @@ public class UserController {
             description = "Re-validates the OTP, ensures newPassword equals confirmPassword, updates the user's password " +
                     "(BCrypt), and marks the OTP as used so it cannot be reused."
     )
-    @ApiResponse(responseCode = "200", description = "Password reset successfully.")
-    @ApiResponse(responseCode = "400", description = "OTP invalid/expired/used or passwords do not match.")
-    public com.aima.dto.response.ApiResponse<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+    public ApiResponse<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         return userService.resetPassword(request);
     }
 
@@ -149,11 +136,7 @@ public class UserController {
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             content = @Content(schema = @Schema(implementation = ChangePasswordInitRequest.class),
                     examples = @ExampleObject(value = SwaggerExamples.CHANGE_PASSWORD_INIT_REQUEST)))
-    @ApiResponse(responseCode = "200", description = "OTP sent to the user's email.",
-            content = @Content(schema = @Schema(implementation = com.aima.dto.response.ApiResponse.class),
-                    examples = @ExampleObject(value = SwaggerExamples.CHANGE_PASSWORD_INIT_RESPONSE)))
-    @ApiResponse(responseCode = "400", description = "Current password incorrect or 7-day change limit reached.")
-    public com.aima.dto.response.ApiResponse<String> initChangePassword(
+    public ApiResponse<String> initChangePassword(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody ChangePasswordInitRequest request) {
         return userService.initChangePassword(userDetails.getUsername(), request);
@@ -170,11 +153,7 @@ public class UserController {
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             content = @Content(schema = @Schema(implementation = ChangePasswordConfirmRequest.class),
                     examples = @ExampleObject(value = SwaggerExamples.CHANGE_PASSWORD_CONFIRM_REQUEST)))
-    @ApiResponse(responseCode = "200", description = "Password changed successfully.",
-            content = @Content(schema = @Schema(implementation = com.aima.dto.response.ApiResponse.class),
-                    examples = @ExampleObject(value = SwaggerExamples.CHANGE_PASSWORD_CONFIRM_RESPONSE)))
-    @ApiResponse(responseCode = "400", description = "OTP invalid/expired, weak password, or passwords do not match.")
-    public com.aima.dto.response.ApiResponse<String> confirmChangePassword(
+    public ApiResponse<String> confirmChangePassword(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody ChangePasswordConfirmRequest request) {
         return userService.confirmChangePassword(userDetails.getUsername(), request);
@@ -192,11 +171,7 @@ public class UserController {
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             content = @Content(schema = @Schema(implementation = CompleteProfileRequest.class),
                     examples = @ExampleObject(value = SwaggerExamples.COMPLETE_PROFILE_REQUEST)))
-    @ApiResponse(responseCode = "200", description = "Onboarding completed; confirmation email sent.",
-            content = @Content(schema = @Schema(implementation = com.aima.dto.response.ApiResponse.class),
-                    examples = @ExampleObject(value = SwaggerExamples.COMPLETE_PROFILE_RESPONSE)))
-    @ApiResponse(responseCode = "400", description = "Profile already completed, weak password, or passwords do not match.")
-    public com.aima.dto.response.ApiResponse<UserResponse> completeProfile(
+    public ApiResponse<UserResponse> completeProfile(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody CompleteProfileRequest request) {
         return userService.completeProfile(userDetails.getUsername(), request);
@@ -209,8 +184,7 @@ public class UserController {
                     "of the authenticated user resolved from the JWT. Unlike GET /users/me (lightweight identity), " +
                     "this is intended for the profile page."
     )
-    @ApiResponse(responseCode = "200", description = "Profile returned.")
-    public com.aima.dto.response.ApiResponse<UserResponse> getMyProfile(
+    public ApiResponse<UserResponse> getMyProfile(
             @AuthenticationPrincipal UserDetails userDetails) {
         return userService.getMyProfile(userDetails.getUsername());
     }
@@ -224,11 +198,7 @@ public class UserController {
                     "permanently purges accounts whose deadline has passed. " +
                     "The user can cancel within the 30-day window by calling POST /users/me/restore."
     )
-    @ApiResponse(responseCode = "200", description = "Deletion request accepted.",
-            content = @Content(schema = @Schema(implementation = com.aima.dto.response.ApiResponse.class),
-                    examples = @ExampleObject(value = SwaggerExamples.DEACTIVATE_ACCOUNT_RESPONSE)))
-    @ApiResponse(responseCode = "400", description = "Account is already pending deletion or is locked.")
-    public com.aima.dto.response.ApiResponse<DeleteAccountResponse> requestDeleteAccount(
+    public ApiResponse<DeleteAccountResponse> requestDeleteAccount(
             @AuthenticationPrincipal UserDetails userDetails) {
         return userService.requestDeleteAccount(userDetails.getUsername());
     }
@@ -240,11 +210,7 @@ public class UserController {
                     "Sets status back to ACTIVE and clears the deletion deadline. " +
                     "Returns 400 if the account is not currently in PENDING_DELETE state."
     )
-    @ApiResponse(responseCode = "200", description = "Account restored successfully.",
-            content = @Content(schema = @Schema(implementation = com.aima.dto.response.ApiResponse.class),
-                    examples = @ExampleObject(value = SwaggerExamples.RESTORE_ACCOUNT_RESPONSE)))
-    @ApiResponse(responseCode = "400", description = "Account is not in PENDING_DELETE state.")
-    public com.aima.dto.response.ApiResponse<DeleteAccountResponse> restoreAccount(
+    public ApiResponse<DeleteAccountResponse> restoreAccount(
             @AuthenticationPrincipal UserDetails userDetails) {
         return userService.restoreAccount(userDetails.getUsername());
     }
