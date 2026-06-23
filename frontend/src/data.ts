@@ -44,7 +44,7 @@ export function flowCards(lang: Lang) {
       : [
           ['Nghiên cứu xu hướng', 'AI quét xu hướng theo ngành hàng và đối thủ theo thời gian thực.'],
           ['Đề xuất ý tưởng', 'Gợi ý chủ đề, góc nhìn và định dạng phù hợp với thương hiệu của bạn.'],
-          ['Tạo nội dung', 'Sinh script, caption, hashtag và media tối ưu cho từng nền tảng.'],
+          ['Tạo nội dung', 'Tạo script, caption, hashtag và media tối ưu cho từng nền tảng.'],
           ['Lên lịch & tự đăng', 'Lập lịch thông minh và tự động đăng bài 24/7 đa nền tảng.'],
           ['Thu thập dữ liệu', 'Tự động đo lường hiệu quả thực tế của mỗi bài đăng.'],
           ['Phân tích & tối ưu', 'Phân tích kết quả và tối ưu chiến lược cho các bài sau.'],
