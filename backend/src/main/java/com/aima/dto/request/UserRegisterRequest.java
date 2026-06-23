@@ -18,11 +18,10 @@ import java.util.UUID;
 @Schema(name = "UserRegisterRequest", description = "Payload for registering a new user account.")
 public class UserRegisterRequest {
     @NotBlank(message = "PASSWORD_REQUIRED")
-    @Size(min = 6, message = "INVALID_PASSWORD")
-    @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*#?&]{6,}$",
-            message = "INVALID_PASSWORD")
-    @Schema(description = "Min 6 chars, must contain at least one letter and one digit.",
-            example = "Passw0rd", minLength = 6, requiredMode = Schema.RequiredMode.REQUIRED)
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,}$",
+            message = "WEAK_PASSWORD")
+    @Schema(description = "Min 8 chars, must include lowercase, uppercase, a digit and a special character.",
+            example = "Passw0rd!", minLength = 8, requiredMode = Schema.RequiredMode.REQUIRED)
     String password;
 
     @NotBlank(message = "FULLNAME_REQUIRED")

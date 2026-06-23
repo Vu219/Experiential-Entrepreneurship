@@ -2,7 +2,6 @@ package com.aima.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -23,7 +22,7 @@ public class ResetPasswordRequest {
     String otpCode;
 
     @NotBlank(message = "PASSWORD_REQUIRED")
-    @Size(min = 6, message = "INVALID_PASSWORD")
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,}$", message = "WEAK_PASSWORD")
     String newPassword;
 
     @NotBlank(message = "CONFIRM_PASSWORD_REQUIRED")

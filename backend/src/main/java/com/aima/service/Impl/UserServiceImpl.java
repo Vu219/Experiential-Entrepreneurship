@@ -260,13 +260,9 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-        // Không tin FE: xác thực lại khớp mật khẩu + độ mạnh ở phía server.
+        // Không tin FE: xác thực lại khớp mật khẩu ở phía server (độ mạnh do @Pattern trên DTO đảm nhận).
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new AppException(ErrorCode.PASSWORDS_NOT_MATCH);
-        }
-        if (request.getNewPassword().length() < 8
-                || passwordStrength(request.getNewPassword()) < MIN_PASSWORD_STRENGTH) {
-            throw new AppException(ErrorCode.WEAK_PASSWORD);
         }
 
         // Xác thực OTP (ném AppException nếu sai/hết hạn/vượt số lần thử).
@@ -294,9 +290,6 @@ public class UserServiceImpl implements UserService {
         if (!request.getPassword().equals(request.getConfirmPassword())) {
             throw new AppException(ErrorCode.PASSWORDS_NOT_MATCH);
         }
-        if (passwordStrength(request.getPassword()) < MIN_PASSWORD_STRENGTH) {
-            throw new AppException(ErrorCode.WEAK_PASSWORD);
-        }
 
         userMapper.completeProfile(request, user);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -314,19 +307,6 @@ public class UserServiceImpl implements UserService {
 
         return ApiResponse.success("Đã lưu thông tin, email xác nhận đã được gửi",
                 userMapper.toUserResponse(savedUser));
-    }
-
-    private static final int MIN_PASSWORD_STRENGTH = 3;
-
-    private int passwordStrength(String pw) {
-        if (pw == null) return 0;
-        int score = 0;
-        if (pw.length() >= 8) score++;
-        if (pw.matches(".*[A-Z].*")) score++;
-        if (pw.matches(".*[a-z].*")) score++;
-        if (pw.matches(".*\\d.*")) score++;
-        if (pw.matches(".*[^A-Za-z0-9].*")) score++;
-        return score;
     }
 
     @Override

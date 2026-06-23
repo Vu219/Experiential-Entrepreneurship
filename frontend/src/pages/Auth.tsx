@@ -6,6 +6,8 @@ import { useBreakpoint } from '../hooks/useBreakpoint';
 import { GradIcon } from '../components/ui';
 import AimaScene from '../components/AimaScene';
 import { register as apiRegister, GOOGLE_LOGIN_URL, type User } from '../api/auth';
+import PasswordStrengthBar from '../components/PasswordStrengthBar';
+import { passwordValid } from '../utils/password';
 import type { AuthForm, AuthErrors } from '../types';
 
 const inputWrap = (error?: string): CSSProperties => ({
@@ -54,15 +56,21 @@ export default function Auth() {
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState<string>((location.state as { notice?: string } | null)?.notice ?? '');
 
-  // Handle Google OAuth redirect coming back to /login (?login=success | ?error=...).
+  // Chuyển lỗi OAuth thô (vd "[access_denied]" khi người dùng huỷ) thành thông báo thân thiện.
+  const oauthErrorMessage = (raw: string) =>
+    /access_denied/i.test(raw) ? t.errGoogleCancelled : t.errGoogleFailed;
+
+  // Handle Google OAuth redirect coming back to /login (?login=success | ?error=... | state.oauthError).
   useEffect(() => {
     const params = new URLSearchParams(location.search);
+    const stateError = (location.state as { oauthError?: string } | null)?.oauthError;
     if (params.get('login') === 'success') {
       refreshUser().then((me) => {
         if (me) navigate(me.profileCompleted ? '/dashboard' : '/complete-profile', { replace: true });
       });
-    } else if (params.get('error')) {
-      setErrors((er) => ({ ...er, submit: params.get('error') as string }));
+    } else if (params.get('error') || stateError) {
+      const raw = (params.get('error') ?? stateError) as string;
+      setErrors((er) => ({ ...er, submit: oauthErrorMessage(raw) }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -99,7 +107,7 @@ export default function Auth() {
     if (!f.email) er.email = t.errEmailReq;
     else if (!validEmail(f.email)) er.email = t.errEmailBad;
     if (!f.password) er.password = t.errPwReq;
-    else if (f.password.length < 6) er.password = t.errPwShort;
+    else if (!passwordValid(f.password)) er.password = t.errPwWeak;
     if (!f.confirm) er.confirm = t.errConfirmReq;
     else if (f.confirm !== f.password) er.confirm = t.errConfirmBad;
     if (!agree) er.agree = t.errAgree;
@@ -233,6 +241,7 @@ export default function Auth() {
                 <input name="password" value={f.password} onChange={onField} type={showPw ? 'text' : 'password'} placeholder={t.phPassword} style={inputStyle} />
                 <EyeBtn onClick={() => setShowPw((v) => !v)} />
               </div>
+              <PasswordStrengthBar password={f.password} />
               <div style={errStyle}>{errors.password}</div>
 
               <label style={labelStyle}>{t.lConfirm}</label>

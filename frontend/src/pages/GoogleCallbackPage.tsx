@@ -12,7 +12,9 @@ export default function GoogleCallbackPage() {
   useEffect(() => {
     const errorMsg = params.get("error");
     if (errorMsg) {
-      navigate("/login", { replace: true, state: { notice: errorMsg } });
+      // Chuyển lỗi OAuth (vd huỷ đăng nhập → access_denied) về trang login để
+      // hiển thị thông báo thân thiện, KHÔNG dùng banner "thành công" (notice).
+      navigate("/login", { replace: true, state: { oauthError: errorMsg } });
       return;
     }
     // Cookie HttpOnly đã được backend set trong lúc redirect.

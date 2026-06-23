@@ -4,6 +4,8 @@ import { completeProfile } from "../api/auth";
 import { useAuth } from "../auth/AuthContext";
 import { useApp } from "../context/AppContext";
 import { Loader } from "../components/ui";
+import PasswordStrengthBar from "../components/PasswordStrengthBar";
+import { passwordValid } from "../utils/password";
 
 // ---- Design tokens (khớp với Auth.tsx để onboarding nhất quán với app) ----
 const inputWrap = (error?: string): CSSProperties => ({
@@ -56,24 +58,6 @@ function validateStep1(fullName: string, phone: string, dob: string) {
   return e;
 }
 
-// Tiêu chí khớp passwordStrength() ở backend: dài >=8, hoa, thường, số, đặc biệt.
-function scorePassword(pw: string): number {
-  let s = 0;
-  if (pw.length >= 8) s++;
-  if (/[A-Z]/.test(pw)) s++;
-  if (/[a-z]/.test(pw)) s++;
-  if (/\d/.test(pw)) s++;
-  if (/[^A-Za-z0-9]/.test(pw)) s++;
-  return s;
-}
-const MIN_STRENGTH = 3; // >= Trung bình (đồng bộ MIN_PASSWORD_STRENGTH ở backend)
-
-function strengthMeta(score: number) {
-  if (score <= 2) return { label: "Yếu", color: "#e23d6e", pct: 34 };
-  if (score < 5) return { label: "Trung bình", color: "#f59e0b", pct: 67 };
-  return { label: "Mạnh", color: "#16a34a", pct: 100 };
-}
-
 const STEPS = ["Thông tin cá nhân", "Thiết lập mật khẩu"];
 
 export default function CompleteProfilePage() {
@@ -104,9 +88,7 @@ export default function CompleteProfilePage() {
   // Validity realtime (để bật/tắt nút), độc lập với việc hiển thị lỗi inline.
   const step1Errs = useMemo(() => validateStep1(fullName, phone, dob), [fullName, phone, dob]);
   const step1Valid = Object.keys(step1Errs).length === 0;
-  const pwScore = useMemo(() => scorePassword(password), [password]);
-  const meta = strengthMeta(pwScore);
-  const step2Valid = pwScore >= MIN_STRENGTH && confirm.length > 0 && password === confirm;
+  const step2Valid = passwordValid(password) && confirm.length > 0 && password === confirm;
 
   if (loading) {
     return <Loader fullScreen label="Đang tải..." />;
@@ -145,7 +127,7 @@ export default function CompleteProfilePage() {
       return;
     }
     const e2: Record<string, string> = {};
-    if (pwScore < MIN_STRENGTH) e2.password = "Mật khẩu chưa đạt mức tối thiểu (Trung bình)";
+    if (!passwordValid(password)) e2.password = "Mật khẩu cần ≥ 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt";
     if (password !== confirm) e2.confirm = "Mật khẩu xác nhận không khớp";
     if (Object.keys(e2).length > 0) {
       setErrors((p) => ({ ...p, ...e2 }));
@@ -275,15 +257,7 @@ export default function CompleteProfilePage() {
               <EyeBtn on={showPw} onClick={() => setShowPw((v) => !v)} />
             </div>
             {/* Thanh đo độ mạnh mật khẩu — realtime */}
-            <div style={{ margin: "9px 0 2px" }}>
-              <div style={{ height: 6, borderRadius: 4, background: "#eceaf4", overflow: "hidden" }}>
-                <div style={{ height: "100%", width: password ? `${meta.pct}%` : 0, background: meta.color, transition: "width .25s, background .25s" }} />
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
-                <span style={{ fontSize: 11.5, color: "#8a85a0" }}>Hoa • thường • số • ký tự đặc biệt • ≥ 8 ký tự</span>
-                {password && <span style={{ fontSize: 11.5, fontWeight: 700, color: meta.color }}>{meta.label}</span>}
-              </div>
-            </div>
+            <PasswordStrengthBar password={password} />
             <div style={errStyle}>{errors.password}</div>
 
             <label style={labelStyle}>XÁC NHẬN MẬT KHẨU</label>

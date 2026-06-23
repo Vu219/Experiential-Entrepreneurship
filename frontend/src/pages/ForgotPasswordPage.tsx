@@ -5,6 +5,8 @@ import { useBreakpoint } from "../hooks/useBreakpoint";
 import AimaScene from "../components/AimaScene";
 import { forgotPassword, resetPassword, verifyOtp } from "../api/auth";
 import type { ApiError } from "../api/client";
+import PasswordStrengthBar from "../components/PasswordStrengthBar";
+import { passwordValid } from "../utils/password";
 
 type Step = "email" | "otp" | "reset";
 
@@ -123,7 +125,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setError("");
     if (!newPassword) return setError(t.errPwReq);
-    if (newPassword.length < 6) return setError(t.errPwShort);
+    if (!passwordValid(newPassword)) return setError(t.errPwWeak);
     if (newPassword !== confirmPassword) return setError(t.errConfirmBad);
     setSubmitting(true);
     try {
@@ -253,6 +255,7 @@ export default function ForgotPasswordPage() {
                 <input type={showPw ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={t.phPassword} style={inputStyle} />
                 <EyeBtn onClick={() => setShowPw((v) => !v)} />
               </div>
+              <PasswordStrengthBar password={newPassword} />
               <div style={errStyle} />
 
               <label style={labelStyle}>{t.fpConfirmPw}</label>

@@ -36,8 +36,8 @@ public class CompleteProfileRequest {
     LocalDate dob;
 
     @NotBlank(message = "PASSWORD_REQUIRED")
-    @Size(min = 8, message = "WEAK_PASSWORD")
-    @Schema(description = "Self-chosen password. Min 8 chars; server enforces at least 'medium' strength.",
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,}$", message = "WEAK_PASSWORD")
+    @Schema(description = "Self-chosen password. Min 8 chars, must include lowercase, uppercase, a digit and a special character.",
             example = "Passw0rd!", minLength = 8, requiredMode = Schema.RequiredMode.REQUIRED)
     String password;
 

@@ -4,6 +4,8 @@ import { useAuth } from '../auth/AuthContext';
 import { changePasswordInit, changePasswordConfirm, verifyOtp } from '../api/auth';
 import type { ApiError } from '../api/client';
 import Modal from './Modal';
+import PasswordStrengthBar from './PasswordStrengthBar';
+import { passwordValid } from '../utils/password';
 
 type Step = 'current' | 'otp' | 'new';
 
@@ -27,17 +29,6 @@ const EyeBtn = ({ onClick }: { onClick: () => void }) => (
     <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
   </button>
 );
-
-// Cùng quy tắc với backend: tối thiểu 8 ký tự và đạt điểm độ mạnh >= 3.
-const passwordStrong = (pw: string) => {
-  let score = 0;
-  if (pw.length >= 8) score++;
-  if (/[A-Z]/.test(pw)) score++;
-  if (/[a-z]/.test(pw)) score++;
-  if (/\d/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  return pw.length >= 8 && score >= 3;
-};
 
 export default function ChangePasswordModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const { t, brandGradient } = useApp();
@@ -109,7 +100,7 @@ export default function ChangePasswordModal({ onClose, onSuccess }: { onClose: (
     e.preventDefault();
     setError('');
     if (!newPassword) return setError(t.errPwReq);
-    if (!passwordStrong(newPassword)) return setError(t.errPwWeak);
+    if (!passwordValid(newPassword)) return setError(t.errPwWeak);
     if (newPassword !== confirmPassword) return setError(t.errConfirmBad);
     setSubmitting(true);
     try {
@@ -195,6 +186,7 @@ export default function ChangePasswordModal({ onClose, onSuccess }: { onClose: (
             <input type={showPw ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={t.phPassword} style={inputStyle} autoFocus />
             <EyeBtn onClick={() => setShowPw((v) => !v)} />
           </div>
+          <PasswordStrengthBar password={newPassword} />
           <div style={{ height: 12 }} />
           <label style={labelStyle}>{t.fpConfirmPw}</label>
           <div style={inputWrap}>

@@ -46,21 +46,6 @@ spring:
       max-file-size: 11MB
       max-request-size: 12MB
 
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
-
   security:
     oauth2:
       client:
@@ -94,6 +79,11 @@ otp:
   # Thời gian giữ cờ "đã verify OTP" để cho phép đặt lại mật khẩu (giây).
   verified-ttl-seconds: ${OTP_VERIFIED_TTL_SECONDS:300}
 
+brevo:
+  api-key: ${BREVO_API_KEY}
+  sender:
+    email: ${BREVO_SENDER_EMAIL}
+    name: ${BREVO_SENDER_NAME:AIMA}
 
 app:
   frontend:
@@ -133,7 +123,5 @@ management:
       show-details: always
 
   health:
-    mail:
-      enabled: false
     defaults:
       enabled: true

@@ -72,7 +72,7 @@ public enum ErrorCode {
     OTP_NOT_VERIFIED(1073, "Vui lòng xác thực mã OTP trước khi đặt lại mật khẩu", HttpStatus.BAD_REQUEST),
 
     // ONBOARDING (complete-profile)
-    WEAK_PASSWORD(1074, "Mật khẩu quá yếu. Cần tối thiểu 8 ký tự và đạt mức Trung bình (gồm chữ hoa, chữ thường, số hoặc ký tự đặc biệt).", HttpStatus.BAD_REQUEST),
+    WEAK_PASSWORD(1074, "Mật khẩu quá yếu. Cần tối thiểu 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.", HttpStatus.BAD_REQUEST),
     PROFILE_ALREADY_COMPLETED(1075, "Hồ sơ của bạn đã được hoàn tất trước đó", HttpStatus.BAD_REQUEST),
     DOB_REQUIRED(1076, "Ngày sinh không được để trống", HttpStatus.BAD_REQUEST),
     INVALID_DOB(1077, "Ngày sinh phải là một ngày trong quá khứ", HttpStatus.BAD_REQUEST),
