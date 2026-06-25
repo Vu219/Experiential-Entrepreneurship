@@ -130,8 +130,8 @@
 ## UI Pages (UI_API.md)
 - [ ] UI-01 Landing Page `[FE]`
 - [ ] UI-02 Dashboard `[FE]`
-- [ ] UI-03 Brand Profile page `[FE]`
-- [ ] UI-04 Content Strategy page `[FE]`
+- [x] UI-03 Brand Profile page `[FE]` — done 2026-06-25 (list-first: card list + search/industry filter + "đang dùng" active select + slide-over create/edit + read-only "AI đã hiểu" panel + AI Brand Health; uses real /brand-profiles API)
+- [x] UI-04 Content Strategy page `[FE]` — done 2026-06-25 (list-left + detail 01–08 + summary + DRAFT/ACTIVE/PAUSED toggle, gộp vào /brand 2 tab; FE mock `api/contentStrategy.ts` — TODO nối BE FR-10..13)
 - [ ] UI-05 Trend Research page `[FE]`
 - [ ] UI-06 Content Workspace `[FE]`
 - [ ] UI-07 Calendar / Schedule `[FE]`

@@ -352,3 +352,89 @@ export const brandDefaults = (lang: Lang) => ({
 });
 export const bioDefault = (lang: Lang) =>
   P(lang, 'Mình dùng AIMA để tự động hoá toàn bộ quy trình content marketing đa nền tảng.', 'I use AIMA to automate my entire multi-platform content marketing workflow.');
+
+// ===== Brand profile + Content strategy option lists =====
+// Nguồn option mẫu (lấy từ thiết kế Brandprofile) — đa ngôn ngữ qua P(); không hardcode trong component.
+
+export const industryOptions = (lang: Lang): string[] => [
+  P(lang, 'Thực phẩm & Đồ uống', 'Food & Beverage'),
+  P(lang, 'Thời trang', 'Fashion'),
+  P(lang, 'Mỹ phẩm & Làm đẹp', 'Beauty & Cosmetics'),
+  P(lang, 'Công nghệ', 'Technology'),
+  P(lang, 'Giáo dục', 'Education'),
+  P(lang, 'Sức khỏe', 'Health & Wellness'),
+  P(lang, 'Du lịch', 'Travel'),
+  P(lang, 'Bất động sản', 'Real estate'),
+  P(lang, 'Tài chính', 'Finance'),
+  P(lang, 'Marketing & Công nghệ', 'Marketing & Technology'),
+  P(lang, 'Khác', 'Other'),
+];
+
+export const strategyGoalOptions = (lang: Lang): string[] => [
+  P(lang, 'Tăng nhận diện thương hiệu', 'Increase brand awareness'),
+  P(lang, 'Tăng doanh số', 'Increase sales'),
+  P(lang, 'Tăng tương tác', 'Increase engagement'),
+  P(lang, 'Tăng lượt chuyển đổi', 'Increase conversions'),
+  P(lang, 'Thu hút khách hàng tiềm năng', 'Attract potential customers'),
+  P(lang, 'Giới thiệu sản phẩm/dịch vụ', 'Introduce products/services'),
+  P(lang, 'Chăm sóc khách hàng', 'Customer care'),
+  P(lang, 'Xây dựng cộng đồng', 'Build community'),
+  P(lang, 'Kéo traffic về website', 'Drive website traffic'),
+  P(lang, 'Xây dựng uy tín', 'Build credibility'),
+];
+
+export const contentTypeOptions = (lang: Lang): string[] => [
+  P(lang, 'Bài viết giáo dục', 'Educational post'),
+  P(lang, 'Video ngắn', 'Short video'),
+  P(lang, 'Hình ảnh', 'Image'),
+  P(lang, 'Reels', 'Reels'),
+  P(lang, 'Text/Status', 'Text/Status'),
+  P(lang, 'Carousel', 'Carousel'),
+  P(lang, 'Livestream', 'Livestream'),
+  P(lang, 'Story', 'Story'),
+];
+
+export const contentStyleOptions = (lang: Lang): string[] => [
+  P(lang, 'Trẻ trung', 'Youthful'),
+  P(lang, 'Truyền cảm hứng', 'Inspiring'),
+  P(lang, 'Chuyên nghiệp', 'Professional'),
+  P(lang, 'Hài hước', 'Playful'),
+  P(lang, 'Hiện đại', 'Modern'),
+  P(lang, 'Sang trọng', 'Luxurious'),
+  P(lang, 'Thân thiện', 'Friendly'),
+  P(lang, 'Gần gũi', 'Approachable'),
+];
+
+export const ctaSampleOptions = (lang: Lang): string[] => [
+  P(lang, 'Tìm hiểu ngay', 'Learn more'),
+  P(lang, 'Theo dõi kênh', 'Follow us'),
+  P(lang, 'Mua ngay', 'Shop now'),
+  P(lang, 'Đăng ký nhận tin', 'Subscribe'),
+  P(lang, 'Liên hệ tư vấn', 'Contact us'),
+  P(lang, 'Để lại bình luận', 'Leave a comment'),
+];
+
+export const audienceSampleOptions = (lang: Lang): string[] => [
+  P(lang, 'Gen Z', 'Gen Z'),
+  P(lang, 'Sinh viên', 'Students'),
+  P(lang, 'Chủ doanh nghiệp nhỏ', 'Small business owners'),
+  P(lang, 'Nhân viên văn phòng', 'Office workers'),
+  P(lang, 'Cha mẹ trẻ', 'Young parents'),
+  P(lang, 'Tín đồ làm đẹp', 'Beauty enthusiasts'),
+];
+
+// Khung giờ không phụ thuộc ngôn ngữ.
+export const TIME_SLOT_OPTIONS: string[] = [
+  '06:00-09:00', '07:00-09:00', '09:00-11:00', '11:00-13:00',
+  '13:00-15:00', '15:00-17:00', '17:00-19:00', '19:00-22:00', '22:00-24:00',
+];
+
+// Tần suất chiến lược = số bài/tuần (khác enum PostingFrequency của hồ sơ thương hiệu).
+export const POSTS_PER_WEEK_OPTIONS: number[] = [2, 3, 4, 5];
+
+// "Không nên viết" (Brand Do & Don't) — gợi ý mẫu ở panel "AI đã hiểu về thương hiệu".
+export const brandDontSample = (lang: Lang): string[] => [
+  P(lang, 'Quá lan man', 'Too rambling'),
+  P(lang, 'Quá bán hàng', 'Too salesy'),
+  P(lang, 'Tiêu cực', 'Negative'),
+];

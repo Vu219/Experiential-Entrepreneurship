@@ -65,6 +65,8 @@ export function useApp() {
   const setBrand = useAppStore((s) => s.setBrand);
   const toggleBrandTone = useAppStore((s) => s.toggleBrandTone);
   const toggleNotif = useAppStore((s) => s.toggleNotif);
+  const activeBrandId = useAppStore((s) => s.activeBrandId);
+  const setActiveBrand = useAppStore((s) => s.setActiveBrand);
 
   const route = ROUTE_BY_PATH[location.pathname] ?? 'dashboard';
 
@@ -98,5 +100,7 @@ export function useApp() {
     toggleBrandTone,
     notif,
     toggleNotif,
+    activeBrandId,
+    setActiveBrand,
   };
 }

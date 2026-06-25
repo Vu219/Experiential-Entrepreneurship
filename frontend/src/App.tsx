@@ -30,7 +30,6 @@ import AdminRevenue from "./pages/admin/Revenue";
 import GoogleCallbackPage from "./pages/GoogleCallbackPage";
 import CompleteProfilePage from "./pages/CompleteProfilePage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import BrandProfilePage from "./pages/BrandProfilePage";
 
 // Authenticated app shell — sidebar + topbar wrap every signed-in page.
 function AppLayout() {
@@ -96,16 +95,6 @@ export default function App() {
           <Route path="/admin/api-versions" element={<AdminApiVersions />} />
           <Route path="/admin/revenue" element={<AdminRevenue />} />
         </Route>
-
-        {/* Full brand-profile management (multi-profile CRUD). */}
-        <Route
-          path="/brand-profiles"
-          element={
-            <ProtectedRoute>
-              <BrandProfilePage />
-            </ProtectedRoute>
-          }
-        />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
