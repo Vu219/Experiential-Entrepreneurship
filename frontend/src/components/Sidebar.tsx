@@ -1,4 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
+import { motion } from 'framer-motion';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
@@ -83,46 +84,102 @@ export default function Sidebar({ mode = 'app' }: { mode?: 'app' | 'admin' }) {
     fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
-    transition: 'background .15s',
     textAlign: 'left',
     background: active ? brandGradient : 'transparent',
     color: active ? '#fff' : '#5b5670',
     boxShadow: active ? '0 12px 24px -14px rgba(139,92,246,.8)' : 'none',
   });
 
+  const springConfig = { mass: 0.1, stiffness: 200, damping: 15 };
+
   const renderItem = (n: Item) => {
     const active = route === n.key;
     return (
-      <button key={n.key} onClick={() => go(n.key)} title={collapsed ? n.label : undefined} style={itemBase(active)}>
+      <motion.button
+        key={n.key}
+        onClick={() => go(n.key)}
+        title={collapsed ? n.label : undefined}
+        style={itemBase(active)}
+        whileHover={{
+          y: isMobile ? 0 : -2,
+          x: isMobile ? 0 : (collapsed ? 0 : 3),
+          scale: isMobile ? 1 : 1.03,
+          boxShadow: active
+            ? '0 12px 24px -10px rgba(139,92,246,.95)'
+            : '0 8px 16px -8px rgba(124,92,255,.25)',
+          background: active ? brandGradient : '#f6f3fc',
+        }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ type: 'spring', ...springConfig }}
+      >
         <Icon path={n.icon} stroke={active ? '#fff' : '#9b94b5'} />
         {!collapsed && <span style={{ flex: 1, textAlign: 'left' }}>{n.label}</span>}
         {!collapsed && n.badge && <span style={{ background: brandGradient, color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 999, padding: '2px 8px' }}>{n.badge}</span>}
-      </button>
+      </motion.button>
     );
   };
 
   // Nút chuyển sang khu vực Quản trị (chỉ ở app mode + ADMIN).
   const adminPortalBtn = (
-    <button onClick={() => go('admin')} title={collapsed ? t.navAdmin : undefined} style={{ ...itemBase(false), background: '#f4ecff', color: '#6d28d9', border: '1px solid #e7d9fb' }}>
+    <motion.button
+      onClick={() => go('admin')}
+      title={collapsed ? t.navAdmin : undefined}
+      style={{ ...itemBase(false), background: '#f4ecff', color: '#6d28d9', border: '1px solid #e7d9fb' }}
+      whileHover={{
+        y: isMobile ? 0 : -2,
+        x: isMobile ? 0 : (collapsed ? 0 : 3),
+        scale: isMobile ? 1 : 1.03,
+        boxShadow: '0 8px 16px -8px rgba(124,92,255,.25)',
+        background: '#efe4ff',
+      }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', ...springConfig }}
+    >
       <Icon path={ICON.admin} stroke="#7c3aed" />
       {!collapsed && <span style={{ flex: 1, textAlign: 'left' }}>{t.navAdmin}</span>}
       {!collapsed && <Icon path="M9 6l6 6-6 6" size={16} stroke="#7c3aed" />}
-    </button>
+    </motion.button>
   );
 
   // Nút quay lại ứng dụng (chỉ ở admin mode).
   const backBtn = (
-    <button onClick={() => go('dashboard')} title={collapsed ? t.backToApp : undefined} style={{ ...itemBase(false), background: '#f4f2fb', border: '1px solid #ece8f6' }}>
+    <motion.button
+      onClick={() => go('dashboard')}
+      title={collapsed ? t.backToApp : undefined}
+      style={{ ...itemBase(false), background: '#f4f2fb', border: '1px solid #ece8f6' }}
+      whileHover={{
+        y: isMobile ? 0 : -2,
+        x: isMobile ? 0 : (collapsed ? 0 : 3),
+        scale: isMobile ? 1 : 1.03,
+        boxShadow: '0 8px 16px -8px rgba(124,92,255,.2)',
+        background: '#ece8f7',
+      }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', ...springConfig }}
+    >
       <Icon path="M15 6l-6 6 6 6" stroke="#7c5cff" />
       {!collapsed && <span style={{ flex: 1, textAlign: 'left' }}>{t.backToApp}</span>}
-    </button>
+    </motion.button>
   );
 
   const logoutBtn = (
-    <button onClick={logout} title={collapsed ? t.signOut : undefined} style={{ ...itemBase(false), color: '#d6336c' }}>
+    <motion.button
+      onClick={logout}
+      title={collapsed ? t.signOut : undefined}
+      style={{ ...itemBase(false), color: '#d6336c' }}
+      whileHover={{
+        y: isMobile ? 0 : -2,
+        x: isMobile ? 0 : (collapsed ? 0 : 3),
+        scale: isMobile ? 1 : 1.03,
+        boxShadow: '0 8px 16px -8px rgba(226,92,132,.2)',
+        background: '#fff5f7',
+      }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', ...springConfig }}
+    >
       <Icon path={ICON.logout} stroke="#e25c84" />
       {!collapsed && <span style={{ flex: 1, textAlign: 'left' }}>{t.signOut}</span>}
-    </button>
+    </motion.button>
   );
 
   const sectionLabelStyle: CSSProperties = { fontSize: 11, fontWeight: 700, letterSpacing: '.08em', color: '#a59fbb', padding: '6px 12px', flex: 'none' };

@@ -12,7 +12,7 @@ export const ICON = {
   brand: 'M12 2l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 21l-5.2 2.8 1-5.8L3.5 8.2l5.9-.9z',
   profile: 'M12 11a4 4 0 100-8 4 4 0 000 8zM5 21a7 7 0 0114 0',
   settings:
-    'M12 9a3 3 0 100 6 3 3 0 000-6zM4 12h2M18 12h2M12 4v2M12 18v2M6.3 6.3l1.4 1.4M16.3 16.3l1.4 1.4M17.7 6.3l-1.4 1.4M6.3 17.7l1.4-1.4',
+    'M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2zM12 15a3 3 0 100-6 3 3 0 000 6z',
   admin: 'M12 3l8 3v6c0 4.5-3 7.5-8 9-5-1.5-8-4.5-8-9V6z',
   eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z',
   bell: 'M18 8a6 6 0 10-12 0c0 7-3 8-3 8h18s-3-1-3-8M13.7 21a2 2 0 01-3.4 0',
@@ -283,6 +283,38 @@ export function themeOptions(lang: Lang) {
     { key: 'sunset' as const, label: P(lang, 'Hoàng hôn', 'Sunset'), grad: 'linear-gradient(120deg,#FB8DA0,#B47CEE,#7E86F1)' },
     { key: 'ocean' as const, label: P(lang, 'Đại dương', 'Ocean'), grad: 'linear-gradient(120deg,#5BD8EC,#6AA1F2,#7E86F1)' },
   ];
+}
+
+// ===== Settings — Connection tab mock data =====
+export type ConnStatus = 'active' | 'expired' | 'disconnected' | 'error';
+export interface ConnectedAccount {
+  platform: string;
+  tag: string;
+  bg: string;
+  subLabel: string;
+  name: string;
+  handle: string;
+  status: ConnStatus;
+  date: string;
+  tokenValid: boolean | null;
+  tokenLabel: string;
+  tokenSub: string;
+  actionType: 'refresh' | 'reconnect' | 'connect';
+}
+
+export function connectedAccounts(lang: Lang): ConnectedAccount[] {
+  const p = (vi: string, en: string) => (lang === 'en' ? en : vi);
+  return [
+    { platform: 'Facebook', tag: 'FB', bg: PLATFORM_BG.FB, subLabel: p('Trang', 'Page'), name: 'AIMA Official', handle: '@aima.official', status: 'active', date: '12/05/2024 10:30', tokenValid: true, tokenLabel: p('Còn hiệu lực', 'Valid'), tokenSub: p('Còn 25 ngày', '25 days left'), actionType: 'refresh' },
+    { platform: 'Instagram', tag: 'IG', bg: PLATFORM_BG.IG, subLabel: p('Tài khoản', 'Account'), name: 'aima.official', handle: '@aima.official', status: 'active', date: '10/05/2024 14:20', tokenValid: true, tokenLabel: p('Còn hiệu lực', 'Valid'), tokenSub: p('Còn 12 ngày', '12 days left'), actionType: 'refresh' },
+    { platform: 'Threads', tag: 'TH', bg: PLATFORM_BG.TH, subLabel: p('Tài khoản', 'Account'), name: 'aima.official', handle: '@aima.official', status: 'active', date: '09/05/2024 09:15', tokenValid: true, tokenLabel: p('Còn hiệu lực', 'Valid'), tokenSub: p('Còn 8 ngày', '8 days left'), actionType: 'refresh' },
+    { platform: 'Facebook', tag: 'FB', bg: PLATFORM_BG.FB, subLabel: p('Trang', 'Page'), name: 'AIMA Store', handle: '@aima.store', status: 'expired', date: '01/04/2024 16:45', tokenValid: false, tokenLabel: p('Hết hạn', 'Expired'), tokenSub: p('Hết hạn 2 ngày trước', 'Expired 2 days ago'), actionType: 'reconnect' },
+    { platform: 'Instagram', tag: 'IG', bg: PLATFORM_BG.IG, subLabel: p('Tài khoản', 'Account'), name: 'aima.store', handle: '@aima.store', status: 'disconnected', date: '—', tokenValid: null, tokenLabel: '—', tokenSub: '', actionType: 'connect' },
+  ];
+}
+
+export function connectionStats() {
+  return { total: 5, active: 4, expired: 1, error: 0 };
 }
 
 // ===== Admin =====

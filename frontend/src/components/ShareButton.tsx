@@ -42,7 +42,7 @@ const CheckIcon = () => (
  * URL lấy động từ window.location.href (useLocation buộc re-render khi đổi trang).
  */
 export default function ShareButton() {
-  useLocation(); // chỉ để re-render khi điều hướng SPA → href luôn mới
+  const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [hint, setHint] = useState("");
@@ -50,7 +50,7 @@ export default function ShareButton() {
   const copiedTimer = useRef<number | undefined>(undefined);
   const closeTimer = useRef<number | undefined>(undefined);
 
-  const url = window.location.href;
+  const url = window.location.origin + "/";
   const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
   const threadsUrl = `https://www.threads.net/intent/post?text=${encodeURIComponent(`${SHARE_TITLE} ${url}`)}`;
 
@@ -91,7 +91,7 @@ export default function ShareButton() {
 
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       window.clearTimeout(copiedTimer.current);
       copiedTimer.current = window.setTimeout(() => setCopied(false), 1500);
@@ -101,6 +101,8 @@ export default function ShareButton() {
   };
 
   const caption = copied ? "Đã sao chép!" : hint || "Chia sẻ trang này";
+
+  if (pathname !== "/") return null;
 
   return (
     <div

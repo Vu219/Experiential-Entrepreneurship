@@ -281,7 +281,7 @@ html {
   height: 30px;
   width: 30px;
   border-radius: 50%;
-  background: #2a9d8f;
+  background: var(--brand, #7c3aed);
   animation: loading-bounce 0.5s ease-in-out infinite alternate;
 }
 .loader:after {
