@@ -110,7 +110,22 @@ public enum ErrorCode {
     FILE_UPLOAD_FAILED(1804, "Tải file lên thất bại, vui lòng thử lại", HttpStatus.INTERNAL_SERVER_ERROR),
     FILE_DELETE_FAILED(1805, "Xóa file thất bại, vui lòng thử lại", HttpStatus.INTERNAL_SERVER_ERROR),
     SIGNED_URL_FAILED(1806, "Không thể tạo đường dẫn truy cập file", HttpStatus.INTERNAL_SERVER_ERROR),
-    FILE_PATH_REQUIRED(1807, "Đường dẫn file không được để trống", HttpStatus.BAD_REQUEST),;
+    FILE_PATH_REQUIRED(1807, "Đường dẫn file không được để trống", HttpStatus.BAD_REQUEST),
+
+    // PLATFORM CONNECTION (MXH) ERRORS
+    INVALID_PLATFORM(1820, "Nền tảng không hợp lệ", HttpStatus.BAD_REQUEST),
+    OAUTH_FAILED(1821, "Liên kết tài khoản thất bại. Vui lòng thử lại.", HttpStatus.BAD_REQUEST),
+    INVALID_OAUTH_STATE(1822, "Phiên liên kết không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.", HttpStatus.BAD_REQUEST),
+    CONNECTION_NOT_FOUND(1823, "Không tìm thấy kết nối tài khoản", HttpStatus.NOT_FOUND),
+    TOKEN_ENCRYPTION_FAILED(1824, "Xử lý mã hoá token thất bại", HttpStatus.INTERNAL_SERVER_ERROR),
+    TOKEN_REFRESH_FAILED(1825, "Làm mới token thất bại. Vui lòng kết nối lại.", HttpStatus.BAD_REQUEST),
+    META_API_ERROR(1826, "Lỗi khi gọi API nền tảng. Vui lòng thử lại sau.", HttpStatus.BAD_GATEWAY),
+    CONNECTION_VALIDATION_FAILED(1827, "Kiểm tra kết nối thất bại", HttpStatus.BAD_REQUEST),
+
+    // PLATFORM API VERSION (ADMIN) ERRORS
+    VERSION_REQUIRED(1830, "Version không được để trống", HttpStatus.BAD_REQUEST),
+    INVALID_VERSION_FORMAT(1831, "Version sai định dạng (ví dụ: v25.0)", HttpStatus.BAD_REQUEST),
+    VERSION_NOT_FOUND(1832, "Không tìm thấy cấu hình version cho nền tảng này", HttpStatus.NOT_FOUND),;
 
     private int code;
     private String message;

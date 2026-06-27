@@ -33,14 +33,14 @@
 - [x] FR-13 Activate/Pause (paused → no new content, no auto-scheduling) `[BE]` — done 2026-06-26 (PATCH /content-strategies/{id}/status)
 
 ## 4. Social Media Connection
-- [ ] FR-14 OAuth connect — Facebook `[BE][FE]`
-- [ ] FR-14 OAuth connect — Instagram `[BE][FE]`
-- [ ] FR-14 OAuth connect — Threads `[BE][FE]`
-- [ ] FR-15 List connected accounts (platform, account, status, dates, token status) `[BE][FE]`
-- [ ] FR-16 Disconnect `[BE][FE]`
-- [ ] FR-17 Connection check before posting `[BE]`
-- [ ] FR-18a Auto token refresh (< 24h remaining) `[BE]`
-- [ ] FR-18b Expired token → account `Expired`, scheduled posts → `On Hold` `[BE]`
+- [x] FR-14 OAuth connect — Facebook `[BE][FE]` — done 2026-06-27 (Meta OAuth dialog, AES-256 token encryption, page token exchange)
+- [x] FR-14 OAuth connect — Instagram `[BE][FE]` — done 2026-06-27 (FB Page → IG Business Account discovery & linking)
+- [x] FR-14 OAuth connect — Threads `[BE][FE]` — done 2026-06-27 (Threads OAuth dialog & long-lived user token exchange)
+- [x] FR-15 List connected accounts (platform, account, status, dates, token status) `[BE][FE]` — done 2026-06-27 (PlatformConnectionController & Settings.tsx UI)
+- [x] FR-16 Disconnect `[BE][FE]` — done 2026-06-27 (Revoke token & soft delete connection)
+- [x] FR-17 Connection check before posting `[BE]` — done 2026-06-27 (TokenValidationJob & validateConnection endpoint)
+- [x] FR-18a Auto token refresh (< 24h remaining) `[BE]` — done 2026-06-27 (TokenHealthCheckJob & refreshConnection endpoint)
+- [x] FR-18b Expired token → account `Expired`, scheduled posts → `On Hold` `[BE]` — done 2026-06-27 (TokenHealthCheckJob safe status migration)
 
 ## 5. Trend Research (Agent AI)
 - [ ] FR-19 Scheduled research (2:00 AM daily) + "Research now" button; requires active Brand Profile & Strategy; no overlapping sessions `[BE][AI]` — AI analysis (`POST /research`) done 2026-06-13; BE scheduling/session-guard pending
@@ -115,7 +115,7 @@
 - [ ] FR-80 Manage users `[BE][FE]` — FE UI done 2026-06-23 (list + search/filter/pagination, lock/unlock, detail; mock via `api/admin.ts`, BE endpoint pending)
 - [ ] FR-81 System status `[BE][FE]` — FE UI done 2026-06-23 (service cards, 24h load chart, alerts; mock, BE pending)
 - [ ] FR-82 Rejected content / FR-83 posting errors / FR-84 system logs `[BE][FE]` — FE UI done 2026-06-23 (Posts page rejected/system tabs + error modal; Logs page level/date filter + detail; mock, BE pending)
-- [ ] Admin extras (FE) done 2026-06-23: Platform API versions (update + history), Revenue (period filter, chart, transactions, plan pricing config, export TXT/Excel; PDF stub TODO).
+- [x] Admin extras: Platform API versions connected to real BE API `[BE][FE]` — done 2026-06-27 (PlatformVersionAdminController + ApiVersions.tsx with manual cache eviction, check-now job, history modal, version update); Revenue (period filter, chart, transactions, plan pricing config, export TXT/Excel; PDF stub TODO).
 - [ ] Admin UX (FE) done 2026-06-24: Administration split into its own interface (separate `AppShell variant="admin"` + admin sidebar) reached via an admin-only "Quản trị hệ thống" portal button in the app sidebar; role-guarded `/admin/*` (ProtectedRoute → AdminRoute). Sidebar body is vertically scrollable (`.sb-scroll`) on short viewports so items don't get squished.
 
 ## 16. Onboarding

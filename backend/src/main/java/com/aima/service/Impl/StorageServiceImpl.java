@@ -2,9 +2,9 @@ package com.aima.service.Impl;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -28,12 +28,17 @@ import java.util.UUID;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class StorageServiceImpl implements StorageService {
 
     WebClient supabaseWebClient;
     SupabaseProperties supabaseProperties;
+
+    public StorageServiceImpl(@Qualifier("supabaseWebClient") WebClient supabaseWebClient,
+                              SupabaseProperties supabaseProperties) {
+        this.supabaseWebClient = supabaseWebClient;
+        this.supabaseProperties = supabaseProperties;
+    }
 
     static final String BUCKET_AVATARS = StorageBuckets.AVATARS;     // public
     static final String BUCKET_DOCUMENTS = StorageBuckets.DOCUMENTS; // private

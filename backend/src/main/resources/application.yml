@@ -99,6 +99,32 @@ app:
       same-site: ${AUTH_COOKIE_SAME_SITE:Lax}
       path: ${AUTH_COOKIE_PATH:/}
 
+# Cấu hình liên kết tài khoản MXH qua Meta (Facebook/Instagram + Threads).
+meta:
+  facebook:
+    app-id: ${META_FACEBOOK_APP_ID:}
+    app-secret: ${META_FACEBOOK_APP_SECRET:}
+    redirect-uri: ${META_FACEBOOK_REDIRECT_URI:}
+    scopes: pages_show_list,pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish,business_management,pages_manage_metadata
+  threads:
+    app-id: ${META_THREADS_APP_ID:}
+    app-secret: ${META_THREADS_APP_SECRET:}
+    redirect-uri: ${META_THREADS_REDIRECT_URI:}
+    scopes: threads_basic,threads_content_publish,threads_manage_insights
+  graph-base-url: ${META_GRAPH_BASE_URL:https://graph.facebook.com}
+  threads-base-url: ${META_THREADS_BASE_URL:https://graph.threads.net}
+  # Bật appsecret_proof cho mọi request Meta (bắt buộc ở production).
+  app-secret-proof-enabled: ${META_APP_SECRET_PROOF_ENABLED:false}
+
+aima:
+  encryption:
+    # 32 byte base64 (openssl rand -base64 32). Bắt buộc — app fail khi startup nếu thiếu.
+    key: ${AIMA_ENCRYPTION_KEY}
+  oauth:
+    state-ttl-minutes: ${OAUTH_STATE_TTL_MINUTES:10}
+    frontend-success-redirect: ${FE_OAUTH_SUCCESS_URL:http://localhost:3000/settings?tab=connections}
+    frontend-error-redirect: ${FE_OAUTH_ERROR_URL:http://localhost:3000/settings?tab=connections&error=oauth_failed}
+
 springdoc:
   api-docs:
     enabled: true

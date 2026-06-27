@@ -160,6 +160,8 @@ export const STRINGS = {
     colCurrentVer: 'Version hiện tại', colLatestVer: 'Version mới nhất',
     apiUpdate: 'Cập nhật', apiUpToDate: 'Mới nhất', apiOutdated: 'Có bản mới', apiUpdated: 'Đã cập nhật version',
     apiHistory: 'Lịch sử thay đổi', apiHistoryTitle: 'Lịch sử version',
+    apiCheckNow: 'Kiểm tra ngay', apiDeprecatingSoon: 'Sắp deprecate', apiDeprecated: 'Đã deprecate',
+    apiUpdateTitle: 'Cập nhật version API', apiNotes: 'Ghi chú thay đổi',
     // doanh thu
     revTotal: 'Tổng doanh thu', revOrders: 'Số giao dịch', revAvg: 'Giá trị TB/giao dịch', revGrowth: 'Tăng trưởng',
     rev1m: '30 ngày', rev3m: '90 ngày', rev12m: '12 tháng', revChart: 'Doanh thu theo thời gian',
@@ -356,6 +358,8 @@ export const STRINGS = {
     colCurrentVer: 'Current version', colLatestVer: 'Latest version',
     apiUpdate: 'Update', apiUpToDate: 'Up to date', apiOutdated: 'Update available', apiUpdated: 'Version updated',
     apiHistory: 'Change history', apiHistoryTitle: 'Version history',
+    apiCheckNow: 'Check now', apiDeprecatingSoon: 'Deprecating soon', apiDeprecated: 'Deprecated',
+    apiUpdateTitle: 'Update API version', apiNotes: 'Change notes',
     revTotal: 'Total revenue', revOrders: 'Transactions', revAvg: 'Avg / transaction', revGrowth: 'Growth',
     rev1m: '30 days', rev3m: '90 days', rev12m: '12 months', revChart: 'Revenue over time',
     revTransactions: 'Recent transactions', revPlans: 'Plan pricing', revAddPlan: 'Add plan', revEditPlan: 'Edit plan', revNewPlan: 'New plan',

@@ -44,6 +44,9 @@ public class SecurityConfig {
             "/users/reset-password",
             "/actuator/health",
 
+            // Meta OAuth callback: nền tảng redirect về (không có cookie auth) — userId lấy qua state.
+            "/connections/*/callback",
+
             "/oauth2/**",
             "/login/oauth2/**",
 
