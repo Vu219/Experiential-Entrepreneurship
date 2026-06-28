@@ -27,6 +27,12 @@
       "skillPath": "skills/frontend-design/SKILL.md",
       "computedHash": "93f53fd1c0352d3d7ec17b8f73d7351bf76f4821e55d123c9d2abc2c53ba48e4"
     },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "53feeb8610c5317002aa81df280ee5a11aacfb8e2d90212997f966dec7d04f19"
+    },
     "java-springboot": {
       "source": "github/awesome-copilot",
       "sourceType": "github",
