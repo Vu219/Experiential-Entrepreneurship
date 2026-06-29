@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 
 /**
@@ -43,7 +44,7 @@ export default function SlideOver({
       <div
         onMouseDown={(e) => e.stopPropagation()}
         className="view-pop"
-        style={{ width: isMobile ? '100%' : 'min(100%, ' + width + 'px)', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', boxShadow: '-30px 0 80px -30px rgba(60,30,110,.5)' }}
+        style={{ width: isMobile ? '100%' : 'min(100%, ' + width + 'px)', height: '100%', background: '#fff', display: 'flex', flexDirection: 'column', boxShadow: '-30px 0 80px -30px rgba(80,40,140,.5)' }}
       >
         <div style={{ flex: 'none', display: 'flex', alignItems: 'flex-start', gap: 12, padding: '20px 24px', borderBottom: '1px solid #f1eef8' }}>
           <div style={{ flex: 1 }}>
@@ -51,7 +52,7 @@ export default function SlideOver({
             {subtitle && <div style={{ fontSize: 13, color: '#8a85a0', marginTop: 4 }}>{subtitle}</div>}
           </div>
           <button onClick={onClose} aria-label="Close" style={{ flex: 'none', width: 34, height: 34, border: 'none', borderRadius: 9, background: '#f4f1fb', color: '#6b6680', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            <X size={16} strokeWidth={2} />
           </button>
         </div>
 

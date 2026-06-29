@@ -1,3 +1,4 @@
+import { Mail, Globe } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { GradIcon } from '../components/ui';
@@ -72,7 +73,7 @@ export default function LandingPage() {
             {cards.map((c, i) => (
               <div key={i} className="lift-card" style={{ background: '#fff', border: '1px solid #efeaf8', borderRadius: 20, padding: 26, boxShadow: '0 22px 44px -34px rgba(80,40,140,.5)' }}>
                 <div style={{ width: 48, height: 48, borderRadius: 13, background: 'linear-gradient(135deg,#edf9ff,#f6effc)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <GradIcon path={c.icon} size={24} />
+                  <GradIcon icon={c.icon} size={24} />
                 </div>
                 <div style={{ fontWeight: 700, fontSize: 17, margin: '16px 0 6px', color: '#211c38' }}>{c.title}</div>
                 <div style={{ fontSize: 14, lineHeight: 1.55, color: '#6b6680' }}>{c.desc}</div>
@@ -89,7 +90,7 @@ export default function LandingPage() {
                 <img src="/aima-logo.png" alt="AIMA" style={{ height: 44, width: 'auto', display: 'block' }} />
                 <p style={{ fontSize: 14, lineHeight: 1.65, color: '#6b6680', maxWidth: 300, margin: '18px 0 0' }}>{t.ftTagline}</p>
                 <a className="link-underline" href={`mailto:${CONTACT_EMAIL}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 16, fontSize: 14, color: '#6b6680', textDecoration: 'none' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="M4 7l8 6 8-6" /></svg>
+                  <Mail size={16} color="#8b5cf6" strokeWidth={1.8} />
                   {CONTACT_EMAIL}
                 </a>
                 <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
@@ -163,7 +164,7 @@ export default function LandingPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'space-between', gap: isMobile ? 18 : 16, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row', textAlign: isMobile ? 'center' : 'left' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 12 : 18, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
                 <button className="btn-soft" onClick={toggleLang} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#fff', border: '1px solid #e6e2f2', borderRadius: 999, padding: '8px 14px', fontSize: 13, fontWeight: 600, color: '#4b4660', cursor: 'pointer' }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth={1.8}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" strokeLinecap="round" /></svg>
+                  <Globe size={15} color="#8b5cf6" strokeWidth={1.8} />
                   {t.langLabel}
                 </button>
                 <span style={{ fontSize: 13, color: '#8a85a0' }}>{t.ftRights}</span>

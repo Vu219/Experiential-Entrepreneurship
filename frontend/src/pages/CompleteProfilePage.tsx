@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, type CSSProperties } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import { User, Phone, Cake, Lock, Eye, EyeOff, Check } from "lucide-react";
 import { completeProfile } from "../api/auth";
 import { useAuth } from "../auth/AuthContext";
 import { useApp } from "../context/AppContext";
@@ -24,25 +25,13 @@ const inputStyle: CSSProperties = { flex: 1, border: "none", outline: "none", ba
 const labelStyle: CSSProperties = { display: "block", fontSize: 12.5, fontWeight: 700, letterSpacing: ".04em", color: "#574f6e", marginBottom: 8 };
 const errStyle: CSSProperties = { minHeight: 18, fontSize: 12.5, color: "#e23d6e", marginTop: 5 };
 
-const UserIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#a39bbf" strokeWidth={1.7}><circle cx="12" cy="8" r="4" /><path d="M5 21a7 7 0 0114 0" /></svg>
-);
-const PhoneIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#a39bbf" strokeWidth={1.7}><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z" /></svg>
-);
-const CakeIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#a39bbf" strokeWidth={1.7}><path d="M4 21h16M5 21v-7a2 2 0 012-2h10a2 2 0 012 2v7M3 14c1.5 0 1.5 1.5 3 1.5S10.5 14 12 14s1.5 1.5 3 1.5 1.5-1.5 3-1.5M12 8V5M9 5h6" /></svg>
-);
-const LockIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a39bbf" strokeWidth={1.7}><rect x="4" y="10" width="16" height="11" rx="3" /><path d="M8 10V7a4 4 0 018 0v3" /></svg>
-);
+const UserIcon = () => <User size={17} color="#a39bbf" strokeWidth={1.7} />;
+const PhoneIcon = () => <Phone size={17} color="#a39bbf" strokeWidth={1.7} />;
+const CakeIcon = () => <Cake size={17} color="#a39bbf" strokeWidth={1.7} />;
+const LockIcon = () => <Lock size={18} color="#a39bbf" strokeWidth={1.7} />;
 const EyeBtn = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
   <button type="button" onClick={onClick} style={{ background: "none", border: "none", cursor: "pointer", color: "#a39bbf", display: "flex" }}>
-    {on ? (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
-    ) : (
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}><path d="M3 3l18 18M10.6 10.6a3 3 0 004.2 4.2M9.9 4.6A10.9 10.9 0 0112 4.5c6.5 0 10 7 10 7a18 18 0 01-3.3 4.1M6.1 6.1A18 18 0 002 11.5s3.5 7 10 7a10.9 10.9 0 003.1-.4" /></svg>
-    )}
+    {on ? <Eye size={19} strokeWidth={1.7} /> : <EyeOff size={19} strokeWidth={1.7} />}
   </button>
 );
 
@@ -182,9 +171,7 @@ export default function CompleteProfilePage() {
                       cursor: reachable || current ? "pointer" : "not-allowed",
                     }}
                   >
-                    {done ? (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7" /></svg>
-                    ) : num}
+                    {done ? <Check size={18} color="#fff" strokeWidth={2.6} /> : num}
                   </button>
                   <span style={{ fontSize: 11.5, fontWeight: current ? 700 : 600, color: current ? "#3f3a55" : "#9a95ad", textAlign: "center", lineHeight: 1.3 }}>{title}</span>
                 </div>
@@ -275,7 +262,7 @@ export default function CompleteProfilePage() {
       {/* Toast thành công */}
       {toast && (
         <div style={{ position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: 10, background: "#16a34a", color: "#fff", padding: "13px 20px", borderRadius: 13, boxShadow: "0 18px 38px -16px rgba(22,163,74,.6)", fontSize: 14, fontWeight: 600, zIndex: 50 }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7" /></svg>
+          <Check size={18} color="#fff" strokeWidth={2.4} />
           Đã lưu thông tin, email xác nhận đã được gửi
         </div>
       )}

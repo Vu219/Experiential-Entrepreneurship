@@ -1,5 +1,7 @@
 // ===== Shared domain types (design UI layer) =====
 
+import type { LucideIcon } from 'lucide-react';
+
 export type Lang = 'vi' | 'en';
 
 export type ThemeKey = 'aurora' | 'sunset' | 'ocean';
@@ -40,7 +42,7 @@ export interface Platform {
 export interface NavItem {
   key: Route;
   label: string;
-  icon: string;
+  icon: LucideIcon;
   badge?: string;
 }
 
@@ -71,7 +73,7 @@ export interface StatCard {
   value: string;
   label: string;
   trend: string;
-  icon: string;
+  icon: LucideIcon;
   bg: string;
   color: string;
   trendColor?: string;

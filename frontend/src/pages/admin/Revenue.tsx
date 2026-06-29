@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { DollarSign, ShoppingBag, BarChart3, Download } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Card, Loader, Icon } from '../../components/ui';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
@@ -81,9 +82,9 @@ export default function Revenue() {
 
   const maxVal = Math.max(...data.series.map((s) => s.value), 1);
   const cards = [
-    { label: t.revTotal, value: formatVND(data.total), icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6', bg: 'linear-gradient(135deg,#fff3e0,#ffe9f3)', color: '#ec4899' },
-    { label: t.revOrders, value: String(data.orders), icon: 'M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0', bg: 'linear-gradient(135deg,#e9f0ff,#f1e9ff)', color: '#6366f1' },
-    { label: t.revAvg, value: formatVND(Math.round(data.total / Math.max(data.orders, 1))), icon: 'M4 21V11M10 21V4M16 21v-6M3 21h18', bg: 'linear-gradient(135deg,#e7fff4,#e9f7ff)', color: '#10b981' },
+    { label: t.revTotal, value: formatVND(data.total), icon: DollarSign, bg: 'linear-gradient(135deg,#fff3e0,#ffe9f3)', color: '#ec4899' },
+    { label: t.revOrders, value: String(data.orders), icon: ShoppingBag, bg: 'linear-gradient(135deg,#e9f0ff,#f1e9ff)', color: '#6366f1' },
+    { label: t.revAvg, value: formatVND(Math.round(data.total / Math.max(data.orders, 1))), icon: BarChart3, bg: 'linear-gradient(135deg,#e7fff4,#e9f7ff)', color: '#10b981' },
   ];
 
   const periodBtn = (p: RevenuePeriod) => {
@@ -95,7 +96,7 @@ export default function Revenue() {
 
   const exportBtn = (label: string, onClick: () => void) => (
     <button onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '8px 12px', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>
-      <Icon path="M12 3v12m0 0 4-4m-4 4-4-4M4 21h16" size={15} stroke="#8b5cf6" /> {label}
+      <Icon icon={Download} size={15} stroke="#8b5cf6" /> {label}
     </button>
   );
 
@@ -117,7 +118,7 @@ export default function Revenue() {
           <Card key={i} style={{ padding: 20, borderRadius: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ width: 40, height: 40, borderRadius: 11, background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon path={c.icon} stroke={c.color} />
+                <Icon icon={c.icon} stroke={c.color} />
               </div>
               {i === 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: '#16a34a', background: '#e8f8ee', padding: '3px 9px', borderRadius: 999 }}>{data.growth}</span>}
             </div>

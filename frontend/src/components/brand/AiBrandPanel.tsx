@@ -45,8 +45,8 @@ export default function AiBrandPanel({ percent, missing, keywords, dos, donts, s
             <DotList items={dos} color="#16a34a" empty={t.bpHealthGood} />
           </div>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', marginBottom: 7 }}>{t.bpDont}</div>
-            <DotList items={donts} color="#dc2626" empty="—" />
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#d6336c', marginBottom: 7 }}>{t.bpDont}</div>
+            <DotList items={donts} color="#d6336c" empty="—" />
           </div>
         </div>
       </Section>

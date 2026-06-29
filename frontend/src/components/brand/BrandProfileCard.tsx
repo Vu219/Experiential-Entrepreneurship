@@ -1,3 +1,4 @@
+import { LayoutList, Eye, Pencil, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Card, Icon } from '../ui';
 import BrandHealthBar from './BrandHealthBar';
@@ -59,7 +60,7 @@ export default function BrandProfileCard({
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: '#8a85a0' }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <Icon path="M4 5h16v6H4zM4 13h16v6H4z" size={15} stroke="#a78bfa" />
+          <Icon icon={LayoutList} size={15} stroke="#a78bfa" />
           {strategyCount} {t.bpStrategiesWord}
         </span>
         <span>{t.bpUpdated}: {fmtDate(profile.updatedAt)}</span>
@@ -67,13 +68,13 @@ export default function BrandProfileCard({
 
       <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 4 }}>
         {active ? (
-          <button onClick={onView} style={btnGhost}>{t.bpView}</button>
+          <button onClick={onView} className="btn-soft" style={btnGhost}>{t.bpView}</button>
         ) : (
-          <button onClick={onUse} style={{ ...btnGhost, color: '#7c3aed', borderColor: '#e0d5fb', background: '#f7f2ff' }}>{t.bpUse}</button>
+          <button onClick={onUse} className="btn-outline" style={{ ...btnGhost, color: '#7c3aed', borderColor: '#e0d5fb', background: '#f7f2ff' }}>{t.bpUse}</button>
         )}
-        <button onClick={onView} title={t.bpView} style={iconBtn} aria-label={t.bpView}><Icon path="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z M12 9a3 3 0 100 6 3 3 0 000-6z" size={17} stroke="#6b6680" /></button>
-        <button onClick={onEdit} title={t.bpEdit} style={iconBtn} aria-label={t.bpEdit}><Icon path="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" size={16} stroke="#6b6680" /></button>
-        <button onClick={onDelete} title={t.bpDelete} style={{ ...iconBtn, color: '#dc2626' }} aria-label={t.bpDelete}><Icon path="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" size={16} stroke="#dc2626" /></button>
+        <button onClick={onView} title={t.bpView} style={iconBtn} aria-label={t.bpView}><Icon icon={Eye} size={17} stroke="#6b6680" /></button>
+        <button onClick={onEdit} title={t.bpEdit} style={iconBtn} aria-label={t.bpEdit}><Icon icon={Pencil} size={16} stroke="#6b6680" /></button>
+        <button onClick={onDelete} title={t.bpDelete} style={{ ...iconBtn, color: '#d6336c' }} aria-label={t.bpDelete}><Icon icon={Trash2} size={16} stroke="#d6336c" /></button>
       </div>
     </Card>
   );

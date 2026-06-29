@@ -1,4 +1,5 @@
 import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { PlatformTag } from '../ui';
 import { PLATFORMS } from '../../theme';
@@ -6,19 +7,18 @@ import type { Platform } from '../../api/brandProfile';
 
 // ===== Shared field styles (đồng bộ với Brand cũ) =====
 export const fieldLabel: CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 700, color: '#574f6e', marginBottom: 6 };
-export const fieldInput: CSSProperties = { width: '100%', border: '1.5px solid #e7e2f2', borderRadius: 11, padding: '11px 13px', fontSize: 14, color: '#241f3a', background: '#fbfaff', outline: 'none' };
+export const fieldInput: CSSProperties = { width: '100%', border: '1.5px solid #e7e2f2', borderRadius: 11, padding: '11px 13px', fontSize: 14, color: '#241f3a', background: '#fbfaff' };
 
-/** Nhãn trường + dấu * (bắt buộc) + sub-text mô tả (helper của các mục 01–08). */
-export function Field({ label, required, help, error, children, step }: { label: string; required?: boolean; help?: string; error?: string; children: ReactNode; step?: string }) {
+/** Nhãn trường + dấu * (bắt buộc) + sub-text mô tả (help). */
+export function Field({ label, required, help, error, children }: { label: string; required?: boolean; help?: string; error?: string; children: ReactNode }) {
   return (
     <div>
-      <label style={{ ...fieldLabel, display: 'flex', alignItems: 'center', gap: 8, marginBottom: help ? 2 : 6 }}>
-        {step && <span style={{ flex: 'none', fontSize: 11, fontWeight: 800, color: '#a78bfa', fontFamily: "'Plus Jakarta Sans'" }}>{step}</span>}
-        <span>{label}{required && <span style={{ color: '#ec4899' }}> *</span>}</span>
+      <label style={{ ...fieldLabel, marginBottom: help ? 2 : 6 }}>
+        {label}{required && <span style={{ color: '#d6336c' }}> *</span>}
       </label>
       {help && <div style={{ fontSize: 12, color: '#9b94b5', marginBottom: 8 }}>{help}</div>}
       {children}
-      {error && <div style={{ fontSize: 12, color: '#e23d6e', marginTop: 6 }}>{error}</div>}
+      {error && <div style={{ fontSize: 12, color: '#d6336c', marginTop: 6 }}>{error}</div>}
     </div>
   );
 }
@@ -58,9 +58,12 @@ export function ChipMultiSelect({ options, value, onChange, max, creatable }: { 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {options.map((opt) => (
-          <span key={opt} onClick={() => toggle(opt)} style={chipStyle(value.includes(opt), brandGradient)}>{opt}</span>
-        ))}
+        {options.map((opt) => {
+          const on = value.includes(opt);
+          return (
+            <button key={opt} type="button" aria-pressed={on} onClick={() => toggle(opt)} style={chipStyle(on, brandGradient)}>{opt}</button>
+          );
+        })}
         {custom.map((v) => (
           <span key={v} style={{ ...chipStyle(true, brandGradient), display: 'inline-flex', alignItems: 'center', gap: 7 }}>
             {v}
@@ -120,7 +123,7 @@ export function TagInput({ value, onChange, addLabel, placeholder, suggestions }
       {avail.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
           {avail.map((s) => (
-            <span key={s} onClick={() => add(s)} style={{ border: '1px solid #ece8f6', borderRadius: 999, padding: '4px 11px', fontSize: 12.5, fontWeight: 600, color: '#7d6aa3', background: '#fbfaff', cursor: 'pointer' }}>+ {s}</span>
+            <button key={s} type="button" onClick={() => add(s)} style={{ border: '1px solid #ece8f6', borderRadius: 999, padding: '4px 11px', fontSize: 12.5, fontWeight: 600, color: '#7d6aa3', background: '#fbfaff', cursor: 'pointer' }}>+ {s}</button>
           ))}
         </div>
       )}
@@ -138,11 +141,11 @@ export function PlatformSelect({ value, onChange }: { value: Platform[]; onChang
         const enumVal = PLATFORM_ENUM[pl.tag];
         const on = value.includes(enumVal);
         return (
-          <div key={pl.tag} onClick={() => toggle(enumVal)} style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1.5px solid ${on ? '#c9bdf3' : '#ece8f6'}`, background: on ? '#f6f2ff' : '#fff', borderRadius: 12, padding: '9px 14px', cursor: 'pointer' }}>
+          <button key={pl.tag} type="button" aria-pressed={on} onClick={() => toggle(enumVal)} style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1.5px solid ${on ? '#c9bdf3' : '#ece8f6'}`, background: on ? '#f6f2ff' : '#fff', borderRadius: 12, padding: '9px 14px', cursor: 'pointer' }}>
             <PlatformTag tag={pl.tag} bg={pl.bg} size={26} radius={8} />
             <span style={{ fontSize: 13.5, fontWeight: 600, color: '#2b2543' }}>{pl.name}</span>
-            {on && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>}
-          </div>
+            {on && <Check size={16} color="#7c3aed" strokeWidth={2.4} aria-hidden="true" />}
+          </button>
         );
       })}
     </div>
@@ -177,7 +180,7 @@ export function LogoUploader({ logoUrl, brandName, onChange }: { logoUrl: string
       <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={(e) => pick(e.target.files?.[0])} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
         <button onClick={() => inputRef.current?.click()} style={{ border: '1.5px solid #d6cdf0', background: '#faf8ff', borderRadius: 10, padding: '7px 10px', fontSize: 12.5, fontWeight: 700, color: '#7c5cff', cursor: 'pointer' }}>{t.bpfChangeLogo}</button>
-        {logoUrl && <button onClick={() => onChange(null)} style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '7px 10px', fontSize: 12.5, fontWeight: 700, color: '#dc2626', cursor: 'pointer' }}>{t.bpRemoveLogo}</button>}
+        {logoUrl && <button onClick={() => onChange(null)} style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '7px 10px', fontSize: 12.5, fontWeight: 700, color: '#d6336c', cursor: 'pointer' }}>{t.bpRemoveLogo}</button>}
       </div>
     </div>
   );

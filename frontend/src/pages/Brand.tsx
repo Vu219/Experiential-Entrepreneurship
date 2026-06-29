@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { HelpCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useUiStore } from '../store/useUiStore';
 import { Icon } from '../components/ui';
@@ -50,7 +51,7 @@ export default function Brand() {
         {tab === 'strategy' && (
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
             <a href="#" onClick={(e) => e.preventDefault()} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: '#7c3aed', background: '#f4ecff', border: '1px solid #e7d9fb', borderRadius: 10, padding: '9px 14px', cursor: 'pointer' }}>
-              <Icon path="M12 17h.01M12 13a2 2 0 10-2-2 M12 21a9 9 0 110-18 9 9 0 010 18z" size={16} stroke="#7c3aed" />{t.csGuide}
+              <Icon icon={HelpCircle} size={16} stroke="#7c3aed" />{t.csGuide}
             </a>
           </div>
         )}

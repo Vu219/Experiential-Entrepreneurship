@@ -23,6 +23,7 @@ export default function ConfirmDialog({
       <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
         <button
           onClick={onClose}
+          className="btn-soft"
           style={{ flex: 1, border: '1px solid #ece8f6', background: '#fff', borderRadius: 11, padding: '11px 0', fontSize: 14, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}
         >
           {t.cancel}
@@ -30,7 +31,7 @@ export default function ConfirmDialog({
         <button
           onClick={onConfirm}
           disabled={busy}
-          style={{ flex: 1, border: 'none', background: '#fde8e8', borderRadius: 11, padding: '11px 0', fontSize: 14, fontWeight: 700, color: '#dc2626', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}
+          style={{ flex: 1, border: 'none', background: '#d6336c', borderRadius: 11, padding: '11px 0', fontSize: 14, fontWeight: 700, color: '#fff', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}
         >
           {confirmLabel}
         </button>

@@ -1,5 +1,9 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
+import {
+  Users, AlertTriangle, Server, FileText, Code, DollarSign,
+  ChevronRight, ChevronLeft, type LucideIcon,
+} from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
@@ -11,7 +15,7 @@ import { ICON } from '../data';
 interface Item {
   key: Route;
   label: string;
-  icon: string;
+  icon: LucideIcon;
   badge?: string;
 }
 
@@ -55,12 +59,12 @@ export default function Sidebar({ mode = 'app' }: { mode?: 'app' | 'admin' }) {
   ];
   const adminItems: Item[] = [
     { key: 'admin', label: t.navAdminOverview, icon: ICON.dashboard },
-    { key: 'adminUsers', label: t.navAdminUsers, icon: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM22 21v-2a4 4 0 0 0-3-3.87' },
-    { key: 'adminPosts', label: t.navAdminPosts, icon: 'M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z' },
-    { key: 'adminSystem', label: t.navAdminSystem, icon: 'M4 5h16v6H4zM4 13h16v6H4zM8 8h.01M8 16h.01' },
-    { key: 'adminLogs', label: t.navAdminLogs, icon: 'M5 3h11l4 4v14H5zM9 8h6M9 12h6M9 16h4' },
-    { key: 'adminApiVersions', label: t.navAdminApi, icon: 'M16 18l6-6-6-6M8 6l-6 6 6 6' },
-    { key: 'adminRevenue', label: t.navAdminRevenue, icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6' },
+    { key: 'adminUsers', label: t.navAdminUsers, icon: Users },
+    { key: 'adminPosts', label: t.navAdminPosts, icon: AlertTriangle },
+    { key: 'adminSystem', label: t.navAdminSystem, icon: Server },
+    { key: 'adminLogs', label: t.navAdminLogs, icon: FileText },
+    { key: 'adminApiVersions', label: t.navAdminApi, icon: Code },
+    { key: 'adminRevenue', label: t.navAdminRevenue, icon: DollarSign },
   ];
   const bottomItems: Item[] = [
     { key: 'profile', label: t.navProfile, icon: ICON.profile },
@@ -112,7 +116,7 @@ export default function Sidebar({ mode = 'app' }: { mode?: 'app' | 'admin' }) {
         whileTap={{ scale: 0.98 }}
         transition={{ type: 'spring', ...springConfig }}
       >
-        <Icon path={n.icon} stroke={active ? '#fff' : '#9b94b5'} />
+        <Icon icon={n.icon} stroke={active ? '#fff' : '#9b94b5'} />
         {!collapsed && <span style={{ flex: 1, textAlign: 'left' }}>{n.label}</span>}
         {!collapsed && n.badge && <span style={{ background: brandGradient, color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 999, padding: '2px 8px' }}>{n.badge}</span>}
       </motion.button>
@@ -135,9 +139,9 @@ export default function Sidebar({ mode = 'app' }: { mode?: 'app' | 'admin' }) {
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', ...springConfig }}
     >
-      <Icon path={ICON.admin} stroke="#7c3aed" />
+      <Icon icon={ICON.admin} stroke="#7c3aed" />
       {!collapsed && <span style={{ flex: 1, textAlign: 'left' }}>{t.navAdmin}</span>}
-      {!collapsed && <Icon path="M9 6l6 6-6 6" size={16} stroke="#7c3aed" />}
+      {!collapsed && <Icon icon={ChevronRight} size={16} stroke="#7c3aed" />}
     </motion.button>
   );
 
@@ -157,7 +161,7 @@ export default function Sidebar({ mode = 'app' }: { mode?: 'app' | 'admin' }) {
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', ...springConfig }}
     >
-      <Icon path="M15 6l-6 6 6 6" stroke="#7c5cff" />
+      <Icon icon={ChevronLeft} stroke="#7c5cff" />
       {!collapsed && <span style={{ flex: 1, textAlign: 'left' }}>{t.backToApp}</span>}
     </motion.button>
   );
@@ -177,7 +181,7 @@ export default function Sidebar({ mode = 'app' }: { mode?: 'app' | 'admin' }) {
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', ...springConfig }}
     >
-      <Icon path={ICON.logout} stroke="#e25c84" />
+      <Icon icon={ICON.logout} stroke="#e25c84" />
       {!collapsed && <span style={{ flex: 1, textAlign: 'left' }}>{t.signOut}</span>}
     </motion.button>
   );
@@ -325,9 +329,7 @@ export default function Sidebar({ mode = 'app' }: { mode?: 'app' | 'admin' }) {
       {/* Nút thu gọn/mở rộng (desktop) */}
       {!isMobile && (
         <button onClick={onArrow} title={arrowTitle} aria-label={arrowTitle} style={floatBtn}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-            <path d={collapsed ? 'M9 6l6 6-6 6' : 'M15 6l-6 6 6 6'} />
-          </svg>
+          {collapsed ? <ChevronRight size={16} strokeWidth={2.2} /> : <ChevronLeft size={16} strokeWidth={2.2} />}
         </button>
       )}
 

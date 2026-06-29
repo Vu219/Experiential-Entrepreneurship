@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { createPortal } from 'react-dom';
+import { Camera, Eye, Lock, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
@@ -182,17 +183,17 @@ export default function Profile() {
               </button>
               {/* Huy hiệu máy ảnh gợi ý avatar có thể đổi */}
               <span style={{ position: 'absolute', right: 0, bottom: 0, width: 28, height: 28, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px -3px rgba(60,30,110,.4)', pointerEvents: 'none' }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M3 8a2 2 0 012-2h2l1.5-2h7L19 6h2a2 2 0 012 2v9a2 2 0 01-2 2H3a2 2 0 01-2-2V8z" transform="translate(-1 0)" /><circle cx="11" cy="12.5" r="3.2" /></svg>
+                <Camera size={15} color="#7c3aed" strokeWidth={1.9} />
               </span>
 
               {avatarMenuOpen && (
                 <div role="menu" style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 10, width: 186, background: '#fff', borderRadius: 12, border: '1px solid #ece8f6', boxShadow: '0 24px 48px -22px rgba(80,40,140,.5)', overflow: 'hidden', zIndex: 50 }}>
                   <button role="menuitem" onClick={() => { setAvatarMenuOpen(false); setLightboxOpen(true); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 15px', border: 'none', background: 'transparent', fontSize: 13.5, fontWeight: 600, color: '#574f6e', cursor: 'pointer' }}>
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#a39bbf" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
+                    <Eye size={17} color="#a39bbf" strokeWidth={1.8} />
                     {t.avView}
                   </button>
                   <button role="menuitem" onClick={() => { setAvatarMenuOpen(false); fileInputRef.current?.click(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 15px', border: 'none', borderTop: '1px solid #f0ecf8', background: 'transparent', fontSize: 13.5, fontWeight: 600, color: '#574f6e', cursor: 'pointer' }}>
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#a39bbf" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 8a2 2 0 012-2h2l1.5-2h7L19 6h2a2 2 0 012 2v9a2 2 0 01-2 2H3a2 2 0 01-2-2V8z" transform="translate(-1 0)" /><circle cx="11" cy="12.5" r="3.2" /></svg>
+                    <Camera size={17} color="#a39bbf" strokeWidth={1.8} />
                     {t.avChange}
                   </button>
                 </div>
@@ -221,7 +222,7 @@ export default function Profile() {
           <Card style={{ padding: 22 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <span style={{ width: 40, height: 40, flex: 'none', borderRadius: 11, background: '#f3edff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10" width="16" height="11" rx="3" /><path d="M8 10V7a4 4 0 018 0v3" /></svg>
+                <Lock size={20} strokeWidth={1.8} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 14.5, color: '#211c38' }}>{t.prChangePw}</div>
@@ -236,7 +237,7 @@ export default function Profile() {
             <Card style={{ padding: 22, border: '1px solid #f3c9d6' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ width: 40, height: 40, flex: 'none', borderRadius: 11, background: '#fdeef2', color: '#e23d6e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M6 7l1 13a2 2 0 002 2h6a2 2 0 002-2l1-13" /></svg>
+                  <Trash2 size={20} strokeWidth={1.8} />
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: 14.5, color: '#c0285a' }}>{t.prDeleteAcc}</div>

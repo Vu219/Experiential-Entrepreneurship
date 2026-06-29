@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState, type CSSProperties } from 'react';
+import { Lock, KeyRound, Eye } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
 import { changePasswordInit, changePasswordConfirm, verifyOtp } from '../api/auth';
@@ -19,15 +20,11 @@ const labelStyle: CSSProperties = { display: 'block', fontSize: 12.5, fontWeight
 const inputWrap: CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, border: '1.5px solid #e7e2f2', borderRadius: 13, padding: '0 15px', background: '#fbfaff' };
 const inputStyle: CSSProperties = { flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 15, padding: '13px 0', color: '#241f3a' };
 
-const LockIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a39bbf" strokeWidth={1.7}><rect x="4" y="10" width="16" height="11" rx="3" /><path d="M8 10V7a4 4 0 018 0v3" /></svg>
-);
-const KeyIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a39bbf" strokeWidth={1.7}><circle cx="8" cy="15" r="4" /><path d="M11 12l8-8M17 6l2 2M14 9l2 2" /></svg>
-);
+const LockIcon = () => <Lock size={18} color="#a39bbf" strokeWidth={1.7} />;
+const KeyIcon = () => <KeyRound size={18} color="#a39bbf" strokeWidth={1.7} />;
 const EyeBtn = ({ onClick }: { onClick: () => void }) => (
   <button type="button" onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a39bbf', display: 'flex' }}>
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
+    <Eye size={19} strokeWidth={1.7} />
   </button>
 );
 

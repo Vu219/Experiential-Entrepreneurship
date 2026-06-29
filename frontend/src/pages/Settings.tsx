@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
+import { Link2, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useUiStore } from '../store/useUiStore';
@@ -493,9 +494,7 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                       <span>{t.processing}</span>
                     ) : (
                       <>
-                        <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.8 1.7M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.8-1.7" />
-                        </svg>
+                        <Link2 size={11} color="#7c3aed" strokeWidth={2.2} />
                         {t.seConnect}
                       </>
                     )}
@@ -536,10 +535,7 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                 opacity: loading ? 0.6 : 1,
               }}
             >
-              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M23 4v6h-6M1 20v-6h6" />
-                <path d="M3.5 9a9 9 0 0114.8-3.4L23 10M1 14l4.6 4.4A9 9 0 0020.5 15" />
-              </svg>
+              <RefreshCw size={14} color="#7c3aed" strokeWidth={2} />
               {t.seCheckStatus}
             </button>
             <select
@@ -643,9 +639,7 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                         <td style={{ padding: '12px 8px', whiteSpace: 'nowrap' }}>
                           {tk.valid !== null ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={tk.valid ? '#16a34a' : '#dc2626'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                              </svg>
+                              <ShieldCheck size={15} color={tk.valid ? '#16a34a' : '#dc2626'} strokeWidth={2} />
                               <div>
                                 <div style={{ fontWeight: 600, color: tk.valid ? '#16a34a' : '#dc2626', fontSize: 12 }}>{tk.label}</div>
                                 <div style={{ fontSize: 11, color: tk.valid ? '#8a85a0' : '#c2410c' }}>{tk.sub}</div>
@@ -667,10 +661,7 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                                   title={lang === 'en' ? 'Refresh token' : 'Làm mới token'}
                                   style={{ border: 'none', background: 'none', cursor: isLoading ? 'wait' : 'pointer', padding: 4, display: 'flex', opacity: isLoading ? 0.5 : 1 }}
                                 >
-                                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M23 4v6h-6M1 20v-6h6" />
-                                    <path d="M3.5 9a9 9 0 0114.8-3.4L23 10M1 14l4.6 4.4A9 9 0 0020.5 15" />
-                                  </svg>
+                                  <RefreshCw size={15} color="#7c3aed" strokeWidth={2} />
                                 </button>
                                 <button
                                   onClick={(e) => {

@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
+import { Mail, Lock, KeyRound, Eye, ChevronLeft, Globe } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { useBreakpoint } from "../hooks/useBreakpoint";
 import AimaScene from "../components/AimaScene";
@@ -32,18 +33,12 @@ const inputStyle: CSSProperties = { flex: 1, border: "none", outline: "none", ba
 const labelStyle: CSSProperties = { display: "block", fontSize: 12.5, fontWeight: 700, letterSpacing: ".04em", color: "#574f6e", marginBottom: 8 };
 const errStyle: CSSProperties = { minHeight: 18, fontSize: 12.5, color: "#e23d6e", marginTop: 5 };
 
-const MailIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a39bbf" strokeWidth={1.7}><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M4 7l8 6 8-6" /></svg>
-);
-const LockIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a39bbf" strokeWidth={1.7}><rect x="4" y="10" width="16" height="11" rx="3" /><path d="M8 10V7a4 4 0 018 0v3" /></svg>
-);
-const KeyIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a39bbf" strokeWidth={1.7}><circle cx="8" cy="15" r="4" /><path d="M11 12l8-8M17 6l2 2M14 9l2 2" /></svg>
-);
+const MailIcon = () => <Mail size={18} color="#a39bbf" strokeWidth={1.7} />;
+const LockIcon = () => <Lock size={18} color="#a39bbf" strokeWidth={1.7} />;
+const KeyIcon = () => <KeyRound size={18} color="#a39bbf" strokeWidth={1.7} />;
 const EyeBtn = ({ onClick }: { onClick: () => void }) => (
   <button type="button" onClick={onClick} style={{ background: "none", border: "none", cursor: "pointer", color: "#a39bbf", display: "flex" }}>
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
+    <Eye size={19} strokeWidth={1.7} />
   </button>
 );
 
@@ -174,13 +169,13 @@ export default function ForgotPasswordPage() {
       <div style={{ width: isMobile ? "100%" : "min(48%,640px)", background: "#fff", padding: isMobile ? "64px 20px 30px" : "56px 64px", display: "flex", flexDirection: "column", justifyContent: "center", position: "relative" }}>
         <div style={{ position: "absolute", top: isMobile ? 18 : 32, left: isMobile ? 18 : 48 }}>
           <button onClick={() => navigate("/login")} style={{ display: "flex", alignItems: "center", gap: 7, background: "transparent", border: "none", fontSize: 15, fontWeight: 600, color: "#4b4660", cursor: "pointer" }}>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6b6680" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+            <ChevronLeft size={19} color="#6b6680" strokeWidth={1.8} />
             {t.fpBackLogin}
           </button>
         </div>
         <div style={{ position: "absolute", top: isMobile ? 18 : 32, right: isMobile ? 18 : 48 }}>
           <button onClick={toggleLang} style={{ display: "flex", alignItems: "center", gap: 7, background: "transparent", border: "none", fontSize: 15, fontWeight: 600, color: "#4b4660", cursor: "pointer" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b6680" strokeWidth={1.7}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" strokeLinecap="round" /></svg>
+            <Globe size={18} color="#6b6680" strokeWidth={1.7} />
             {t.langLabel}
           </button>
         </div>

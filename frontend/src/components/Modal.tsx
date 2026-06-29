@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 
 /**
  * Centered modal overlay used by the profile security / delete-account flows.
@@ -55,7 +56,7 @@ export default function Modal({
           aria-label="Close"
           style={{ position: 'absolute', top: 16, right: 16, width: 32, height: 32, border: 'none', borderRadius: 9, background: '#f4f1fb', color: '#6b6680', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          <X size={16} strokeWidth={2} />
         </button>
         <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: '#211c38', paddingRight: 28 }}>{title}</div>
         {subtitle && <div style={{ fontSize: 13.5, color: '#6b6680', marginTop: 6 }}>{subtitle}</div>}

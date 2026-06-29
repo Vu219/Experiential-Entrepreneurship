@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { PlatformTag, Loader } from '../../components/ui';
 import { PLATFORM_BG } from '../../theme';
@@ -160,10 +161,7 @@ export default function ApiVersions() {
             opacity: checking ? 0.6 : 1,
           }}
         >
-          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M23 4v6h-6M1 20v-6h6" />
-            <path d="M3.5 9a9 9 0 0114.8-3.4L23 10M1 14l4.6 4.4A9 9 0 0020.5 15" />
-          </svg>
+          <RefreshCw size={15} color="#7c3aed" strokeWidth={2.2} />
           {checking ? t.processing : t.apiCheckNow}
         </button>
       </div>

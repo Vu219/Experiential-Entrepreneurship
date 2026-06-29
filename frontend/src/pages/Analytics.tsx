@@ -18,7 +18,7 @@ export default function Analytics() {
           <Card key={i} style={{ padding: 20, borderRadius: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ width: 40, height: 40, borderRadius: 11, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon path={s.icon} stroke={s.color} />
+                <Icon icon={s.icon} stroke={s.color} />
               </div>
               <span style={{ fontSize: 12.5, fontWeight: 700, color: s.trendColor, background: s.trendBg, padding: '3px 9px', borderRadius: 999 }}>{s.trend}</span>
             </div>

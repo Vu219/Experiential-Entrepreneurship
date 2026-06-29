@@ -1,4 +1,8 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  AlertTriangle, RefreshCw, Home, Plus, Sparkles, Check, Calendar, Clock,
+  ChevronRight, type LucideIcon,
+} from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { Icon, Card, PlatformTag } from '../components/ui';
@@ -87,12 +91,12 @@ export default function Dashboard() {
         <StatePanel
           role="alert"
           tone="error"
-          icon="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"
+          icon={AlertTriangle}
           title={t.dashErrTitle}
           message={t.dashErrMsg}
           action={
             <button onClick={retry} className="btn-grad" style={primaryBtn(brandGradient)}>
-              <Icon path="M3 12a9 9 0 1 0 3-6.7M3 4v4h4" size={18} stroke="#fff" />
+              <Icon icon={RefreshCw} size={18} stroke="#fff" />
               {t.retry}
             </button>
           }
@@ -107,12 +111,12 @@ export default function Dashboard() {
       <div className="view-pop" style={outerStyle}>
         <StatePanel
           tone="empty"
-          icon="M3 11l9-8 9 8M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9"
+          icon={Home}
           title={t.dashEmptyTitle}
           message={t.dashEmptyMsg}
           action={
             <button onClick={() => go('create')} className="btn-grad" style={primaryBtn(brandGradient)}>
-              <Icon path="M12 5v14M5 12h14" size={18} stroke="#fff" />
+              <Icon icon={Plus} size={18} stroke="#fff" />
               {t.dashEmptyCta}
             </button>
           }
@@ -138,7 +142,7 @@ export default function Dashboard() {
           <div style={{ fontSize: 14, opacity: 0.9, maxWidth: 480, lineHeight: 1.5 }}>{t.dashHeadSub}</div>
         </div>
         <button onClick={() => go('create')} className="btn-grad" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: 'none', borderRadius: 13, padding: '14px 22px', fontWeight: 700, fontSize: 14, color: '#6d28d9', background: '#fff', whiteSpace: 'nowrap', cursor: 'pointer', boxShadow: '0 10px 22px -10px rgba(0,0,0,.3)' }}>
-          <Icon path="M12 3l1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7z" size={16} stroke="#6d28d9" />
+          <Icon icon={Sparkles} size={16} stroke="#6d28d9" />
           {t.createNew}
         </button>
       </div>
@@ -152,7 +156,7 @@ export default function Dashboard() {
           </div>
           {review.length === 0 ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', fontSize: 14, color: '#5b5670' }}>
-              <Icon path="M5 13l4 4L19 7" size={18} stroke="#16a34a" />
+              <Icon icon={Check} size={18} stroke="#16a34a" />
               {t.allCaughtUp}
             </div>
           ) : (
@@ -174,7 +178,7 @@ export default function Dashboard() {
           <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38', marginBottom: 14 }}>{t.upNextTitle}</div>
           {scheduled.length === 0 ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', fontSize: 14, color: '#5b5670' }}>
-              <Icon path="M8 2v4M16 2v4M3 9h18M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" size={18} stroke="#8a85a0" />
+              <Icon icon={Calendar} size={18} stroke="#8a85a0" />
               {t.nothingScheduled}
             </div>
           ) : (
@@ -184,7 +188,7 @@ export default function Dashboard() {
                   <PlatformTag tag={p.tag} bg={p.bg} size={30} radius={9} />
                   <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: '#2b2543', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
                   <span style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, color: '#5b5670', whiteSpace: 'nowrap' }}>
-                    <Icon path="M12 7v5l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" size={14} stroke="#8a85a0" />
+                    <Icon icon={Clock} size={14} stroke="#8a85a0" />
                     {p.date}
                   </span>
                 </div>
@@ -200,7 +204,7 @@ export default function Dashboard() {
           <div style={{ flex: isMobile ? 'none' : '1.15', padding: 22, display: 'flex', flexDirection: 'column', gap: 10, borderRight: isMobile ? 'none' : '1px solid #efeaf8', borderBottom: isMobile ? '1px solid #efeaf8' : 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 40, height: 40, borderRadius: 11, background: primary.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon path={primary.icon} stroke={primary.color} />
+                <Icon icon={primary.icon} stroke={primary.color} />
               </div>
               <span style={{ fontSize: 13, fontWeight: 600, color: '#5b5670' }}>{primary.label}</span>
             </div>
@@ -285,7 +289,7 @@ export default function Dashboard() {
           <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.recentTitle}</div>
           <button type="button" onClick={() => go('calendar')} className="link-underline" style={{ display: 'inline-flex', alignItems: 'center', alignSelf: 'center', gap: 4, border: 'none', background: 'transparent', padding: '4px 2px', fontSize: 13, fontWeight: 600, color: '#7c3aed', cursor: 'pointer' }}>
             {t.viewAll}
-            <Icon path="M9 6l6 6-6 6" size={14} stroke="#7c3aed" />
+            <Icon icon={ChevronRight} size={14} stroke="#7c3aed" />
           </button>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -347,7 +351,7 @@ function StatePanel({
   role,
 }: {
   tone: 'error' | 'empty';
-  icon: string;
+  icon: LucideIcon;
   title: string;
   message: string;
   action: ReactNode;
@@ -359,7 +363,7 @@ function StatePanel({
     <Card style={{ padding: '48px 28px' }}>
       <div role={role} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 14, maxWidth: 420, margin: '0 auto' }}>
         <div style={{ width: 56, height: 56, borderRadius: 16, background: tintBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon path={icon} size={26} stroke={accent} />
+          <Icon icon={icon} size={26} stroke={accent} />
         </div>
         <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 19, color: '#211c38' }}>{title}</div>
         <div style={{ fontSize: 14, lineHeight: 1.55, color: '#5b5670' }}>{message}</div>

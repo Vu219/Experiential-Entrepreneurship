@@ -26,7 +26,24 @@ colors:
   warning: "#b45309"
   warning-bg: "#fdf0dc"
   danger: "#e23d6e"
+  danger-ink: "#d6336c"
   danger-border: "#f3aabf"
+  danger-bg: "#fdeef2"
+  danger-bg-border: "#f3c9d6"
+  warning-label: "#d97706"
+  info-amber: "#b08968"
+  info-amber-bg: "#fdf6ec"
+  violet-ink: "#5b2b9e"
+  violet-action: "#7c5cff"
+  violetgray-700: "#5b4b86"
+  violetgray-500: "#7d6aa3"
+  violetgray-400: "#9b7fd6"
+  violetgray-350: "#9b94b5"
+  violetgray-300: "#a39bbf"
+  violetgray-200: "#b3acc6"
+  violet-border: "#d6cdf0"
+  violet-border-soft: "#e0d5fb"
+  violet-border-faint: "#e7d9fb"
   platform-fb: "#1877f2"
   platform-th: "#000000"
 typography:
@@ -190,7 +207,14 @@ calm lavender-white field, with color reserved for meaning (brand, platform, sta
 - **Success** (`#16a34a`, on `#e8f8ee` / border `#cdeed8`): confirmations, "posted" / "copied".
 - **Review / Pending Amber** (`#b45309` on `#fdf0dc`): the "needs review" / awaiting-approval state — review-queue count badges and attention prompts. The mid-tone `#d97706` is the status-pill label variant; use the darker `#b45309` for small text on the amber tint to hold AA.
 - **Danger** (`#e23d6e`, with `#d6336c` / `#e25c84` siblings, error border `#f3aabf`): validation
-  errors, sign-out, failed states. The notification dot is `#ec4899`.
+  errors, sign-out, failed states. The notification dot is `#ec4899`. **One danger family, one ink
+  for text.** `#e23d6e` is the nominal danger hue, used for fills, borders, and the `#fdeef2` error
+  wash (border `#f3c9d6`) — not for small text, where it only reaches ~4.1:1. All danger **text and
+  icons** (validation/API errors, destructive labels, the required-field asterisk) render in the
+  darker **danger-ink `#d6336c`**, which clears AA on white (4.6:1); the primary destructive confirm
+  is solid `#d6336c` with white text. **Never** reintroduce a generic `#dc2626`-style red — it's
+  outside the family. (Error text on the `#fdeef2` tint still sits near ~4.1:1 — a known item for the
+  contrast audit, since a fully-AA ink on that wash would fall outside the documented family.)
 - **Platform Colors** (never invented, never themed): Facebook `#1877f2`, Instagram
   `linear-gradient(135deg,#f9ce34,#ee2a7b,#6228d7)`, Threads `#000000`. Used only on platform chips.
 

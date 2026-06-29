@@ -15,7 +15,7 @@ const fmtDate = (iso: string) => {
 };
 const TAG_BY_ENUM: Record<Platform, string> = { FACEBOOK: 'FB', INSTAGRAM: 'IG', THREADS: 'TH' };
 
-/** Chi tiết chiến lược (read-only) — 8 mục 01–08 + "Tóm tắt chiến lược". */
+/** Chi tiết chiến lược (read-only) — 8 mục thuộc tính + "Tóm tắt chiến lược". */
 export default function StrategyDetail({ s, onEdit, onDelete }: { s: ContentStrategy; onEdit: () => void; onDelete: () => void }) {
   const { t, lang } = useApp();
   const meta = statusMeta(s.status, t);
@@ -31,41 +31,54 @@ export default function StrategyDetail({ s, onEdit, onDelete }: { s: ContentStra
           </div>
           <div style={{ fontSize: 12.5, color: '#8a85a0', marginTop: 4 }}>{t.csCreatedAt}: {fmtDate(s.createdAt)} · {t.csUpdatedAt}: {fmtDate(s.updatedAt)}</div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={onDelete} style={{ border: '1px solid #f3c9d6', background: '#fff', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 700, color: '#dc2626', cursor: 'pointer' }}>{t.csDeleteBtn}</button>
-          <button onClick={onEdit} style={{ border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 700, color: '#fff', background: 'var(--brand)', cursor: 'pointer' }}>{t.csEditBtn}</button>
-        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
-        <Sec n="01" label={t.csGoal}><ReadChips items={s.goals} /></Sec>
-        <Sec n="02" label={t.csTypes}><ReadChips items={s.contentTypes} /></Sec>
-        <Sec n="03" label={t.csFreq}><span style={valTxt}>{s.frequencyCount ?? 3} {t.csPostsPer} {unitLabel}</span></Sec>
-        <Sec n="04" label={t.csPlatforms}>
+        <Sec label={t.csGoal}><ReadChips items={s.goals} /></Sec>
+        <Sec label={t.csTypes}><ReadChips items={s.contentTypes} /></Sec>
+        <Sec label={t.csFreq}><span style={valTxt}>{s.frequencyCount ?? 3} {t.csPostsPer} {unitLabel}</span></Sec>
+        <Sec label={t.csPlatforms}>
           <div style={{ display: 'flex', gap: 7 }}>
             {s.platforms.map((p) => { const pl = PLATFORMS.find((x) => x.tag === TAG_BY_ENUM[p]); return pl ? <PlatformTag key={p} tag={pl.tag} bg={pl.bg} size={26} radius={7} /> : null; })}
           </div>
         </Sec>
-        <Sec n="05" label={t.csTimes}><ReadChips items={s.timeSlots} /></Sec>
-        <Sec n="06" label={t.csAudience}><ReadChips items={s.audiences} /></Sec>
-        <Sec n="07" label={t.csStyle}><ReadChips items={s.styles} /></Sec>
-        <Sec n="08" label={t.csCta}><ReadChips items={s.ctas} /></Sec>
+        <Sec label={t.csTimes}><ReadChips items={s.timeSlots} /></Sec>
+        <Sec label={t.csAudience}><ReadChips items={s.audiences} /></Sec>
+        <Sec label={t.csStyle}><ReadChips items={s.styles} /></Sec>
+        <Sec label={t.csCta}><ReadChips items={s.ctas} /></Sec>
       </div>
 
-      <StrategySummary s={s} />
+      <div style={{
+        position: 'sticky',
+        bottom: -22,
+        margin: '32px -22px -22px -22px',
+        padding: '20px 22px',
+        background: '#fff',
+        borderTop: '1px solid #efeaf8',
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
+        zIndex: 10,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+        boxShadow: '0 -10px 30px rgba(0,0,0,0.03)'
+      }}>
+        <StrategySummary s={s} />
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button onClick={onDelete} style={{ border: '1px solid #f3c9d6', background: '#fff', borderRadius: 12, padding: '11px 18px', fontSize: 14, fontWeight: 700, color: '#d6336c', cursor: 'pointer' }}>{t.csDeleteBtn}</button>
+          <button onClick={onEdit} className="btn-grad" style={{ border: 'none', borderRadius: 12, padding: '11px 26px', fontSize: 14, fontWeight: 700, color: '#fff', background: 'var(--brand)', cursor: 'pointer' }}>{t.csEditBtn}</button>
+        </div>
+      </div>
     </div>
   );
 }
 
 const valTxt = { fontSize: 14, fontWeight: 700, color: '#211c38' } as const;
 
-function Sec({ n, label, children }: { n: string; label: string; children: ReactNode }) {
+function Sec({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div style={{ border: '1px solid #efeaf8', borderRadius: 13, padding: 15 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <span style={{ fontSize: 11, fontWeight: 800, color: '#a78bfa', fontFamily: "'Plus Jakarta Sans'" }}>{n}</span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#574f6e' }}>{label}</span>
-      </div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: '#574f6e', marginBottom: 10 }}>{label}</div>
       {children}
     </div>
   );

@@ -1,35 +1,32 @@
 import type { Lang } from './types';
 import { getDict } from './i18n';
 import { PLATFORM_BG, tagOf } from './theme';
+import {
+  LayoutGrid, Sparkles, Calendar, BarChart3, TrendingUp, Star, User, Settings,
+  Shield, Eye, Bell, LogOut, Heart, Users, Activity, DollarSign,
+  Search, Lightbulb, PenLine, CalendarClock, Zap, type LucideIcon,
+} from 'lucide-react';
 
-// ===== SVG path icons (single-path, stroked) =====
+// ===== Semantic icon registry (Lucide) =====
 export const ICON = {
-  dashboard: 'M3 3h8v8H3zM13 3h8v8h-8zM13 13h8v8h-8zM3 13h8v8H3z',
-  create: 'M12 3l1.8 4.7L18.5 9l-4.7 1.8L12 15l-1.8-4.2L5.5 9l4.7-1.3z',
-  calendar: 'M7 2v4M17 2v4M3.5 9h17M4 5h16v16H4z',
-  analytics: 'M4 21V11M10 21V4M16 21v-6M3 21h18',
-  trends: 'M3 16l5-5 4 4 8-8M16 7h5v5',
-  brand: 'M12 2l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 21l-5.2 2.8 1-5.8L3.5 8.2l5.9-.9z',
-  profile: 'M12 11a4 4 0 100-8 4 4 0 000 8zM5 21a7 7 0 0114 0',
-  settings:
-    'M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2zM12 15a3 3 0 100-6 3 3 0 000 6z',
-  admin: 'M12 3l8 3v6c0 4.5-3 7.5-8 9-5-1.5-8-4.5-8-9V6z',
-  eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z',
-  bell: 'M18 8a6 6 0 10-12 0c0 7-3 8-3 8h18s-3-1-3-8M13.7 21a2 2 0 01-3.4 0',
-  logout: 'M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3 M10 17l5-5-5-5 M15 12H3',
+  dashboard: LayoutGrid,
+  create: Sparkles,
+  calendar: Calendar,
+  analytics: BarChart3,
+  trends: TrendingUp,
+  brand: Star,
+  profile: User,
+  settings: Settings,
+  admin: Shield,
+  eye: Eye,
+  bell: Bell,
+  logout: LogOut,
 } as const;
 
 const P = (lang: Lang, vi: string, en: string) => (lang === 'en' ? en : vi);
 
 // ===== Landing flow cards =====
-const FLOW_ICONS = [
-  'M12 2l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 21l-5.2 2.8 1-5.8L3.5 8.2l5.9-.9z',
-  'M3 16l5-5 4 4 8-8M16 7h5v5',
-  'M4 21V11M10 21V4M16 21v-6M3 21h18',
-  'M7 2v4M17 2v4M3.5 9h17M4 5h16v16H4z',
-  'M2 12s3.5-7 10-7 10 7 10 7',
-  'M9 11l3 3L22 4',
-];
+const FLOW_ICONS = [Search, Lightbulb, PenLine, CalendarClock, BarChart3, Sparkles];
 export function flowCards(lang: Lang) {
   const data: [string, string][] =
     lang === 'en'
@@ -52,11 +49,7 @@ export function flowCards(lang: Lang) {
   return data.map((c, i) => ({ title: c[0], desc: c[1], icon: FLOW_ICONS[i] }));
 }
 
-const PILLAR_ICONS = [
-  'M12 3l1.8 4.7L18.5 9l-4.7 1.8L12 15l-1.8-4.2L5.5 9l4.7-1.3z',
-  'M12 7v5l3 2M12 21a9 9 0 110-18 9 9 0 010 18z',
-  'M4 21V11M10 21V4M16 21v-6M3 21h18',
-];
+const PILLAR_ICONS = [Sparkles, Zap, BarChart3];
 export function pillars(lang: Lang) {
   const data: [string, string][] =
     lang === 'en'
@@ -78,7 +71,7 @@ export function stats(lang: Lang) {
   const d = getDict(lang);
   return [
     { value: '248.6K', label: d.stTotalReach, trend: '+12.6%', icon: ICON.eye, bg: 'linear-gradient(135deg,#e7f6ff,#eef2ff)', color: '#3b82f6', trendColor: '#16a34a', trendBg: '#e8f8ee' },
-    { value: '8.4%', label: d.stEngagement, trend: '+2.4%', icon: 'M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 10-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 000-7.8z', bg: 'linear-gradient(135deg,#ffe9f3,#fae9ff)', color: '#ec4899', trendColor: '#16a34a', trendBg: '#e8f8ee' },
+    { value: '8.4%', label: d.stEngagement, trend: '+2.4%', icon: Heart, bg: 'linear-gradient(135deg,#ffe9f3,#fae9ff)', color: '#ec4899', trendColor: '#16a34a', trendBg: '#e8f8ee' },
     { value: '142', label: d.stPosts, trend: '+18', icon: ICON.analytics, bg: 'linear-gradient(135deg,#f1e9ff,#e9f0ff)', color: '#8b5cf6', trendColor: '#16a34a', trendBg: '#e8f8ee' },
     { value: '12', label: d.stScheduled, trend: '+3', icon: ICON.calendar, bg: 'linear-gradient(135deg,#e7fff4,#e9f7ff)', color: '#10b981', trendColor: '#16a34a', trendBg: '#e8f8ee' },
   ];
@@ -328,11 +321,11 @@ export function connectionStats() {
 // TODO: cần endpoint backend cho dữ liệu Admin (adminStats, adminUsers, planDist, health)
 // — hiện là mock demo, phải thay bằng lời gọi API khi BE sẵn sàng.
 export function adminStats(lang: Lang) {
-  const rows: [string, string, string, string, string, string][] = [
-    ['12,847', P(lang, 'Tổng người dùng', 'Total users'), '+8.2%', 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8', 'linear-gradient(135deg,#e9f0ff,#f1e9ff)', '#6366f1'],
-    ['3,219', P(lang, 'Hoạt động hôm nay', 'Active today'), '+4.1%', 'M22 12h-4l-3 9L9 3l-3 9H2', 'linear-gradient(135deg,#e7fff4,#e9f7ff)', '#10b981'],
+  const rows: [string, string, string, LucideIcon, string, string][] = [
+    ['12,847', P(lang, 'Tổng người dùng', 'Total users'), '+8.2%', Users, 'linear-gradient(135deg,#e9f0ff,#f1e9ff)', '#6366f1'],
+    ['3,219', P(lang, 'Hoạt động hôm nay', 'Active today'), '+4.1%', Activity, 'linear-gradient(135deg,#e7fff4,#e9f7ff)', '#10b981'],
     ['1.2M', P(lang, 'Nội dung đã tạo', 'Content generated'), '+19%', ICON.create, 'linear-gradient(135deg,#f1e9ff,#fae9ff)', '#8b5cf6'],
-    ['$48.6K', 'MRR', '+11%', 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6', 'linear-gradient(135deg,#fff3e0,#ffe9f3)', '#ec4899'],
+    ['$48.6K', 'MRR', '+11%', DollarSign, 'linear-gradient(135deg,#fff3e0,#ffe9f3)', '#ec4899'],
   ];
   return rows.map((a) => ({ value: a[0], label: a[1], trend: a[2], icon: a[3], bg: a[4], color: a[5] }));
 }

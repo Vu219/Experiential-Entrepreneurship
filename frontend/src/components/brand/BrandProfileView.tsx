@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { ChevronLeft } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Card, PlatformTag, Icon } from '../ui';
@@ -22,7 +23,7 @@ export default function BrandProfileView({ profile, onClose, onEdit }: { profile
   return (
     <div className="view-pop" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <button onClick={onClose} style={backBtn}><Icon path="M15 6l-6 6 6 6" size={18} stroke="#5b5670" />{t.bpBack}</button>
+        <button onClick={onClose} className="btn-soft" style={backBtn}><Icon icon={ChevronLeft} size={18} stroke="#5b5670" />{t.bpBack}</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 13, flex: 1, minWidth: 0 }}>
           <LogoSquare logoUrl={profile.logoUrl} brandName={profile.brandName} size={46} />
           <div style={{ minWidth: 0 }}>
@@ -30,7 +31,7 @@ export default function BrandProfileView({ profile, onClose, onEdit }: { profile
             <div style={{ fontSize: 13, color: '#8a85a0' }}>{profile.industry}</div>
           </div>
         </div>
-        <button onClick={onEdit} style={{ border: 'none', borderRadius: 11, padding: '10px 20px', fontSize: 14, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.bpEdit}</button>
+        <button onClick={onEdit} className="btn-grad" style={{ border: 'none', borderRadius: 11, padding: '10px 20px', fontSize: 14, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.bpEdit}</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1fr) 380px', gap: 18, alignItems: 'start' }}>

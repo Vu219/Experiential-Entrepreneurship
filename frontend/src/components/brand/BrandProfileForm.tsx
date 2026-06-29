@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import { ChevronLeft } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Card, Icon } from '../ui';
@@ -85,11 +86,11 @@ export default function BrandProfileForm({ profile, onClose, onSaved }: { profil
   return (
     <div className="view-pop" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={onClose} style={backBtn}><Icon path="M15 6l-6 6 6 6" size={18} stroke="#5b5670" />{t.bpBack}</button>
+        <button onClick={onClose} className="btn-soft" style={backBtn}><Icon icon={ChevronLeft} size={18} stroke="#5b5670" />{t.bpBack}</button>
         <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 20, color: '#211c38' }}>{profile ? t.bpfEdit : t.bpfNew}</div>
       </div>
 
-      {apiError && <div style={{ fontSize: 12.5, color: '#e23d6e', background: '#fdeef2', border: '1px solid #f3c9d6', borderRadius: 10, padding: '10px 13px' }}>{apiError}</div>}
+      {apiError && <div style={{ fontSize: 12.5, color: '#d6336c', background: '#fdeef2', border: '1px solid #f3c9d6', borderRadius: 10, padding: '10px 13px' }}>{apiError}</div>}
 
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1fr) 340px', gap: 18, alignItems: 'start' }}>
         {/* Cột chính — form chia 3 cụm có tiêu đề */}
@@ -137,7 +138,7 @@ export default function BrandProfileForm({ profile, onClose, onSaved }: { profil
                   <TagInput value={dos} onChange={setDos} addLabel={t.bpDo} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', marginBottom: 7 }}>{t.bpDont}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#d6336c', marginBottom: 7 }}>{t.bpDont}</div>
                   <TagInput value={donts} onChange={setDonts} addLabel={t.bpDont} />
                 </div>
               </div>
@@ -153,9 +154,9 @@ export default function BrandProfileForm({ profile, onClose, onSaved }: { profil
 
           {/* Nút lưu — gọn trên 1 hàng, không full-width */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, paddingTop: 2 }}>
-            <button onClick={submit} disabled={busy} style={{ border: 'none', borderRadius: 12, padding: '12px 24px', fontSize: 14, fontWeight: 700, color: '#fff', background: brandGradient, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{saving === 'full' ? t.processing : t.bpfSave}</button>
-            <button onClick={saveDraft} disabled={busy} style={{ border: '1.5px solid #d6cdf0', background: '#faf8ff', borderRadius: 12, padding: '12px 22px', fontSize: 14, fontWeight: 700, color: '#7c5cff', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{saving === 'draft' ? t.processing : t.bpSaveDraft}</button>
-            <button onClick={onClose} disabled={busy} style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 12, padding: '12px 22px', fontSize: 14, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>{t.cancel}</button>
+            <button onClick={submit} disabled={busy} className="btn-grad" style={{ border: 'none', borderRadius: 12, padding: '12px 24px', fontSize: 14, fontWeight: 700, color: '#fff', background: brandGradient, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{saving === 'full' ? t.processing : t.bpfSave}</button>
+            <button onClick={saveDraft} disabled={busy} className="btn-outline" style={{ border: '1.5px solid #d6cdf0', background: '#faf8ff', borderRadius: 12, padding: '12px 22px', fontSize: 14, fontWeight: 700, color: '#7c5cff', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{saving === 'draft' ? t.processing : t.bpSaveDraft}</button>
+            <button onClick={onClose} disabled={busy} className="btn-soft" style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 12, padding: '12px 22px', fontSize: 14, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>{t.cancel}</button>
           </div>
         </div>
 

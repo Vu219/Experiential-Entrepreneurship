@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { AlertTriangle, List, Search } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Card, Loader, Icon } from '../ui';
 
@@ -42,7 +43,7 @@ export default function AdminListPage({
         {state === 'error' && (
           <div style={{ textAlign: 'center', padding: '54px 16px', color: '#8a85a0' }}>
             <div style={{ width: 48, height: 48, borderRadius: 14, background: '#fde8e8', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-              <Icon path="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke="#dc2626" />
+              <Icon icon={AlertTriangle} stroke="#dc2626" />
             </div>
             <div style={{ fontSize: 14.5, fontWeight: 600, color: '#5b5670', marginBottom: 14 }}>{t.listError}</div>
             {onRetry && (
@@ -56,7 +57,7 @@ export default function AdminListPage({
         {state === 'empty' && (
           <div style={{ textAlign: 'center', padding: '54px 16px', color: '#8a85a0' }}>
             <div style={{ width: 48, height: 48, borderRadius: 14, background: '#f4f1fb', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-              <Icon path="M3 7h18M3 12h18M3 17h18" stroke="#a39bbf" />
+              <Icon icon={List} stroke="#a39bbf" />
             </div>
             <div style={{ fontSize: 14.5, fontWeight: 600 }}>{emptyLabel ?? t.listEmpty}</div>
           </div>
@@ -73,7 +74,7 @@ export function SearchInput({ value, onChange, placeholder }: { value: string; o
   const { t } = useApp();
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#f4f2fb', border: '1px solid #ece8f6', borderRadius: 10, padding: '8px 12px', flex: '1 1 220px', minWidth: 180, maxWidth: 340 }}>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a39bbf" strokeWidth={1.8}><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" strokeLinecap="round" /></svg>
+      <Search size={16} color="#a39bbf" strokeWidth={1.8} />
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}

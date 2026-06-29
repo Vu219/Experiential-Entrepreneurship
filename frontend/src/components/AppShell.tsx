@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Globe, Search, Home } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
@@ -27,10 +28,7 @@ export function LangButton({ compact = false }: { compact?: boolean }) {
         cursor: 'pointer',
       }}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth={1.7}>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" strokeLinecap="round" />
-      </svg>
+      <Globe size={16} color="#8b5cf6" strokeWidth={1.7} />
       {t.langLabel}
     </button>
   );
@@ -64,7 +62,7 @@ function Topbar() {
       {!isMobile && (
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f4f2fb', border: '1px solid #ece8f6', borderRadius: 12, padding: '9px 14px', width: 'min(340px,100%)' }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#a39bbf" strokeWidth={1.8}><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" strokeLinecap="round" /></svg>
+            <Search size={17} color="#a39bbf" strokeWidth={1.8} />
             <input placeholder={t.searchPh} style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: '#241f3a' }} />
           </div>
         </div>
@@ -76,12 +74,12 @@ function Topbar() {
         aria-label={t.nHome}
         style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f4f2fb', border: '1px solid #ece8f6', borderRadius: 10, padding: isMobile ? '9px' : '9px 12px', fontSize: 13, fontWeight: 600, color: '#4b4660', cursor: 'pointer' }}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-8 9 8M5 10v9a1 1 0 001 1h12a1 1 0 001-1v-9" /></svg>
+        <Home size={16} color="#8b5cf6" strokeWidth={1.8} />
         {!isMobile && t.nHome}
       </button>
       <LangButton compact />
       <button style={{ position: 'relative', width: 42, height: 42, borderRadius: 11, background: '#f4f2fb', border: '1px solid #ece8f6', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-        <Icon path={ICON.bell} size={19} stroke="#5b5670" />
+        <Icon icon={ICON.bell} size={19} stroke="#5b5670" />
         <span style={{ position: 'absolute', top: 9, right: 10, width: 8, height: 8, borderRadius: '50%', background: '#ec4899', border: '2px solid #f4f2fb' }} />
       </button>
       <div onClick={() => go('profile')} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', paddingLeft: 6, borderLeft: '1px solid #eee9f6' }}>

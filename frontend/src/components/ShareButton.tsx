@@ -1,15 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { Share2, Link2, Check } from "lucide-react";
 
 // Tiêu đề dùng khi chia sẻ (yêu cầu cố định).
 const SHARE_TITLE = "AIMA — AI Content Marketing";
 
-/** Icon chia sẻ (filled share-nodes) — xoay 180° khi hover. */
-const ShareIcon = () => (
-  <svg className="share-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden>
-    <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92zM18 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM6 13c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm12 7.02c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z" />
-  </svg>
-);
+/** Icon chia sẻ — xoay 180° khi hover (CSS class share-icon). */
+const ShareIcon = () => <Share2 className="share-icon" width={24} height={24} aria-hidden />;
 
 const FacebookIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="#1877f2" aria-hidden>
@@ -23,18 +20,9 @@ const ThreadsIcon = () => (
   </svg>
 );
 
-const LinkIcon = () => (
-  <svg className="copy-glyph" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6e8efb" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11.5 4.5" />
-    <path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.32-1.32" />
-  </svg>
-);
+const LinkIcon = () => <Link2 className="copy-glyph" width={22} height={22} color="#6e8efb" strokeWidth={1.9} aria-hidden />;
 
-const CheckIcon = () => (
-  <svg className="copy-glyph" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <path d="M5 12l5 5L20 7" />
-  </svg>
-);
+const CheckIcon = () => <Check className="copy-glyph" width={22} height={22} color="#16a34a" strokeWidth={2.4} aria-hidden />;
 
 /**
  * Nút chia sẻ nổi, cố định góc dưới phải, hiển thị trên mọi trang.

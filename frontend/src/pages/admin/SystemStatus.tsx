@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Card, Loader, Icon } from '../../components/ui';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
@@ -72,7 +73,7 @@ export default function SystemStatus() {
           {data.alerts.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '26px 8px', color: '#8a85a0' }}>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: '#e8f8ee', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                <Icon path="M20 6 9 17l-5-5" stroke="#16a34a" />
+                <Icon icon={Check} stroke="#16a34a" />
               </div>
               <div style={{ fontSize: 13.5, fontWeight: 600 }}>{t.sysNoAlerts}</div>
             </div>

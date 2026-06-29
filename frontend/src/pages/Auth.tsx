@@ -1,5 +1,9 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  Mail, Lock, User as UserGlyph, Eye, ChevronLeft, Globe, LogOut, Home,
+  Sparkles, Clock, BarChart3, type LucideIcon,
+} from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
@@ -25,18 +29,12 @@ const inputStyle: CSSProperties = { flex: 1, border: 'none', outline: 'none', ba
 const labelStyle: CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', color: '#574f6e', marginBottom: 8 };
 const errStyle: CSSProperties = { minHeight: 18, fontSize: 12.5, color: '#e23d6e', marginTop: 5 };
 
-const MailIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a39bbf" strokeWidth={1.7}><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M4 7l8 6 8-6" /></svg>
-);
-const LockIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a39bbf" strokeWidth={1.7}><rect x="4" y="10" width="16" height="11" rx="3" /><path d="M8 10V7a4 4 0 018 0v3" /></svg>
-);
-const UserIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#a39bbf" strokeWidth={1.7}><circle cx="12" cy="8" r="4" /><path d="M5 21a7 7 0 0114 0" /></svg>
-);
+const MailIcon = () => <Mail size={18} color="#a39bbf" strokeWidth={1.7} />;
+const LockIcon = () => <Lock size={18} color="#a39bbf" strokeWidth={1.7} />;
+const UserIcon = () => <UserGlyph size={17} color="#a39bbf" strokeWidth={1.7} />;
 const EyeBtn = ({ onClick }: { onClick: () => void }) => (
   <button type="button" onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a39bbf', display: 'flex' }}>
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
+    <Eye size={19} strokeWidth={1.7} />
   </button>
 );
 
@@ -167,7 +165,7 @@ export default function Auth() {
               {pillarsFor(lang).map((p, i) => (
                 <div key={i} style={{ textAlign: 'center', flex: 1 }}>
                   <div style={{ width: 42, height: 42, margin: '0 auto 10px', borderRadius: 12, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 22px -14px rgba(120,60,180,.6)' }}>
-                    <GradIcon path={p.icon} />
+                    <GradIcon icon={p.icon} />
                   </div>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#211c38' }}>{p.title}</div>
                   <div style={{ fontSize: 12, lineHeight: 1.45, color: '#6b6680', marginTop: 3 }}>{p.desc}</div>
@@ -181,13 +179,13 @@ export default function Auth() {
         <div style={{ width: isMobile ? '100%' : 'min(48%,640px)', background: '#fff', padding: isMobile ? '64px 20px 30px' : '56px 64px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
           <div style={{ position: 'absolute', top: isMobile ? 18 : 32, left: isMobile ? 18 : 48 }}>
             <button onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', fontSize: 15, fontWeight: 600, color: '#4b4660', cursor: 'pointer' }}>
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6b6680" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+              <ChevronLeft size={19} color="#6b6680" strokeWidth={1.8} />
               {t.backToHome}
             </button>
           </div>
           <div style={{ position: 'absolute', top: isMobile ? 18 : 32, right: isMobile ? 18 : 48 }}>
             <button onClick={toggleLang} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', fontSize: 15, fontWeight: 600, color: '#4b4660', cursor: 'pointer' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b6680" strokeWidth={1.7}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" strokeLinecap="round" /></svg>
+              <Globe size={18} color="#6b6680" strokeWidth={1.7} />
               {t.langLabel}
             </button>
           </div>
@@ -292,7 +290,7 @@ export default function Auth() {
               <div style={{ position: 'relative', width: 150, height: 150, margin: '0 auto 30px' }}>
                 <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px dashed #d8cdf2', animation: 'spinslow 16s linear infinite' }} />
                 <div style={{ position: 'absolute', inset: 18, borderRadius: '50%', background: brandGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 22px 44px -16px rgba(139,92,246,.7)' }}>
-                  <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round"><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3" /><path d="M10 17l5-5-5-5M15 12H3" /></svg>
+                  <LogOut size={52} color="#fff" strokeWidth={1.9} />
                 </div>
               </div>
               <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 38, margin: 0 }}>{t.logoutTitle}</h2>
@@ -304,7 +302,7 @@ export default function Auth() {
                 <div style={{ flex: 1, height: 1, background: '#ece8f5' }} />
               </div>
               <button onClick={() => go('landing')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, border: '1.5px solid #e8e4f1', borderRadius: 13, padding: 15, background: '#fff', fontWeight: 600, fontSize: 15, color: '#3f3a55', cursor: 'pointer' }}>
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6b6680" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-8 9 8M5 10v9a1 1 0 001 1h12a1 1 0 001-1v-9" /></svg>
+                <Home size={19} color="#6b6680" strokeWidth={1.8} />
                 {t.backHome}
               </button>
             </div>
@@ -341,16 +339,16 @@ function GoogleIcon() {
   );
 }
 
-function pillarsFor(lang: 'vi' | 'en') {
+function pillarsFor(lang: 'vi' | 'en'): { icon: LucideIcon; title: string; desc: string }[] {
   return lang === 'en'
     ? [
-      { icon: 'M12 3l1.8 4.7L18.5 9l-4.7 1.8L12 15l-1.8-4.2L5.5 9l4.7-1.3z', title: 'Smart', desc: 'AI analyzes and optimizes content performance' },
-      { icon: 'M12 7v5l3 2M12 21a9 9 0 110-18 9 9 0 010 18z', title: 'Automatic', desc: 'Schedule and auto-post 24/7' },
-      { icon: 'M4 21V11M10 21V4M16 21v-6M3 21h18', title: 'Effective', desc: 'Measure and continuously optimize strategy' },
+      { icon: Sparkles, title: 'Smart', desc: 'AI analyzes and optimizes content performance' },
+      { icon: Clock, title: 'Automatic', desc: 'Schedule and auto-post 24/7' },
+      { icon: BarChart3, title: 'Effective', desc: 'Measure and continuously optimize strategy' },
     ]
     : [
-      { icon: 'M12 3l1.8 4.7L18.5 9l-4.7 1.8L12 15l-1.8-4.2L5.5 9l4.7-1.3z', title: 'Thông minh', desc: 'AI phân tích và tối ưu hiệu quả nội dung' },
-      { icon: 'M12 7v5l3 2M12 21a9 9 0 110-18 9 9 0 010 18z', title: 'Tự động', desc: 'Lên lịch và đăng bài tự động 24/7' },
-      { icon: 'M4 21V11M10 21V4M16 21v-6M3 21h18', title: 'Hiệu quả', desc: 'Đo lường và tối ưu chiến lược liên tục' },
+      { icon: Sparkles, title: 'Thông minh', desc: 'AI phân tích và tối ưu hiệu quả nội dung' },
+      { icon: Clock, title: 'Tự động', desc: 'Lên lịch và đăng bài tự động 24/7' },
+      { icon: BarChart3, title: 'Hiệu quả', desc: 'Đo lường và tối ưu chiến lược liên tục' },
     ];
 }
