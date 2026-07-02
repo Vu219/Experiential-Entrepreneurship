@@ -103,7 +103,7 @@ export function trendStats(lang: Lang): TrendStat[] {
 
 // ===== Trend nổi bật (28 trend: 16 cao · 8 trung bình · 4 thấp) =====
 
-const TINTS = [
+export const TINTS = [
   'linear-gradient(135deg,#ffe9f3,#fae9ff)',
   'linear-gradient(135deg,#fff3e0,#ffe9f3)',
   'linear-gradient(135deg,#f1e9ff,#e9f0ff)',
@@ -113,7 +113,7 @@ const TINTS = [
 ];
 
 /** Sinh 8 điểm sparkline tuyến tính từ `from` → `to` kèm dao động nhẹ. */
-const spark = (from: number, to: number): number[] =>
+export const spark = (from: number, to: number): number[] =>
   Array.from({ length: 8 }, (_, i) => Math.round(from + ((to - from) * i) / 7 + (i % 2 ? 3 : -3)));
 
 export function trendItems(lang: Lang): TrendItem[] {

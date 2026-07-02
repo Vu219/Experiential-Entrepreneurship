@@ -28,6 +28,9 @@ Copy `.env.example` → `.env`. Key settings:
 - `ANTHROPIC_API_KEY` + `ANTHROPIC_MODEL` (default `claude-sonnet-4-6`)
 - `GOOGLE_API_KEY` + `GOOGLE_MODEL` (default `gemini-2.5-pro`)
 - `FACEBOOK_PAGE_ACCESS_TOKEN` — optional; trend research falls back to mock data without it.
+- `TIKTOK_RAPIDAPI_KEY` — optional; TikTok trending (cross-platform trend signal, adapted
+  from [Trends-MCP](https://github.com/rugvedp/Trends-MCP)) falls back to mock data without
+  it. The YouTube and Instagram-Reels trend sources need no key.
 
 ## Run
 

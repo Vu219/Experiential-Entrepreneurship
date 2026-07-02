@@ -1,9 +1,10 @@
 """Trend Research agent (FR-19..FR-23).
 
-Collects raw public social signal (via the Facebook connector, with a mock
-fallback), then uses the LLM to: filter trends by industry (FR-20), rate each
-trend's relevance High/Medium/Low (FR-21), and turn promising trends into
-actionable content ideas (FR-22).
+Collects raw public social signal (via the Facebook connector plus the
+cross-platform Trends-MCP connector — YouTube / TikTok / Instagram Reels —
+each with a mock fallback), then uses the LLM to: filter trends by industry
+(FR-20), rate each trend's relevance High/Medium/Low (FR-21), and turn
+promising trends into actionable content ideas (FR-22).
 
 Scheduling (2:00 AM daily / "Research now" trigger) and the no-overlapping-session
 guarantee (FR-19) and session persistence (FR-23) are owned by the backend; this
@@ -16,6 +17,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from ..llm import get_llm
 from ..platform.facebook import FacebookTrendAnalyzer
+from ..platform.trends_mcp import TrendsMCPConnector
 from ..schemas import ResearchRequest, ResearchResponse
 
 
@@ -26,6 +28,7 @@ def _collect_signal(req: ResearchRequest) -> dict:
     so research is demoable without live credentials.
     """
     analyzer = FacebookTrendAnalyzer(use_mock_fallback=True)
+    trends_connector = TrendsMCPConnector(use_mock_fallback=True)
 
     page_ids = req.sources.page_ids or ["industry_public_page"]
     group_ids = req.sources.group_ids or ["industry_public_group"]
@@ -41,7 +44,20 @@ def _collect_signal(req: ResearchRequest) -> dict:
     for item in content[:5]:
         comments_map[item["id"]] = analyzer.fetch_comments(item["id"], limit=10)
 
-    return analyzer.analyze_trends(content, comments=comments_map, top_n=15)
+    # Cross-platform trending signal (Trends-MCP connector).
+    youtube_items = trends_connector.fetch_youtube_trending(
+        region=req.sources.youtube_region, limit=10
+    )
+    content.extend(youtube_items)
+    content.extend(trends_connector.fetch_tiktok_trending(limit=10))
+    for item in youtube_items[:2]:
+        comments_map[item["id"]] = trends_connector.fetch_youtube_comments(
+            item["video_id"], limit=10
+        )
+
+    signal = analyzer.analyze_trends(content, comments=comments_map, top_n=15)
+    signal["curated_reels_trends"] = trends_connector.fetch_reels_trends()
+    return signal
 
 
 SYSTEM_PROMPT = """You are the Trend Research analyst for AIMA. You are given raw \
@@ -56,6 +72,14 @@ relevance_score (FR-21).
 3. Convert the most promising trends into concrete content ideas: a title, a description, \
 the most suitable platform, suitability level, execution suggestions, and which brand \
 goals it serves (FR-22).
+
+The signal may include cross-platform trending content (YouTube, TikTok, curated \
+Instagram Reels trends). Use it to spot trends early and note a trend's origin platform \
+in its description, but the `platform` field of every trend and content idea must be \
+exactly one of "Facebook", "Instagram", or "Threads" (platforms the brand actually uses).
+
+Every content idea must set `trend_name` to the exact trend_name of the returned trend \
+it derives from.
 
 Be specific and grounded in the supplied signal — do not invent metrics. Respond in the \
 audience's language where natural."""
@@ -119,4 +143,9 @@ def _format_signal(signal: dict) -> str:
         lines.append(
             f"  - [{c.get('type')}/{c.get('source')}] score={c.get('engagement_score', 0):.0f} :: {c.get('text', '')}"
         )
+    reels_trends = signal.get("curated_reels_trends", [])
+    if reels_trends:
+        lines.append("This week's Instagram Reels trends (curated):")
+        for t in reels_trends[:6]:
+            lines.append(f"  - [{t.get('date')}] {t.get('trend')}: {t.get('description')}")
     return "\n".join(lines)

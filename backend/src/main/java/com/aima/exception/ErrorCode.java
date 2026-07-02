@@ -132,7 +132,13 @@ public enum ErrorCode {
     GENERATION_PLATFORM_REQUIRED(1901, "Vui lòng chọn nền tảng để tạo nội dung", HttpStatus.BAD_REQUEST),
     STRATEGY_NOT_ACTIVE(1902, "Chiến lược chưa được kích hoạt (ACTIVE) nên không thể tạo nội dung", HttpStatus.BAD_REQUEST),
     CONTENT_GENERATION_JOB_NOT_FOUND(1903, "Không tìm thấy tác vụ tạo nội dung", HttpStatus.NOT_FOUND),
-    AI_SERVICE_ERROR(1904, "Lỗi khi gọi dịch vụ AI. Vui lòng thử lại sau.", HttpStatus.BAD_GATEWAY),;
+    AI_SERVICE_ERROR(1904, "Lỗi khi gọi dịch vụ AI. Vui lòng thử lại sau.", HttpStatus.BAD_GATEWAY),
+
+    // TREND RESEARCH ERRORS
+    ACTIVE_BRAND_PROFILE_REQUIRED(1910, "Cần có hồ sơ thương hiệu đang hoạt động trước khi nghiên cứu xu hướng", HttpStatus.BAD_REQUEST),
+    ACTIVE_STRATEGY_REQUIRED(1911, "Cần có chiến lược nội dung ACTIVE trước khi nghiên cứu xu hướng", HttpStatus.BAD_REQUEST),
+    RESEARCH_ALREADY_RUNNING(1912, "Đã có phiên nghiên cứu xu hướng đang chạy. Vui lòng chờ hoàn tất.", HttpStatus.CONFLICT),
+    RESEARCH_SESSION_NOT_FOUND(1913, "Không tìm thấy phiên nghiên cứu xu hướng", HttpStatus.NOT_FOUND),;
 
     private int code;
     private String message;

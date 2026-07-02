@@ -258,7 +258,7 @@ export default function Users() {
     <>
       <SearchInput value={query} onChange={setQuery} />
       <FilterSelect value={role} onChange={setRole} options={[['all', `${t.filterRole}: ${t.filterAll}`], ['USER', t.roleUser], ['ADMIN', t.roleAdmin]]} />
-      <FilterSelect value={status} onChange={setStatus} options={[['all', `${t.colStatus}: ${t.filterAll}`], ['ACTIVE', t.stActive], ['LOCKED', t.stLocked], ['PENDING_ACTIVATION', t.stPendingActive], ['PENDING_DELETE', t.stPendingDel]]} />
+      <FilterSelect value={status} onChange={setStatus} options={[['all', `${t.colStatus}: ${t.filterAll}`], ['ACTIVE', t.stActive], ['LOCKED', t.stLocked], ['PENDING_DELETE', t.stPendingDel]]} />
       <FilterSelect value={plan} onChange={setPlan} options={[['all', `${t.filterPlan}: ${t.filterAll}`], ['free', 'Free'], ['plus', 'Plus'], ['pro', 'Pro']]} />
       <button
         type="button"
@@ -320,25 +320,25 @@ export default function Users() {
       };
     }
     if (confirm.kind === 'bulkLock' || confirm.kind === 'bulkUnlock') {
+      // Check dương tường minh trên discriminant — TS không tự loại các variant còn lại ở nhánh else.
       const lock = confirm.kind === 'bulkLock';
-      const { users, skippedAdmins } = confirm;
       return {
         title: lock ? t.usrBulkLockTitle : t.usrBulkUnlockTitle,
-        message: `${users.length} ${t.usrBulkAffected}`,
+        message: `${confirm.users.length} ${t.usrBulkAffected}`,
         confirmLabel: lock ? t.usrLockSel : t.usrUnlockSel,
         variant: lock ? ('danger' as const) : ('warning' as const),
         body: (
           <div style={{ marginBottom: 8 }}>
-            {users.length <= 6 && (
+            {confirm.users.length <= 6 && (
               <div style={{ background: '#faf9fe', border: '1px solid #f1eef8', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#3f3a55', display: 'flex', flexDirection: 'column', gap: 5 }}>
-                {users.map((u) => (
+                {confirm.users.map((u) => (
                   <span key={u.id}><b>{u.name}</b> — {u.email}</span>
                 ))}
               </div>
             )}
-            {skippedAdmins > 0 && (
+            {confirm.skippedAdmins > 0 && (
               <div style={{ marginTop: 10, fontSize: 12.5, fontWeight: 600, color: '#d97706', background: '#fdf0dc', borderRadius: 10, padding: '8px 12px' }}>
-                ⚠ {skippedAdmins} {t.usrAdminSkipped}
+                ⚠ {confirm.skippedAdmins} {t.usrAdminSkipped}
               </div>
             )}
           </div>
@@ -562,8 +562,6 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
     if (!name.trim()) er.name = t.errNameReq;
     if (!email.trim()) er.email = t.errEmailReq;
     else if (!validEmail(email)) er.email = t.errEmailBad;
-    if (phone.trim() && !phoneOk(phone)) er.phone = t.errPhoneBad;
-    if (activation === 'manual' && !passwordValid(password)) er.password = password.trim() ? t.errPwWeak : t.errPwReq;
     setErrors(er);
     if (Object.keys(er).length > 0) return;
     setBusy(true);
@@ -762,3 +760,4 @@ const modalPrimaryBtn = (busy: boolean) => ({ flex: 1, border: 'none', backgroun
 const btnGhost = { display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' } as const;
 const btnRed = { border: 'none', background: '#fde8e8', borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: '#dc2626', cursor: 'pointer' } as const;
 const btnGreen = { border: 'none', background: '#e8f8ee', borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: '#16a34a', cursor: 'pointer' } as const;
+const btnDisabled = { opacity: 0.45, cursor: 'not-allowed' } as const;

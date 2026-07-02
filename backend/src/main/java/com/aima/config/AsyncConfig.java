@@ -26,6 +26,17 @@ public class AsyncConfig {
         return executor;
     }
 
+    @Bean(name = "trendResearchExecutor")
+    public Executor trendResearchExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(3);
+        executor.setQueueCapacity(20);
+        executor.setThreadNamePrefix("trend-research-");
+        executor.initialize();
+        return executor;
+    }
+
     // Dùng cho các transaction ngắn quanh phần ghi DB của tác vụ nền, để cuộc gọi AI chạy NGOÀI
     // transaction (rule #24) — xem ContentGenerationWorkerImpl.
     @Bean

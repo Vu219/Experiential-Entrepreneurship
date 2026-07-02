@@ -3,7 +3,8 @@ spring:
     name: aima-backend
 
   datasource:
-    url: jdbc:h2:mem:aima;DB_CLOSE_DELAY=-1
+    # INIT tao domain JSONB (H2 khong co kieu jsonb cua Postgres — PlatformAccount.metadata).
+    url: "jdbc:h2:mem:aima;DB_CLOSE_DELAY=-1;INIT=CREATE DOMAIN IF NOT EXISTS JSONB AS JSON"
     username: sa
     password: ""
     driver-class-name: org.h2.Driver
@@ -28,3 +29,21 @@ server:
 jwt:
   secret: test-secret-key-for-jwt-signing-at-least-256-bits-long!!
   expiration-ms: 86400000
+
+# Cac @Value bat buoc (khong co default) — gia tri gia cho test.
+brevo:
+  api-key: test-brevo-api-key
+  sender:
+    email: test@aima.local
+    name: AIMA Test
+
+app:
+  frontend:
+    base-url: http://localhost:3000
+  oauth2:
+    frontend-callback-url: http://localhost:3000/auth/google/callback
+
+# CryptoUtil (AES-256-GCM) can key base64 32 byte — key co dinh CHI dung cho test.
+aima:
+  encryption:
+    key: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=

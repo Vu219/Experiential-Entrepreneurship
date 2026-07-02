@@ -39,7 +39,14 @@ public class TrendResearchSession extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    ResearchStatus status;
+    ResearchStatus status = ResearchStatus.PENDING;
+
+    // Tóm tắt phiên do AI trả về (ResearchResponse.summary) — FR-23 lưu phiên nghiên cứu.
+    @Column(name = "summary", columnDefinition = "text")
+    String summary;
+
+    @Column(name = "error_message", columnDefinition = "text")
+    String errorMessage;
 
     @OneToMany(mappedBy = "researchSession", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude

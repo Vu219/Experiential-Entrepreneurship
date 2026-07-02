@@ -6,6 +6,14 @@ import { Card, Icon } from '../components/ui';
 import Pagination from '../components/admin/Pagination';
 import { PLATFORMS } from '../theme';
 import { trendStats, trendItems, contentIdeas, researchSessions, type TrendsTab } from '../trendsData';
+import { liveTrendItems, liveContentIdeas, liveResearchSessions, liveTrendStats } from '../trendsLive';
+import {
+  getTrendResearchSession,
+  listTrendResearchSessions,
+  startTrendResearch,
+  type ResearchSessionDetail,
+  type ResearchSessionSummary,
+} from '../api/trendResearch';
 import TrendStatCards from '../components/trends/TrendStatCards';
 import TrendTable from '../components/trends/TrendTable';
 import IdeaCard from '../components/trends/IdeaCard';
@@ -13,9 +21,20 @@ import ResearchHistoryItem from '../components/trends/ResearchHistoryItem';
 import TrendsSidebar from '../components/trends/TrendsSidebar';
 import TrendsSkeleton from '../components/trends/TrendsSkeleton';
 import HowItWorks from '../components/trends/HowItWorks';
+import ResearchStartModal from '../components/trends/ResearchStartModal';
 import { FilterSelect } from '../components/trends/filters';
+import type { Platform } from '../api/brandProfile';
 
 const HISTORY_PAGE_SIZE = 7;
+// Poll phiên research nền (NFR-04): 4s/lần, tối đa 5 phút.
+const POLL_INTERVAL_MS = 4000;
+const POLL_MAX_TRIES = 75;
+
+/** Dữ liệu thật từ backend; null = backend chưa chạy → dùng mock demo (trendsData.ts). */
+interface LiveData {
+  session: ResearchSessionDetail | null; // phiên COMPLETED gần nhất (kèm trends + ideas)
+  summaries: ResearchSessionSummary[];
+}
 
 export default function Trends() {
   const { t, lang, go } = useApp();
@@ -43,19 +62,66 @@ export default function Trends() {
   const [ideaPage, setIdeaPage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  // Dữ liệu thật + trạng thái "Research ngay"
+  const [live, setLive] = useState<LiveData | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [researching, setResearching] = useState(false);
+  const [researchError, setResearchError] = useState<string | null>(null);
+  const [startOpen, setStartOpen] = useState(false);
 
-  // Giả lập load async (mock chưa có API thật) — giống Dashboard: skeleton khi vào trang
-  // lần đầu + khi đổi ngôn ngữ; đổi sub-tab chỉ là state client-side nên không re-load.
+  // Tải dữ liệu thật từ backend (/trend-research); backend chưa chạy / lỗi → giữ mock demo.
   useEffect(() => {
-    setStatus('loading');
-    const timer = setTimeout(() => setStatus('ready'), 650);
-    return () => clearTimeout(timer);
-  }, [lang]);
+    let cancelled = false;
+    (async () => {
+      setStatus('loading');
+      try {
+        const summaries = await listTrendResearchSessions();
+        const latest = summaries.find((s) => s.status === 'COMPLETED');
+        const session = latest ? await getTrendResearchSession(latest.id) : null;
+        if (!cancelled) setLive({ session, summaries });
+      } catch {
+        if (!cancelled) setLive(null);
+      }
+      if (!cancelled) setStatus('ready');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [lang, reloadKey]);
 
-  const allTrends = useMemo(() => trendItems(lang), [lang]);
-  const allIdeas = useMemo(() => contentIdeas(lang), [lang]);
-  const sessions = useMemo(() => researchSessions(lang), [lang]);
-  const stats = useMemo(() => trendStats(lang), [lang]);
+  // FR-19 "Research ngay": người dùng chọn hồ sơ + nền tảng trong ResearchStartModal,
+  // sau đó tạo phiên → poll tới khi COMPLETED/FAILED → tải lại dữ liệu.
+  const runResearch = async (brandProfileId: string, platform: Platform) => {
+    if (researching) return;
+    setResearching(true);
+    setResearchError(null);
+    try {
+      const started = await startTrendResearch({ brandProfileId, platform });
+      for (let i = 0; i < POLL_MAX_TRIES; i++) {
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+        const s = await getTrendResearchSession(started.id);
+        if (s.status === 'COMPLETED') {
+          setReloadKey((k) => k + 1);
+          return;
+        }
+        if (s.status === 'FAILED') throw new Error(s.errorMessage || t.trResearchFailed);
+      }
+      throw new Error(t.trResearchFailed);
+    } catch (e) {
+      setResearchError((e as Error).message || t.trResearchFailed);
+    } finally {
+      setResearching(false);
+    }
+  };
+
+  const liveSession = live?.session ?? null;
+  const allTrends = useMemo(() => (liveSession ? liveTrendItems(liveSession, lang) : trendItems(lang)), [liveSession, lang]);
+  const allIdeas = useMemo(() => (liveSession ? liveContentIdeas(liveSession, lang) : contentIdeas(lang)), [liveSession, lang]);
+  const sessions = useMemo(
+    () => (live && live.summaries.length > 0 ? liveResearchSessions(live.summaries, lang) : researchSessions(lang)),
+    [live, lang],
+  );
+  const stats = useMemo(() => (liveSession ? liveTrendStats(liveSession, lang) : trendStats(lang)), [liveSession, lang]);
   const trendNameById = useMemo(() => new Map(allTrends.map((tr) => [tr.id, tr.name])), [allTrends]);
 
   const industries = useMemo(() => [...new Set(allTrends.map((tr) => tr.industry))], [allTrends]);
@@ -142,12 +208,17 @@ export default function Trends() {
           <button
             type="button"
             className="btn-grad"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: 'none', borderRadius: 12, padding: '10px 18px', fontWeight: 700, fontSize: 13.5, color: '#fff', background: 'var(--brand)', cursor: 'pointer', boxShadow: '0 14px 26px -12px rgba(139,92,246,.6)' }}
+            onClick={() => { setResearchError(null); setStartOpen(true); }}
+            disabled={researching}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: 'none', borderRadius: 12, padding: '10px 18px', fontWeight: 700, fontSize: 13.5, color: '#fff', background: 'var(--brand)', cursor: researching ? 'wait' : 'pointer', opacity: researching ? 0.7 : 1, boxShadow: '0 14px 26px -12px rgba(139,92,246,.6)' }}
           >
             <Icon icon={Play} size={15} stroke="#fff" />
-            {t.trResearchNow}
+            {researching ? t.trResearching : t.trResearchNow}
           </button>
         </div>
+        {researchError && (
+          <div role="alert" style={{ flexBasis: '100%', fontSize: 12.5, color: '#dc2626' }}>{researchError}</div>
+        )}
       </div>
 
       {/* 4 thẻ thống kê */}
@@ -262,6 +333,17 @@ export default function Trends() {
 
       {/* Cách hoạt động — chỉ ở sub-tab Trend nổi bật */}
       {tab === 'hot' && <HowItWorks />}
+
+      {/* Chọn hồ sơ thương hiệu + nền tảng trước khi research (FR-19) */}
+      {startOpen && (
+        <ResearchStartModal
+          onClose={() => setStartOpen(false)}
+          onStart={(brandProfileId, platform) => {
+            setStartOpen(false);
+            void runResearch(brandProfileId, platform);
+          }}
+        />
+      )}
     </div>
   );
 }

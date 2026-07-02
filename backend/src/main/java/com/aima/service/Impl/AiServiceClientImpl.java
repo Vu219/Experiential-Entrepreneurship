@@ -3,6 +3,8 @@ package com.aima.service.Impl;
 import com.aima.config.AiServiceProperties;
 import com.aima.dto.ai.GenerateContentPayload;
 import com.aima.dto.ai.GeneratedContentResult;
+import com.aima.dto.ai.ResearchPayload;
+import com.aima.dto.ai.ResearchResultPayload;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.service.AiServiceClient;
@@ -43,6 +45,24 @@ public class AiServiceClientImpl implements AiServiceClient {
             throw new AppException(ErrorCode.AI_SERVICE_ERROR);
         } catch (Exception e) {
             log.warn("[AiService] POST /generate thất bại: {}", e.getMessage());
+            throw new AppException(ErrorCode.AI_SERVICE_ERROR);
+        }
+    }
+
+    @Override
+    public ResearchResultPayload research(ResearchPayload payload) {
+        try {
+            return webClient.post()
+                    .uri("/research")
+                    .bodyValue(payload)
+                    .retrieve()
+                    .bodyToMono(ResearchResultPayload.class)
+                    .block(Duration.ofSeconds(properties.timeoutSeconds()));
+        } catch (WebClientResponseException e) {
+            log.warn("[AiService] POST /research lỗi {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new AppException(ErrorCode.AI_SERVICE_ERROR);
+        } catch (Exception e) {
+            log.warn("[AiService] POST /research thất bại: {}", e.getMessage());
             throw new AppException(ErrorCode.AI_SERVICE_ERROR);
         }
     }

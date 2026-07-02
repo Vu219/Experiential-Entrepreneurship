@@ -182,6 +182,10 @@ backend/
 >   `mapper/{ContentGenerationJobMapper, ContentItemMapper, AiContentMapper}`,
 >   `entity/{ContentGenerationJob, ContentItem}`, `dto/ai/*` (payloads mirroring `ai/src/schemas.py`),
 >   `config/{AsyncConfig, AiServiceProperties, AiServiceWebClientConfig}`. See §4 "Content Generation".
+> - **Trend Research (AI, async)**: `controller/TrendResearchController`,
+>   `service/{TrendResearchService, TrendResearchWorkerService}` (+ `Impl/`), `AiServiceClient.research()`,
+>   `mapper/TrendResearchMapper`, `entity/{TrendResearchSession, Trend, ContentIdea}`,
+>   `dto/ai/{ResearchPayload, ResearchResultPayload, TrendPayload, ContentIdeaPayload}`. See §4 "Trend Research".
 
 ---
 
@@ -471,6 +475,30 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 **MVP scope** — AI chỉ sinh **media prompt** (text mô tả), **không** tạo ảnh/video (FR-29).
 
 **ErrorCodes** 1900–1904: `STRATEGY_ID_REQUIRED`, `GENERATION_PLATFORM_REQUIRED`, `STRATEGY_NOT_ACTIVE`, `CONTENT_GENERATION_JOB_NOT_FOUND`, `AI_SERVICE_ERROR`.
+
+### Trend Research (AI service) — FR-19..FR-23, NFR-04 async
+> "Research ngay": tạo `TrendResearchSession` (PENDING) trả về ngay, worker nền gọi AI `POST /research`
+> rồi lưu `Trend` + `ContentIdea` (cascade từ session). **Cùng mẫu async với Content Generation** (job
+> ngắn qua `TransactionTemplate`, dispatch afterCommit, executor riêng `trendResearchExecutor`).
+> Slice: `controller/TrendResearchController` → `service/TrendResearchService` (+`Impl`) →
+> `service/TrendResearchWorkerService` (+`Impl`, `@Async`) → `AiServiceClient.research()`;
+> `entity/{TrendResearchSession, Trend, ContentIdea}`; `mapper/TrendResearchMapper`;
+> `dto/ai/{ResearchPayload, ResearchResultPayload, TrendPayload, ContentIdeaPayload}`.
+
+**Endpoints** (`/trend-research`, auth required):
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/trend-research/sessions` | "Research ngay" (FR-19): cần brand profile (FE gửi `brandProfileId` tường minh; thiếu thì BE lấy hồ sơ `isActive` — hồ sơ ĐẦU TIÊN của user tự động active khi tạo) + strategy ACTIVE; chặn phiên chạy song song (`RESEARCH_ALREADY_RUNNING`); body optional `{brandProfileId?, platform?}` |
+| GET | `/trend-research/sessions/{id}` | FE poll tới khi `COMPLETED`/`FAILED`; trả trends + content ideas |
+| GET | `/trend-research/sessions` | Lịch sử phiên (FR-23), chỉ counts — lấy chi tiết theo id |
+
+**Session status** — `ResearchStatus`: `PENDING → RUNNING → COMPLETED | FAILED` (session kiêm luôn job record; có `summary` + `error_message`).
+
+**Ghi chú mapping** — AI trả platform dạng chuỗi ("Facebook"/"Instagram"/"Threads") → `parsePlatform` chuẩn hoá về enum (lạ → FACEBOOK); mỗi idea link trend cha qua `trend_name` (không khớp → gắn trend đầu tiên). Nguồn signal phía AI service: Facebook connector + Trends-MCP (YouTube/TikTok/IG Reels — xem `ai/src/platform/trends_mcp.py`).
+
+**Chưa build**: scheduler 2:00 AM daily của FR-19 (mới có "Research now").
+
+**ErrorCodes** 1910–1913: `ACTIVE_BRAND_PROFILE_REQUIRED`, `ACTIVE_STRATEGY_REQUIRED`, `RESEARCH_ALREADY_RUNNING`, `RESEARCH_SESSION_NOT_FOUND`.
 
 ---
 

@@ -58,6 +58,9 @@ public class BrandProfileResponse {
     @Schema(description = "Logo URL.", example = "https://.../logo.png")
     String logoUrl;
 
+    @Schema(description = "Whether this is the profile currently in use (max 1 active per user).")
+    Boolean isActive;
+
     @Schema(description = "Creation timestamp.", example = "2026-06-08T09:30:00")
     LocalDateTime createdAt;
 
