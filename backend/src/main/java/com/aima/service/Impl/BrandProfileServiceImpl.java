@@ -49,6 +49,12 @@ public class BrandProfileServiceImpl implements BrandProfileService {
         BrandProfile profile = brandProfileMapper.toBrandProfile(request);
         profile.setUser(user);
 
+        // Hồ sơ đầu tiên của user tự động là "Hồ sơ đang dùng" (isActive, tối đa 1/user) —
+        // trước đây không gì set cờ này nên các tính năng cần active profile (FR-19) luôn fail.
+        if (brandProfileRepository.findByUser_IdAndDeletedAtIsNull(user.getId()).isEmpty()) {
+            profile.setIsActive(true);
+        }
+
         if (StringUtils.hasText(request.getLogoUrl()) && request.getLogoUrl().startsWith("data:")) {
             String logoPath = storageService.uploadBase64BrandLogo(request.getLogoUrl(), user.getId().toString());
             profile.setLogoUrl(logoPath);

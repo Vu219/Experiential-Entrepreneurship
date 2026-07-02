@@ -9,6 +9,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import com.aima.dto.response.ApiResponse;
 
 import java.util.Map;
@@ -31,6 +32,18 @@ public class GlobalExceptionHandler {
         log.error("Unhandled exception", exception);
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiResponse);
+    }
+
+    // Đường dẫn không tồn tại (Spring 6+ ném NoResourceFoundException) — trả 404 thay vì để
+    // catch-all Exception biến nó thành 500 "Uncategorized error" gây khó debug (API-05).
+    @ExceptionHandler(value = NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse> handlingNoResourceFound(NoResourceFoundException exception) {
+        ApiResponse apiResponse = new ApiResponse();
+
+        apiResponse.setCode(HttpStatus.NOT_FOUND.value());
+        apiResponse.setMessage("Không tìm thấy đường dẫn: " + exception.getResourcePath());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(apiResponse);
     }
 
     @ExceptionHandler(value = AppException.class)

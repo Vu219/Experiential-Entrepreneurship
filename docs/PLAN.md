@@ -43,11 +43,12 @@
 - [x] FR-18b Expired token → account `Expired`, scheduled posts → `On Hold` `[BE]` — done 2026-06-27 (TokenHealthCheckJob safe status migration)
 
 ## 5. Trend Research (Agent AI)
-- [ ] FR-19 Scheduled research (2:00 AM daily) + "Research now" button; requires active Brand Profile & Strategy; no overlapping sessions `[BE][AI]` — AI analysis (`POST /research`) done 2026-06-13; BE scheduling/session-guard pending
+- [ ] FR-19 Scheduled research (2:00 AM daily) + "Research now" button; requires active Brand Profile & Strategy; no overlapping sessions `[BE][AI][FE]` — AI analysis (`POST /research`) done 2026-06-13; BE "Research now" + session guard (async worker, `POST /trend-research/sessions`) + FE nút Research ngay (modal chọn hồ sơ thương hiệu + nền tảng → poll; cảnh báo khi thiếu hồ sơ / chiến lược ACTIVE) done 2026-07-02; hồ sơ thương hiệu đầu tiên của user tự động `isActive` (BE); BE 2:00 AM scheduler pending
 - [x] FR-20 Filter trends by industry `[AI]` — done 2026-06-13 (AI svc)
 - [x] FR-21 Relevance rating (High / Medium / Low) `[AI]` — done 2026-06-13 (AI svc)
 - [x] FR-22 Create content ideas from trends `[AI]` — done 2026-06-13 (AI svc)
-- [ ] FR-23 Save research sessions `[BE]`
+- [x] Cross-platform trend signal (YouTube / TikTok / Instagram Reels) via Trends-MCP integration `[AI]` — done 2026-07-02 (connector `ai/src/platform/trends_mcp.py`, wired into `POST /research`; research data source only, publishing scope unchanged)
+- [x] FR-23 Save research sessions `[BE]` — done 2026-07-02 (`TrendResearchSession` + `Trend` + `ContentIdea` persisted; API `GET /trend-research/sessions[/{id}]`)
 
 ## 6. Content Generation (Agent AI)
 - [x] FR-24 Generate from brand profile + strategy + trend + idea + platform `[AI]` — done 2026-06-13 (AI svc)
@@ -132,7 +133,7 @@
 - [ ] UI-02 Dashboard `[FE]`
 - [x] UI-03 Brand Profile page `[FE]` — done 2026-06-25 (list-first: card list + search/industry filter + "đang dùng" active select + slide-over create/edit + read-only "AI đã hiểu" panel + AI Brand Health; uses real /brand-profiles API)
 - [x] UI-04 Content Strategy page `[FE]` — done 2026-06-25 (list-left + detail 01–08 + summary + DRAFT/ACTIVE/PAUSED toggle, gộp vào /brand 2 tab); nối BE thật `api/contentStrategy.ts` 2026-06-26
-- [x] UI-05 Trend Research page `[FE]` — done 2026-07-02 (redesign 3 sub-tab: Trend nổi bật (bảng + sparkline + filter) / Ý tưởng content / Lịch sử research, sidebar phải trạng thái + lịch tự động, section "Cách hoạt động"; mock data ở `src/trendsData.ts`, chờ nối BE); tối ưu 2026-07-02: sidebar theo tab + sticky, bảng→card <1024px, phân trang 3 danh sách, responsive 4 mốc màn hình
+- [x] UI-05 Trend Research page `[FE]` — done 2026-07-02 (redesign 3 sub-tab: Trend nổi bật (bảng + sparkline + filter) / Ý tưởng content / Lịch sử research, sidebar phải trạng thái + lịch tự động, section "Cách hoạt động"; mock data ở `src/trendsData.ts`, chờ nối BE); tối ưu 2026-07-02: sidebar theo tab + sticky, bảng→card <1024px, phân trang 3 danh sách, responsive 4 mốc màn hình; nối BE 2026-07-02 (`api/trendResearch.ts` + map `trendsLive.ts`, nút Research ngay poll phiên async; mock chỉ còn là fallback khi BE chưa chạy)
 - [x] UI-06 Content Workspace `[FE]` — done 2026-07-01 (Create.tsx wired to real generation: strategy picker + `api/contentGeneration.ts` + job polling, replacing mock data)
 - [ ] UI-07 Calendar / Schedule `[FE]`
 - [ ] UI-08 Analytics page `[FE]`

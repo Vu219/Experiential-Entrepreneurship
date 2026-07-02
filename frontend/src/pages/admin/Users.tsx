@@ -177,7 +177,8 @@ export default function Users() {
         })
         .catch(() => setToast({ type: 'error', msg: t.usrNoDeleteAdmin }))
         .finally(done);
-    } else {
+    } else if (confirm.kind === 'bulkLock' || confirm.kind === 'bulkUnlock') {
+      // Check dương tường minh trên discriminant — TS không tự loại các variant còn lại ở nhánh else.
       const lock = confirm.kind === 'bulkLock';
       setUsersLocked(confirm.users.map((u) => u.id), lock)
         .then((res) => {
@@ -289,29 +290,33 @@ export default function Users() {
         body: <UserBox user={confirm.user} />,
       };
     }
-    const lock = confirm.kind === 'bulkLock';
-    return {
-      title: lock ? t.usrBulkLockTitle : t.usrBulkUnlockTitle,
-      message: `${confirm.users.length} ${t.usrBulkAffected}`,
-      confirmLabel: lock ? t.usrLockSel : t.usrUnlockSel,
-      variant: lock ? ('danger' as const) : ('warning' as const),
-      body: (
-        <div style={{ marginBottom: 8 }}>
-          {confirm.users.length <= 6 && (
-            <div style={{ background: '#faf9fe', border: '1px solid #f1eef8', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#3f3a55', display: 'flex', flexDirection: 'column', gap: 5 }}>
-              {confirm.users.map((u) => (
-                <span key={u.id}><b>{u.name}</b> — {u.email}</span>
-              ))}
-            </div>
-          )}
-          {confirm.skippedAdmins > 0 && (
-            <div style={{ marginTop: 10, fontSize: 12.5, fontWeight: 600, color: '#d97706', background: '#fdf0dc', borderRadius: 10, padding: '8px 12px' }}>
-              ⚠ {confirm.skippedAdmins} {t.usrAdminSkipped}
-            </div>
-          )}
-        </div>
-      ),
-    };
+    if (confirm.kind === 'bulkLock' || confirm.kind === 'bulkUnlock') {
+      // Check dương tường minh trên discriminant — TS không tự loại các variant còn lại ở nhánh else.
+      const lock = confirm.kind === 'bulkLock';
+      return {
+        title: lock ? t.usrBulkLockTitle : t.usrBulkUnlockTitle,
+        message: `${confirm.users.length} ${t.usrBulkAffected}`,
+        confirmLabel: lock ? t.usrLockSel : t.usrUnlockSel,
+        variant: lock ? ('danger' as const) : ('warning' as const),
+        body: (
+          <div style={{ marginBottom: 8 }}>
+            {confirm.users.length <= 6 && (
+              <div style={{ background: '#faf9fe', border: '1px solid #f1eef8', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#3f3a55', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {confirm.users.map((u) => (
+                  <span key={u.id}><b>{u.name}</b> — {u.email}</span>
+                ))}
+              </div>
+            )}
+            {confirm.skippedAdmins > 0 && (
+              <div style={{ marginTop: 10, fontSize: 12.5, fontWeight: 600, color: '#d97706', background: '#fdf0dc', borderRadius: 10, padding: '8px 12px' }}>
+                ⚠ {confirm.skippedAdmins} {t.usrAdminSkipped}
+              </div>
+            )}
+          </div>
+        ),
+      };
+    }
+    return null;
   })();
 
   return (

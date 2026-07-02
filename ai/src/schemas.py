@@ -58,10 +58,15 @@ class ContentStrategyInput(BaseModel):
 
 
 class TrendSource(BaseModel):
-    """A Facebook page/group to mine for trends. Empty list -> mock fallback."""
+    """Facebook pages/groups to mine for trends (empty list -> mock fallback),
+    plus options for the cross-platform trend sources."""
 
     page_ids: List[str] = Field(default_factory=list)
     group_ids: List[str] = Field(default_factory=list)
+    youtube_region: Optional[str] = Field(
+        default=None,
+        description="ISO region code for YouTube trending (e.g. 'VN'); None = global",
+    )
 
 
 class ResearchRequest(BaseModel):
@@ -77,6 +82,9 @@ class ContentIdea(BaseModel):
 
     idea_title: str
     idea_description: str
+    trend_name: Optional[str] = Field(
+        default=None, description="trend_name of the trend this idea derives from"
+    )
     platform: str = Field(..., description="Most suitable platform for this idea")
     suitability_level: Relevance
     execution_suggestions: List[str] = Field(default_factory=list)

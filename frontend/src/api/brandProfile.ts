@@ -19,6 +19,8 @@ export interface BrandProfile {
   brandKeywords: string[];
   brandDos: string[];
   brandDonts: string[];
+  /** Hồ sơ đang dùng (tối đa 1 active / user) — hồ sơ đầu tiên tạo ra tự động active. */
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }

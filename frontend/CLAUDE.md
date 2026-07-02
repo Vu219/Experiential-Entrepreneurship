@@ -36,7 +36,12 @@ src/
 │   │                       changePasswordInit/Confirm, requestDeleteAccount/restoreAccount (dùng ở trang Hồ sơ).
 │   │                       updateProfile nhận thêm avatarUrl (tuỳ chọn); uploadAvatar(file) → POST /files/avatar trả URL công khai.
 │   │                       User có thêm status + deletionDate (banner chờ xóa) + avatarUrl. Nút Đăng xuất trong Hồ sơ chỉ hiện ở mobile/tablet.
-│   └── brandProfile.ts   — list/create/update/delete brand profile
+│   ├── brandProfile.ts   — list/create/update/delete brand profile
+│   └── trendResearch.ts  — start/poll/list phiên Trend Research (async job, NFR-04);
+│                           map sang shape UI ở src/trendsLive.ts — trang Trends dùng dữ liệu thật
+│                           khi có phiên COMPLETED, mock trendsData.ts chỉ là fallback demo.
+│                           "Research ngay" mở components/trends/ResearchStartModal (chọn hồ sơ
+│                           thương hiệu + nền tảng, cảnh báo thiếu chiến lược ACTIVE)
 ├── auth/
 │   ├── AuthContext.tsx   — user state, refreshUser() gọi /users/me, login/logout
 │   ├── ProtectedRoute.tsx— chặn route nếu chưa đăng nhập
