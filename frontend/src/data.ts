@@ -205,29 +205,7 @@ export const audience = [
 ];
 
 // ===== Trends =====
-export function trends(lang: Lang) {
-  const rows: [number, string, string, string, string][] =
-    lang === 'en'
-      ? [
-          [1, 'AI-powered marketing automation', '128K', '+214%', 'Instagram'],
-          [2, 'Founder personal branding', '96K', '+167%', 'Facebook'],
-          [3, 'Short-form product storytelling', '88K', '+142%', 'Instagram'],
-          [4, 'Small business behind-the-scenes', '74K', '+118%', 'Threads'],
-          [5, 'Content optimization tips 2026', '61K', '+97%', 'Facebook'],
-        ]
-      : [
-          [1, 'Marketing tự động bằng AI', '128K', '+214%', 'Instagram'],
-          [2, 'Thương hiệu cá nhân cho founder', '96K', '+167%', 'Facebook'],
-          [3, 'Video ngắn kể chuyện sản phẩm', '88K', '+142%', 'Instagram'],
-          [4, 'Hậu trường doanh nghiệp nhỏ', '74K', '+118%', 'Threads'],
-          [5, 'Mẹo tối ưu nội dung 2026', '61K', '+97%', 'Facebook'],
-        ];
-  return rows.map((x) => ({ rank: x[0], topic: x[1], vol: x[2], growth: x[3], platform: x[4], tag: tagOf(x[4]), bg: PLATFORM_BG[tagOf(x[4])] }));
-}
-export const trendTags = [
-  ['#AIMarketing', '42K'], ['#ContentCreator', '38K'], ['#GRWM', '31K'], ['#SmallBiz', '27K'],
-  ['#PersonalBrand', '24K'], ['#MarketingTips', '19K'], ['#Reels', '17K'], ['#Automation', '14K'],
-].map((x) => ({ tag: x[0], vol: x[1] }));
+// Mock data trang Nghiên cứu xu hướng đã chuyển sang src/trendsData.ts.
 
 // ===== Brand =====
 export const brandToneLabels = (lang: Lang) =>

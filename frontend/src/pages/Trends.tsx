@@ -1,52 +1,266 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Search, Play, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
-import { Card, PlatformTag } from '../components/ui';
-import { trends, trendTags, brandDefaults } from '../data';
+import { Card, Icon } from '../components/ui';
+import Pagination from '../components/admin/Pagination';
+import { PLATFORMS } from '../theme';
+import { trendStats, trendItems, contentIdeas, researchSessions, type TrendsTab } from '../trendsData';
+import TrendStatCards from '../components/trends/TrendStatCards';
+import TrendTable from '../components/trends/TrendTable';
+import IdeaCard from '../components/trends/IdeaCard';
+import ResearchHistoryItem from '../components/trends/ResearchHistoryItem';
+import TrendsSidebar from '../components/trends/TrendsSidebar';
+import TrendsSkeleton from '../components/trends/TrendsSkeleton';
+import HowItWorks from '../components/trends/HowItWorks';
+import { FilterSelect } from '../components/trends/filters';
+
+const HISTORY_PAGE_SIZE = 7;
 
 export default function Trends() {
-  const { t, lang, brand, go } = useApp();
-  const { isMobile, isTablet } = useBreakpoint();
-  const list = trends(lang);
-  const industry = brand.industry || brandDefaults(lang).industry;
-  const stacked = isMobile || isTablet;
+  const { t, lang, go } = useApp();
+  const { width, isMobile } = useBreakpoint();
+
+  // Breakpoint trang: <760 mobile · 760–899 sidebar xuống dưới · ≥900 hai cột (sticky) · ≥1440 nới rộng
+  const sideBySide = width >= 900;
+  const sidebarW = width >= 1200 ? 320 : 280;
+  const ideaCols = width >= 1440 ? 3 : isMobile ? 1 : 2;
+  const ideaPageSize = ideaCols === 3 ? 9 : ideaCols === 2 ? 6 : 4;
+
+  const [status, setStatus] = useState<'loading' | 'ready'>('loading');
+  const [tab, setTab] = useState<TrendsTab>('hot');
+  const [q, setQ] = useState('');
+  // Bộ lọc sub-tab "Trend nổi bật"
+  const [industryF, setIndustryF] = useState('all');
+  const [platformF, setPlatformF] = useState('all');
+  const [fitF, setFitF] = useState('all');
+  const [timeF, setTimeF] = useState('7d');
+  // Bộ lọc sub-tab "Ý tưởng content"
+  const [ideaTrendF, setIdeaTrendF] = useState('all');
+  const [ideaPlatformF, setIdeaPlatformF] = useState('all');
+  const [ideaStatusF, setIdeaStatusF] = useState('all');
+  // Phân trang + trạng thái cục bộ khác
+  const [ideaPage, setIdeaPage] = useState(1);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+
+  // Giả lập load async (mock chưa có API thật) — giống Dashboard: skeleton khi vào trang
+  // lần đầu + khi đổi ngôn ngữ; đổi sub-tab chỉ là state client-side nên không re-load.
+  useEffect(() => {
+    setStatus('loading');
+    const timer = setTimeout(() => setStatus('ready'), 650);
+    return () => clearTimeout(timer);
+  }, [lang]);
+
+  const allTrends = useMemo(() => trendItems(lang), [lang]);
+  const allIdeas = useMemo(() => contentIdeas(lang), [lang]);
+  const sessions = useMemo(() => researchSessions(lang), [lang]);
+  const stats = useMemo(() => trendStats(lang), [lang]);
+  const trendNameById = useMemo(() => new Map(allTrends.map((tr) => [tr.id, tr.name])), [allTrends]);
+
+  const industries = useMemo(() => [...new Set(allTrends.map((tr) => tr.industry))], [allTrends]);
+
+  const query = q.trim().toLowerCase();
+  const filteredTrends = allTrends.filter(
+    (tr) =>
+      (industryF === 'all' || tr.industry === industryF) &&
+      (platformF === 'all' || tr.platforms.includes(platformF)) &&
+      (fitF === 'all' || tr.fit === fitF) &&
+      (!query || `${tr.name} ${tr.hashtag} ${tr.desc}`.toLowerCase().includes(query)),
+  );
+
+  const filteredIdeas = allIdeas.filter(
+    (idea) =>
+      (ideaTrendF === 'all' || idea.trendId === ideaTrendF) &&
+      (ideaPlatformF === 'all' || idea.platform === ideaPlatformF) &&
+      (ideaStatusF === 'all' || (savedIds.has(idea.id) && idea.status === 'new' ? 'saved' : idea.status) === ideaStatusF) &&
+      (!query || `${idea.title} ${trendNameById.get(idea.trendId) ?? ''}`.toLowerCase().includes(query)),
+  );
+
+  // Phân trang ý tưởng / lịch sử — kẹp trang khi bộ lọc làm giảm tổng số
+  const ideaPageCount = Math.max(1, Math.ceil(filteredIdeas.length / ideaPageSize));
+  const safeIdeaPage = Math.min(ideaPage, ideaPageCount);
+  const ideaStart = (safeIdeaPage - 1) * ideaPageSize;
+  const pagedIdeas = filteredIdeas.slice(ideaStart, ideaStart + ideaPageSize);
+
+  const historyPageCount = Math.max(1, Math.ceil(sessions.length / HISTORY_PAGE_SIZE));
+  const safeHistoryPage = Math.min(historyPage, historyPageCount);
+  const historyStart = (safeHistoryPage - 1) * HISTORY_PAGE_SIZE;
+  const pagedSessions = sessions.slice(historyStart, historyStart + HISTORY_PAGE_SIZE);
+
+  const viewIdeasOf = (trendId: string) => {
+    setIdeaTrendF(trendId);
+    setIdeaPage(1);
+    setTab('ideas');
+  };
+
+  const toggleSave = (id: string) =>
+    setSavedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const platformOptions = [{ value: 'all', label: t.trAllPlatforms }, ...PLATFORMS.map((p) => ({ value: p.tag, label: p.name }))];
+
+  const tabs: [TrendsTab, string][] = [
+    ['hot', t.trTabHot],
+    ['ideas', t.trTabIdeas],
+    ['history', t.trTabHistory],
+  ];
+
+  // Hàng bộ lọc: mobile xếp dọc full-width, còn lại nằm ngang wrap
+  const filterRowStyle = {
+    display: 'flex',
+    gap: 8,
+    flexWrap: 'wrap' as const,
+    flexDirection: isMobile ? ('column' as const) : ('row' as const),
+    alignItems: isMobile ? ('stretch' as const) : ('center' as const),
+  };
+
+  if (status === 'loading') return <TrendsSkeleton tab={tab} />;
 
   return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'grid', gridTemplateColumns: stacked ? '1fr' : '1.5fr 1fr', gap: 20, alignItems: 'start' }}>
-      <Card>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, flexWrap: 'wrap', gap: 10 }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.trHot}</div>
-            <div style={{ fontSize: 12.5, color: '#8a85a0' }}>{t.trIndustry}: {industry}</div>
+    <div className="view-pop" style={{ maxWidth: width >= 1440 ? 1320 : 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Header trang */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: 22, color: '#211c38' }}>{t.trTitle}</div>
+          <div style={{ fontSize: 13, color: '#8a85a0', marginTop: 3 }}>{t.trSubtitle}</div>
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', flex: isMobile ? '1 1 100%' : 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid #ece8f6', borderRadius: 12, padding: '9px 14px', flex: isMobile ? 1 : 'none', width: isMobile ? 'auto' : 260 }}>
+            <Search size={16} color="#a39bbf" strokeWidth={1.8} />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={t.trSearchPh}
+              style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontSize: 13.5, color: '#241f3a' }}
+            />
           </div>
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#7c3aed', background: '#f3edff', borderRadius: 8, padding: '7px 12px' }}>🔥 Real-time</span>
+          <button
+            type="button"
+            className="btn-grad"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: 'none', borderRadius: 12, padding: '10px 18px', fontWeight: 700, fontSize: 13.5, color: '#fff', background: 'var(--brand)', cursor: 'pointer', boxShadow: '0 14px 26px -12px rgba(139,92,246,.6)' }}
+          >
+            <Icon icon={Play} size={15} stroke="#fff" />
+            {t.trResearchNow}
+          </button>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {list.map((tr) => (
-            <div key={tr.rank} style={{ display: 'flex', alignItems: 'center', gap: 14, border: '1px solid #efeaf8', borderRadius: 14, padding: 14, background: '#fcfbfe' }}>
-              <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 20, color: '#d9cef0', width: 24, textAlign: 'center', flex: 'none' }}>{tr.rank}</div>
-              <PlatformTag tag={tr.tag} bg={tr.bg} size={30} radius={8} fontSize={11} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: '#2b2543' }}>{tr.topic}</div>
-                <div style={{ fontSize: 11.5, color: '#a59fbb', marginTop: 2 }}>{tr.vol} {t.trVol}</div>
-              </div>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: '#16a34a', background: '#e8f8ee', borderRadius: 999, padding: '4px 10px', flex: 'none' }}>↑ {tr.growth}</span>
-              <button onClick={() => go('create')} style={{ border: '1px solid #e7d9fb', background: '#fff', borderRadius: 9, padding: '7px 12px', fontSize: 12, fontWeight: 700, color: '#7c3aed', cursor: 'pointer', flex: 'none' }}>{t.use}</button>
-            </div>
-          ))}
-        </div>
-      </Card>
+      </div>
 
-      <Card>
-        <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38', marginBottom: 16 }}>{t.trTags}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-          {trendTags.map((h, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f4f1fa', paddingBottom: 9 }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#7c3aed' }}>{h.tag}</span>
-              <span style={{ fontSize: 12.5, color: '#a59fbb' }}>{h.vol}</span>
-            </div>
-          ))}
+      {/* 4 thẻ thống kê */}
+      <TrendStatCards stats={stats} />
+
+      {/* Nội dung chính + sidebar phải (≥900px hai cột + sticky, dưới 900px sidebar xuống dưới) */}
+      <div style={{ display: 'grid', gridTemplateColumns: sideBySide ? `minmax(0,1fr) ${sidebarW}px` : '1fr', gap: 20, alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
+          {/* Thanh sub-tab */}
+          <div style={{ display: 'inline-flex', alignSelf: 'flex-start', gap: 4, background: '#f4f2fb', border: '1px solid #ece8f6', borderRadius: 12, padding: 4, flexWrap: 'wrap', maxWidth: '100%' }}>
+            {tabs.map(([key, label]) => {
+              const on = tab === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setTab(key)}
+                  aria-pressed={on}
+                  style={{ border: 'none', borderRadius: 9, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: on ? '#6d28d9' : '#6b6680', background: on ? '#fff' : 'transparent', boxShadow: on ? '0 4px 10px -6px rgba(80,40,140,.4)' : 'none', transition: 'background .15s, color .15s' }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Sub-tab: Trend nổi bật */}
+          {tab === 'hot' && (
+            <>
+              <div style={filterRowStyle}>
+                <FilterSelect fullWidth={isMobile} label={t.trIndustry} value={industryF} onChange={setIndustryF} options={[{ value: 'all', label: t.trAll }, ...industries.map((ind) => ({ value: ind, label: ind }))]} />
+                <FilterSelect fullWidth={isMobile} label={t.trPlatform} value={platformF} onChange={setPlatformF} options={platformOptions} />
+                <FilterSelect fullWidth={isMobile} label={t.trFit} value={fitF} onChange={setFitF} options={[{ value: 'all', label: t.trAll }, { value: 'high', label: t.trFitHigh }, { value: 'medium', label: t.trFitMed }, { value: 'low', label: t.trFitLow }]} />
+                <FilterSelect fullWidth={isMobile} label={t.trTime} value={timeF} onChange={setTimeF} options={[{ value: '7d', label: t.trLast7d }, { value: '30d', label: t.trLast30d }]} />
+                <button
+                  type="button"
+                  className="btn-outline"
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: '1px solid #ece8f6', background: '#fff', color: '#4b4660', fontWeight: 600, fontSize: 12.5, borderRadius: 10, padding: '9px 13px', cursor: 'pointer' }}
+                >
+                  <Icon icon={SlidersHorizontal} size={14} stroke="#7c3aed" />
+                  {t.trAdvFilter}
+                </button>
+              </div>
+              <TrendTable rows={filteredTrends} onViewIdeas={viewIdeasOf} />
+            </>
+          )}
+
+          {/* Sub-tab: Ý tưởng content */}
+          {tab === 'ideas' && (
+            <>
+              <div style={filterRowStyle}>
+                <FilterSelect fullWidth={isMobile} label={t.trTrendFilter} value={ideaTrendF} onChange={(v) => { setIdeaTrendF(v); setIdeaPage(1); }} options={[{ value: 'all', label: t.trAllTrends }, ...allTrends.filter((tr) => tr.ideaCount > 0).map((tr) => ({ value: tr.id, label: tr.name }))]} />
+                <FilterSelect fullWidth={isMobile} label={t.trPlatform} value={ideaPlatformF} onChange={(v) => { setIdeaPlatformF(v); setIdeaPage(1); }} options={platformOptions} />
+                <FilterSelect fullWidth={isMobile} label={t.trStatus} value={ideaStatusF} onChange={(v) => { setIdeaStatusF(v); setIdeaPage(1); }} options={[{ value: 'all', label: t.trAllStatus }, { value: 'new', label: t.trStatusNew }, { value: 'saved', label: t.trStatusSaved }, { value: 'used', label: t.trStatusUsed }]} />
+              </div>
+              {filteredIdeas.length === 0 ? (
+                <Card>
+                  <div style={{ padding: '18px 0', fontSize: 13.5, color: '#8a85a0', textAlign: 'center' }}>{t.trNoResult}</div>
+                </Card>
+              ) : (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${ideaCols},minmax(0,1fr))`, gap: 14 }}>
+                    {pagedIdeas.map((idea) => (
+                      <IdeaCard
+                        key={idea.id}
+                        idea={idea}
+                        trendName={trendNameById.get(idea.trendId) ?? ''}
+                        saved={savedIds.has(idea.id)}
+                        compact={width < 1024 && !isMobile}
+                        onCreate={() => go('create')}
+                        onToggleSave={() => toggleSave(idea.id)}
+                      />
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 12.5, color: '#8a85a0', marginTop: 16 }}>
+                      {t.trShowing} {ideaStart + 1}–{ideaStart + pagedIdeas.length}/{filteredIdeas.length} {t.trIdeaUnit}
+                    </span>
+                    <Pagination page={safeIdeaPage} pageCount={ideaPageCount} onChange={setIdeaPage} />
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {/* Sub-tab: Lịch sử research */}
+          {tab === 'history' && (
+            <Card style={{ paddingTop: 12, paddingBottom: 14 }}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {pagedSessions.map((s, i) => (
+                  <div key={s.id} style={{ borderTop: i > 0 ? '1px solid #f4f1fa' : 'none' }}>
+                    <ResearchHistoryItem session={s} />
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', borderTop: '1px solid #f4f1fa' }}>
+                <span style={{ fontSize: 12.5, color: '#8a85a0', marginTop: 16 }}>
+                  {t.trShowing} {historyStart + 1}–{historyStart + pagedSessions.length}/{sessions.length} {t.trSessionUnit}
+                </span>
+                <Pagination page={safeHistoryPage} pageCount={historyPageCount} onChange={setHistoryPage} />
+              </div>
+            </Card>
+          )}
         </div>
-      </Card>
+
+        {/* Sidebar phải — sticky khi hiển thị 2 cột, nội dung khối giữa đổi theo sub-tab */}
+        <div style={sideBySide ? { position: 'sticky', top: 8, maxHeight: 'calc(100vh - 100px)', overflowY: 'auto' } : undefined}>
+          <TrendsSidebar tab={tab} sessions={sessions} ideas={allIdeas} trends={allTrends} savedIds={savedIds} onViewHistory={() => { setHistoryPage(1); setTab('history'); }} />
+        </div>
+      </div>
+
+      {/* Cách hoạt động — chỉ ở sub-tab Trend nổi bật */}
+      {tab === 'hot' && <HowItWorks />}
     </div>
   );
 }

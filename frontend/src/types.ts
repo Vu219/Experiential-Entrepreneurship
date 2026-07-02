@@ -117,16 +117,6 @@ export interface CalendarDay {
   dots: string[];
 }
 
-export interface TrendRow {
-  rank: number;
-  topic: string;
-  vol: string;
-  growth: string;
-  platform: string;
-  tag: string;
-  bg: string;
-}
-
 export interface AdminUser {
   name: string;
   email: string;

@@ -132,7 +132,7 @@
 - [ ] UI-02 Dashboard `[FE]`
 - [x] UI-03 Brand Profile page `[FE]` — done 2026-06-25 (list-first: card list + search/industry filter + "đang dùng" active select + slide-over create/edit + read-only "AI đã hiểu" panel + AI Brand Health; uses real /brand-profiles API)
 - [x] UI-04 Content Strategy page `[FE]` — done 2026-06-25 (list-left + detail 01–08 + summary + DRAFT/ACTIVE/PAUSED toggle, gộp vào /brand 2 tab); nối BE thật `api/contentStrategy.ts` 2026-06-26
-- [ ] UI-05 Trend Research page `[FE]`
+- [x] UI-05 Trend Research page `[FE]` — done 2026-07-02 (redesign 3 sub-tab: Trend nổi bật (bảng + sparkline + filter) / Ý tưởng content / Lịch sử research, sidebar phải trạng thái + lịch tự động, section "Cách hoạt động"; mock data ở `src/trendsData.ts`, chờ nối BE); tối ưu 2026-07-02: sidebar theo tab + sticky, bảng→card <1024px, phân trang 3 danh sách, responsive 4 mốc màn hình
 - [x] UI-06 Content Workspace `[FE]` — done 2026-07-01 (Create.tsx wired to real generation: strategy picker + `api/contentGeneration.ts` + job polling, replacing mock data)
 - [ ] UI-07 Calendar / Schedule `[FE]`
 - [ ] UI-08 Analytics page `[FE]`
