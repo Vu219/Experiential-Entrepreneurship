@@ -160,9 +160,20 @@ class ContentItem(BaseModel):
 # ============================================================
 
 
+class FormatContentInput(BaseModel):
+    """Original content as persisted by the backend (script flattened to text,
+    no brand_voice_check) — the formatter only needs the raw material."""
+
+    script: str = ""
+    caption: str
+    hashtags: List[str] = Field(default_factory=list)
+    cta: str = ""
+    media_prompt: str = ""
+
+
 class FormatRequest(BaseModel):
     brand_profile: BrandProfileInput
-    content: ContentItem
+    content: FormatContentInput
     platforms: List[str] = Field(..., description="One ContentVersion produced per platform")
 
 

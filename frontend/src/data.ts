@@ -49,6 +49,69 @@ export function flowCards(lang: Lang) {
   return data.map((c, i) => ({ title: c[0], desc: c[1], icon: FLOW_ICONS[i] }));
 }
 
+// ===== Landing pricing plans =====
+// Giá đồng bộ với cấu hình gói ở admin (api/admin.ts getPlans): Free 0đ, Pro 499k, Business 1.99M.
+export interface LandingPlan {
+  id: string;
+  name: string;
+  price: string;
+  cadence: string;
+  desc: string;
+  features: string[];
+  cta: string;
+  featured?: boolean;
+}
+
+export function pricingPlans(lang: Lang): LandingPlan[] {
+  return [
+    {
+      id: 'free',
+      name: 'Free',
+      price: '0đ',
+      cadence: P(lang, 'mãi mãi', 'forever'),
+      desc: P(lang, 'Trải nghiệm quy trình AI với một thương hiệu.', 'Try the AI pipeline with one brand.'),
+      features: [
+        P(lang, '1 hồ sơ thương hiệu', '1 brand profile'),
+        P(lang, '5 bài viết AI mỗi tháng', '5 AI posts per month'),
+        P(lang, 'Kết nối 1 nền tảng', 'Connect 1 platform'),
+        P(lang, 'Nghiên cứu xu hướng cơ bản', 'Basic trend research'),
+      ],
+      cta: P(lang, 'Bắt đầu miễn phí', 'Start for free'),
+    },
+    {
+      id: 'pro',
+      name: 'Pro',
+      price: '499.000đ',
+      cadence: P(lang, '/tháng', '/month'),
+      desc: P(lang, 'Cho creator & shop cần nội dung đều đặn mỗi ngày.', 'For creators & shops posting every day.'),
+      features: [
+        P(lang, '3 hồ sơ thương hiệu', '3 brand profiles'),
+        P(lang, '100 bài viết AI mỗi tháng', '100 AI posts per month'),
+        P(lang, 'Đủ 3 nền tảng: Facebook · Instagram · Threads', 'All 3 platforms: Facebook · Instagram · Threads'),
+        P(lang, 'Lên lịch & tự động đăng bài', 'Scheduling & auto-publishing'),
+        P(lang, 'Phân tích hiệu quả sau đăng', 'Post-publish analytics'),
+      ],
+      cta: P(lang, 'Dùng thử Pro', 'Try Pro'),
+      featured: true,
+    },
+    {
+      id: 'business',
+      name: 'Business',
+      price: '1.990.000đ',
+      cadence: P(lang, '/tháng', '/month'),
+      desc: P(lang, 'Cho doanh nghiệp nhỏ chạy nhiều thương hiệu cùng lúc.', 'For small businesses running multiple brands.'),
+      features: [
+        P(lang, 'Không giới hạn hồ sơ thương hiệu', 'Unlimited brand profiles'),
+        P(lang, 'Không giới hạn bài viết AI', 'Unlimited AI posts'),
+        P(lang, 'AI tối ưu chiến lược từ dữ liệu', 'Data-driven strategy optimization'),
+        P(lang, 'Báo cáo hiệu quả chuyên sâu', 'In-depth performance reports'),
+        P(lang, 'Hỗ trợ ưu tiên', 'Priority support'),
+      ],
+      cta: P(lang, 'Chọn Business', 'Choose Business'),
+    },
+  ];
+}
+
 const PILLAR_ICONS = [Sparkles, Zap, BarChart3];
 export function pillars(lang: Lang) {
   const data: [string, string][] =

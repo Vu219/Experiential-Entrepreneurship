@@ -13,14 +13,12 @@ const scrollToId = (id: string) => {
   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 };
 
-// Home → hero; Features → quy trình; Resources → footer. AIMA chưa có section
-// Pricing riêng nên tạm trỏ về Features (xem ghi chú khi bàn giao).
-// `spy` = section id quyết định trạng thái active của link. Pricing chưa có
-// section riêng (trỏ tạm về features) nên dùng spy riêng để không sáng cùng Features.
+// Home → hero; Features → quy trình; Pricing → gói đăng ký; Resources → footer.
+// `spy` = section id quyết định trạng thái active của link.
 const navItems = (t: ReturnType<typeof useApp>["t"]) => [
   { label: t.nHome, id: "home", spy: "home" },
   { label: t.nFeatures, id: "features", spy: "features" },
-  { label: t.nPricing, id: "features", spy: "pricing" },
+  { label: t.nPricing, id: "pricing", spy: "pricing" },
   { label: t.nResources, id: "resources", spy: "resources" },
 ];
 
@@ -34,7 +32,7 @@ export default function LandingHeader() {
   // Một listener duy nhất: cập nhật trạng thái cuộn (zustand) + section đang xem
   // (scroll-spy) để highlight link tương ứng trên header.
   useEffect(() => {
-    const SPY_IDS = ["home", "features", "resources"];
+    const SPY_IDS = ["home", "features", "pricing", "resources"];
     const onScroll = () => {
       setScrolled(window.scrollY > 20);
       const pos = window.scrollY + 160; // bù cho header cố định

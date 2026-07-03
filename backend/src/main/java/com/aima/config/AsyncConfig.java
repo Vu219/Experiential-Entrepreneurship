@@ -26,6 +26,17 @@ public class AsyncConfig {
         return executor;
     }
 
+    @Bean(name = "contentFormattingExecutor")
+    public Executor contentFormattingExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(3);
+        executor.setQueueCapacity(20);
+        executor.setThreadNamePrefix("content-fmt-");
+        executor.initialize();
+        return executor;
+    }
+
     @Bean(name = "trendResearchExecutor")
     public Executor trendResearchExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

@@ -1,18 +1,44 @@
-import { Mail, Globe } from 'lucide-react';
+import { useState } from 'react';
+import { Mail, Globe, Check } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { useReveal } from '../hooks/useReveal';
 import { GradIcon } from '../components/ui';
 import AimaHero from '../components/AimaHero';
 import LandingHeader from '../components/LandingHeader';
-import { flowCards } from '../data';
+import { flowCards, pricingPlans } from '../data';
+import { validEmail } from '../validations/authValidation';
 
 const CONTACT_EMAIL = 'aimarketing.aima@gmail.com';
+
+// Nền violet đậm cho card Pro + CTA band: chữ trắng đạt chuẩn tương phản (≥4.5:1),
+// khác với brandGradient (đầu cyan quá sáng cho chữ trắng).
+const DEEP_VIOLET = 'linear-gradient(160deg,#5b21b6,#7c3aed 85%)';
 
 export default function LandingPage() {
   const { t, lang, go, brandGradient, toggleLang } = useApp();
   const { isMobile, isTablet, width } = useBreakpoint();
   const cards = flowCards(lang);
+  const plans = pricingPlans(lang);
   const stacked = isMobile || isTablet;
+
+  // Reveal khi cuộn tới (fade + trượt lên, tôn trọng prefers-reduced-motion).
+  // Stagger trên WRAPPER (không có class transition) — animate thẳng .lift-card sẽ
+  // đụng transition:transform của nó và làm chuyển động bị "trễ".
+  const featuresRef = useReveal<HTMLDivElement>({ selector: '.flow-reveal', delayStep: 80 });
+  const pricingRef = useReveal<HTMLDivElement>({ selector: '.plan-reveal', delayStep: 110 });
+  const ctaRef = useReveal<HTMLDivElement>({ translateY: 18 });
+
+  // Đăng ký nhận tin (footer) — chỉ xác nhận phía FE, chưa có endpoint newsletter.
+  const [nlEmail, setNlEmail] = useState('');
+  const [nlState, setNlState] = useState<'idle' | 'done' | 'invalid'>('idle');
+  const subscribeNews = () => {
+    if (!validEmail(nlEmail.trim())) {
+      setNlState('invalid');
+      return;
+    }
+    setNlState('done');
+  };
 
   // LandingHeader (position: fixed) phải nằm NGOÀI khối .view-pop. Class view-pop
   // có animation dùng `transform`, mà ancestor có transform sẽ khiến position:fixed
@@ -69,16 +95,111 @@ export default function LandingPage() {
             <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 30 : 38, letterSpacing: '-.02em', margin: 0, color: '#171327' }}>{t.flowTitle}</h2>
             <p style={{ fontSize: 17, color: '#5b5670', margin: '12px 0 0' }}>{t.flowSub}</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2,1fr)' : 'repeat(3,1fr)', gap: 20 }}>
+          <div ref={featuresRef} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2,1fr)' : 'repeat(3,1fr)', gap: 20 }}>
             {cards.map((c, i) => (
-              <div key={i} className="lift-card" style={{ background: '#fff', border: '1px solid #efeaf8', borderRadius: 20, padding: 26, boxShadow: '0 22px 44px -34px rgba(80,40,140,.5)' }}>
-                <div style={{ width: 48, height: 48, borderRadius: 13, background: 'linear-gradient(135deg,#edf9ff,#f6effc)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <GradIcon icon={c.icon} size={24} />
+              <div key={i} className="flow-reveal" style={{ display: 'flex' }}>
+                <div className="lift-card" style={{ flex: 1, background: '#fff', border: '1px solid #efeaf8', borderRadius: 20, padding: 26, boxShadow: '0 22px 44px -34px rgba(80,40,140,.5)' }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 13, background: 'linear-gradient(135deg,#edf9ff,#f6effc)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <GradIcon icon={c.icon} size={24} />
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 17, margin: '16px 0 6px', color: '#211c38' }}>{c.title}</div>
+                  <div style={{ fontSize: 14, lineHeight: 1.55, color: '#6b6680' }}>{c.desc}</div>
                 </div>
-                <div style={{ fontWeight: 700, fontSize: 17, margin: '16px 0 6px', color: '#211c38' }}>{c.title}</div>
-                <div style={{ fontSize: 14, lineHeight: 1.55, color: '#6b6680' }}>{c.desc}</div>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* Gói đăng ký (subscription) — giá đồng bộ cấu hình gói ở admin */}
+        <section id="pricing" className="scroll-anchor" style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '30px 18px 56px' : '46px 28px 90px' }}>
+          <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto 44px' }}>
+            <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 30 : 38, letterSpacing: '-.02em', margin: 0, color: '#171327' }}>{t.prTitle}</h2>
+            <p style={{ fontSize: 17, color: '#5b5670', margin: '12px 0 0' }}>{t.prSub}</p>
+          </div>
+
+          <div ref={pricingRef} style={{ display: 'grid', gridTemplateColumns: stacked ? '1fr' : 'repeat(3,1fr)', gap: 22, alignItems: 'stretch', maxWidth: stacked ? 520 : undefined, margin: '0 auto' }}>
+            {plans.map((p) => {
+              const featured = !!p.featured;
+              return (
+                <div key={p.id} className="plan-reveal" style={{ display: 'flex' }}>
+                <div
+                  className="lift-card"
+                  style={{
+                    position: 'relative',
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    borderRadius: 20,
+                    padding: featured ? '34px 28px 28px' : 28,
+                    background: featured ? DEEP_VIOLET : '#fff',
+                    border: featured ? 'none' : '1px solid #efeaf8',
+                    boxShadow: featured
+                      ? '0 30px 60px -28px rgba(91,33,182,.55)'
+                      : '0 22px 44px -34px rgba(80,40,140,.5)',
+                    marginTop: featured && !stacked ? -14 : undefined,
+                  }}
+                >
+                  {featured && (
+                    <span style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: '#fff', color: '#6d28d9', border: '1px solid #e7d9fb', borderRadius: 999, padding: '5px 14px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', boxShadow: '0 10px 22px -12px rgba(80,40,140,.5)' }}>
+                      ★ {t.prPopular}
+                    </span>
+                  )}
+                  <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: featured ? '#fff' : '#211c38' }}>{p.name}</div>
+                  <div style={{ fontSize: 13.5, lineHeight: 1.5, color: featured ? 'rgba(255,255,255,.85)' : '#6b6680', marginTop: 6, minHeight: stacked ? undefined : 42 }}>{p.desc}</div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '18px 0 4px' }}>
+                    <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 34, letterSpacing: '-.02em', color: featured ? '#fff' : '#171327' }}>{p.price}</span>
+                    <span style={{ fontSize: 13.5, fontWeight: 600, color: featured ? 'rgba(255,255,255,.8)' : '#8a85a0' }}>{p.cadence}</span>
+                  </div>
+                  <div style={{ height: 1, background: featured ? 'rgba(255,255,255,.22)' : '#f0ecf8', margin: '16px 0' }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 11, flex: 1 }}>
+                    {p.features.map((f, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                        <span style={{ flex: 'none', width: 19, height: 19, borderRadius: '50%', background: featured ? 'rgba(255,255,255,.2)' : '#f3edff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
+                          <Check size={12} strokeWidth={3} color={featured ? '#fff' : '#7c3aed'} />
+                        </span>
+                        <span style={{ fontSize: 13.5, lineHeight: 1.5, color: featured ? '#fff' : '#4b4660' }}>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    className={featured ? undefined : 'btn-grad'}
+                    onClick={() => go('register')}
+                    style={{
+                      width: '100%',
+                      marginTop: 24,
+                      border: 'none',
+                      borderRadius: 13,
+                      padding: 14,
+                      fontWeight: 700,
+                      fontSize: 14.5,
+                      cursor: 'pointer',
+                      color: featured ? '#6d28d9' : '#fff',
+                      background: featured ? '#fff' : brandGradient,
+                      boxShadow: featured ? '0 16px 30px -16px rgba(23,10,50,.55)' : '0 16px 30px -14px rgba(139,92,246,.6)',
+                    }}
+                  >
+                    {p.cta}
+                  </button>
+                </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ textAlign: 'center', fontSize: 12.5, color: '#8a85a0', marginTop: 22 }}>{t.prNote}</div>
+        </section>
+
+        {/* CTA cuối trang */}
+        <section style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '0 18px 56px' : '0 28px 84px' }}>
+          <div ref={ctaRef} style={{ position: 'relative', overflow: 'hidden', borderRadius: 24, background: DEEP_VIOLET, padding: isMobile ? '40px 24px' : '58px 60px', textAlign: 'center' }}>
+            <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'radial-gradient(560px 260px at 12% -20%,rgba(70,214,236,.35),transparent 60%),radial-gradient(560px 300px at 90% 130%,rgba(240,131,192,.3),transparent 60%)' }} />
+            <div style={{ position: 'relative' }}>
+              <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 26 : 36, letterSpacing: '-.02em', margin: 0, color: '#fff' }}>{t.ctaTitle}</h2>
+              <p style={{ fontSize: isMobile ? 14.5 : 16.5, lineHeight: 1.6, color: 'rgba(255,255,255,.88)', maxWidth: 560, margin: '14px auto 0' }}>{t.ctaSub}</p>
+              <button className="lift-card" onClick={() => go('register')} style={{ border: 'none', borderRadius: 14, padding: isMobile ? '13px 26px' : '15px 34px', marginTop: 28, fontWeight: 700, fontSize: isMobile ? 14.5 : 16, color: '#6d28d9', background: '#fff', boxShadow: '0 18px 36px -16px rgba(23,10,50,.6)', cursor: 'pointer' }}>
+                {t.ctaBtn}
+              </button>
+              <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,.75)', marginTop: 12 }}>{t.ctaHint}</div>
+            </div>
           </div>
         </section>
 
@@ -122,7 +243,7 @@ export default function LandingPage() {
                 <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 14, color: '#211c38', marginBottom: 16 }}>{t.ftProduct}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
                   <a className="link-underline" href="#features" onClick={(e) => { e.preventDefault(); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680', textDecoration: 'none' }}>{t.ftFeatures}</a>
-                  <span className="link-underline" style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftPricing}</span>
+                  <a className="link-underline" href="#pricing" onClick={(e) => { e.preventDefault(); document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680', textDecoration: 'none' }}>{t.ftPricing}</a>
                   <a className="link-underline" onClick={() => go('login')} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftDemo}</a>
                   <a className="link-underline" onClick={() => go('register')} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftTry}</a>
                 </div>
@@ -152,10 +273,28 @@ export default function LandingPage() {
               <div style={{ gridColumn: isMobile ? '1 / -1' : undefined }}>
                 <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 14, color: '#211c38', marginBottom: 10 }}>{t.ftNews}</div>
                 <div style={{ fontSize: 13, lineHeight: 1.55, color: '#6b6680', marginBottom: 14, maxWidth: 280 }}>{t.ftNewsSub}</div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: '#fff', border: '1px solid #e6e2f2', borderRadius: 12, padding: '5px 5px 5px 14px', width: '100%', maxWidth: isMobile ? '100%' : 300, boxShadow: '0 10px 24px -18px rgba(80,40,140,.5)' }}>
-                  <input placeholder={t.ftEmailPh} style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: '#2b2740', minWidth: 0 }} />
-                  <button className="btn-grad" style={{ border: 'none', borderRadius: 9, padding: '10px 16px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer', whiteSpace: 'nowrap' }}>{t.ftSubscribe}</button>
-                </div>
+                {nlState === 'done' ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#e8f8ee', border: '1px solid #bfe8cd', borderRadius: 12, padding: '12px 14px', width: '100%', maxWidth: isMobile ? '100%' : 300, fontSize: 13.5, fontWeight: 600, color: '#15803d' }}>
+                    {t.ftNewsDone}
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: '#fff', border: `1px solid ${nlState === 'invalid' ? '#f3aabf' : '#e6e2f2'}`, borderRadius: 12, padding: '5px 5px 5px 14px', width: '100%', maxWidth: isMobile ? '100%' : 300, boxShadow: '0 10px 24px -18px rgba(80,40,140,.5)' }}>
+                      <input
+                        type="email"
+                        value={nlEmail}
+                        onChange={(e) => { setNlEmail(e.target.value); if (nlState === 'invalid') setNlState('idle'); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') subscribeNews(); }}
+                        placeholder={t.ftEmailPh}
+                        style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: '#2b2740', minWidth: 0 }}
+                      />
+                      <button className="btn-grad" onClick={subscribeNews} style={{ border: 'none', borderRadius: 9, padding: '10px 16px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer', whiteSpace: 'nowrap' }}>{t.ftSubscribe}</button>
+                    </div>
+                    {nlState === 'invalid' && (
+                      <div style={{ fontSize: 12.5, color: '#d6336c', marginTop: 8 }}>{t.ftNewsInvalid}</div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 

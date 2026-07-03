@@ -457,6 +457,8 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 | GET | `/content-items/{itemId}` | Xem một content item (scoped theo brand profile của user) — `ContentItemController` |
 | PUT | `/content-items/{itemId}` | **FR-33** sửa thủ công (partial: script/caption/hashtags/cta/mediaPrompt); chỉ khi status DRAFT/GENERATED/NEED_REVIEW/APPROVED; sửa item APPROVED → tự quay về NEED_REVIEW |
 | PATCH | `/content-items/{itemId}/status` | **FR-34** review flow; transition hợp lệ duy nhất: GENERATED→NEED_REVIEW, NEED_REVIEW→APPROVED |
+| POST | `/content-items/{itemId}/format` | **FR-40..FR-46** job async gọi AI `/format` → một `ContentVersion`/nền tảng (status FORMATTED, item → FORMATTED); item phải GENERATED/APPROVED; format lại **xóa mềm** bản cũ cùng nền tảng |
+| GET | `/content-items/format-jobs/{jobId}` | Poll job định dạng tới `SUCCESS`/`FAILED`; kèm các version hiện hành của item |
 
 **Job status** — `GenerationJobStatus`: `PENDING → RUNNING → SUCCESS | FAILED` (`ContentGenerationJob.status`).
 
@@ -480,7 +482,9 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 
 **MVP scope** — AI chỉ sinh **media prompt** (text mô tả), **không** tạo ảnh/video (FR-29).
 
-**ErrorCodes** 1900–1904: `STRATEGY_ID_REQUIRED`, `GENERATION_PLATFORM_REQUIRED`, `STRATEGY_NOT_ACTIVE`, `CONTENT_GENERATION_JOB_NOT_FOUND`, `AI_SERVICE_ERROR`; 1920–1923 (content item edit/review): `CONTENT_ITEM_NOT_FOUND`, `CONTENT_ITEM_NOT_EDITABLE`, `INVALID_CONTENT_STATUS_TRANSITION`, `CONTENT_STATUS_REQUIRED`.
+**Platform Formatting (FR-40..FR-46)** — cùng mẫu async: `ContentFormattingService`/`Impl` (guard GENERATED/APPROVED) → `ContentFormattingWorkerService`/`Impl` (`@Async("contentFormattingExecutor")`) → `AiServiceClient.format()` → `POST {ai}/format` (payload `dto/ai/{FormatPayload, FormatContentPayload}` mirror `FormatContentInput` phía AI — script phẳng như entity, không cần brand_voice_check); kết quả `dto/ai/{FormatResultPayload, ContentVersionPayload}` → `ContentFormattingMapper` (uses ContentItemMapper + TrendResearchMapper) → `ContentVersion` (status FORMATTED) gắn vào item qua cascade; bản cũ cùng nền tảng bị xóa mềm; entity job `ContentFormattingJob` (platforms CSV, `GenerationJobStatus`).
+
+**ErrorCodes** 1900–1904: `STRATEGY_ID_REQUIRED`, `GENERATION_PLATFORM_REQUIRED`, `STRATEGY_NOT_ACTIVE`, `CONTENT_GENERATION_JOB_NOT_FOUND`, `AI_SERVICE_ERROR`; 1920–1923 (content item edit/review): `CONTENT_ITEM_NOT_FOUND`, `CONTENT_ITEM_NOT_EDITABLE`, `INVALID_CONTENT_STATUS_TRANSITION`, `CONTENT_STATUS_REQUIRED`; 1924–1926 (formatting): `FORMAT_PLATFORMS_REQUIRED`, `CONTENT_ITEM_NOT_FORMATTABLE`, `CONTENT_FORMATTING_JOB_NOT_FOUND`.
 
 ### Trend Research (AI service) — FR-19..FR-23, NFR-04 async
 > "Research ngay": tạo `TrendResearchSession` (PENDING) trả về ngay, worker nền gọi AI `POST /research`

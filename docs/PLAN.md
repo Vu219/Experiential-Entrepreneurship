@@ -71,7 +71,7 @@
 - [x] FR-44 Facebook formatting (longer caption, clear CTA, image/video/link) `[AI]` — done 2026-06-13 (AI svc)
 - [x] FR-42 Instagram formatting (vertical/square media, emotive caption, brand hashtags) `[AI]` — done 2026-06-13 (AI svc)
 - [x] Threads formatting (short, conversational; per Threads API) `[AI]` — done 2026-06-13 (AI svc)
-- [ ] FR-46 Save each formatted `ContentVersion` `[BE]`
+- [x] FR-46 Save each formatted `ContentVersion` `[BE]` — done 2026-07-03: async job (`POST /content-items/{id}/format` + poll `GET /content-items/format-jobs/{id}`) gọi AI `/format`, lưu một `ContentVersion`/nền tảng (status FORMATTED), format lại xóa mềm bản cũ cùng nền tảng, item → FORMATTED; chỉ format item GENERATED/APPROVED; AI `FormatRequest.content` đổi sang shape BE lưu trữ (`FormatContentInput`, script phẳng)
 
 *(FR-41 TikTok, FR-43 YouTube Shorts, FR-45 LinkedIn — out of current scope, do not implement yet.)*
 
@@ -129,7 +129,7 @@
 - [ ] FR-89 Delete rules (`Draft`/`Generated` only; cascades to ContentVersions) `[BE]`
 
 ## UI Pages (UI_API.md)
-- [ ] UI-01 Landing Page `[FE]`
+- [x] UI-01 Landing Page `[FE]` — done 2026-07-03: thêm section Bảng giá `#pricing` (3 gói Free/Pro 499k/Business 1.99M đồng bộ cấu hình admin, card Pro nổi bật nền tím đậm, CTA → đăng ký), band CTA cuối trang, footer newsletter hoạt động (validate email + trạng thái đã đăng ký), nav Pricing trỏ section thật + scroll-spy, reveal khi cuộn (anime.js, tôn trọng reduced-motion)
 - [ ] UI-02 Dashboard `[FE]`
 - [x] UI-03 Brand Profile page `[FE]` — done 2026-06-25 (list-first: card list + search/industry filter + "đang dùng" active select + slide-over create/edit + read-only "AI đã hiểu" panel + AI Brand Health; uses real /brand-profiles API); nâng cấp 2026-07-03: responsive 4 mốc màn hình (grid 1/2/3 cột, panel AI stack <1024), phân trang server-side 6 card/trang, bỏ icon con mắt trùng nút Xem, lightbox phóng to logo ở màn Xem, skeleton loading thay spinner, ô tìm kiếm có dropdown gợi ý tên hồ sơ — chỉ tìm khi Enter/chọn gợi ý
 - [x] UI-04 Content Strategy page `[FE]` — done 2026-06-25 (list-left + detail 01–08 + summary + DRAFT/ACTIVE/PAUSED toggle, gộp vào /brand 2 tab); nối BE thật `api/contentStrategy.ts` 2026-06-26; nâng cấp 2026-07-03: drawer danh sách cho mobile+tablet (<1024), phân trang server-side 4 item/trang, skeleton loading, ô tìm kiếm có dropdown gợi ý tên chiến lược — chỉ tìm khi Enter/chọn gợi ý
@@ -147,7 +147,7 @@
 - [x] Input validation + clear error responses (API-04, API-05) `[BE]` — done 2026-06-12
 - [x] Password hashing (SEC-01) + JWT protection (SEC-02) `[BE]` — done 2026-06-12
 - [ ] AES-256 token encryption, never exposed to frontend (SEC-03) `[BE]`
-- [ ] Async background jobs for all AI/posting tasks (NFR-04) `[BE][AI]` — content generation done 2026-07-01 (`ContentGenerationJob` + `@Async` worker + FE polling); research/formatting/analysis/posting still pending
+- [ ] Async background jobs for all AI/posting tasks (NFR-04) `[BE][AI]` — content generation done 2026-07-01 (`ContentGenerationJob` + `@Async` worker + FE polling); trend research done 2026-07-02; platform formatting done 2026-07-03 (`ContentFormattingJob` + worker); analysis/posting still pending
 - [ ] Scheduler (posting calendar trigger + 2:00 AM research run) `[BE]` — 2:00 AM research run done 2026-07-03 (`DailyTrendResearchJob`); posting calendar trigger pending
 - [ ] Platform adapter/interface layer for future platforms (NFR-09) `[BE]`
 - [ ] Webhook endpoints for post-publication violation notifications `[BE]`

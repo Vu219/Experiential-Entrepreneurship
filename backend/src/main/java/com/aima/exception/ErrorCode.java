@@ -144,7 +144,12 @@ public enum ErrorCode {
     CONTENT_ITEM_NOT_FOUND(1920, "Không tìm thấy nội dung", HttpStatus.NOT_FOUND),
     CONTENT_ITEM_NOT_EDITABLE(1921, "Nội dung ở trạng thái này không thể chỉnh sửa", HttpStatus.BAD_REQUEST),
     INVALID_CONTENT_STATUS_TRANSITION(1922, "Chuyển trạng thái nội dung không hợp lệ", HttpStatus.BAD_REQUEST),
-    CONTENT_STATUS_REQUIRED(1923, "Thiếu trạng thái nội dung", HttpStatus.BAD_REQUEST),;
+    CONTENT_STATUS_REQUIRED(1923, "Thiếu trạng thái nội dung", HttpStatus.BAD_REQUEST),
+
+    // PLATFORM FORMATTING ERRORS
+    FORMAT_PLATFORMS_REQUIRED(1924, "Vui lòng chọn ít nhất một nền tảng để định dạng nội dung", HttpStatus.BAD_REQUEST),
+    CONTENT_ITEM_NOT_FORMATTABLE(1925, "Nội dung ở trạng thái này không thể định dạng theo nền tảng", HttpStatus.BAD_REQUEST),
+    CONTENT_FORMATTING_JOB_NOT_FOUND(1926, "Không tìm thấy tác vụ định dạng nội dung", HttpStatus.NOT_FOUND),;
 
     private int code;
     private String message;

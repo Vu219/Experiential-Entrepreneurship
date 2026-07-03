@@ -1,6 +1,8 @@
 package com.aima.service.Impl;
 
 import com.aima.config.AiServiceProperties;
+import com.aima.dto.ai.FormatPayload;
+import com.aima.dto.ai.FormatResultPayload;
 import com.aima.dto.ai.GenerateContentPayload;
 import com.aima.dto.ai.GeneratedContentResult;
 import com.aima.dto.ai.ResearchPayload;
@@ -63,6 +65,24 @@ public class AiServiceClientImpl implements AiServiceClient {
             throw new AppException(ErrorCode.AI_SERVICE_ERROR);
         } catch (Exception e) {
             log.warn("[AiService] POST /research thất bại: {}", e.getMessage());
+            throw new AppException(ErrorCode.AI_SERVICE_ERROR);
+        }
+    }
+
+    @Override
+    public FormatResultPayload format(FormatPayload payload) {
+        try {
+            return webClient.post()
+                    .uri("/format")
+                    .bodyValue(payload)
+                    .retrieve()
+                    .bodyToMono(FormatResultPayload.class)
+                    .block(Duration.ofSeconds(properties.timeoutSeconds()));
+        } catch (WebClientResponseException e) {
+            log.warn("[AiService] POST /format lỗi {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new AppException(ErrorCode.AI_SERVICE_ERROR);
+        } catch (Exception e) {
+            log.warn("[AiService] POST /format thất bại: {}", e.getMessage());
             throw new AppException(ErrorCode.AI_SERVICE_ERROR);
         }
     }
