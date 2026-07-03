@@ -70,8 +70,8 @@ public class ContentGenerationServiceImpl implements ContentGenerationService {
             contentGenerationWorkerService.process(jobId);
         }
 
-        return ApiResponse.success("Đã bắt đầu tạo nội dung",
-                contentGenerationJobMapper.toContentGenerationJobResponse(saved));
+        ContentGenerationJobResponse response = contentGenerationJobMapper.toResponse(saved);
+        return ApiResponse.success("Đã bắt đầu tạo nội dung", response);
     }
 
     @Override
@@ -81,8 +81,8 @@ public class ContentGenerationServiceImpl implements ContentGenerationService {
         ContentGenerationJob job = contentGenerationJobRepository
                 .findByIdAndContentStrategy_BrandProfile_User_IdAndDeletedAtIsNull(jobId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.CONTENT_GENERATION_JOB_NOT_FOUND));
-        return ApiResponse.success("Lấy trạng thái tác vụ tạo nội dung thành công",
-                contentGenerationJobMapper.toContentGenerationJobResponse(job));
+        ContentGenerationJobResponse response = contentGenerationJobMapper.toResponse(job);
+        return ApiResponse.success("Lấy trạng thái tác vụ tạo nội dung thành công", response);
     }
 
     private User currentUser(String email) {

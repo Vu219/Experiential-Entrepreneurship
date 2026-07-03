@@ -7,7 +7,6 @@ import com.aima.entity.ContentGenerationJob;
 import com.aima.entity.ContentItem;
 import com.aima.entity.ContentStrategy;
 import com.aima.enums.GenerationJobStatus;
-import com.aima.exception.AppException;
 import com.aima.mapper.AiContentMapper;
 import com.aima.mapper.ContentItemMapper;
 import com.aima.repository.ContentGenerationJobRepository;
@@ -59,7 +58,8 @@ public class ContentGenerationWorkerServiceImpl implements ContentGenerationWork
             // TX ngắn #2: lưu ContentItem + gắn kết quả vào job.
             transactionTemplate.executeWithoutResult(status -> saveSuccess(jobId, result));
         } catch (Exception e) {
-            String message = errorMessageOf(e);
+            // AppException giờ truyền message của ErrorCode vào super(...) nên getMessage() luôn có nghĩa.
+            String message = e.getMessage();
             log.warn("[ContentGeneration] Job {} thất bại: {}", jobId, message, e);
             transactionTemplate.executeWithoutResult(status -> saveFailure(jobId, message));
         }
@@ -107,13 +107,5 @@ public class ContentGenerationWorkerServiceImpl implements ContentGenerationWork
         job.setStatus(GenerationJobStatus.FAILED);
         job.setErrorMessage(message);
         jobRepository.save(job);
-    }
-
-    // AppException không set message qua super(...) — getMessage() luôn null, nên phải lấy message từ
-    // ErrorCode; các exception khác (NPE, timeout...) dùng getMessage() thường.
-    private String errorMessageOf(Throwable e) {
-        return (e instanceof AppException appException && appException.getErrorCode() != null)
-                ? appException.getErrorCode().getMessage()
-                : e.getMessage();
     }
 }

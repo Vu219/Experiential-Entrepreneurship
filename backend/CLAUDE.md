@@ -60,6 +60,7 @@ backend/
     │   ├── RedisConfig.java                 — RedisTemplate / StringRedisTemplate bean(s)
     │   ├── TimezoneVerificationConfig.java   — Timezone setup on startup
     │   ├── DataInitializer.java             — Seed default roles / data on startup
+    │   ├── StringToPlatformConverter.java   — Case-insensitive @PathVariable Platform binding; invalid → INVALID_PLATFORM
     │   ├── AccountDeletionScheduler.java     — @Scheduled daily 00:00: hard-purge PENDING_DELETE users past their deletionDate
     │   ├── swagger/
     │   │   ├── OpenApiConfig.java           — OpenAPI bean, global error responses, bearer scheme
@@ -143,7 +144,7 @@ backend/
         ├── OtpService.java                  — Interface: OTP store/verify/markVerified/invalidate (Redis)
         ├── EmailService.java                — Interface: send OTP / password-reset emails
         ├── BrandProfileService.java         — Interface
-        ├── SupabaseStorageService.java      — Interface: low-level Storage I/O (returns raw String url/path); used by FileService, OAuth2 handler, UserService
+        ├── StorageService.java              — Interface: low-level Supabase Storage I/O (returns raw String url/path); used by FileService, OAuth2 handler, UserService (renamed from SupabaseStorageService)
         ├── FileService.java                 — Interface: returns ApiResponse<FileUploadResponse>/<SignedUrlResponse> for FileController (thin-controller layer)
         └── Impl/
             ├── AuthenticationServiceImpl.java
@@ -156,8 +157,8 @@ backend/
             ├── BrevoEmailSender.java        — sends HTML email via Brevo Transactional Email API (HTTP/443, RestClient) — Render free tier blocks SMTP ports 25/465/587
             ├── EmailServiceImpl.java        — builds OTP / reset email bodies; delegates the actual send to BrevoEmailSender (no JavaMailSender/SMTP)
             ├── BrandProfileServiceImpl.java
-            ├── SupabaseStorageServiceImpl.java — WebClient upload/delete/sign against Supabase Storage REST API
-            ├── FileServiceImpl.java         — Wraps SupabaseStorageService + UserRepository; builds the ApiResponse envelope + result DTOs
+            ├── StorageServiceImpl.java      — WebClient upload/delete/sign against Supabase Storage REST API
+            ├── FileServiceImpl.java         — Wraps StorageService + UserRepository; builds the ApiResponse envelope + result DTOs
             └── UserServiceImpl.java         — updateCurrentUser persists avatarUrl + deletes the old avatar AFTER commit (TransactionSynchronization)
 ```
 
@@ -178,7 +179,7 @@ backend/
 > - **Content Strategy**: `controller/ContentStrategyController`, `service/ContentStrategyService` (+`Impl`),
 >   `mapper/ContentStrategyMapper`, `entity/ContentStrategy` (BR-02: one brand → many strategies).
 > - **Content Generation (AI, async)**: `controller/{ContentGenerationController, ContentItemController}`,
->   `service/{ContentGenerationService, ContentItemService, ContentGenerationWorker, AiServiceClient}` (+ `Impl/`),
+>   `service/{ContentGenerationService, ContentItemService, ContentGenerationWorkerService, AiServiceClient}` (+ `Impl/`),
 >   `mapper/{ContentGenerationJobMapper, ContentItemMapper, AiContentMapper}`,
 >   `entity/{ContentGenerationJob, ContentItem}`, `dto/ai/*` (payloads mirroring `ai/src/schemas.py`),
 >   `config/{AsyncConfig, AiServiceProperties, AiServiceWebClientConfig}`. See §4 "Content Generation".
@@ -227,7 +228,7 @@ String email;
    - Lookups that can miss → `.orElseThrow(() -> new AppException(ErrorCode.X_NOT_EXISTED))` (e.g. `findByEmail`, `findById`).
    - Uniqueness / pre-conditions → check then `throw new AppException(ErrorCode.X_EXISTED)` (e.g. `existsByEmail`).
    - Business-state checks (locked account, OTP expired, password mismatch, etc.) → dedicated `ErrorCode`.
-3. Service throws `new AppException(ErrorCode.SOME_CODE)`; if a new condition has no code yet, **add one to `ErrorCode`** (code + message + `HttpStatus`) first.
+3. Service throws `new AppException(ErrorCode.SOME_CODE)`; if a new condition has no code yet, **add one to `ErrorCode`** (code + message + `HttpStatus`) first. `AppException` passes the `ErrorCode` message to `super(...)`, so `e.getMessage()` is always meaningful in logs/workers — no need to unwrap the `ErrorCode` by hand.
 4. `GlobalExceptionHandler.handlingAppException()` catches it and returns `ApiResponse` with `code`/`message` from `ErrorCode`.
 5. **Never throw raw exceptions to the controller** and never return an error by hand-building `ApiResponse` — always go through `AppException` + `ErrorCode` so the envelope and HTTP status stay consistent.
 6. When wrapping risky calls in `try/catch`, log with `@Slf4j` and either rethrow as an `AppException` or fall back deliberately — do not swallow the exception silently.
@@ -242,6 +243,25 @@ return ApiResponse.<T>builder().result(result).build();
 `@JsonInclude(NON_NULL)` on `ApiResponse` — absent fields are omitted from JSON.
 This matches the product-wide API-01 format `{ "code", "message", "result" }`.
 
+**Keep the `return` short — build the result DTO in a named variable first.** Never inline a mapper
+call / builder / other expression as the `result` argument of `ApiResponse.success(...)`:
+```java
+UserResponse userResponse = userMapper.toResponse(savedUser);          // ✅ compute first
+return ApiResponse.success("Đăng ký tài khoản thành công", userResponse);
+
+return ApiResponse.success("...", userMapper.toResponse(savedUser));   // ❌ nested/long return
+```
+
+### Naming (controllers & services)
+- **CRUD** methods use the short set `create` / `list` / `get` / `update` / `delete` / `updateStatus`;
+  business actions use their own verb (`validate`, `refresh`, `disconnect`, `register`). Method names
+  never repeat the entity name already in the class name (`ContentItemController.get`, not `getItem`;
+  `PlatformConnectionService.disconnect`, not `disconnectConnection`).
+- **Async job slices** (generation/formatting/research pattern): the service exposes `start...` +
+  `getJob` (or `getSession` when the session *is* the job record); a dedicated controller uses plain
+  `start` / `getJob`; the worker method is always `process(UUID)`.
+- Existing methods that pre-date this rule are renamed opportunistically when touched — don't mass-rename.
+
 ### Swagger
 - All `@ExampleObject` strings live as `public static final String` constants in `SwaggerExamples`.
 - Public endpoints carry `@SecurityRequirements({})` to remove the lock icon in Swagger UI.
@@ -255,11 +275,17 @@ public interface UserMapper { ... }
 ```
 **Always map entity → DTO (and DTO → entity) through a MapStruct mapper method — never hand-build a DTO/entity with its Lombok `.builder()` / setters inside a service.** Applies to **every CRUD operation**:
 - **Create:** map request DTO → entity via the mapper (e.g. `userMapper.toUser(request)`), then set only the fields the mapper can't (password hash, role lookup, status).
-- **Read:** map entity → response DTO via the mapper (e.g. `toUserResponse`, `toMeResponse`).
+- **Read:** map entity → response DTO via the mapper (e.g. `toResponse`, `toMeResponse`).
 - **Update:** use a MapStruct `void update(SourceDto dto, @MappingTarget Entity entity)` method (with `@BeanMapping(nullValuePropertyMappingStrategy = IGNORE)` for partial updates) instead of manually calling setters.
 - **Delete:** map the affected entity → response DTO via the mapper when returning the deleted record.
 
 If a target DTO has no mapper method yet, add one and call it from the service. **Keep mappers in the existing files — don't create a new `*Mapper` per DTO** (e.g. the delete/restore result `toDeleteAccountResponse(User, Long daysRemaining, String message)` lives on `UserMapper`, not a separate mapper).
+
+**Mapper method naming.** Method names never repeat the entity name already in the mapper's own name:
+- Primary `entity → response`: `toResponse` / `toResponseList` (e.g. `UserMapper.toResponse`, `BrandProfileMapper.toResponseList`).
+- Secondary response types on the same mapper keep a distinguishing name (`toMeResponse`, `toDeleteAccountResponse`); mappers covering several entities name by entity (`TrendResearchMapper.toTrendResponse`, `ContentFormattingMapper.toJobResponse`).
+- `request → entity` (create): `to<Entity>` (e.g. `toUser`, `toBrandProfile`).
+- `@MappingTarget` update: `update(RequestDto request, @MappingTarget Entity entity)` — source first, target last; add a suffix only when one mapper has several updates from different sources (`updateProfile`, `completeProfile`).
 
 **Only add `@Mapping` where MapStruct can't auto-resolve.** Same-name source/target fields, enum→`String` (via `.name()`), and source-parameter names that match a target property are mapped automatically — adding a redundant `@Mapping(target = "x", source = "x")` is noise. Reserve `@Mapping` for renamed/nested fields (`@Mapping(target = "role", source = "role.roleName")`), `ignore = true`, or constants. With multiple source params (e.g. `(User user, Long daysRemaining, String message)`) MapStruct matches a target first by parameter name, then by a property of the bean params — so `status`/`deletionDate` resolve from `user` and `daysRemaining`/`message` from the like-named params with **no** annotations.
 
@@ -384,7 +410,7 @@ The session is **not** revoked (unlike forgot-password reset). The FE verifies t
 A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can restore.
 
 ### File / avatar storage (Supabase Storage)
-- **Layering:** `FileController` (thin) → `FileService`/`FileServiceImpl` (builds `ApiResponse<T>`) → `SupabaseStorageService`/`Impl` (low-level WebClient I/O, returns raw `String`). Bucket names come from `StorageBuckets`.
+- **Layering:** `FileController` (thin) → `FileService`/`FileServiceImpl` (builds `ApiResponse<T>`) → `StorageService`/`Impl` (low-level WebClient I/O, returns raw `String`). Bucket names come from `StorageBuckets`.
 - **Upload avatar:** `POST /files/avatar` (multipart, jpg/png/webp ≤ 2 MB) → stores at `{userId}/{uuid}_{filename}` in the public `avatars` bucket → returns the public URL. Multipart limits in `application.yml` are 11 MB/12 MB.
 - **Persist avatar:** the FE then calls `PUT /users/me` with `avatarUrl`. `UpdateProfileRequest.avatarUrl` is optional and the MapStruct update IGNOREs `null`, so a profile edit that omits it keeps the current avatar.
 - **Old-avatar cleanup:** `UserServiceImpl.updateCurrentUser` captures the previous `avatarUrl`; when it changes to a different Supabase-hosted image, it deletes the old object — **after commit** (rule #24) and only for our `/object/public/avatars/` URLs (external images like Google are skipped). Failures are logged, never fatal.
@@ -444,7 +470,7 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 ### Content Generation (AI service) — FR-24..FR-30, NFR-04 async
 > User khởi động một job tạo nội dung cho một strategy **ACTIVE**; BE trả job ngay và gọi AI service
 > (Python/FastAPI) ở nền (NFR-04). Self-contained slice: `controller/ContentGenerationController` →
-> `service/ContentGenerationService` (+`Impl`) → `service/ContentGenerationWorker` (+`Impl`, `@Async`) →
+> `service/ContentGenerationService` (+`Impl`) → `service/ContentGenerationWorkerService` (+`Impl`, `@Async`) →
 > `service/AiServiceClient` (+`Impl`, WebClient); `entity/{ContentGenerationJob, ContentItem}`;
 > `mapper/{ContentGenerationJobMapper, ContentItemMapper, AiContentMapper}`;
 > `config/{AsyncConfig, AiServiceProperties, AiServiceWebClientConfig}`; `dto/ai/*` mirror `ai/src/schemas.py`.
@@ -466,7 +492,7 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 
 **Async worker pattern (NFR-04 + rule #24)** — the reference implementation for background AI/posting tasks:
 - `ContentGenerationServiceImpl.startGeneration` tạo job (`PENDING`) qua mapper rồi **dispatch worker sau khi transaction commit** (`TransactionSynchronization.afterCommit`) — tránh `@Async` đọc job trước khi row được ghi (cùng mẫu `UserServiceImpl.scheduleOldAvatarDeletion`).
-- `ContentGenerationWorker` là **bean riêng** (interface `service/` + `ContentGenerationWorkerImpl` `service/Impl/`, `@Async("contentGenerationExecutor")`) để proxy `@Async` hoạt động (tránh self-invocation).
+- `ContentGenerationWorkerService` là **bean riêng** (interface `service/` + `ContentGenerationWorkerServiceImpl` `service/Impl/`, `@Async("contentGenerationExecutor")`) để proxy `@Async` hoạt động (tránh self-invocation).
 - Worker chia thành **transaction ngắn** qua `TransactionTemplate` — **KHÔNG** để cuộc gọi AI chạy trong transaction DB (rule #24):
   1. `markRunningAndBuildPayload` — set `RUNNING` + dựng payload từ dữ liệu lazy, **commit ngay** (client poll thấy `RUNNING`).
   2. Gọi `AiServiceClient.generateContent(payload)` **NGOÀI** transaction — không giữ DB connection khi chờ HTTP.
@@ -670,7 +696,7 @@ AUTH_COOKIE_NAME (refresh_token), AUTH_COOKIE_SECURE (false), AUTH_COOKIE_SAME_S
 
 2. **ErrorCode enum keys are validation message keys.** Every `@NotBlank(message="KEY")` maps directly to `ErrorCode.KEY`. Adding a new validation requires a matching `ErrorCode` entry. **The numeric `code` of each `ErrorCode` MUST be unique** — the FE distinguishes errors by `code`, so never reuse the same int across two constants (e.g. don't let a brand-profile and a file error both be `1700`).
 
-3. **Always use `ApiResponse<T>` as the return type** for every controller method. Never return raw types or `ResponseEntity` directly. `ApiResponse` here means **only** our `com.aima.dto.response.ApiResponse` — never the Swagger annotation `io.swagger.v3.oas.annotations.responses.ApiResponse` (see the Swagger convention in §3). Import our `ApiResponse` directly so the return type is plain `ApiResponse<T>`, not a fully-qualified name.
+3. **Always use `ApiResponse<T>` as the return type** for every controller method. Never return raw types or `ResponseEntity` directly. *Single documented exception:* `PlatformConnectionController.callback` returns `ResponseEntity<Void>` because it must 302-redirect the browser back to the FE (see §4 "Social Media Connection") — do not add further exceptions. `ApiResponse` here means **only** our `com.aima.dto.response.ApiResponse` — never the Swagger annotation `io.swagger.v3.oas.annotations.responses.ApiResponse` (see the Swagger convention in §3). Import our `ApiResponse` directly so the return type is plain `ApiResponse<T>`, not a fully-qualified name.
 
 4. **`@JsonInclude(NON_NULL)` on `ApiResponse` is intentional.** Do not remove it; absent fields must be omitted from JSON output.
 
@@ -708,9 +734,9 @@ AUTH_COOKIE_NAME (refresh_token), AUTH_COOKIE_SECURE (false), AUTH_COOKIE_SAME_S
 
 21. **Time-consuming AI / posting tasks must run async (background jobs)** and never block the request thread (root `CLAUDE.md` NFR-04). Return a job/handle immediately and process in the background.
 
-22. **Thin controllers — the service layer returns the `ApiResponse<T>`; controllers only delegate.** Every controller method body is a single `return xService.method(...)`; it MUST NOT contain business logic, URL/string parsing, entity lookups, or DTO assembly (`.builder()`/setters). Each `*Service` (interface in `service/`, impl in `service/Impl/`) is what builds the `ApiResponse<T>` envelope and result DTOs. If an endpoint needs a service that currently exposes lower-level primitives (e.g. `SupabaseStorageService` returns raw `String`), add a dedicated `*Service`/`*ServiceImpl` that wraps it and returns `ApiResponse<T>` (pattern: `FileController` → `FileService`/`FileServiceImpl` → `SupabaseStorageService`). This is consistent with `AccountController`/`AuthenticationController`/`BrandProfileController`.
+22. **Thin controllers — the service layer returns the `ApiResponse<T>`; controllers only delegate.** Every controller method body is a single `return xService.method(...)`; it MUST NOT contain business logic, URL/string parsing, entity lookups, or DTO assembly (`.builder()`/setters). Enum path variables (e.g. `Platform`) are bound by a Spring `Converter` (`config/StringToPlatformConverter`), never parsed with a helper inside the controller. Each `*Service` (interface in `service/`, impl in `service/Impl/`) is what builds the `ApiResponse<T>` envelope and result DTOs. If an endpoint needs a service that currently exposes lower-level primitives (e.g. `StorageService` returns raw `String`), add a dedicated `*Service`/`*ServiceImpl` that wraps it and returns `ApiResponse<T>` (pattern: `FileController` → `FileService`/`FileServiceImpl` → `StorageService`). This is consistent with `AccountController`/`AuthenticationController`/`BrandProfileController`.
 
-23. **Centralize shared constants — never duplicate magic strings/values across files.** Supabase Storage bucket names and URL markers live ONLY in `config/storage/StorageBuckets` (`AVATARS`, `DOCUMENTS`, `AVATAR_PUBLIC_PREFIX`); reference them from `SupabaseStorageServiceImpl`, `FileServiceImpl`, `UserServiceImpl`, etc. Do not re-declare the literal `"avatars"`/`"documents"` (or any equivalent shared constant) inline in multiple classes.
+23. **Centralize shared constants — never duplicate magic strings/values across files.** Supabase Storage bucket names and URL markers live ONLY in `config/storage/StorageBuckets` (`AVATARS`, `DOCUMENTS`, `AVATAR_PUBLIC_PREFIX`); reference them from `StorageServiceImpl`, `FileServiceImpl`, `UserServiceImpl`, etc. Do not re-declare the literal `"avatars"`/`"documents"` (or any equivalent shared constant) inline in multiple classes.
 
 24. **No external/network I/O inside an open DB `@Transactional` boundary.** Calls to Supabase Storage (or any remote service) MUST NOT run while a DB transaction is held open. When a side-effect (e.g. deleting the old avatar object after a profile update) should happen only on success, defer it with `TransactionSynchronizationManager.registerSynchronization(...).afterCommit()` so it runs after commit and is skipped on rollback (see `UserServiceImpl.scheduleOldAvatarDeletion`). Best-effort cleanups still log on failure and never break the main flow.
 

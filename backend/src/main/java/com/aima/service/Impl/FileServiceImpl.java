@@ -28,12 +28,12 @@ public class FileServiceImpl implements FileService {
         String userId = currentUserId(email);
         String url = storageService.uploadAvatar(file, userId);
 
-        return ApiResponse.success("Tải ảnh đại diện thành công",
-                FileUploadResponse.builder()
-                        .bucket(StorageBuckets.AVATARS)
-                        .path(pathFromAvatarPublicUrl(url))
-                        .url(url)
-                        .build());
+        FileUploadResponse response = FileUploadResponse.builder()
+                .bucket(StorageBuckets.AVATARS)
+                .path(pathFromAvatarPublicUrl(url))
+                .url(url)
+                .build();
+        return ApiResponse.success("Tải ảnh đại diện thành công", response);
     }
 
     @Override
@@ -41,22 +41,22 @@ public class FileServiceImpl implements FileService {
         String userId = currentUserId(email);
         String path = storageService.uploadDocument(file, userId);
 
-        return ApiResponse.success("Tải tài liệu thành công",
-                FileUploadResponse.builder()
-                        .bucket(StorageBuckets.DOCUMENTS)
-                        .path(path)
-                        .build());
+        FileUploadResponse response = FileUploadResponse.builder()
+                .bucket(StorageBuckets.DOCUMENTS)
+                .path(path)
+                .build();
+        return ApiResponse.success("Tải tài liệu thành công", response);
     }
 
     @Override
     public ApiResponse<SignedUrlResponse> getDocumentSignedUrl(String path, int expiresInSeconds) {
         String signedUrl = storageService.getSignedUrl(StorageBuckets.DOCUMENTS, path, expiresInSeconds);
 
-        return ApiResponse.success("Tạo đường dẫn truy cập thành công",
-                SignedUrlResponse.builder()
-                        .signedUrl(signedUrl)
-                        .expiresInSeconds(expiresInSeconds)
-                        .build());
+        SignedUrlResponse response = SignedUrlResponse.builder()
+                .signedUrl(signedUrl)
+                .expiresInSeconds(expiresInSeconds)
+                .build();
+        return ApiResponse.success("Tạo đường dẫn truy cập thành công", response);
     }
 
     private String currentUserId(String email) {

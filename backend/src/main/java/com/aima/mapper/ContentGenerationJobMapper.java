@@ -10,7 +10,7 @@ import org.mapstruct.Mapping;
 public interface ContentGenerationJobMapper {
 
     @Mapping(target = "contentItem", source = "resultContentItem")
-    ContentGenerationJobResponse toContentGenerationJobResponse(ContentGenerationJob job);
+    ContentGenerationJobResponse toResponse(ContentGenerationJob job);
 
     @Mapping(target = "contentStrategy", ignore = true)
     ContentGenerationJob toContentGenerationJob(ContentGenerationRequest request);

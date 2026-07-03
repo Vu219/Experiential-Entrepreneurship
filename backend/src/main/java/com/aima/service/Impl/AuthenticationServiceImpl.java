@@ -62,8 +62,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             isValid = false;
         }
 
-        return ApiResponse.success("Introspect token thành công",
-                IntrospectResponse.builder().valid(isValid).build());
+        IntrospectResponse introspectResponse = IntrospectResponse.builder().valid(isValid).build();
+        return ApiResponse.success("Introspect token thành công", introspectResponse);
     }
 
     @Override
@@ -140,8 +140,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             cookieUtils.addAccessTokenCookie(response, accessToken);
             cookieUtils.addRefreshTokenCookie(response, refreshToken);
 
-            return ApiResponse.success("Làm mới token thành công",
-                    authenticationMapper.toAuthResponse(accessToken));
+            AuthenticationResponse authResponse = authenticationMapper.toAuthResponse(accessToken);
+            return ApiResponse.success("Làm mới token thành công", authResponse);
         } catch (AppException e) {
             // Lỗi nghiệp vụ đã xác định (vd USER_INACTIVE) -> giữ nguyên mã lỗi gốc.
             throw e;
@@ -202,8 +202,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         cookieUtils.addAccessTokenCookie(response, accessToken);
         cookieUtils.addRefreshTokenCookie(response, refreshToken);
 
-        return ApiResponse.success("Đăng nhập thành công",
-                authenticationMapper.toAuthResponse(accessToken));
+        AuthenticationResponse authResponse = authenticationMapper.toAuthResponse(accessToken);
+        return ApiResponse.success("Đăng nhập thành công", authResponse);
     }
 
     @Override

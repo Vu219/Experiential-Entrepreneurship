@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect } from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { useApp } from "./context/AppContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
@@ -6,9 +6,9 @@ import AdminRoute from "./auth/AdminRoute";
 import GuestRoute from "./auth/GuestRoute";
 import AppShell from "./components/AppShell";
 import ShareButton from "./components/ShareButton";
-import { THEMES } from "./theme";
 
 import LandingPage from "./pages/LandingPage";
+import PricingPage from "./pages/PricingPage";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/app/Dashboard.tsx";
 import Create from "./pages/app/Create.tsx";
@@ -57,16 +57,18 @@ function AdminLayout() {
 
 export default function App() {
   const { theme } = useApp();
-  // Expose the active brand gradient so .gradtext / var(--brand) follow the theme.
-  const themeVars = {
-    "--brand": THEMES[theme].brand,
-    "--soft": THEMES[theme].soft,
-  } as CSSProperties;
+  // Áp theme lên <html data-theme> để :root[data-theme] cascade toàn site (kể cả
+  // overlay/portal). Theme chỉ đổi ambient nền qua --theme-surface-*; dải brand
+  // (logo/nút/badge) giữ TƯƠI cố định trong styles/tokens.css.
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   return (
-    <div style={themeVars}>
+    <div>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
         <Route path="/login" element={<GuestRoute><Auth /></GuestRoute>} />
         <Route path="/register" element={<GuestRoute><Auth /></GuestRoute>} />
         <Route path="/logout" element={<Auth />} />

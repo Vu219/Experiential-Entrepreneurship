@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 public interface ContentItemMapper {
 
     @Mapping(target = "hashtags", source = "hashtag", qualifiedByName = "splitHashtags")
-    ContentItemResponse toContentItemResponse(ContentItem item);
+    ContentItemResponse toResponse(ContentItem item);
 
     @Mapping(target = "script", source = "script", qualifiedByName = "formatScript")
     @Mapping(target = "hashtag", source = "hashtags", qualifiedByName = "joinHashtags")

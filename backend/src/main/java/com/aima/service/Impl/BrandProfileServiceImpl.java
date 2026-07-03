@@ -73,7 +73,8 @@ public class BrandProfileServiceImpl implements BrandProfileService {
                 if (logoPath != null) {
                     profile.setLogoUrl(logoPath);
                 }
-                return brandProfileMapper.toBrandProfileResponse(brandProfileRepository.save(profile));
+                BrandProfile saved = brandProfileRepository.save(profile);
+                return brandProfileMapper.toResponse(saved);
             });
         } catch (RuntimeException e) {
             // DB fail sau khi đã upload → dọn file vừa upload để không rác storage.
@@ -81,7 +82,8 @@ public class BrandProfileServiceImpl implements BrandProfileService {
             throw e;
         }
 
-        return ApiResponse.success("Tạo hồ sơ thương hiệu thành công", withSignedLogo(response));
+        response = withSignedLogo(response);
+        return ApiResponse.success("Tạo hồ sơ thương hiệu thành công", response);
     }
 
     // Phân trang + lọc server-side (PageResponse dùng chung, cùng mẫu UserServiceImpl.getAllUsers).
@@ -93,7 +95,7 @@ public class BrandProfileServiceImpl implements BrandProfileService {
 
         PageResponse<BrandProfileResponse> result = transactionTemplate.execute(tx -> {
             Page<BrandProfile> page = brandProfileRepository.search(user.getId(), query, industryFilter, pageable);
-            List<BrandProfileResponse> responses = brandProfileMapper.toBrandProfileResponseList(page.getContent());
+            List<BrandProfileResponse> responses = brandProfileMapper.toResponseList(page.getContent());
             // Badge "N chiến lược" trên card — đếm tại DB thay vì FE tải toàn bộ chiến lược.
             responses.forEach(r -> r.setStrategyCount(
                     contentStrategyRepository.countByBrandProfile_IdAndDeletedAtIsNull(r.getId())));
@@ -109,16 +111,17 @@ public class BrandProfileServiceImpl implements BrandProfileService {
     @Override
     @Transactional(readOnly = true)
     public ApiResponse<List<String>> listIndustries(String email) {
-        return ApiResponse.success("Lấy danh sách ngành hàng thành công",
-                brandProfileRepository.findDistinctIndustriesByUserId(currentUser(email).getId()));
+        List<String> industries = brandProfileRepository.findDistinctIndustriesByUserId(currentUser(email).getId());
+        return ApiResponse.success("Lấy danh sách ngành hàng thành công", industries);
     }
 
     @Override
     public ApiResponse<BrandProfileResponse> get(String email, UUID id) {
         BrandProfileResponse response = transactionTemplate.execute(tx ->
-                brandProfileMapper.toBrandProfileResponse(find(currentUser(email).getId(), id)));
+                brandProfileMapper.toResponse(find(currentUser(email).getId(), id)));
 
-        return ApiResponse.success("Lấy hồ sơ thương hiệu thành công", withSignedLogo(response));
+        response = withSignedLogo(response);
+        return ApiResponse.success("Lấy hồ sơ thương hiệu thành công", response);
     }
 
     @Override
@@ -136,7 +139,7 @@ public class BrandProfileServiceImpl implements BrandProfileService {
             response = transactionTemplate.execute(tx -> {
                 BrandProfile profile = find(user.getId(), id);
                 String oldLogoUrl = profile.getLogoUrl();
-                brandProfileMapper.updateBrandProfile(profile, request);
+                brandProfileMapper.update(request, profile);
 
                 if (replacingLogo) {
                     deleteStorageFileIfPresent(oldLogoUrl); // xóa file cũ afterCommit
@@ -145,7 +148,8 @@ public class BrandProfileServiceImpl implements BrandProfileService {
                     deleteStorageFileIfPresent(oldLogoUrl);
                     profile.setLogoUrl(null);
                 }
-                return brandProfileMapper.toBrandProfileResponse(brandProfileRepository.save(profile));
+                BrandProfile saved = brandProfileRepository.save(profile);
+                return brandProfileMapper.toResponse(saved);
             });
         } catch (RuntimeException e) {
             // DB fail sau khi đã upload → dọn file vừa upload để không rác storage.
@@ -153,7 +157,8 @@ public class BrandProfileServiceImpl implements BrandProfileService {
             throw e;
         }
 
-        return ApiResponse.success("Cập nhật hồ sơ thương hiệu thành công", withSignedLogo(response));
+        response = withSignedLogo(response);
+        return ApiResponse.success("Cập nhật hồ sơ thương hiệu thành công", response);
     }
 
     @Override

@@ -21,9 +21,9 @@ public interface ContentStrategyMapper {
     @Mapping(target = "styles", source = "contentStyle")
     @Mapping(target = "ctas", source = "ctaTypes")
     @Mapping(target = "frequencyUnit", source = "frequencyUnit", defaultValue = ContentStrategy.DEFAULT_FREQUENCY_UNIT)
-    ContentStrategyResponse toContentStrategyResponse(ContentStrategy strategy);
+    ContentStrategyResponse toResponse(ContentStrategy strategy);
 
-    List<ContentStrategyResponse> toContentStrategyResponseList(List<ContentStrategy> strategies);
+    List<ContentStrategyResponse> toResponseList(List<ContentStrategy> strategies);
 
     // request → entity (create). brandProfile do service set; đổi tên field DTO → entity.
     @Mapping(target = "brandProfile", ignore = true)
@@ -41,7 +41,7 @@ public interface ContentStrategyMapper {
     @Mapping(target = "contentStyle", source = "styles")
     @Mapping(target = "ctaTypes", source = "ctas")
     @Mapping(target = "name", source = "name", qualifiedByName = "trim")
-    void updateContentStrategy(@MappingTarget ContentStrategy strategy, ContentStrategyRequest request);
+    void update(ContentStrategyRequest request, @MappingTarget ContentStrategy strategy);
 
     @Named("trim")
     default String trim(String value) {

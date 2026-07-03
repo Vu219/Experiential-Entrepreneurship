@@ -20,9 +20,9 @@ public interface UserMapper {
     @Mapping(target = "username", source = "email")
     User toUser(UserRegisterRequest request);
 
-    UserResponse toUserResponse(User user);
+    UserResponse toResponse(User user);
 
-    List<UserResponse> toUserResponseList(List<User> users);
+    List<UserResponse> toResponseList(List<User> users);
 
     @Mapping(target = "role", source = "role.roleName")
     MeResponse toMeResponse(User user);
@@ -34,7 +34,7 @@ public interface UserMapper {
 
     // Cập nhật hồ sơ: chỉ ghi đè các trường có giá trị (bỏ qua null).
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    void updateUserFromProfile(UpdateProfileRequest request, @MappingTarget User user);
+    void updateProfile(UpdateProfileRequest request, @MappingTarget User user);
 
     DeleteAccountResponse toDeleteAccountResponse(User user, Long daysRemaining, String message);
 }

@@ -50,67 +50,8 @@ export function flowCards(lang: Lang) {
 }
 
 // ===== Landing pricing plans =====
-// Giá đồng bộ với cấu hình gói ở admin (api/admin.ts getPlans): Free 0đ, Pro 499k, Business 1.99M.
-export interface LandingPlan {
-  id: string;
-  name: string;
-  price: string;
-  cadence: string;
-  desc: string;
-  features: string[];
-  cta: string;
-  featured?: boolean;
-}
-
-export function pricingPlans(lang: Lang): LandingPlan[] {
-  return [
-    {
-      id: 'free',
-      name: 'Free',
-      price: '0đ',
-      cadence: P(lang, 'mãi mãi', 'forever'),
-      desc: P(lang, 'Trải nghiệm quy trình AI với một thương hiệu.', 'Try the AI pipeline with one brand.'),
-      features: [
-        P(lang, '1 hồ sơ thương hiệu', '1 brand profile'),
-        P(lang, '5 bài viết AI mỗi tháng', '5 AI posts per month'),
-        P(lang, 'Kết nối 1 nền tảng', 'Connect 1 platform'),
-        P(lang, 'Nghiên cứu xu hướng cơ bản', 'Basic trend research'),
-      ],
-      cta: P(lang, 'Bắt đầu miễn phí', 'Start for free'),
-    },
-    {
-      id: 'pro',
-      name: 'Pro',
-      price: '499.000đ',
-      cadence: P(lang, '/tháng', '/month'),
-      desc: P(lang, 'Cho creator & shop cần nội dung đều đặn mỗi ngày.', 'For creators & shops posting every day.'),
-      features: [
-        P(lang, '3 hồ sơ thương hiệu', '3 brand profiles'),
-        P(lang, '100 bài viết AI mỗi tháng', '100 AI posts per month'),
-        P(lang, 'Đủ 3 nền tảng: Facebook · Instagram · Threads', 'All 3 platforms: Facebook · Instagram · Threads'),
-        P(lang, 'Lên lịch & tự động đăng bài', 'Scheduling & auto-publishing'),
-        P(lang, 'Phân tích hiệu quả sau đăng', 'Post-publish analytics'),
-      ],
-      cta: P(lang, 'Dùng thử Pro', 'Try Pro'),
-      featured: true,
-    },
-    {
-      id: 'business',
-      name: 'Business',
-      price: '1.990.000đ',
-      cadence: P(lang, '/tháng', '/month'),
-      desc: P(lang, 'Cho doanh nghiệp nhỏ chạy nhiều thương hiệu cùng lúc.', 'For small businesses running multiple brands.'),
-      features: [
-        P(lang, 'Không giới hạn hồ sơ thương hiệu', 'Unlimited brand profiles'),
-        P(lang, 'Không giới hạn bài viết AI', 'Unlimited AI posts'),
-        P(lang, 'AI tối ưu chiến lược từ dữ liệu', 'Data-driven strategy optimization'),
-        P(lang, 'Báo cáo hiệu quả chuyên sâu', 'In-depth performance reports'),
-        P(lang, 'Hỗ trợ ưu tiên', 'Priority support'),
-      ],
-      cta: P(lang, 'Chọn Business', 'Choose Business'),
-    },
-  ];
-}
+// Dữ liệu gói giá đã chuyển sang src/config/plans.ts (một nguồn duy nhất cho
+// pricing teaser ở Landing và trang /pricing).
 
 const PILLAR_ICONS = [Sparkles, Zap, BarChart3];
 export function pillars(lang: Lang) {
@@ -318,11 +259,13 @@ export const notifLabels = (lang: Lang) =>
     ? ['Post published', 'New AI content ideas', 'Weekly performance report', 'New trend alerts']
     : ['Bài đăng đã xuất bản', 'Ý tưởng nội dung mới từ AI', 'Báo cáo hiệu quả hàng tuần', 'Cảnh báo xu hướng mới'];
 
+// Swatch xem trước = dải AMBIENT (--theme-surface-*) đã làm dịu của mỗi theme —
+// đúng thứ đổi khi chọn theme (đồng bộ styles/tokens.css). Dải brand tươi độc lập theme.
 export function themeOptions(lang: Lang) {
   return [
-    { key: 'aurora' as const, label: 'Aurora', grad: 'linear-gradient(120deg,#46D6EC,#897CE3,#F083C0)' },
-    { key: 'sunset' as const, label: P(lang, 'Hoàng hôn', 'Sunset'), grad: 'linear-gradient(120deg,#FB8DA0,#B47CEE,#7E86F1)' },
-    { key: 'ocean' as const, label: P(lang, 'Đại dương', 'Ocean'), grad: 'linear-gradient(120deg,#5BD8EC,#6AA1F2,#7E86F1)' },
+    { key: 'aurora' as const, label: 'Aurora', grad: 'linear-gradient(135deg,#6FA8A3,#8098C4,#9E90C2)' },
+    { key: 'sunset' as const, label: P(lang, 'Hoàng hôn', 'Sunset'), grad: 'linear-gradient(135deg,#E0A583,#CF8E93,#B983A6)' },
+    { key: 'ocean' as const, label: P(lang, 'Đại dương', 'Ocean'), grad: 'linear-gradient(135deg,#5BD8EC,#6AA1F2,#7E86F1)' },
   ];
 }
 
@@ -372,10 +315,11 @@ export function adminStats(lang: Lang) {
 }
 
 export function adminUsers(lang: Lang) {
+  // Màu badge gói khớp userPlanMeta (api/admin.ts): plus → info/teal, pro → purple/violet.
   const PL: Record<string, [string, string, string]> = {
-    pro: ['Pro', '#7c3aed', '#f1e9ff'],
+    plus: ['Plus', '#0e7490', '#e0f7fb'],
     free: ['Free', '#64748b', '#eef2f7'],
-    biz: ['Business', '#0e7490', '#e0f7fb'],
+    pro: ['Pro', '#7c3aed', '#f1e9ff'],
   };
   const STt: Record<string, [string, string, string]> = {
     act: [P(lang, 'Hoạt động', 'Active'), '#16a34a', '#e8f8ee'],
@@ -383,10 +327,10 @@ export function adminUsers(lang: Lang) {
     new: [P(lang, 'Mới', 'New'), '#7c3aed', '#f1e9ff'],
   };
   const rows: [string, string, keyof typeof PL, keyof typeof STt, string, string][] = [
-    ['Lan Phương', 'lan.phuong@gmail.com', 'pro', 'act', '342', '12/01/26'],
-    ['Minh Tuấn', 'tuan.minh@aima.io', 'biz', 'act', '1,204', '03/11/25'],
+    ['Lan Phương', 'lan.phuong@gmail.com', 'plus', 'act', '342', '12/01/26'],
+    ['Minh Tuấn', 'tuan.minh@aima.io', 'pro', 'act', '1,204', '03/11/25'],
     ['Thu Hà', 'ha.thu@brandco.vn', 'free', 'idle', '58', '28/02/26'],
-    ['David Chen', 'david.chen@startup.co', 'pro', 'act', '489', '15/03/26'],
+    ['David Chen', 'david.chen@startup.co', 'plus', 'act', '489', '15/03/26'],
     ['Ngọc Anh', 'anh.ngoc@gmail.com', 'free', 'new', '3', '18/06/26'],
   ];
   return rows.map((u) => {
@@ -401,9 +345,9 @@ export function adminUsers(lang: Lang) {
 }
 
 export const planDist = [
-  ['Pro', '5,128', '42%', '#8b5cf6'],
+  ['Plus', '5,128', '42%', '#22d3ee'],
   ['Free', '6,402', '50%', '#94a3b8'],
-  ['Business', '1,317', '8%', '#22d3ee'],
+  ['Pro', '1,317', '8%', '#8b5cf6'],
 ].map((p) => ({ plan: p[0], count: p[1], pct: p[2], color: p[3] }));
 
 export function health(lang: Lang) {

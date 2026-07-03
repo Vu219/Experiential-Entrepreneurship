@@ -8,6 +8,7 @@ export type ThemeKey = 'aurora' | 'sunset' | 'ocean';
 
 export type Route =
   | 'landing'
+  | 'pricing'
   | 'login'
   | 'register'
   | 'logout'
@@ -26,11 +27,6 @@ export type Route =
   | 'adminLogs'
   | 'adminApiVersions'
   | 'adminRevenue';
-
-export interface ThemeDef {
-  brand: string;
-  soft: string;
-}
 
 /** A social platform short descriptor (background + 2-letter tag). */
 export interface Platform {

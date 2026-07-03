@@ -54,7 +54,8 @@ public class ContentItemServiceImpl implements ContentItemService {
     @Transactional(readOnly = true)
     public ApiResponse<ContentItemResponse> getItem(String email, UUID itemId) {
         ContentItem item = ownedItem(email, itemId);
-        return ApiResponse.success("Lấy nội dung thành công", contentItemMapper.toContentItemResponse(item));
+        ContentItemResponse response = contentItemMapper.toResponse(item);
+        return ApiResponse.success("Lấy nội dung thành công", response);
     }
 
     @Override
@@ -72,7 +73,8 @@ public class ContentItemServiceImpl implements ContentItemService {
         }
 
         ContentItem saved = contentItemRepository.save(item);
-        return ApiResponse.success("Cập nhật nội dung thành công", contentItemMapper.toContentItemResponse(saved));
+        ContentItemResponse response = contentItemMapper.toResponse(saved);
+        return ApiResponse.success("Cập nhật nội dung thành công", response);
     }
 
     @Override
@@ -86,8 +88,8 @@ public class ContentItemServiceImpl implements ContentItemService {
 
         item.setStatus(target);
         ContentItem saved = contentItemRepository.save(item);
-        return ApiResponse.success("Cập nhật trạng thái nội dung thành công",
-                contentItemMapper.toContentItemResponse(saved));
+        ContentItemResponse response = contentItemMapper.toResponse(saved);
+        return ApiResponse.success("Cập nhật trạng thái nội dung thành công", response);
     }
 
     private ContentItem ownedItem(String email, UUID itemId) {

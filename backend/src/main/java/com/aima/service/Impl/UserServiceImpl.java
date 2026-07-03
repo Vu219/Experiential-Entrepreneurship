@@ -76,7 +76,7 @@ public class UserServiceImpl implements UserService {
         user.setProfileCompleted(true);
         User savedUser = userRepository.save(user);
 
-        UserResponse userResponse = userMapper.toUserResponse(savedUser);
+        UserResponse userResponse = userMapper.toResponse(savedUser);
         return ApiResponse.success("Đăng ký tài khoản thành công", userResponse);
     }
 
@@ -90,7 +90,7 @@ public class UserServiceImpl implements UserService {
         }
 
         PageResponse<UserResponse> result =
-                PageResponse.from(users, userMapper.toUserResponseList(users.getContent()));
+                PageResponse.from(users, userMapper.toResponseList(users.getContent()));
         return ApiResponse.success("Lấy danh sách người dùng thành công", result);
     }
 
@@ -99,7 +99,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-        UserResponse userResponse = userMapper.toUserResponse(user);
+        UserResponse userResponse = userMapper.toResponse(user);
         return ApiResponse.success("Lấy thông tin Người dùng thành công", userResponse);
     }
 
@@ -127,7 +127,7 @@ public class UserServiceImpl implements UserService {
 
         String oldAvatarUrl = user.getAvatarUrl();
 
-        userMapper.updateUserFromProfile(request, user);
+        userMapper.updateProfile(request, user);
         User saved = userRepository.save(user);
 
         // Đổi sang ảnh mới → xoá ảnh cũ trên Supabase để tránh file rác tích tụ trong bucket.
@@ -309,8 +309,8 @@ public class UserServiceImpl implements UserService {
             log.warn("Không thể gửi email xác nhận thiết lập tài khoản cho {}: {}", savedUser.getEmail(), e.getMessage());
         }
 
-        return ApiResponse.success("Đã lưu thông tin, email xác nhận đã được gửi",
-                userMapper.toUserResponse(savedUser));
+        UserResponse userResponse = userMapper.toResponse(savedUser);
+        return ApiResponse.success("Đã lưu thông tin, email xác nhận đã được gửi", userResponse);
     }
 
     @Override
@@ -319,7 +319,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
-        UserResponse userResponse = userMapper.toUserResponse(user);
+        UserResponse userResponse = userMapper.toResponse(user);
 
         return ApiResponse.success("Lấy hồ sơ cá nhân thành công", userResponse);
     }
@@ -341,11 +341,11 @@ public class UserServiceImpl implements UserService {
         user.setDeletionDate(deletionDate);
         userRepository.save(user);
 
-        return ApiResponse.success("Yêu cầu xóa tài khoản đã được ghi nhận",
-                userMapper.toDeleteAccountResponse(user,
-                        ChronoUnit.DAYS.between(now, deletionDate),
-                        "Tài khoản sẽ bị xóa vĩnh viễn sau " + ACCOUNT_DELETION_GRACE_DAYS
-                                + " ngày. Bạn có thể khôi phục trước thời hạn này."));
+        DeleteAccountResponse deleteAccountResponse = userMapper.toDeleteAccountResponse(user,
+                ChronoUnit.DAYS.between(now, deletionDate),
+                "Tài khoản sẽ bị xóa vĩnh viễn sau " + ACCOUNT_DELETION_GRACE_DAYS
+                        + " ngày. Bạn có thể khôi phục trước thời hạn này.");
+        return ApiResponse.success("Yêu cầu xóa tài khoản đã được ghi nhận", deleteAccountResponse);
     }
 
     @Override
@@ -360,9 +360,9 @@ public class UserServiceImpl implements UserService {
         user.setDeletionDate(null);
         userRepository.save(user);
 
-        return ApiResponse.success("Tài khoản đã được khôi phục thành công",
-                userMapper.toDeleteAccountResponse(user, null,
-                        "Tài khoản của bạn đã được khôi phục và hoạt động bình thường."));
+        DeleteAccountResponse deleteAccountResponse = userMapper.toDeleteAccountResponse(user, null,
+                "Tài khoản của bạn đã được khôi phục và hoạt động bình thường.");
+        return ApiResponse.success("Tài khoản đã được khôi phục thành công", deleteAccountResponse);
     }
 
     private String generateOtp() {

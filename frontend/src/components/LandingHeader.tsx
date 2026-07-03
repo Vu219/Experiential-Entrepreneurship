@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { LogIn, Menu, X } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Menu, X } from "lucide-react";
+import type { Route } from "../types";
 import { useApp } from "../context/AppContext";
 import { useAuth } from "../auth/AuthContext";
 import { useBreakpoint } from "../hooks/useBreakpoint";
@@ -7,19 +9,24 @@ import { useUiStore } from "../store/useUiStore";
 import { LangButton } from "./AppShell";
 import UserMenu from "./UserMenu";
 
-// Cuộn mượt tới section trên trang Landing (ID gắn trong Landing.tsx).
+// Cuộn mượt tới section trên trang Landing (ID gắn trong LandingPage.tsx).
 const scrollToId = (id: string) => {
   const el = document.getElementById(id);
   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 };
 
-// Home → hero; Features → quy trình; Pricing → gói đăng ký; Resources → footer.
-// `spy` = section id quyết định trạng thái active của link.
-const navItems = (t: ReturnType<typeof useApp>["t"]) => [
-  { label: t.nHome, id: "home", spy: "home" },
-  { label: t.nFeatures, id: "features", spy: "features" },
-  { label: t.nPricing, id: "pricing", spy: "pricing" },
-  { label: t.nResources, id: "resources", spy: "resources" },
+// Home → hero; Features → quy trình; Pricing → TRANG /pricing; Resources → footer.
+// `section` cuộn tới id trên Landing (điều hướng về "/#id" nếu đang ở trang khác);
+// `route` điều hướng sang trang riêng.
+type HeaderNavItem =
+  | { label: string; kind: "section"; id: string }
+  | { label: string; kind: "route"; route: Route; path: string };
+
+const navItems = (t: ReturnType<typeof useApp>["t"]): HeaderNavItem[] => [
+  { label: t.nHome, kind: "section", id: "home" },
+  { label: t.nFeatures, kind: "section", id: "features" },
+  { label: t.nPricing, kind: "route", route: "pricing", path: "/pricing" },
+  { label: t.nResources, kind: "section", id: "resources" },
 ];
 
 export default function LandingHeader() {
@@ -28,13 +35,17 @@ export default function LandingHeader() {
   const { isMobile } = useBreakpoint();
   const { scrolled, setScrolled, mobileOpen, toggleMobile, closeMobile } = useUiStore();
   const [activeSection, setActiveSection] = useState("home");
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const onLanding = pathname === "/";
 
   // Một listener duy nhất: cập nhật trạng thái cuộn (zustand) + section đang xem
-  // (scroll-spy) để highlight link tương ứng trên header.
+  // (scroll-spy, chỉ có nghĩa trên Landing) để highlight link tương ứng trên header.
   useEffect(() => {
-    const SPY_IDS = ["home", "features", "pricing", "resources"];
+    const SPY_IDS = ["home", "features", "resources"];
     const onScroll = () => {
       setScrolled(window.scrollY > 20);
+      if (!onLanding) return;
       const pos = window.scrollY + 160; // bù cho header cố định
       let current = "home";
       for (const id of SPY_IDS) {
@@ -50,7 +61,7 @@ export default function LandingHeader() {
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [setScrolled]);
+  }, [setScrolled, onLanding]);
 
   // Khoá cuộn body khi menu mobile mở (overflow:hidden) để nền không trôi.
   useEffect(() => {
@@ -62,6 +73,23 @@ export default function LandingHeader() {
 
   const items = useMemo(() => navItems(t), [t]);
 
+  // Active: item `route` theo pathname; item `section` theo scroll-spy (chỉ trên Landing).
+  const isItemActive = useCallback(
+    (it: HeaderNavItem) => (it.kind === "route" ? pathname === it.path : onLanding && activeSection === it.id),
+    [pathname, onLanding, activeSection]
+  );
+
+  // Bấm nav: route → điều hướng trang; section → cuộn (hoặc về "/#id" nếu ở trang khác).
+  const onNavClick = (it: HeaderNavItem) => {
+    if (it.kind === "route") {
+      go(it.route);
+    } else if (onLanding) {
+      scrollToId(it.id);
+    } else {
+      navigate(`/#${it.id}`);
+    }
+  };
+
   // ===== Glider: viên pill trượt tới tab đang active (hoặc đang hover) =====
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const [hovered, setHovered] = useState<number | null>(null);
@@ -70,10 +98,11 @@ export default function LandingHeader() {
   // Pill chỉ bám theo tab đang active (đổi khi bấm → cuộn → scroll-spy cập nhật),
   // KHÔNG trượt theo hover.
   const measureGlider = useCallback(() => {
-    const idx = items.findIndex((it) => it.spy === activeSection);
+    const idx = items.findIndex(isItemActive);
     const el = itemRefs.current[idx];
     if (el) setGlider({ left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight });
-  }, [activeSection, items]);
+    else setGlider({ left: 0, top: 0, width: 0, height: 0 });
+  }, [items, isItemActive]);
 
   // Đo lại khi đổi tab/hover/ngôn ngữ, và khi header co lại lúc cuộn (đổi padding).
   useLayoutEffect(() => { measureGlider(); }, [measureGlider, scrolled]);
@@ -116,8 +145,8 @@ export default function LandingHeader() {
       <div style={{ position: "fixed", top: 0, left: 0, width: "100%", zIndex: 100, display: "flex", justifyContent: "center", pointerEvents: "none", transition: "all .4s ease-in-out" }}>
         <header id="home-bar" style={innerStyle}>
           <a
-            href="#home"
-            onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); closeMobile(); }}
+            href="/"
+            onClick={(e) => { e.preventDefault(); if (onLanding) window.scrollTo({ top: 0, behavior: "smooth" }); else go("landing"); closeMobile(); }}
             style={{ display: "flex", alignItems: "center", cursor: "pointer" }}
           >
             <img className="logo-hover" src="/aima-logo.png" alt="AIMA" style={{ height: scrolled ? 38 : 46, width: "auto", display: "block", transition: "height .4s ease-in-out" }} />
@@ -136,13 +165,13 @@ export default function LandingHeader() {
                 }}
               />
               {items.map((it, i) => {
-                const isActive = activeSection === it.spy;
+                const isActive = isItemActive(it);
                 return (
                   <a
                     key={i}
                     ref={(el) => { itemRefs.current[i] = el; }}
-                    href={`#${it.id}`}
-                    onClick={(e) => { e.preventDefault(); scrollToId(it.id); }}
+                    href={it.kind === "route" ? it.path : `/#${it.id}`}
+                    onClick={(e) => { e.preventDefault(); onNavClick(it); }}
                     onMouseEnter={() => setHovered(i)}
                     style={{ position: "relative", zIndex: 1, padding: "9px 17px", borderRadius: 999, cursor: "pointer", whiteSpace: "nowrap", fontWeight: isActive ? 700 : 600, fontSize: 15, color: isActive ? "#fff" : hovered === i ? "#7c3aed" : "#4b4660", transition: "color .25s ease" }}
                   >
@@ -163,14 +192,8 @@ export default function LandingHeader() {
               </button>
             ) : (
               <>
-                {scrolled ? (
-                  <button className="login-pill" onClick={() => go("login")} aria-label={t.signIn}>
-                    <span className="sign"><LogIn size={18} strokeWidth={2.5} /></span>
-                    <span className="btn-text">{t.signIn}</span>
-                  </button>
-                ) : (
-                  <button className="btn-outline" onClick={() => go("login")} style={outlineBtn}>{t.signIn}</button>
-                )}
+                {/* Nút Đăng nhập thống nhất một kiểu outline chữ ở mọi trạng thái header. */}
+                <button className="btn-outline" onClick={() => go("login")} style={{ ...outlineBtn, padding: scrolled ? "8px 18px" : "10px 22px", fontSize: scrolled ? 13 : 14 }}>{t.signIn}</button>
                 <button className="btn-grad" onClick={() => go("register")} style={gradientBtn(scrolled)}>{t.tryAima}</button>
               </>
             )}
@@ -192,12 +215,12 @@ export default function LandingHeader() {
         <div style={{ position: "fixed", top: scrolled ? 70 : 78, left: "50%", transform: "translateX(-50%)", width: "90%", maxWidth: 460, zIndex: 99, background: "#fff", border: "1px solid #ece8f6", borderRadius: 18, boxShadow: "0 28px 56px -26px rgba(80,40,140,.5)", padding: 16, pointerEvents: "auto" }}>
           <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {items.map((it, i) => {
-              const isActive = activeSection === it.spy;
+              const isActive = isItemActive(it);
               return (
                 <a
                   key={i}
-                  href={`#${it.id}`}
-                  onClick={(e) => { e.preventDefault(); scrollToId(it.id); closeMobile(); }}
+                  href={it.kind === "route" ? it.path : `/#${it.id}`}
+                  onClick={(e) => { e.preventDefault(); onNavClick(it); closeMobile(); }}
                   style={{ padding: "11px 12px", borderRadius: 11, fontWeight: isActive ? 700 : 600, fontSize: 15, color: isActive ? "#7c3aed" : "#4b4660", background: isActive ? "#f4eefe" : "transparent", textDecoration: "none" }}
                 >
                   {it.label}

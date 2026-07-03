@@ -5,8 +5,6 @@ import com.aima.dto.response.AuthorizationUrlResponse;
 import com.aima.dto.response.ConnectionStatsResponse;
 import com.aima.dto.response.PlatformConnectionResponse;
 import com.aima.enums.Platform;
-import com.aima.exception.AppException;
-import com.aima.exception.ErrorCode;
 import com.aima.service.PlatformConnectionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -37,19 +35,19 @@ public class PlatformConnectionController {
     @Operation(summary = "Lấy URL OAuth để liên kết tài khoản",
             description = "Trả về URL dialog OAuth của Meta cho nền tảng; FE redirect người dùng tới URL này.")
     public ApiResponse<AuthorizationUrlResponse> authorize(@AuthenticationPrincipal UserDetails principal,
-                                                           @PathVariable String platform) {
-        return connectionService.getAuthorizationUrl(parse(platform), principal.getUsername());
+                                                           @PathVariable Platform platform) {
+        return connectionService.getAuthorizationUrl(platform, principal.getUsername());
     }
 
     @GetMapping("/{platform}/callback")
     @SecurityRequirements({})
     @Operation(summary = "OAuth callback từ Meta",
             description = "Meta redirect về đây kèm code & state. BE đổi token, lưu kết nối rồi redirect FE.")
-    public ResponseEntity<Void> callback(@PathVariable String platform,
+    public ResponseEntity<Void> callback(@PathVariable Platform platform,
                                          @RequestParam(required = false) String code,
                                          @RequestParam(required = false) String state,
                                          @RequestParam(required = false) String error) {
-        String redirect = connectionService.handleCallbackRedirect(parse(platform), code, state, error);
+        String redirect = connectionService.handleCallbackRedirect(platform, code, state, error);
         return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(redirect)).build();
     }
 
@@ -83,13 +81,5 @@ public class PlatformConnectionController {
     @Operation(summary = "Ngắt kết nối (revoke + soft delete)")
     public ApiResponse<Void> disconnect(@AuthenticationPrincipal UserDetails principal, @PathVariable UUID id) {
         return connectionService.disconnect(id, principal.getUsername());
-    }
-
-    private Platform parse(String platform) {
-        try {
-            return Platform.valueOf(platform.toUpperCase());
-        } catch (IllegalArgumentException | NullPointerException e) {
-            throw new AppException(ErrorCode.INVALID_PLATFORM);
-        }
     }
 }

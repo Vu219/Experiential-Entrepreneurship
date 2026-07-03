@@ -149,7 +149,7 @@ export default function AppShell({ children, variant = 'app' }: { children: Reac
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: isMobile ? 'column' : 'row', background: '#f7f6fd', position: 'relative' }}>
+    <div className="ambient-surface" style={{ minHeight: '100vh', display: 'flex', flexDirection: isMobile ? 'column' : 'row', position: 'relative' }}>
       <Sidebar mode={variant} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <Topbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />

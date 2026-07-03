@@ -43,8 +43,8 @@ public class PlatformConnectionServiceImpl implements PlatformConnectionService 
     public ApiResponse<AuthorizationUrlResponse> getAuthorizationUrl(Platform platform, String email) {
         User user = currentUser(email);
         String url = metaOAuthService.buildAuthorizationUrl(platform, user.getId());
-        return ApiResponse.success("Tạo URL liên kết thành công",
-                AuthorizationUrlResponse.builder().authorizationUrl(url).build());
+        AuthorizationUrlResponse response = AuthorizationUrlResponse.builder().authorizationUrl(url).build();
+        return ApiResponse.success("Tạo URL liên kết thành công", response);
     }
 
     @Override
@@ -73,8 +73,8 @@ public class PlatformConnectionServiceImpl implements PlatformConnectionService 
     public ApiResponse<List<PlatformConnectionResponse>> listConnections(String email) {
         List<PlatformAccount> accounts =
                 accountRepository.findByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(currentUser(email).getId());
-        return ApiResponse.success("Lấy danh sách kết nối thành công",
-                connectionMapper.toResponseList(accounts));
+        List<PlatformConnectionResponse> responses = connectionMapper.toResponseList(accounts);
+        return ApiResponse.success("Lấy danh sách kết nối thành công", responses);
     }
 
     @Override
@@ -94,16 +94,16 @@ public class PlatformConnectionServiceImpl implements PlatformConnectionService 
     public ApiResponse<PlatformConnectionResponse> validateConnection(UUID id, String email) {
         PlatformAccount account = find(id, email);
         PlatformAccount validated = metaOAuthService.validate(account);
-        return ApiResponse.success("Kiểm tra kết nối thành công",
-                connectionMapper.toResponse(validated));
+        PlatformConnectionResponse response = connectionMapper.toResponse(validated);
+        return ApiResponse.success("Kiểm tra kết nối thành công", response);
     }
 
     @Override
     public ApiResponse<PlatformConnectionResponse> refreshConnection(UUID id, String email) {
         PlatformAccount account = find(id, email);
         PlatformAccount refreshed = metaOAuthService.refresh(account);
-        return ApiResponse.success("Làm mới token thành công",
-                connectionMapper.toResponse(refreshed));
+        PlatformConnectionResponse response = connectionMapper.toResponse(refreshed);
+        return ApiResponse.success("Làm mới token thành công", response);
     }
 
     @Override

@@ -62,8 +62,8 @@ public class PlatformVersionServiceImpl implements PlatformVersionService {
     @Transactional(readOnly = true)
     public ApiResponse<List<ApiVersionResponse>> getAllVersions() {
         List<PlatformApiVersion> versions = versionRepository.findAll();
-        return ApiResponse.success("Lấy danh sách version API thành công",
-                versionMapper.toResponseList(versions));
+        List<ApiVersionResponse> responses = versionMapper.toResponseList(versions);
+        return ApiResponse.success("Lấy danh sách version API thành công", responses);
     }
 
     @Override
@@ -71,8 +71,8 @@ public class PlatformVersionServiceImpl implements PlatformVersionService {
     public ApiResponse<List<ApiVersionHistoryResponse>> getVersionHistory(Platform platform) {
         List<PlatformApiVersionHistory> history =
                 historyRepository.findByPlatformApiVersion_PlatformOrderByCreatedAtDesc(platform);
-        return ApiResponse.success("Lấy lịch sử version thành công",
-                versionMapper.toHistoryResponseList(history));
+        List<ApiVersionHistoryResponse> responses = versionMapper.toHistoryResponseList(history);
+        return ApiResponse.success("Lấy lịch sử version thành công", responses);
     }
 
     @Override
@@ -109,7 +109,8 @@ public class PlatformVersionServiceImpl implements PlatformVersionService {
         evictCache(platform);
 
         log.info("[ApiVersion] {} đổi {} -> {} bởi {}", platform, fromVersion, toVersion, adminEmail);
-        return ApiResponse.success("Cập nhật version thành công", versionMapper.toResponse(saved));
+        ApiVersionResponse response = versionMapper.toResponse(saved);
+        return ApiResponse.success("Cập nhật version thành công", response);
     }
 
     @Override

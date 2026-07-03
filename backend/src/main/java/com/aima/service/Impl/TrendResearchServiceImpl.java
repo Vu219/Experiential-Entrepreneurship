@@ -83,8 +83,8 @@ public class TrendResearchServiceImpl implements TrendResearchService {
             trendResearchWorkerService.process(sessionId);
         }
 
-        return ApiResponse.success("Đã bắt đầu nghiên cứu xu hướng",
-                trendResearchMapper.toSessionResponse(saved));
+        TrendResearchSessionResponse response = trendResearchMapper.toSessionResponse(saved);
+        return ApiResponse.success("Đã bắt đầu nghiên cứu xu hướng", response);
     }
 
     @Override
@@ -94,8 +94,8 @@ public class TrendResearchServiceImpl implements TrendResearchService {
         TrendResearchSession session = sessionRepository
                 .findByIdAndBrandProfile_User_IdAndDeletedAtIsNull(sessionId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.RESEARCH_SESSION_NOT_FOUND));
-        return ApiResponse.success("Lấy phiên nghiên cứu xu hướng thành công",
-                trendResearchMapper.toSessionResponse(session));
+        TrendResearchSessionResponse response = trendResearchMapper.toSessionResponse(session);
+        return ApiResponse.success("Lấy phiên nghiên cứu xu hướng thành công", response);
     }
 
     @Override

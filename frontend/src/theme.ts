@@ -1,21 +1,17 @@
-import type { ThemeDef, ThemeKey, Platform } from './types';
+import type { Platform } from './types';
 
-// Palette intentionally softened a touch so the vibrant AIMA logo stands out
-// against a calmer UI (see also page backgrounds in index.css).
-export const THEMES: Record<ThemeKey, ThemeDef> = {
-  aurora: {
-    brand: 'linear-gradient(120deg,#46D6EC 0%,#897CE3 46%,#F083C0 100%)',
-    soft: 'linear-gradient(135deg,#edf9ff,#f6effc)',
-  },
-  sunset: {
-    brand: 'linear-gradient(120deg,#FB8DA0 0%,#B47CEE 52%,#7E86F1 100%)',
-    soft: 'linear-gradient(135deg,#fff0f4,#f4effc)',
-  },
-  ocean: {
-    brand: 'linear-gradient(120deg,#5BD8EC 0%,#6AA1F2 52%,#7E86F1 100%)',
-    soft: 'linear-gradient(135deg,#edf9ff,#eef3ff)',
-  },
-};
+// ===== Brand identity (đồng bộ src/styles/tokens.css) =====
+// Dải nhận diện TƯƠI, độc lập theme — dùng cho logo, nút chính, badge, avatar…
+// Giữ bản JS song song với CSS token để code inline (style={{ background }}) dùng trực tiếp.
+export const BRAND_GRADIENT = 'linear-gradient(135deg,#22d3ee,#3b82f6,#8b5cf6)';
+export const BRAND_GLOW = 'rgba(99,102,241,0.45)';
+
+// Nền deep cho box CTA cuối trang: indigo sâu + glow brand ở 2 góc để có chiều sâu.
+// Chữ trắng trên nền này đạt tương phản WCAG AA thoải mái.
+export const CTA_BG =
+  'radial-gradient(circle at 15% 20%, rgb(34 211 238 / .22), transparent 45%),' +
+  'radial-gradient(circle at 85% 80%, rgb(139 92 246 / .32), transparent 50%),' +
+  'linear-gradient(135deg,#1e1b4b,#312e81)';
 
 // Platform brand colors — MVP scope: Facebook → Instagram → Threads (see CLAUDE.md).
 export const PLATFORM_BG: Record<string, string> = {

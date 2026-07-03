@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+@import './styles/tokens.css';
 
 @tailwind base;
 @tailwind components;
@@ -74,10 +75,22 @@ button {
   animation: pop 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 .gradtext {
-  background: var(--brand, linear-gradient(110deg, #46d6ec, #897ce3, #f083c0));
+  background: var(--brand, linear-gradient(135deg, #22d3ee, #3b82f6, #8b5cf6));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* ===== Ambient nền theo theme (styles/tokens.css → --theme-surface-*) =====
+   Tint dịu ở opacity thấp phủ trên nền sáng: đổi theme là cả site đổi ambient,
+   nhưng nền vẫn sáng nên chữ tối luôn đạt tương phản. Bản DỊU tách khỏi dải logo
+   nên logo/nút brand luôn nổi bật. color-mix: Chrome/Edge/Safari 16.2+ hỗ trợ. */
+.ambient-surface {
+  background:
+    radial-gradient(1100px 600px at 82% -10%, color-mix(in srgb, var(--theme-surface-via) 15%, transparent), transparent 60%),
+    radial-gradient(900px 620px at -6% 8%, color-mix(in srgb, var(--theme-surface-from) 17%, transparent), transparent 55%),
+    radial-gradient(760px 520px at 50% 112%, color-mix(in srgb, var(--theme-surface-to) 12%, transparent), transparent 60%),
+    #f9f8fd;
 }
 
 /* ===== Hero logo treatment (AimaHero): glass slab + halo glow ===== */
@@ -731,6 +744,48 @@ html {
 }
 @media (prefers-reduced-motion: reduce) {
   .sk::after {
+    animation: none;
+  }
+}
+
+/* ===== LogoLoop (dải logo nền tảng chạy ngang vô tận — components/LogoLoop.tsx) ===== */
+.logoloop {
+  position: relative;
+  overflow: hidden;
+  padding: 6px 0; /* chừa chỗ cho bóng đổ của item */
+}
+.logoloop--fade {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
+}
+.logoloop__track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: logoloop-scroll var(--logoloop-duration, 40s) linear infinite;
+}
+.logoloop--reverse .logoloop__track {
+  animation-direction: reverse;
+}
+.logoloop--pausable:hover .logoloop__track {
+  animation-play-state: paused;
+}
+.logoloop__seq {
+  display: flex;
+  align-items: center;
+}
+.logoloop__item {
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+@keyframes logoloop-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .logoloop__track {
     animation: none;
   }
 }

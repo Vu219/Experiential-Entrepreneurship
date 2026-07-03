@@ -1,44 +1,41 @@
-import { useState } from 'react';
-import { Mail, Globe, Check } from 'lucide-react';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
-import { useReveal } from '../hooks/useReveal';
 import { GradIcon } from '../components/ui';
 import AimaHero from '../components/AimaHero';
 import LandingHeader from '../components/LandingHeader';
-import { flowCards, pricingPlans } from '../data';
-import { validEmail } from '../validations/authValidation';
-
-const CONTACT_EMAIL = 'aimarketing.aima@gmail.com';
-
-// Nền violet đậm cho card Pro + CTA band: chữ trắng đạt chuẩn tương phản (≥4.5:1),
-// khác với brandGradient (đầu cyan quá sáng cho chữ trắng).
-const DEEP_VIOLET = 'linear-gradient(160deg,#5b21b6,#7c3aed 85%)';
+import { Reveal, RevealGroup, RevealItem } from '../components/motion/Reveal';
+import StatNumber from '../components/motion/StatNumber';
+import HowItWorks from '../components/landing/HowItWorks';
+import IntegrationsLoop from '../components/landing/IntegrationsLoop';
+import SocialProof from '../components/landing/SocialProof';
+import PricingTeaser from '../components/landing/PricingTeaser';
+import FaqSection from '../components/landing/FaqSection';
+import CtaSection from '../components/landing/CtaSection';
+import LandingFooter from '../components/landing/LandingFooter';
+import { flowCards } from '../data';
 
 export default function LandingPage() {
-  const { t, lang, go, brandGradient, toggleLang } = useApp();
+  const { t, lang, go, brandGradient } = useApp();
   const { isMobile, isTablet, width } = useBreakpoint();
+  const { hash } = useLocation();
   const cards = flowCards(lang);
-  const plans = pricingPlans(lang);
   const stacked = isMobile || isTablet;
 
-  // Reveal khi cuộn tới (fade + trượt lên, tôn trọng prefers-reduced-motion).
-  // Stagger trên WRAPPER (không có class transition) — animate thẳng .lift-card sẽ
-  // đụng transition:transform của nó và làm chuyển động bị "trễ".
-  const featuresRef = useReveal<HTMLDivElement>({ selector: '.flow-reveal', delayStep: 80 });
-  const pricingRef = useReveal<HTMLDivElement>({ selector: '.plan-reveal', delayStep: 110 });
-  const ctaRef = useReveal<HTMLDivElement>({ translateY: 18 });
+  // Điều hướng từ trang khác về "/#features"… → cuộn tới section theo hash sau mount.
+  useEffect(() => {
+    if (!hash) return;
+    const el = document.getElementById(hash.slice(1));
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [hash]);
 
-  // Đăng ký nhận tin (footer) — chỉ xác nhận phía FE, chưa có endpoint newsletter.
-  const [nlEmail, setNlEmail] = useState('');
-  const [nlState, setNlState] = useState<'idle' | 'done' | 'invalid'>('idle');
-  const subscribeNews = () => {
-    if (!validEmail(nlEmail.trim())) {
-      setNlState('invalid');
-      return;
-    }
-    setNlState('done');
-  };
+  // Thống kê hero — số chạy hiệu ứng đếm khi vào viewport lần đầu (StatNumber).
+  const heroStats: { value: number; suffix: string; label: string }[] = [
+    { value: 3, suffix: '+', label: t.statPlatforms },
+    { value: 24, suffix: '/7', label: t.statAuto },
+    { value: 10, suffix: '×', label: t.statSpeed },
+  ];
 
   // LandingHeader (position: fixed) phải nằm NGOÀI khối .view-pop. Class view-pop
   // có animation dùng `transform`, mà ancestor có transform sẽ khiến position:fixed
@@ -47,42 +44,49 @@ export default function LandingPage() {
     <>
       <LandingHeader />
 
-      <div
-        className="view-pop overflow-x-hidden"
-        style={{
-          minHeight: '100vh',
-          background:
-            'radial-gradient(1100px 600px at 80% -10%,rgba(217,70,239,.08),transparent 60%),radial-gradient(900px 600px at -5% 10%,rgba(34,211,238,.09),transparent 55%),#f9f8fd',
-        }}
-      >
+      <div className="view-pop overflow-x-hidden ambient-surface" style={{ minHeight: '100vh' }}>
+        {/* 1. Hero — reveal stagger nhẹ cho badge/tiêu đề/nút */}
         <section id="home" className="scroll-anchor" style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '96px 18px 44px' : '120px 28px 60px', display: 'grid', gridTemplateColumns: stacked ? '1fr' : '1.05fr .95fr', gap: stacked ? 28 : 40, alignItems: 'center' }}>
-          <div className="min-w-0 max-w-full" style={{ textAlign: isMobile ? 'center' : 'left' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: '#fff', border: '1px solid #ece8f7', borderRadius: 999, padding: '7px 15px', fontSize: 13, fontWeight: 600, color: '#7c3aed', boxShadow: '0 6px 18px -12px rgba(124,58,237,.5)' }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: brandGradient }} />
-              {t.heroBadge}
-            </div>
-            <h1 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: isMobile ? (width >= 640 ? 36 : 30) : 62, lineHeight: 1.06, letterSpacing: '-.02em', margin: '20px 0 0', color: '#171327', overflowWrap: 'break-word' }}>
-              {t.heroT1}
-              <br />
-              <span className="gradtext">{t.heroT2}</span>
-            </h1>
-            <p style={{ fontSize: isMobile ? 16 : 18, lineHeight: 1.6, color: '#5b5670', maxWidth: 480, margin: isMobile ? '20px auto 0' : '22px 0 0', padding: isMobile ? '0 6px' : 0 }}>{t.heroSub}</p>
-            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 14, marginTop: 34, flexWrap: 'wrap', alignItems: isMobile ? 'stretch' : 'center' }}>
-              <button className="btn-grad" onClick={() => go('register')} style={{ border: 'none', borderRadius: 14, padding: isMobile ? '13px 20px' : '16px 30px', fontWeight: 700, fontSize: isMobile ? 14 : 16, color: '#fff', background: brandGradient, boxShadow: '0 18px 34px -14px rgba(139,92,246,.65)', cursor: 'pointer', width: isMobile ? '100%' : undefined, maxWidth: '100%' }}>{t.bookDemo}</button>
-              <button className="btn-outline" onClick={() => go('login')} style={{ border: '1.5px solid #d9cef5', borderRadius: 14, padding: isMobile ? '13px 20px' : '16px 30px', fontWeight: 700, fontSize: isMobile ? 14 : 16, color: '#7c3aed', background: '#fff', cursor: 'pointer', width: isMobile ? '100%' : undefined, maxWidth: '100%' }}>{t.tryAima}</button>
-            </div>
-            <div style={{ display: isMobile ? 'grid' : 'flex', gridTemplateColumns: isMobile ? 'repeat(3,1fr)' : undefined, gap: isMobile ? 10 : 30, marginTop: isMobile ? 38 : 46, justifyContent: isMobile ? undefined : 'flex-start' }}>
-              {[['3+', t.statPlatforms], ['24/7', t.statAuto], ['10×', t.statSpeed]].map(([v, l], i) => (
-                <div key={i} style={{ display: 'flex', gap: isMobile ? 0 : 30, minWidth: 0 }}>
-                  {i > 0 && !isMobile && <div style={{ width: 1, background: '#e7e2f2' }} />}
-                  <div style={{ minWidth: 0, textAlign: isMobile ? 'center' : 'left' }}>
-                    <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 24 : 30, color: '#171327' }}>{v}</div>
-                    <div style={{ fontSize: isMobile ? 12 : 13, color: '#6b6680', marginTop: 2 }}>{l}</div>
+          <RevealGroup className="min-w-0 max-w-full" style={{ textAlign: isMobile ? 'center' : 'left' }}>
+            <RevealItem y={16}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: '#fff', border: '1px solid #ece8f7', borderRadius: 999, padding: '7px 15px', fontSize: 13, fontWeight: 600, color: '#7c3aed', boxShadow: '0 6px 18px -12px rgba(124,58,237,.5)' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: brandGradient }} />
+                {t.heroBadge}
+              </div>
+            </RevealItem>
+            <RevealItem y={20}>
+              <h1 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: isMobile ? (width >= 640 ? 36 : 30) : 62, lineHeight: 1.06, letterSpacing: '-.02em', margin: '20px 0 0', color: '#171327', overflowWrap: 'break-word' }}>
+                {t.heroT1}
+                <br />
+                <span className="gradtext">{t.heroT2}</span>
+              </h1>
+            </RevealItem>
+            <RevealItem y={20}>
+              <p style={{ fontSize: isMobile ? 16 : 18, lineHeight: 1.6, color: '#5b5670', maxWidth: 480, margin: isMobile ? '20px auto 0' : '22px 0 0', padding: isMobile ? '0 6px' : 0 }}>{t.heroSub}</p>
+            </RevealItem>
+            <RevealItem y={20}>
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 14, marginTop: 34, flexWrap: 'wrap', alignItems: isMobile ? 'stretch' : 'center' }}>
+                <button className="btn-grad" onClick={() => go('register')} style={{ border: 'none', borderRadius: 14, padding: isMobile ? '13px 20px' : '16px 30px', fontWeight: 700, fontSize: isMobile ? 14 : 16, color: '#fff', background: brandGradient, boxShadow: '0 18px 34px -14px rgba(139,92,246,.65)', cursor: 'pointer', width: isMobile ? '100%' : undefined, maxWidth: '100%' }}>{t.bookDemo}</button>
+                <button className="btn-outline" onClick={() => go('login')} style={{ border: '1.5px solid #d9cef5', borderRadius: 14, padding: isMobile ? '13px 20px' : '16px 30px', fontWeight: 700, fontSize: isMobile ? 14 : 16, color: '#7c3aed', background: '#fff', cursor: 'pointer', width: isMobile ? '100%' : undefined, maxWidth: '100%' }}>{t.tryAima}</button>
+              </div>
+            </RevealItem>
+            {/* 2. Thống kê — count-up khi vào viewport lần đầu */}
+            <RevealItem y={20}>
+              <div style={{ display: isMobile ? 'grid' : 'flex', gridTemplateColumns: isMobile ? 'repeat(3,1fr)' : undefined, gap: isMobile ? 10 : 30, marginTop: isMobile ? 38 : 46, justifyContent: isMobile ? undefined : 'flex-start' }}>
+                {heroStats.map((s, i) => (
+                  <div key={i} style={{ display: 'flex', gap: isMobile ? 0 : 30, minWidth: 0 }}>
+                    {i > 0 && !isMobile && <div style={{ width: 1, background: '#e7e2f2' }} />}
+                    <div style={{ minWidth: 0, textAlign: isMobile ? 'center' : 'left' }}>
+                      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 24 : 30, color: '#171327' }}>
+                        <StatNumber value={s.value} suffix={s.suffix} />
+                      </div>
+                      <div style={{ fontSize: isMobile ? 12 : 13, color: '#6b6680', marginTop: 2 }}>{s.label}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
+                ))}
+              </div>
+            </RevealItem>
+          </RevealGroup>
           <div className="min-w-0 max-w-full" style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{ width: '100%', maxWidth: isMobile ? 300 : 460, aspectRatio: '1 / 1' }}>
               <AimaHero />
@@ -90,14 +94,17 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* 3. "Một quy trình trọn vẹn" — 6 thẻ, stagger */}
         <section id="features" className="scroll-anchor" style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '10px 18px 50px' : '10px 28px 70px' }}>
-          <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto 40px' }}>
-            <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 30 : 38, letterSpacing: '-.02em', margin: 0, color: '#171327' }}>{t.flowTitle}</h2>
-            <p style={{ fontSize: 17, color: '#5b5670', margin: '12px 0 0' }}>{t.flowSub}</p>
-          </div>
-          <div ref={featuresRef} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2,1fr)' : 'repeat(3,1fr)', gap: 20 }}>
+          <Reveal>
+            <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto 40px' }}>
+              <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 30 : 38, letterSpacing: '-.02em', margin: 0, color: '#171327' }}>{t.flowTitle}</h2>
+              <p style={{ fontSize: 17, color: '#5b5670', margin: '12px 0 0' }}>{t.flowSub}</p>
+            </div>
+          </Reveal>
+          <RevealGroup style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2,1fr)' : 'repeat(3,1fr)', gap: 20 }}>
             {cards.map((c, i) => (
-              <div key={i} className="flow-reveal" style={{ display: 'flex' }}>
+              <RevealItem key={i} style={{ display: 'flex' }}>
                 <div className="lift-card" style={{ flex: 1, background: '#fff', border: '1px solid #efeaf8', borderRadius: 20, padding: 26, boxShadow: '0 22px 44px -34px rgba(80,40,140,.5)' }}>
                   <div style={{ width: 48, height: 48, borderRadius: 13, background: 'linear-gradient(135deg,#edf9ff,#f6effc)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <GradIcon icon={c.icon} size={24} />
@@ -105,217 +112,31 @@ export default function LandingPage() {
                   <div style={{ fontWeight: 700, fontSize: 17, margin: '16px 0 6px', color: '#211c38' }}>{c.title}</div>
                   <div style={{ fontSize: 14, lineHeight: 1.55, color: '#6b6680' }}>{c.desc}</div>
                 </div>
-              </div>
+              </RevealItem>
             ))}
-          </div>
+          </RevealGroup>
         </section>
 
-        {/* Gói đăng ký (subscription) — giá đồng bộ cấu hình gói ở admin */}
-        <section id="pricing" className="scroll-anchor" style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '30px 18px 56px' : '46px 28px 90px' }}>
-          <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto 44px' }}>
-            <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 30 : 38, letterSpacing: '-.02em', margin: 0, color: '#171327' }}>{t.prTitle}</h2>
-            <p style={{ fontSize: 17, color: '#5b5670', margin: '12px 0 0' }}>{t.prSub}</p>
-          </div>
+        {/* 4. Cách hoạt động — 3 bước */}
+        <HowItWorks />
 
-          <div ref={pricingRef} style={{ display: 'grid', gridTemplateColumns: stacked ? '1fr' : 'repeat(3,1fr)', gap: 22, alignItems: 'stretch', maxWidth: stacked ? 520 : undefined, margin: '0 auto' }}>
-            {plans.map((p) => {
-              const featured = !!p.featured;
-              return (
-                <div key={p.id} className="plan-reveal" style={{ display: 'flex' }}>
-                <div
-                  className="lift-card"
-                  style={{
-                    position: 'relative',
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    borderRadius: 20,
-                    padding: featured ? '34px 28px 28px' : 28,
-                    background: featured ? DEEP_VIOLET : '#fff',
-                    border: featured ? 'none' : '1px solid #efeaf8',
-                    boxShadow: featured
-                      ? '0 30px 60px -28px rgba(91,33,182,.55)'
-                      : '0 22px 44px -34px rgba(80,40,140,.5)',
-                    marginTop: featured && !stacked ? -14 : undefined,
-                  }}
-                >
-                  {featured && (
-                    <span style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: '#fff', color: '#6d28d9', border: '1px solid #e7d9fb', borderRadius: 999, padding: '5px 14px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', boxShadow: '0 10px 22px -12px rgba(80,40,140,.5)' }}>
-                      ★ {t.prPopular}
-                    </span>
-                  )}
-                  <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: featured ? '#fff' : '#211c38' }}>{p.name}</div>
-                  <div style={{ fontSize: 13.5, lineHeight: 1.5, color: featured ? 'rgba(255,255,255,.85)' : '#6b6680', marginTop: 6, minHeight: stacked ? undefined : 42 }}>{p.desc}</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '18px 0 4px' }}>
-                    <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 34, letterSpacing: '-.02em', color: featured ? '#fff' : '#171327' }}>{p.price}</span>
-                    <span style={{ fontSize: 13.5, fontWeight: 600, color: featured ? 'rgba(255,255,255,.8)' : '#8a85a0' }}>{p.cadence}</span>
-                  </div>
-                  <div style={{ height: 1, background: featured ? 'rgba(255,255,255,.22)' : '#f0ecf8', margin: '16px 0' }} />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 11, flex: 1 }}>
-                    {p.features.map((f, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-                        <span style={{ flex: 'none', width: 19, height: 19, borderRadius: '50%', background: featured ? 'rgba(255,255,255,.2)' : '#f3edff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
-                          <Check size={12} strokeWidth={3} color={featured ? '#fff' : '#7c3aed'} />
-                        </span>
-                        <span style={{ fontSize: 13.5, lineHeight: 1.5, color: featured ? '#fff' : '#4b4660' }}>{f}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    className={featured ? undefined : 'btn-grad'}
-                    onClick={() => go('register')}
-                    style={{
-                      width: '100%',
-                      marginTop: 24,
-                      border: 'none',
-                      borderRadius: 13,
-                      padding: 14,
-                      fontWeight: 700,
-                      fontSize: 14.5,
-                      cursor: 'pointer',
-                      color: featured ? '#6d28d9' : '#fff',
-                      background: featured ? '#fff' : brandGradient,
-                      boxShadow: featured ? '0 16px 30px -16px rgba(23,10,50,.55)' : '0 16px 30px -14px rgba(139,92,246,.6)',
-                    }}
-                  >
-                    {p.cta}
-                  </button>
-                </div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ textAlign: 'center', fontSize: 12.5, color: '#8a85a0', marginTop: 22 }}>{t.prNote}</div>
-        </section>
+        {/* 5. Nền tảng tích hợp — LogoLoop */}
+        <IntegrationsLoop />
 
-        {/* CTA cuối trang */}
-        <section style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '0 18px 56px' : '0 28px 84px' }}>
-          <div ref={ctaRef} style={{ position: 'relative', overflow: 'hidden', borderRadius: 24, background: DEEP_VIOLET, padding: isMobile ? '40px 24px' : '58px 60px', textAlign: 'center' }}>
-            <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'radial-gradient(560px 260px at 12% -20%,rgba(70,214,236,.35),transparent 60%),radial-gradient(560px 300px at 90% 130%,rgba(240,131,192,.3),transparent 60%)' }} />
-            <div style={{ position: 'relative' }}>
-              <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 26 : 36, letterSpacing: '-.02em', margin: 0, color: '#fff' }}>{t.ctaTitle}</h2>
-              <p style={{ fontSize: isMobile ? 14.5 : 16.5, lineHeight: 1.6, color: 'rgba(255,255,255,.88)', maxWidth: 560, margin: '14px auto 0' }}>{t.ctaSub}</p>
-              <button className="lift-card" onClick={() => go('register')} style={{ border: 'none', borderRadius: 14, padding: isMobile ? '13px 26px' : '15px 34px', marginTop: 28, fontWeight: 700, fontSize: isMobile ? 14.5 : 16, color: '#6d28d9', background: '#fff', boxShadow: '0 18px 36px -16px rgba(23,10,50,.6)', cursor: 'pointer' }}>
-                {t.ctaBtn}
-              </button>
-              <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,.75)', marginTop: 12 }}>{t.ctaHint}</div>
-            </div>
-          </div>
-        </section>
+        {/* 6. Social proof — badge tin cậy + placeholder testimonial */}
+        <SocialProof />
 
-        <footer id="resources" className="scroll-anchor" style={{ position: 'relative', zIndex: 1, borderTop: '1px solid #ece7f6', background: 'linear-gradient(180deg,rgba(247,246,253,0),rgba(244,243,251,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.12),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.10),transparent 60%),#fbfafe', overflow: 'hidden' }}>
-          <div style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '48px 24px 104px' : '64px 28px 30px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : isTablet ? 'repeat(2,1fr)' : '1.7fr 1fr 1fr 1fr 1.4fr', gap: isMobile ? 28 : 34, textAlign: 'left', justifyItems: 'stretch' }}>
-              {/* Brand */}
-              <div style={{ gridColumn: stacked ? '1 / -1' : undefined }}>
-                <img src="/aima-logo.png" alt="AIMA" style={{ height: 44, width: 'auto', display: 'block' }} />
-                <p style={{ fontSize: 14, lineHeight: 1.65, color: '#6b6680', maxWidth: 300, margin: '18px 0 0' }}>{t.ftTagline}</p>
-                <a className="link-underline" href={`mailto:${CONTACT_EMAIL}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 16, fontSize: 14, color: '#6b6680', textDecoration: 'none' }}>
-                  <Mail size={16} color="#8b5cf6" strokeWidth={1.8} />
-                  {CONTACT_EMAIL}
-                </a>
-                <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
-                  {[
-                    ['Facebook', 'facebook', 'M14 9h3V5.5h-3c-2.2 0-3.8 1.7-3.8 3.9V11H8v3.4h2.2V21h3.4v-6.6H16L16.5 11h-2.9V9.4c0-.3.2-.4.4-.4z'],
-                    ['Instagram', 'instagram', ''],
-                    ['LinkedIn', 'linkedin', 'M6.5 8.5A1.5 1.5 0 106.5 5.5a1.5 1.5 0 000 3zM5.2 10h2.6v9H5.2zM10 10h2.5v1.3c.4-.7 1.4-1.5 2.9-1.5 2.4 0 3.4 1.5 3.4 4.1V19h-2.6v-4.6c0-1.2-.4-2-1.5-2-.9 0-1.4.6-1.6 1.2-.1.2-.1.5-.1.8V19H10z'],
-                    ['YouTube', 'youtube', ''],
-                  ].map(([label, social, path]) => (
-                    <div key={label} className="social-item" data-social={social}>
-                      <a aria-label={label} className="social-icon">
-                        <span className="social-fill" />
-                        {label === 'Instagram' ? (
-                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="4" y="4" width="16" height="16" rx="5" /><circle cx="12" cy="12" r="3.4" /><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" /></svg>
-                        ) : label === 'YouTube' ? (
-                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="6.5" width="18" height="11" rx="3.2" /><path d="M11 9.8l3.2 1.9-3.2 1.9z" fill="currentColor" stroke="none" /></svg>
-                        ) : (
-                          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d={path} /></svg>
-                        )}
-                      </a>
-                      <span className="social-tip">{label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+        {/* 7. Pricing teaser — chi tiết ở trang /pricing */}
+        <PricingTeaser />
 
-              {/* Sản phẩm */}
-              <div>
-                <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 14, color: '#211c38', marginBottom: 16 }}>{t.ftProduct}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-                  <a className="link-underline" href="#features" onClick={(e) => { e.preventDefault(); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680', textDecoration: 'none' }}>{t.ftFeatures}</a>
-                  <a className="link-underline" href="#pricing" onClick={(e) => { e.preventDefault(); document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680', textDecoration: 'none' }}>{t.ftPricing}</a>
-                  <a className="link-underline" onClick={() => go('login')} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftDemo}</a>
-                  <a className="link-underline" onClick={() => go('register')} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftTry}</a>
-                </div>
-              </div>
+        {/* 8. FAQ nhanh */}
+        <FaqSection />
 
-              {/* Tài nguyên */}
-              <div>
-                <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 14, color: '#211c38', marginBottom: 16 }}>{t.ftResources}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-                  <span className="link-underline" style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftBlog}</span>
-                  <span className="link-underline" style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftGuide}</span>
-                  <span className="link-underline" style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftDocs}</span>
-                </div>
-              </div>
+        {/* 9. CTA cuối trang */}
+        <CtaSection />
 
-              {/* Công ty */}
-              <div>
-                <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 14, color: '#211c38', marginBottom: 16 }}>{t.ftCompany}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-                  <span className="link-underline" style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftAbout}</span>
-                  <a className="link-underline" href={`mailto:${CONTACT_EMAIL}`} style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680', textDecoration: 'none' }}>{t.ftContact}</a>
-                  <span className="link-underline" style={{ cursor: 'pointer', fontSize: 14, color: '#6b6680' }}>{t.ftCareers}</span>
-                </div>
-              </div>
-
-              {/* Đăng ký nhận tin */}
-              <div style={{ gridColumn: isMobile ? '1 / -1' : undefined }}>
-                <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 14, color: '#211c38', marginBottom: 10 }}>{t.ftNews}</div>
-                <div style={{ fontSize: 13, lineHeight: 1.55, color: '#6b6680', marginBottom: 14, maxWidth: 280 }}>{t.ftNewsSub}</div>
-                {nlState === 'done' ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#e8f8ee', border: '1px solid #bfe8cd', borderRadius: 12, padding: '12px 14px', width: '100%', maxWidth: isMobile ? '100%' : 300, fontSize: 13.5, fontWeight: 600, color: '#15803d' }}>
-                    {t.ftNewsDone}
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: '#fff', border: `1px solid ${nlState === 'invalid' ? '#f3aabf' : '#e6e2f2'}`, borderRadius: 12, padding: '5px 5px 5px 14px', width: '100%', maxWidth: isMobile ? '100%' : 300, boxShadow: '0 10px 24px -18px rgba(80,40,140,.5)' }}>
-                      <input
-                        type="email"
-                        value={nlEmail}
-                        onChange={(e) => { setNlEmail(e.target.value); if (nlState === 'invalid') setNlState('idle'); }}
-                        onKeyDown={(e) => { if (e.key === 'Enter') subscribeNews(); }}
-                        placeholder={t.ftEmailPh}
-                        style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: '#2b2740', minWidth: 0 }}
-                      />
-                      <button className="btn-grad" onClick={subscribeNews} style={{ border: 'none', borderRadius: 9, padding: '10px 16px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer', whiteSpace: 'nowrap' }}>{t.ftSubscribe}</button>
-                    </div>
-                    {nlState === 'invalid' && (
-                      <div style={{ fontSize: 12.5, color: '#d6336c', marginTop: 8 }}>{t.ftNewsInvalid}</div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div style={{ height: 1, background: '#ece7f6', margin: '44px 0 22px' }} />
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'space-between', gap: isMobile ? 18 : 16, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row', textAlign: isMobile ? 'center' : 'left' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 12 : 18, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
-                <button className="btn-soft" onClick={toggleLang} style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#fff', border: '1px solid #e6e2f2', borderRadius: 999, padding: '8px 14px', fontSize: 13, fontWeight: 600, color: '#4b4660', cursor: 'pointer' }}>
-                  <Globe size={15} color="#8b5cf6" strokeWidth={1.8} />
-                  {t.langLabel}
-                </button>
-                <span style={{ fontSize: 13, color: '#8a85a0' }}>{t.ftRights}</span>
-              </div>
-              <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', justifyContent: 'center' }}>
-                <span className="link-underline" style={{ cursor: 'pointer', fontSize: 13, color: '#8a85a0' }}>{t.ftTerms}</span>
-                <span className="link-underline" style={{ cursor: 'pointer', fontSize: 13, color: '#8a85a0' }}>{t.ftPrivacy}</span>
-                <span className="link-underline" style={{ cursor: 'pointer', fontSize: 13, color: '#8a85a0' }}>{t.ftCookie}</span>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {/* 10. Footer */}
+        <LandingFooter />
       </div>
     </>
   );

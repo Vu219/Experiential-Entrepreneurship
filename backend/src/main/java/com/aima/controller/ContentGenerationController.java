@@ -34,8 +34,8 @@ public class ContentGenerationController {
     @PostMapping("/generate")
     @Operation(summary = "Start generating a content item",
             description = "Starts an async job that calls the AI service; the strategy must be ACTIVE (BR-13).")
-    public ApiResponse<ContentGenerationJobResponse> generate(@AuthenticationPrincipal UserDetails principal,
-                                                              @Valid @RequestBody ContentGenerationRequest request) {
+    public ApiResponse<ContentGenerationJobResponse> start(@AuthenticationPrincipal UserDetails principal,
+                                                           @Valid @RequestBody ContentGenerationRequest request) {
         return contentGenerationService.startGeneration(principal.getUsername(), request);
     }
 

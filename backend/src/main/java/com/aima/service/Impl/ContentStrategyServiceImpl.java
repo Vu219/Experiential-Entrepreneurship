@@ -53,8 +53,8 @@ public class ContentStrategyServiceImpl implements ContentStrategyService {
         }
         ContentStrategy saved = contentStrategyRepository.save(strategy);
 
-        return ApiResponse.success("Tạo chiến lược nội dung thành công",
-                contentStrategyMapper.toContentStrategyResponse(saved));
+        ContentStrategyResponse response = contentStrategyMapper.toResponse(saved);
+        return ApiResponse.success("Tạo chiến lược nội dung thành công", response);
     }
 
     // FR-07: list — phân trang + lọc server-side (PageResponse dùng chung); brandId null → tất cả
@@ -69,8 +69,9 @@ public class ContentStrategyServiceImpl implements ContentStrategyService {
         }
         String query = q == null ? "" : q.trim();
         Page<ContentStrategy> page = contentStrategyRepository.search(user.getId(), brandId, status, query, pageable);
-        return ApiResponse.success("Lấy danh sách chiến lược nội dung thành công",
-                PageResponse.from(page, contentStrategyMapper.toContentStrategyResponseList(page.getContent())));
+        PageResponse<ContentStrategyResponse> response =
+                PageResponse.from(page, contentStrategyMapper.toResponseList(page.getContent()));
+        return ApiResponse.success("Lấy danh sách chiến lược nội dung thành công", response);
     }
 
     // FR-07: view one
@@ -78,21 +79,21 @@ public class ContentStrategyServiceImpl implements ContentStrategyService {
     @Transactional(readOnly = true)
     public ApiResponse<ContentStrategyResponse> get(String email, UUID id) {
         ContentStrategy strategy = find(currentUser(email).getId(), id);
-        return ApiResponse.success("Lấy chiến lược nội dung thành công",
-                contentStrategyMapper.toContentStrategyResponse(strategy));
+        ContentStrategyResponse response = contentStrategyMapper.toResponse(strategy);
+        return ApiResponse.success("Lấy chiến lược nội dung thành công", response);
     }
 
     // FR-13: update
     @Override
     public ApiResponse<ContentStrategyResponse> update(String email, UUID id, ContentStrategyRequest request) {
         ContentStrategy strategy = find(currentUser(email).getId(), id);
-        contentStrategyMapper.updateContentStrategy(strategy, request);
+        contentStrategyMapper.update(request, strategy);
         if (!StringUtils.hasText(strategy.getFrequencyUnit())) {
             strategy.setFrequencyUnit(ContentStrategy.DEFAULT_FREQUENCY_UNIT);
         }
         ContentStrategy saved = contentStrategyRepository.save(strategy);
-        return ApiResponse.success("Cập nhật chiến lược nội dung thành công",
-                contentStrategyMapper.toContentStrategyResponse(saved));
+        ContentStrategyResponse response = contentStrategyMapper.toResponse(saved);
+        return ApiResponse.success("Cập nhật chiến lược nội dung thành công", response);
     }
 
     // FR-13: activate / pause (DRAFT / ACTIVE / PAUSED)
@@ -101,8 +102,8 @@ public class ContentStrategyServiceImpl implements ContentStrategyService {
         ContentStrategy strategy = find(currentUser(email).getId(), id);
         strategy.setStatus(status);
         ContentStrategy saved = contentStrategyRepository.save(strategy);
-        return ApiResponse.success("Cập nhật trạng thái chiến lược thành công",
-                contentStrategyMapper.toContentStrategyResponse(saved));
+        ContentStrategyResponse response = contentStrategyMapper.toResponse(saved);
+        return ApiResponse.success("Cập nhật trạng thái chiến lược thành công", response);
     }
 
     // FR-08: soft delete (không cascade StrategyAdjustment theo ghi chú entity)

@@ -5,8 +5,6 @@ import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.ApiVersionHistoryResponse;
 import com.aima.dto.response.ApiVersionResponse;
 import com.aima.enums.Platform;
-import com.aima.exception.AppException;
-import com.aima.exception.ErrorCode;
 import com.aima.service.PlatformVersionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,29 +37,21 @@ public class PlatformVersionAdminController {
 
     @GetMapping("/{platform}/history")
     @Operation(summary = "Lịch sử thay đổi version của một nền tảng")
-    public ApiResponse<List<ApiVersionHistoryResponse>> history(@PathVariable String platform) {
-        return versionService.getVersionHistory(parse(platform));
+    public ApiResponse<List<ApiVersionHistoryResponse>> history(@PathVariable Platform platform) {
+        return versionService.getVersionHistory(platform);
     }
 
     @PostMapping("/{platform}")
     @Operation(summary = "Cập nhật version hiện hành (áp dụng tức thì)")
     public ApiResponse<ApiVersionResponse> update(@AuthenticationPrincipal UserDetails principal,
-                                                  @PathVariable String platform,
+                                                  @PathVariable Platform platform,
                                                   @Valid @RequestBody UpdateVersionRequest request) {
-        return versionService.updateVersion(parse(platform), request, principal.getUsername());
+        return versionService.updateVersion(platform, request, principal.getUsername());
     }
 
     @PostMapping("/check-now")
     @Operation(summary = "Chạy kiểm tra version mới ngay")
     public ApiResponse<List<ApiVersionResponse>> checkNow() {
         return versionService.checkVersionsManually();
-    }
-
-    private Platform parse(String platform) {
-        try {
-            return Platform.valueOf(platform.toUpperCase());
-        } catch (IllegalArgumentException | NullPointerException e) {
-            throw new AppException(ErrorCode.INVALID_PLATFORM);
-        }
     }
 }

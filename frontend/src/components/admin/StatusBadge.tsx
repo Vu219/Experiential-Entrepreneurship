@@ -11,7 +11,7 @@ const TONES: Record<Tone, { color: string; bg: string }> = {
   success: { color: '#16a34a', bg: '#e8f8ee' }, // Posted / Active / Operational
   danger: { color: '#dc2626', bg: '#fde8e8' }, // Failed / Locked / Down / ERROR
   warning: { color: '#d97706', bg: '#fdf0dc' }, // Pending / Retrying / Degraded / WARN
-  info: { color: '#0e7490', bg: '#e0f7fb' }, // INFO / Business
+  info: { color: '#0e7490', bg: '#e0f7fb' }, // INFO / Plus
   purple: { color: '#7c3aed', bg: '#f1e9ff' }, // Scheduled / Need review / Pro
   neutral: { color: '#64748b', bg: '#eef2f7' }, // Draft / Idle / DEBUG
 };

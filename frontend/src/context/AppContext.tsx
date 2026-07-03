@@ -1,7 +1,7 @@
 import { useCallback, useEffect, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { Route } from '../types';
-import { THEMES } from '../theme';
+import { BRAND_GRADIENT } from '../theme';
 import { getDict } from '../i18n';
 import { useAuth } from '../auth/AuthContext';
 import { useAppStore } from '../store/useAppStore';
@@ -13,6 +13,7 @@ import { useUiStore } from '../store/useUiStore';
 // useNavigate/useLocation/useAuth — những thứ không bỏ vào store thuần được.
 const PATH_BY_ROUTE: Record<Route, string> = {
   landing: '/',
+  pricing: '/pricing',
   login: '/login',
   register: '/register',
   logout: '/logout',
@@ -95,7 +96,9 @@ export function useApp() {
     t: getDict(lang),
     theme,
     setTheme,
-    brandGradient: THEMES[theme].brand,
+    // Nút/logo/badge dùng dải brand TƯƠI cố định (độc lập theme). Theme chỉ đổi
+    // ambient nền qua CSS var --theme-surface-* (xem styles/tokens.css).
+    brandGradient: BRAND_GRADIENT,
     route,
     go,
     authed: !!user,

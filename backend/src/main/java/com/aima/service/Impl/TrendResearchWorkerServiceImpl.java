@@ -11,7 +11,6 @@ import com.aima.entity.Trend;
 import com.aima.entity.TrendResearchSession;
 import com.aima.enums.ResearchStatus;
 import com.aima.enums.StrategyStatus;
-import com.aima.exception.AppException;
 import com.aima.mapper.AiContentMapper;
 import com.aima.mapper.TrendResearchMapper;
 import com.aima.repository.ContentStrategyRepository;
@@ -64,7 +63,8 @@ public class TrendResearchWorkerServiceImpl implements TrendResearchWorkerServic
             ResearchResultPayload result = aiServiceClient.research(payload);
             transactionTemplate.executeWithoutResult(status -> saveSuccess(sessionId, result));
         } catch (Exception e) {
-            String message = errorMessageOf(e);
+            // AppException giờ truyền message của ErrorCode vào super(...) nên getMessage() luôn có nghĩa.
+            String message = e.getMessage();
             log.warn("[TrendResearch] Phiên {} thất bại: {}", sessionId, message, e);
             transactionTemplate.executeWithoutResult(status -> saveFailure(sessionId, message));
         }
@@ -146,13 +146,5 @@ public class TrendResearchWorkerServiceImpl implements TrendResearchWorkerServic
         session.setStatus(ResearchStatus.FAILED);
         session.setErrorMessage(message);
         sessionRepository.save(session);
-    }
-
-    // AppException không set message qua super(...) — lấy message từ ErrorCode (cùng mẫu
-    // ContentGenerationWorkerServiceImpl.errorMessageOf).
-    private String errorMessageOf(Throwable e) {
-        return (e instanceof AppException appException && appException.getErrorCode() != null)
-                ? appException.getErrorCode().getMessage()
-                : e.getMessage();
     }
 }

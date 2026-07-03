@@ -297,12 +297,12 @@ export async function getRevenue(period: RevenuePeriod, lang: Lang): Promise<Rev
   };
   const [total, orders, growth] = totals[period];
   const transactions = [
-    { id: 'INV-0612', customer: 'David Chen', plan: 'Pro', amount: 499_000, tone: 'success' as Tone, status: paid, date: '2026-06-22' },
-    { id: 'INV-0611', customer: 'Sophie Tran', plan: 'Business', amount: 1_990_000, tone: 'success' as Tone, status: paid, date: '2026-06-22' },
-    { id: 'INV-0610', customer: 'Mai Chi', plan: 'Pro', amount: 499_000, tone: 'warning' as Tone, status: pending, date: '2026-06-21' },
-    { id: 'INV-0609', customer: 'Hoàng Long', plan: 'Pro', amount: 499_000, tone: 'success' as Tone, status: paid, date: '2026-06-21' },
-    { id: 'INV-0608', customer: 'Quang Huy', plan: 'Business', amount: 1_990_000, tone: 'danger' as Tone, status: refunded, date: '2026-06-20' },
-    { id: 'INV-0607', customer: 'Diệu Linh', plan: 'Pro', amount: 499_000, tone: 'success' as Tone, status: paid, date: '2026-06-20' },
+    { id: 'INV-0612', customer: 'David Chen', plan: 'Plus', amount: 499_000, tone: 'success' as Tone, status: paid, date: '2026-06-22' },
+    { id: 'INV-0611', customer: 'Sophie Tran', plan: 'Pro', amount: 1_990_000, tone: 'success' as Tone, status: paid, date: '2026-06-22' },
+    { id: 'INV-0610', customer: 'Mai Chi', plan: 'Plus', amount: 499_000, tone: 'warning' as Tone, status: pending, date: '2026-06-21' },
+    { id: 'INV-0609', customer: 'Hoàng Long', plan: 'Plus', amount: 499_000, tone: 'success' as Tone, status: paid, date: '2026-06-21' },
+    { id: 'INV-0608', customer: 'Quang Huy', plan: 'Pro', amount: 1_990_000, tone: 'danger' as Tone, status: refunded, date: '2026-06-20' },
+    { id: 'INV-0607', customer: 'Diệu Linh', plan: 'Plus', amount: 499_000, tone: 'success' as Tone, status: paid, date: '2026-06-20' },
   ];
   return delay({ total, orders, growth, series: series[period], transactions });
 }
@@ -318,8 +318,8 @@ export interface PricingPlan {
 export async function getPlans(): Promise<PricingPlan[]> {
   return delay([
     { id: 'free', name: 'Free', price: 0, active: true },
-    { id: 'pro', name: 'Pro', price: 499_000, active: true },
-    { id: 'business', name: 'Business', price: 1_990_000, active: true },
+    { id: 'plus', name: 'Plus', price: 499_000, active: true },
+    { id: 'pro', name: 'Pro', price: 1_990_000, active: true },
   ]);
 }
 

@@ -14,9 +14,9 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface BrandProfileMapper {
 
-    BrandProfileResponse toBrandProfileResponse(BrandProfile brandProfile);
+    BrandProfileResponse toResponse(BrandProfile brandProfile);
 
-    List<BrandProfileResponse> toBrandProfileResponseList(List<BrandProfile> brandProfiles);
+    List<BrandProfileResponse> toResponseList(List<BrandProfile> brandProfiles);
 
     // logoUrl is owned entirely by the service (it stores the private bucket PATH, not the
     // request's data-URL/signed-URL), so never let MapStruct copy request.logoUrl onto the entity.
@@ -32,7 +32,7 @@ public interface BrandProfileMapper {
     @Mapping(target = "brandName", source = "brandName", qualifiedByName = "trim")
     @Mapping(target = "industry", source = "industry", qualifiedByName = "trim")
     @Mapping(target = "targetAudience", source = "targetAudience", qualifiedByName = "trim")
-    void updateBrandProfile(@MappingTarget BrandProfile profile, BrandProfileRequest request);
+    void update(BrandProfileRequest request, @MappingTarget BrandProfile profile);
 
     @Named("trim")
     default String trim(String value) {
