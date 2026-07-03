@@ -4,6 +4,8 @@ import com.aima.dto.request.ContentStrategyRequest;
 import com.aima.dto.request.StrategyStatusRequest;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.ContentStrategyResponse;
+import com.aima.dto.response.PageResponse;
+import com.aima.enums.StrategyStatus;
 import com.aima.service.ContentStrategyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,6 +13,10 @@ import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,7 +30,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -45,13 +50,20 @@ public class ContentStrategyController {
         return contentStrategyService.create(principal.getUsername(), request);
     }
 
-    // FR-07: list (all for the user, or filtered by brandId)
+    // FR-07: list (paginated; optional brandId / status / q filters)
     @GetMapping
-    @Operation(summary = "List content strategies",
-            description = "Lists the authenticated user's strategies; pass brandId to filter by a single brand.")
-    public ApiResponse<List<ContentStrategyResponse>> list(@AuthenticationPrincipal UserDetails principal,
-                                                          @RequestParam(required = false) UUID brandId) {
-        return contentStrategyService.list(principal.getUsername(), brandId);
+    @Operation(summary = "List content strategies (paginated)",
+            description = "Lists the authenticated user's strategies in pages (query params: page, size, sort); "
+                    + "optional filters: brandId (single brand), status (DRAFT/ACTIVE/PAUSED), q (search by name). "
+                    + "Defaults to 4 most recently updated per page.")
+    public ApiResponse<PageResponse<ContentStrategyResponse>> list(
+            @AuthenticationPrincipal UserDetails principal,
+            @RequestParam(required = false) UUID brandId,
+            @RequestParam(required = false) StrategyStatus status,
+            @RequestParam(required = false) String q,
+            @ParameterObject @PageableDefault(size = 4, sort = "updatedAt", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+        return contentStrategyService.list(principal.getUsername(), brandId, status, q, pageable);
     }
 
     // FR-07: view one

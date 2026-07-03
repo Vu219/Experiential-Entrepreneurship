@@ -61,6 +61,9 @@ public class BrandProfileResponse {
     @Schema(description = "Whether this is the profile currently in use (max 1 active per user).")
     Boolean isActive;
 
+    @Schema(description = "Number of non-deleted content strategies linked to this brand.", example = "3")
+    Long strategyCount;
+
     @Schema(description = "Creation timestamp.", example = "2026-06-08T09:30:00")
     LocalDateTime createdAt;
 

@@ -24,12 +24,12 @@
 
 ## 2. Brand Profile
 - [x] FR-05 Create brand profile (name, industry, description, voice, audience, keywords, do/don't, platforms) `[BE][FE]` — done 2026-06-13 (posting frequency & time slots moved to Content Strategy 2026-06-26)
-- [x] FR-06 Update / FR-07 View / FR-08 Delete `[BE][FE]` — done 2026-06-13
+- [x] FR-06 Update / FR-07 View / FR-08 Delete `[BE][FE]` — done 2026-06-13; FR-08 xóa hồ sơ dọn luôn file logo trong Supabase Storage (afterCommit, bỏ qua placeholder/URL ngoài, log rõ) 2026-07-03; FR-07 list phân trang server-side (`PageResponse` + q/industry filter + `strategyCount` + endpoint `/industries`) 2026-07-03; toàn bộ I/O Supabase (upload/sign/xóa logo) chuyển ra NGOÀI transaction DB (`TransactionTemplate`, rule #24) 2026-07-03
 - [x] FR-09 Validation (required fields, ≥1 platform, valid frequency) `[BE]` — done 2026-06-13
 
 ## 3. Content Strategy
 - [x] FR-10 Create strategy (goals, content types, frequency, platforms, slots, audience, style, CTA) `[BE][FE]` — done 2026-06-26 (goals/types/styles/ctas = free-text List<String>, combobox chọn+tự nhập; FE nối API thật)
-- [x] FR-11 Update / FR-12 List `[BE][FE]` — done 2026-06-26 (list ±brandId; CRUD theo pattern BrandProfile)
+- [x] FR-11 Update / FR-12 List `[BE][FE]` — done 2026-06-26 (list ±brandId; CRUD theo pattern BrandProfile); list phân trang server-side (`PageResponse` + brandId/status/q filter, 4/trang mặc định) 2026-07-03
 - [x] FR-13 Activate/Pause (paused → no new content, no auto-scheduling) `[BE]` — done 2026-06-26 (PATCH /content-strategies/{id}/status)
 
 ## 4. Social Media Connection
@@ -131,8 +131,8 @@
 ## UI Pages (UI_API.md)
 - [ ] UI-01 Landing Page `[FE]`
 - [ ] UI-02 Dashboard `[FE]`
-- [x] UI-03 Brand Profile page `[FE]` — done 2026-06-25 (list-first: card list + search/industry filter + "đang dùng" active select + slide-over create/edit + read-only "AI đã hiểu" panel + AI Brand Health; uses real /brand-profiles API)
-- [x] UI-04 Content Strategy page `[FE]` — done 2026-06-25 (list-left + detail 01–08 + summary + DRAFT/ACTIVE/PAUSED toggle, gộp vào /brand 2 tab); nối BE thật `api/contentStrategy.ts` 2026-06-26
+- [x] UI-03 Brand Profile page `[FE]` — done 2026-06-25 (list-first: card list + search/industry filter + "đang dùng" active select + slide-over create/edit + read-only "AI đã hiểu" panel + AI Brand Health; uses real /brand-profiles API); nâng cấp 2026-07-03: responsive 4 mốc màn hình (grid 1/2/3 cột, panel AI stack <1024), phân trang server-side 6 card/trang, bỏ icon con mắt trùng nút Xem, lightbox phóng to logo ở màn Xem, skeleton loading thay spinner, ô tìm kiếm có dropdown gợi ý tên hồ sơ — chỉ tìm khi Enter/chọn gợi ý
+- [x] UI-04 Content Strategy page `[FE]` — done 2026-06-25 (list-left + detail 01–08 + summary + DRAFT/ACTIVE/PAUSED toggle, gộp vào /brand 2 tab); nối BE thật `api/contentStrategy.ts` 2026-06-26; nâng cấp 2026-07-03: drawer danh sách cho mobile+tablet (<1024), phân trang server-side 4 item/trang, skeleton loading, ô tìm kiếm có dropdown gợi ý tên chiến lược — chỉ tìm khi Enter/chọn gợi ý
 - [x] UI-05 Trend Research page `[FE]` — done 2026-07-02 (redesign 3 sub-tab: Trend nổi bật (bảng + sparkline + filter) / Ý tưởng content / Lịch sử research, sidebar phải trạng thái + lịch tự động, section "Cách hoạt động"; mock data ở `src/trendsData.ts`, chờ nối BE); tối ưu 2026-07-02: sidebar theo tab + sticky, bảng→card <1024px, phân trang 3 danh sách, responsive 4 mốc màn hình; nối BE 2026-07-02 (`api/trendResearch.ts` + map `trendsLive.ts`, nút Research ngay poll phiên async; mock chỉ còn là fallback khi BE chưa chạy)
 - [x] UI-06 Content Workspace `[FE]` — done 2026-07-01 (Create.tsx wired to real generation: strategy picker + `api/contentGeneration.ts` + job polling, replacing mock data)
 - [ ] UI-07 Calendar / Schedule `[FE]`

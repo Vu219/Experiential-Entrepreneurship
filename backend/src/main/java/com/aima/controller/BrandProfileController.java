@@ -3,6 +3,7 @@ package com.aima.controller;
 import com.aima.dto.request.BrandProfileRequest;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.BrandProfileResponse;
+import com.aima.dto.response.PageResponse;
 import com.aima.service.BrandProfileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -10,6 +11,10 @@ import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -19,6 +24,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -42,12 +48,26 @@ public class BrandProfileController {
         return brandProfileService.create(principal.getUsername(), request);
     }
 
-    // FR-07: list
+    // FR-07: list (paginated)
     @GetMapping
-    @Operation(summary = "List the current user's brand profiles",
-            description = "Returns every non-deleted brand profile owned by the authenticated user.")
-    public ApiResponse<List<BrandProfileResponse>> list(@AuthenticationPrincipal UserDetails principal) {
-        return brandProfileService.list(principal.getUsername());
+    @Operation(summary = "List the current user's brand profiles (paginated)",
+            description = "Returns non-deleted brand profiles in pages (query params: page, size, sort); "
+                    + "optional q (search by brand name) and industry filters. Defaults to 6 newest per page.")
+    public ApiResponse<PageResponse<BrandProfileResponse>> list(
+            @AuthenticationPrincipal UserDetails principal,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String industry,
+            @ParameterObject @PageableDefault(size = 6, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+        return brandProfileService.list(principal.getUsername(), q, industry, pageable);
+    }
+
+    // Nguồn cho dropdown lọc ngành hàng (list đã phân trang nên FE không còn thấy toàn bộ ngành).
+    @GetMapping("/industries")
+    @Operation(summary = "List distinct industries of the current user's brand profiles",
+            description = "Returns the distinct industries across the user's non-deleted brand profiles (for the filter dropdown).")
+    public ApiResponse<List<String>> listIndustries(@AuthenticationPrincipal UserDetails principal) {
+        return brandProfileService.listIndustries(principal.getUsername());
     }
 
     // FR-07: view one

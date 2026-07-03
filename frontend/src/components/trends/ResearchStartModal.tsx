@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import Modal from '../Modal';
 import { Icon, PlatformTag } from '../ui';
 import { PLATFORMS, PLATFORM_BG } from '../../theme';
-import { listBrandProfiles, type BrandProfile, type Platform } from '../../api/brandProfile';
+import { listAllBrandProfiles, type BrandProfile, type Platform } from '../../api/brandProfile';
 import { listAllContentStrategies, type ContentStrategy } from '../../api/contentStrategy';
 
 const selectStyle = {
@@ -37,7 +37,7 @@ export default function ResearchStartModal({
     let cancelled = false;
     (async () => {
       try {
-        const [bs, ss] = await Promise.all([listBrandProfiles(), listAllContentStrategies()]);
+        const [bs, ss] = await Promise.all([listAllBrandProfiles(), listAllContentStrategies()]);
         if (cancelled) return;
         setBrands(bs);
         setStrategies(ss);

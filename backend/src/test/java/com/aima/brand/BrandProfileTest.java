@@ -83,9 +83,11 @@ class BrandProfileTest {
                 .andExpect(jsonPath("$.result.platforms.length()").value(2))
                 .andExpect(jsonPath("$.result.brandKeywords.length()").value(2));
 
+        // List trả PageResponse (phân trang server-side): bản ghi nằm trong result.content.
         mockMvc.perform(get("/api/brand-profiles").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.length()").value(1));
+                .andExpect(jsonPath("$.result.content.length()").value(1))
+                .andExpect(jsonPath("$.result.totalElements").value(1));
     }
 
     @Test

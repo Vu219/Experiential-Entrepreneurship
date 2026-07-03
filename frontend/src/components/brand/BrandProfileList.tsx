@@ -1,55 +1,83 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Plus, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Loader, Icon } from '../ui';
-import { SearchInput, FilterSelect } from '../admin/AdminListPage';
-import { listBrandProfiles, deleteBrandProfile, type BrandProfile } from '../../api/brandProfile';
-import { listAllContentStrategies } from '../../api/contentStrategy';
+import { useBreakpoint } from '../../hooks/useBreakpoint';
+import { Icon } from '../ui';
+import { FilterSelect } from '../admin/AdminListPage';
+import Pagination from '../admin/Pagination';
+import type { PageResponse } from '../../api/apiClient';
+import { listBrandProfiles, listAllBrandProfiles, listBrandIndustries, deleteBrandProfile, type BrandProfile } from '../../api/brandProfile';
+import SearchSuggestInput from './SearchSuggestInput';
 import BrandProfileCard from './BrandProfileCard';
 import BrandProfileForm from './BrandProfileForm';
 import BrandProfileView from './BrandProfileView';
 import ConfirmDialog from './ConfirmDialog';
+import { BrandListSkeleton, brandGridCols } from './BrandSkeleton';
 
 type Panel = { mode: 'create' } | { mode: 'edit'; profile: BrandProfile } | { mode: 'view'; profile: BrandProfile } | null;
 
+// Phân trang tab Thương hiệu: tối đa 6 card/trang, xử lý ở BACKEND (PageResponse);
+// grid 1/2/3 cột theo breakpoint → brandGridCols.
+const PAGE_SIZE = 6;
+
 export default function BrandProfileList() {
   const { t, brandGradient, activeBrandId, setActiveBrand } = useApp();
+  const { width } = useBreakpoint();
   const [load, setLoad] = useState<'loading' | 'error' | 'ok'>('loading');
-  const [profiles, setProfiles] = useState<BrandProfile[]>([]);
-  const [counts, setCounts] = useState<Record<string, number>>({});
-  const [query, setQuery] = useState('');
+  const [data, setData] = useState<PageResponse<BrandProfile> | null>(null);
+  const [industries, setIndustries] = useState<string[]>([]);
+  const [query, setQuery] = useState(''); // chữ đang gõ (chưa tìm)
+  const [submittedQ, setSubmittedQ] = useState(''); // từ khóa đã chốt bằng Enter/chọn gợi ý
+  const [suggestNames, setSuggestNames] = useState<string[]>([]);
   const [industry, setIndustry] = useState('all');
+  const [page, setPage] = useState(1); // UI 1-based ↔ backend Pageable 0-based
+  const [reloadKey, setReloadKey] = useState(0);
   const [panel, setPanel] = useState<Panel>(null);
   const [deleting, setDeleting] = useState<BrandProfile | null>(null);
   const [busy, setBusy] = useState(false);
+  // Vừa xóa hồ sơ đang dùng → sau khi tải lại chọn hồ sơ active/đầu tiên còn lại.
+  const reassignActive = useRef(false);
 
-  const refresh = () => {
+  // Nguồn gợi ý cho ô tìm kiếm: tên toàn bộ hồ sơ đang có (chỉ tải lại khi dữ liệu đổi,
+  // KHÔNG gọi API theo từng phím gõ — tìm thật chỉ chạy khi nhấn Enter/chọn gợi ý).
+  useEffect(() => {
+    listAllBrandProfiles().then((all) => setSuggestNames(all.map((b) => b.brandName))).catch(() => setSuggestNames([]));
+  }, [reloadKey]);
+  // Đổi bộ lọc → quay về trang 1.
+  useEffect(() => { setPage(1); }, [submittedQ, industry]);
+
+  useEffect(() => {
+    let cancelled = false;
     setLoad('loading');
-    Promise.all([listBrandProfiles(), listAllContentStrategies()])
-      .then(([list, strategies]) => {
-        setProfiles(list);
-        const c: Record<string, number> = {};
-        strategies.forEach((s) => { c[s.brandId] = (c[s.brandId] ?? 0) + 1; });
-        setCounts(c);
-        // Mặc định chọn hồ sơ active = hồ sơ đầu tiên nếu chưa có / không còn hợp lệ.
-        if (list.length && !list.some((p) => p.id === activeBrandId)) setActiveBrand(list[0].id);
+    Promise.all([
+      listBrandProfiles({ q: submittedQ || undefined, industry: industry === 'all' ? undefined : industry, page: page - 1, size: PAGE_SIZE }),
+      listBrandIndustries(),
+    ])
+      .then(([pg, inds]) => {
+        if (cancelled) return;
+        // Trang hiện tại hết dữ liệu (vd xóa card cuối trang cuối) → lùi về trang cuối còn dữ liệu.
+        if (pg.content.length === 0 && pg.totalPages > 0 && page > pg.totalPages) { setPage(pg.totalPages); return; }
+        setData(pg);
+        setIndustries(inds);
+        if (pg.content.length && (reassignActive.current || !activeBrandId)) {
+          reassignActive.current = false;
+          setActiveBrand((pg.content.find((b) => b.isActive) ?? pg.content[0]).id);
+        }
         setLoad('ok');
       })
-      .catch(() => setLoad('error'));
-  };
-  useEffect(refresh, []); // eslint-disable-line react-hooks/exhaustive-deps
+      .catch(() => { if (!cancelled) setLoad('error'); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submittedQ, industry, page, reloadKey]);
 
-  const industries = useMemo(() => Array.from(new Set(profiles.map((p) => p.industry))).filter(Boolean), [profiles]);
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return profiles.filter((p) => (industry === 'all' || p.industry === industry) && (!q || p.brandName.toLowerCase().includes(q)));
-  }, [profiles, query, industry]);
+  const refresh = () => setReloadKey((k) => k + 1);
 
   const confirmDelete = async () => {
     if (!deleting) return;
     setBusy(true);
     try {
       await deleteBrandProfile(deleting.id);
+      if (deleting.id === activeBrandId) reassignActive.current = true;
       setDeleting(null);
       refresh();
     } finally {
@@ -57,7 +85,7 @@ export default function BrandProfileList() {
     }
   };
 
-  if (load === 'loading') return <Loader label={t.listLoading} />;
+  if (load === 'loading') return <BrandListSkeleton />;
   if (load === 'error')
     return (
       <div style={{ textAlign: 'center', padding: '54px 16px', color: '#8a85a0' }}>
@@ -74,38 +102,47 @@ export default function BrandProfileList() {
   if (panel?.mode === 'view')
     return <BrandProfileView profile={panel.profile} onClose={() => setPanel(null)} onEdit={() => setPanel({ mode: 'edit', profile: panel.profile })} />;
 
+  const items = data?.content ?? [];
+  const total = data?.totalElements ?? 0;
+  const noFilters = !submittedQ && industry === 'all';
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+    // view-pop: nội dung thật fade-in sau khi skeleton biến mất.
+    <div className="view-pop" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
-        <SearchInput value={query} onChange={setQuery} placeholder={t.bpSearchPh} />
+        <SearchSuggestInput value={query} onChange={setQuery} onSubmit={setSubmittedQ} suggestions={suggestNames} placeholder={t.bpSearchPh} />
         <FilterSelect value={industry} onChange={setIndustry} options={[['all', `${t.bpFilterIndustry}: ${t.bpAllIndustries}`], ...industries.map((i) => [i, i] as [string, string])]} />
         <button onClick={() => setPanel({ mode: 'create' })} className="btn-grad" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, border: 'none', borderRadius: 11, padding: '10px 18px', fontSize: 14, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer' }}>
           <Icon icon={Plus} size={17} stroke="#fff" />{t.bpCreate}
         </button>
       </div>
 
-      {profiles.length === 0 ? (
+      {total === 0 && noFilters ? (
         <Empty onCreate={() => setPanel({ mode: 'create' })} />
-      ) : filtered.length === 0 ? (
+      ) : items.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
           <span style={{ color: '#8a85a0', fontSize: 14 }}>{t.listEmpty}</span>
-          <button onClick={() => { setQuery(''); setIndustry('all'); }} className="btn-soft" style={{ border: 'none', background: '#f4f2fb', color: '#5b5670', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{t.clearFilters}</button>
+          <button onClick={() => { setQuery(''); setSubmittedQ(''); setIndustry('all'); }} className="btn-soft" style={{ border: 'none', background: '#f4f2fb', color: '#5b5670', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{t.clearFilters}</button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 16 }}>
-          {filtered.map((p) => (
-            <BrandProfileCard
-              key={p.id}
-              profile={p}
-              strategyCount={counts[p.id] ?? 0}
-              active={p.id === activeBrandId}
-              onUse={() => setActiveBrand(p.id)}
-              onView={() => setPanel({ mode: 'view', profile: p })}
-              onEdit={() => setPanel({ mode: 'edit', profile: p })}
-              onDelete={() => setDeleting(p)}
-            />
-          ))}
-        </div>
+        <>
+          {/* Grid responsive 4 mốc: 1 cột mobile / 2 tablet / 3 laptop+PC (6 card = 2 hàng cân đối). */}
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${brandGridCols(width)}, minmax(0,1fr))`, gap: 16 }}>
+            {items.map((p) => (
+              <BrandProfileCard
+                key={p.id}
+                profile={p}
+                strategyCount={p.strategyCount ?? 0}
+                active={p.id === activeBrandId}
+                onUse={() => setActiveBrand(p.id)}
+                onView={() => setPanel({ mode: 'view', profile: p })}
+                onEdit={() => setPanel({ mode: 'edit', profile: p })}
+                onDelete={() => setDeleting(p)}
+              />
+            ))}
+          </div>
+          <Pagination page={page} pageCount={data?.totalPages ?? 1} onChange={setPage} />
+        </>
       )}
 
       {deleting && (

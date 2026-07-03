@@ -15,7 +15,10 @@ const splitTags = (s: string | null): string[] => (s ?? '').split(',').map((x) =
 
 export default function BrandProfileForm({ profile, onClose, onSaved }: { profile: BrandProfile | null; onClose: () => void; onSaved: (p: BrandProfile, created: boolean) => void }) {
   const { t, lang, brandGradient } = useApp();
-  const { isMobile } = useBreakpoint();
+  // 4 mốc responsive: mobile <640 (field xếp dọc), mobile+tablet <1024 (panel AI xuống dưới thay vì 2 cột).
+  const { width } = useBreakpoint();
+  const isMobile = width < 640;
+  const stack = width < 1024;
   const tones = brandToneLabels(lang);
   const industries = industryOptions(lang);
 
@@ -92,7 +95,7 @@ export default function BrandProfileForm({ profile, onClose, onSaved }: { profil
 
       {apiError && <div style={{ fontSize: 12.5, color: '#d6336c', background: '#fdeef2', border: '1px solid #f3c9d6', borderRadius: 10, padding: '10px 13px' }}>{apiError}</div>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1fr) 340px', gap: 18, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: stack ? '1fr' : 'minmax(0,1fr) 340px', gap: 18, alignItems: 'start' }}>
         {/* Cột chính — form chia 3 cụm có tiêu đề */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Cụm 1 — Thông tin thương hiệu: logo trái / tên+ngành phải / mô tả dưới */}
@@ -160,8 +163,8 @@ export default function BrandProfileForm({ profile, onClose, onSaved }: { profil
           </div>
         </div>
 
-        {/* Cột phải — panel AI preview theo dữ liệu đang nhập (health + cần bổ sung + keywords + do/don't) */}
-        <div style={{ position: isMobile ? 'static' : 'sticky', top: 90 }}>
+        {/* Cột phải — panel AI preview theo dữ liệu đang nhập (mobile/tablet: xếp xuống dưới form) */}
+        <div style={{ position: stack ? 'static' : 'sticky', top: 90 }}>
           <AiBrandPanel percent={health.percent} missing={health.missing} keywords={keywords} dos={dos} donts={donts} sticky={false} />
         </div>
       </div>

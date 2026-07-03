@@ -3,6 +3,7 @@ package com.aima.service.Impl;
 import com.aima.dto.request.ContentStrategyRequest;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.ContentStrategyResponse;
+import com.aima.dto.response.PageResponse;
 import com.aima.entity.BrandProfile;
 import com.aima.entity.ContentStrategy;
 import com.aima.entity.User;
@@ -18,12 +19,13 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -38,7 +40,6 @@ public class ContentStrategyServiceImpl implements ContentStrategyService {
     UserRepository userRepository;
     ContentStrategyMapper contentStrategyMapper;
 
-    // FR-13: create a strategy under a brand owned by the current user (BR-02)
     @Override
     public ApiResponse<ContentStrategyResponse> create(String email, ContentStrategyRequest request) {
         User user = currentUser(email);
@@ -56,20 +57,20 @@ public class ContentStrategyServiceImpl implements ContentStrategyService {
                 contentStrategyMapper.toContentStrategyResponse(saved));
     }
 
-    // FR-07: list — brandId null → tất cả của user; có brandId → theo brand (kiểm tra sở hữu)
+    // FR-07: list — phân trang + lọc server-side (PageResponse dùng chung); brandId null → tất cả
+    // của user, có brandId → theo brand (kiểm tra sở hữu); status/q rỗng → bỏ qua điều kiện.
     @Override
     @Transactional(readOnly = true)
-    public ApiResponse<List<ContentStrategyResponse>> list(String email, UUID brandId) {
+    public ApiResponse<PageResponse<ContentStrategyResponse>> list(String email, UUID brandId, StrategyStatus status,
+                                                                   String q, Pageable pageable) {
         User user = currentUser(email);
-        List<ContentStrategy> rows;
         if (brandId != null) {
             findBrand(user.getId(), brandId);
-            rows = contentStrategyRepository.findByBrandProfile_IdAndDeletedAtIsNull(brandId);
-        } else {
-            rows = contentStrategyRepository.findByBrandProfile_User_IdAndDeletedAtIsNull(user.getId());
         }
+        String query = q == null ? "" : q.trim();
+        Page<ContentStrategy> page = contentStrategyRepository.search(user.getId(), brandId, status, query, pageable);
         return ApiResponse.success("Lấy danh sách chiến lược nội dung thành công",
-                contentStrategyMapper.toContentStrategyResponseList(rows));
+                PageResponse.from(page, contentStrategyMapper.toContentStrategyResponseList(page.getContent())));
     }
 
     // FR-07: view one

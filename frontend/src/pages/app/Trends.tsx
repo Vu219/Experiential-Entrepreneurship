@@ -1,29 +1,29 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Play, SlidersHorizontal } from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import { useBreakpoint } from '../hooks/useBreakpoint';
-import { Card, Icon } from '../components/ui';
-import Pagination from '../components/admin/Pagination';
-import { PLATFORMS } from '../theme';
-import { trendStats, trendItems, contentIdeas, researchSessions, type TrendsTab } from '../trendsData';
-import { liveTrendItems, liveContentIdeas, liveResearchSessions, liveTrendStats } from '../trendsLive';
+import { useApp } from '../../context/AppContext.tsx';
+import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
+import { Card, Icon } from '../../components/ui.tsx';
+import Pagination from '../../components/admin/Pagination.tsx';
+import { PLATFORMS } from '../../theme.ts';
+import { trendStats, trendItems, contentIdeas, researchSessions, type TrendsTab } from '../../trendsData.ts';
+import { liveTrendItems, liveContentIdeas, liveResearchSessions, liveTrendStats } from '../../trendsLive.ts';
 import {
   getTrendResearchSession,
   listTrendResearchSessions,
   startTrendResearch,
   type ResearchSessionDetail,
   type ResearchSessionSummary,
-} from '../api/trendResearch';
-import TrendStatCards from '../components/trends/TrendStatCards';
-import TrendTable from '../components/trends/TrendTable';
-import IdeaCard from '../components/trends/IdeaCard';
-import ResearchHistoryItem from '../components/trends/ResearchHistoryItem';
-import TrendsSidebar from '../components/trends/TrendsSidebar';
-import TrendsSkeleton from '../components/trends/TrendsSkeleton';
-import HowItWorks from '../components/trends/HowItWorks';
-import ResearchStartModal from '../components/trends/ResearchStartModal';
-import { FilterSelect } from '../components/trends/filters';
-import type { Platform } from '../api/brandProfile';
+} from '../../api/trendResearch.ts';
+import TrendStatCards from '../../components/trends/TrendStatCards.tsx';
+import TrendTable from '../../components/trends/TrendTable.tsx';
+import IdeaCard from '../../components/trends/IdeaCard.tsx';
+import ResearchHistoryItem from '../../components/trends/ResearchHistoryItem.tsx';
+import TrendsSidebar from '../../components/trends/TrendsSidebar.tsx';
+import TrendsSkeleton from '../../components/trends/TrendsSkeleton.tsx';
+import HowItWorks from '../../components/trends/HowItWorks.tsx';
+import ResearchStartModal from '../../components/trends/ResearchStartModal.tsx';
+import { FilterSelect } from '../../components/trends/filters.tsx';
+import type { Platform } from '../../api/brandProfile.ts';
 
 const HISTORY_PAGE_SIZE = 7;
 // Poll phiên research nền (NFR-04): 4s/lần, tối đa 5 phút.

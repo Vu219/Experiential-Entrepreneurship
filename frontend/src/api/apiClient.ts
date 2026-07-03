@@ -7,6 +7,17 @@ export interface ApiResponse<T> {
   result: T;
 }
 
+// Khung phân trang dùng chung của backend (dto/response/PageResponse.java) — nằm trong result.
+// `page` đánh số từ 0 theo Spring Pageable.
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
+
 // Auth dùng cookie HttpOnly do backend set (access_token / refresh_token).
 // FE không đọc/ghi token — chỉ cần gửi kèm cookie trong mọi request.
 // baseURL đọc từ biến môi trường VITE_API_BASE_URL (xem .env / .env.example).

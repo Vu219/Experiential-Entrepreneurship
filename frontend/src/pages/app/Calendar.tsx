@@ -1,7 +1,7 @@
-import { useApp } from '../context/AppContext';
-import { useBreakpoint } from '../hooks/useBreakpoint';
-import { Card, PlatformTag } from '../components/ui';
-import { calendarDays, weekdays, upcoming } from '../data';
+import { useApp } from '../../context/AppContext.tsx';
+import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
+import { Card, PlatformTag } from '../../components/ui.tsx';
+import { calendarDays, weekdays, upcoming } from '../../data.ts';
 
 export default function Calendar() {
   const { t, lang, go, brandGradient } = useApp();

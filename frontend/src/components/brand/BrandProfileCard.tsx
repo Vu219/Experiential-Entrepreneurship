@@ -1,4 +1,4 @@
-import { LayoutList, Eye, Pencil, Trash2 } from 'lucide-react';
+import { LayoutList, Pencil, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Card, Icon } from '../ui';
 import BrandHealthBar from './BrandHealthBar';
@@ -66,13 +66,12 @@ export default function BrandProfileCard({
         <span>{t.bpUpdated}: {fmtDate(profile.updatedAt)}</span>
       </div>
 
+      {/* Icon con mắt bỏ (trùng chức năng với "Xem"): card không active giữ "Chọn dùng" + "Xem". */}
       <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 4 }}>
-        {active ? (
-          <button onClick={onView} className="btn-soft" style={btnGhost}>{t.bpView}</button>
-        ) : (
+        {!active && (
           <button onClick={onUse} className="btn-outline" style={{ ...btnGhost, color: '#7c3aed', borderColor: '#e0d5fb', background: '#f7f2ff' }}>{t.bpUse}</button>
         )}
-        <button onClick={onView} title={t.bpView} style={iconBtn} aria-label={t.bpView}><Icon icon={Eye} size={17} stroke="#6b6680" /></button>
+        <button onClick={onView} className="btn-soft" style={btnGhost}>{t.bpView}</button>
         <button onClick={onEdit} title={t.bpEdit} style={iconBtn} aria-label={t.bpEdit}><Icon icon={Pencil} size={16} stroke="#6b6680" /></button>
         <button onClick={onDelete} title={t.bpDelete} style={{ ...iconBtn, color: '#d6336c' }} aria-label={t.bpDelete}><Icon icon={Trash2} size={16} stroke="#d6336c" /></button>
       </div>

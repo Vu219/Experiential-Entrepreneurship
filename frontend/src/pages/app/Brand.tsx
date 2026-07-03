@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { HelpCircle, Plus } from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import { useUiStore } from '../store/useUiStore';
-import { Icon } from '../components/ui';
-import BrandProfileList from '../components/brand/BrandProfileList';
-import StrategyManager from '../components/brand/StrategyManager';
+import { useApp } from '../../context/AppContext.tsx';
+import { useUiStore } from '../../store/useUiStore.ts';
+import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
+import { Icon } from '../../components/ui.tsx';
+import BrandProfileList from '../../components/brand/BrandProfileList.tsx';
+import StrategyManager from '../../components/brand/StrategyManager.tsx';
 
 type Tab = 'brand' | 'strategy';
 
@@ -14,6 +15,7 @@ type Tab = 'brand' | 'strategy';
  */
 export default function Brand() {
   const { t, brandGradient } = useApp();
+  const { width } = useBreakpoint();
   const [tab, setTab] = useState<Tab>('brand');
   const setSidebarCollapsed = useUiStore((s) => s.setSidebarCollapsed);
   const requestStrategyCreate = useUiStore((s) => s.requestStrategyCreate);
@@ -43,7 +45,8 @@ export default function Brand() {
   };
 
   return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    // PC (≥1440) nới container lên 1320 (cùng mốc trang Trends) để grid card thoáng hơn.
+    <div className="view-pop" style={{ maxWidth: width >= 1440 ? 1320 : 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 6, background: '#fff', border: '1px solid #efeaf8', borderRadius: 14, padding: 5 }}>
           {tabBtn('brand', t.bpTabBrand)}

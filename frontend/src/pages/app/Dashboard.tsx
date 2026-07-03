@@ -3,10 +3,10 @@ import {
   AlertTriangle, RefreshCw, Home, Plus, Sparkles, Check, Calendar, Clock,
   ChevronRight, type LucideIcon,
 } from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import { useBreakpoint } from '../hooks/useBreakpoint';
-import { Icon, Card, PlatformTag } from '../components/ui';
-import { stats, weekChart, monthChart, platformUsage, posts } from '../data';
+import { useApp } from '../../context/AppContext.tsx';
+import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
+import { Icon, Card, PlatformTag } from '../../components/ui.tsx';
+import { stats, weekChart, monthChart, platformUsage, posts } from '../../data.ts';
 
 type Status = 'loading' | 'error' | 'ready';
 type Range = '7D' | '30D';

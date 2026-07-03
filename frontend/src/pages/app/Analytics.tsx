@@ -1,7 +1,7 @@
-import { useApp } from '../context/AppContext';
-import { useBreakpoint } from '../hooks/useBreakpoint';
-import { Icon, Card, PlatformTag } from '../components/ui';
-import { stats, monthBars, audience, posts } from '../data';
+import { useApp } from '../../context/AppContext.tsx';
+import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
+import { Icon, Card, PlatformTag } from '../../components/ui.tsx';
+import { stats, monthBars, audience, posts } from '../../data.ts';
 
 export default function Analytics() {
   const { t, lang, brandGradient } = useApp();

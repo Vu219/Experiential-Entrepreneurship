@@ -10,12 +10,12 @@ import { THEMES } from "./theme";
 
 import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import Create from "./pages/Create";
-import Calendar from "./pages/Calendar";
-import Analytics from "./pages/Analytics";
-import Trends from "./pages/Trends";
-import Brand from "./pages/Brand";
+import Dashboard from "./pages/app/Dashboard.tsx";
+import Create from "./pages/app/Create.tsx";
+import Calendar from "./pages/app/Calendar.tsx";
+import Analytics from "./pages/app/Analytics.tsx";
+import Trends from "./pages/app/Trends.tsx";
+import Brand from "./pages/app/Brand.tsx";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import AdminOverview from "./pages/admin/Overview";

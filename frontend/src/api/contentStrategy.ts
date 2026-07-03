@@ -1,4 +1,4 @@
-import client, { type ApiResponse } from "./apiClient";
+import client, { type ApiResponse, type PageResponse } from "./apiClient";
 import type { Platform } from "./brandProfile";
 export type { Platform } from "./brandProfile";
 
@@ -38,16 +38,28 @@ export type ContentStrategyInput = Omit<ContentStrategy, "id" | "createdAt" | "u
 /** Agent AI chỉ tạo nội dung cho chiến lược ACTIVE (DRAFT/PAUSED bị chặn). */
 export const isStrategyRunnable = (s: ContentStrategy): boolean => s.status === "ACTIVE";
 
-// GET /content-strategies?brandId= — chiến lược của một thương hiệu.
-export async function listContentStrategies(brandId: string): Promise<ContentStrategy[]> {
-  const { data } = await client.get<ApiResponse<ContentStrategy[]>>("/content-strategies", { params: { brandId } });
+// Tham số phân trang + lọc server-side (PageResponse của backend; page đánh số từ 0).
+export interface ContentStrategyListParams {
+  brandId?: string;
+  status?: StrategyStatus;
+  q?: string;
+  page?: number;
+  size?: number;
+}
+
+// GET /content-strategies — phân trang server-side (mặc định backend: 4/trang, cập nhật mới nhất trước).
+export async function listContentStrategies(params: ContentStrategyListParams = {}): Promise<PageResponse<ContentStrategy>> {
+  const { data } = await client.get<ApiResponse<PageResponse<ContentStrategy>>>("/content-strategies", { params });
   return data.result;
 }
 
-// GET /content-strategies — toàn bộ (dùng đếm "số chiến lược liên kết" trên card hồ sơ).
-export async function listAllContentStrategies(): Promise<ContentStrategy[]> {
-  const { data } = await client.get<ApiResponse<ContentStrategy[]>>("/content-strategies");
-  return data.result;
+// Lấy TOÀN BỘ chiến lược (của 1 brand hoặc của user) — cho các màn không phân trang UI
+// (Create chọn chiến lược, Trend Research kiểm tra chiến lược ACTIVE).
+export async function listAllContentStrategies(brandId?: string): Promise<ContentStrategy[]> {
+  const { data } = await client.get<ApiResponse<PageResponse<ContentStrategy>>>("/content-strategies", {
+    params: { brandId, size: 1000 },
+  });
+  return data.result.content;
 }
 
 // POST /content-strategies

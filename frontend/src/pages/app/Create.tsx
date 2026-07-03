@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { useApp } from '../context/AppContext';
-import { useBreakpoint } from '../hooks/useBreakpoint';
-import { Card, Loader, PlatformTag } from '../components/ui';
-import { ideas, toneLabels, scriptLines, genCaption, genHashtags, channels } from '../data';
-import { listContentStrategies, isStrategyRunnable, type ContentStrategy } from '../api/contentStrategy';
-import { startContentGeneration, getContentGenerationJob, type ContentGenerationJob } from '../api/contentGeneration';
-import type { ApiError } from '../api/apiClient';
+import { useApp } from '../../context/AppContext.tsx';
+import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
+import { Card, Loader, PlatformTag } from '../../components/ui.tsx';
+import { ideas, toneLabels, scriptLines, genCaption, genHashtags, channels } from '../../data.ts';
+import { listAllContentStrategies, isStrategyRunnable, type ContentStrategy } from '../../api/contentStrategy.ts';
+import { startContentGeneration, getContentGenerationJob, type ContentGenerationJob } from '../../api/contentGeneration.ts';
+import type { ApiError } from '../../api/apiClient.ts';
 
 export default function Create() {
   const { t, lang, go, brandGradient, activeBrandId } = useApp();
@@ -33,7 +33,7 @@ export default function Create() {
       setStrategyId('');
       return;
     }
-    listContentStrategies(activeBrandId)
+    listAllContentStrategies(activeBrandId)
       .then((rows) => {
         const runnable = rows.filter(isStrategyRunnable);
         setStrategies(runnable);
