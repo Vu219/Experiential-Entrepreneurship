@@ -138,7 +138,13 @@ public enum ErrorCode {
     ACTIVE_BRAND_PROFILE_REQUIRED(1910, "Cần có hồ sơ thương hiệu đang hoạt động trước khi nghiên cứu xu hướng", HttpStatus.BAD_REQUEST),
     ACTIVE_STRATEGY_REQUIRED(1911, "Cần có chiến lược nội dung ACTIVE trước khi nghiên cứu xu hướng", HttpStatus.BAD_REQUEST),
     RESEARCH_ALREADY_RUNNING(1912, "Đã có phiên nghiên cứu xu hướng đang chạy. Vui lòng chờ hoàn tất.", HttpStatus.CONFLICT),
-    RESEARCH_SESSION_NOT_FOUND(1913, "Không tìm thấy phiên nghiên cứu xu hướng", HttpStatus.NOT_FOUND),;
+    RESEARCH_SESSION_NOT_FOUND(1913, "Không tìm thấy phiên nghiên cứu xu hướng", HttpStatus.NOT_FOUND),
+
+    // CONTENT ITEM (EDIT / REVIEW) ERRORS
+    CONTENT_ITEM_NOT_FOUND(1920, "Không tìm thấy nội dung", HttpStatus.NOT_FOUND),
+    CONTENT_ITEM_NOT_EDITABLE(1921, "Nội dung ở trạng thái này không thể chỉnh sửa", HttpStatus.BAD_REQUEST),
+    INVALID_CONTENT_STATUS_TRANSITION(1922, "Chuyển trạng thái nội dung không hợp lệ", HttpStatus.BAD_REQUEST),
+    CONTENT_STATUS_REQUIRED(1923, "Thiếu trạng thái nội dung", HttpStatus.BAD_REQUEST),;
 
     private int code;
     private String message;

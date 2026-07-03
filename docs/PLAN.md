@@ -57,7 +57,7 @@
 - [x] FR-29 Media prompt (text only — no media generation in MVP) `[AI]` — done 2026-06-13 (AI svc)
 - [x] FR-30 Brand voice check `[AI]` — done 2026-06-13 (AI svc)
 - [x] FR-31 Save drafts (`Draft`/`Generated`) `[BE]` — done 2026-07-01 (`ContentGenerationWorker` persists a `ContentItem` with status `GENERATED` after each AI call)
-- [ ] FR-32 Regenerate / FR-33 Manual edit / FR-34 Review before posting `[BE][FE]` — FR-32 regenerate done end-to-end 2026-07-01 (Create.tsx → `POST /content-items/generate` with `regenerateFrom` → AI `/generate`); FR-33/FR-34 pending
+- [x] FR-32 Regenerate / FR-33 Manual edit / FR-34 Review before posting `[BE][FE]` — FR-32 regenerate done end-to-end 2026-07-01 (Create.tsx → `POST /content-items/generate` with `regenerateFrom` → AI `/generate`); FR-33/FR-34 done 2026-07-03: BE `ContentItemController` (`GET/PUT /content-items/{id}`, `PATCH /{id}/status`), thêm `NEED_REVIEW`/`APPROVED` vào `ContentLifecycle` theo state machine, sửa nội dung APPROVED tự quay về NEED_REVIEW; FE Create.tsx panel preview có nút Chỉnh sửa (script/caption/hashtag/media prompt) + badge trạng thái + nút Gửi duyệt → Phê duyệt
 
 ## 7. Policy Violation Handling (no custom filter — SEC-06)
 - [ ] FR-35 Handle platform 400/403 policy errors: `Failed`, no retry, store original code + message, notify `[BE]`

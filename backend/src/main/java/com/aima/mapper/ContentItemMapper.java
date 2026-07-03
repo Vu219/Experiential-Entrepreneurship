@@ -2,11 +2,15 @@ package com.aima.mapper;
 
 import com.aima.dto.ai.GeneratedContentResult;
 import com.aima.dto.ai.VideoScriptPayload;
+import com.aima.dto.request.ContentItemUpdateRequest;
 import com.aima.dto.response.ContentItemResponse;
 import com.aima.entity.ContentItem;
+import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
@@ -24,6 +28,11 @@ public interface ContentItemMapper {
     @Mapping(target = "hashtag", source = "hashtags", qualifiedByName = "joinHashtags")
     @Mapping(target = "status", constant = "GENERATED")
     ContentItem toContentItem(GeneratedContentResult result);
+
+    // FR-33: partial update — field null giữ nguyên giá trị cũ.
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "hashtag", source = "hashtags", qualifiedByName = "joinHashtags")
+    void update(ContentItemUpdateRequest request, @MappingTarget ContentItem item);
 
     @Named("splitHashtags")
     default List<String> splitHashtags(String hashtag) {

@@ -73,6 +73,10 @@ export const STRINGS = {
     crStrategy: 'Chiến lược nội dung', crSelectStrategy: 'Chọn chiến lược đang hoạt động',
     crNoActiveStrategy: 'Chưa có chiến lược nào đang hoạt động (ACTIVE). Vào trang Thương hiệu để kích hoạt một chiến lược.',
     crGenerating: 'AI đang tạo nội dung cho bạn...', crGenerateError: 'Tạo nội dung thất bại',
+    crEdit: '✏️ Chỉnh sửa', crSaveEdit: 'Lưu chỉnh sửa', crSaveError: 'Lưu chỉnh sửa thất bại',
+    crSubmitReview: 'Gửi duyệt', crApprove: '✓ Phê duyệt', crReviewError: 'Cập nhật trạng thái thất bại',
+    crStatusGenerated: 'AI đã tạo', crStatusNeedReview: 'Chờ duyệt', crStatusApproved: 'Đã duyệt',
+    crHashtagHint: 'Phân tách hashtag bằng dấu cách hoặc dấu phẩy',
     // calendar
     calMonth: 'Tháng 6, 2026', calUpcoming: 'Sắp đăng', calAuto: 'Tự động đăng', calNew: '+ Lên lịch bài mới',
     // analytics
@@ -358,6 +362,10 @@ export const STRINGS = {
     crStrategy: 'Content strategy', crSelectStrategy: 'Select an active strategy',
     crNoActiveStrategy: 'No ACTIVE strategy yet. Go to the Brand page to activate one.',
     crGenerating: 'AI is generating your content...', crGenerateError: 'Content generation failed',
+    crEdit: '✏️ Edit', crSaveEdit: 'Save edits', crSaveError: 'Saving edits failed',
+    crSubmitReview: 'Submit for review', crApprove: '✓ Approve', crReviewError: 'Status update failed',
+    crStatusGenerated: 'AI generated', crStatusNeedReview: 'Awaiting review', crStatusApproved: 'Approved',
+    crHashtagHint: 'Separate hashtags with spaces or commas',
     calMonth: 'June 2026', calUpcoming: 'Upcoming', calAuto: 'Auto-publish', calNew: '+ Schedule new post',
     anReach: 'Monthly reach', anTop: 'Top performing content', anAudience: 'Audience breakdown', anExport: 'Export report',
     trTitle: 'Trend research', trSubtitle: 'The AI agent finds the right trends and turns them into effective content ideas',

@@ -177,8 +177,8 @@ backend/
 >   Connection (Meta OAuth2)" and §5 for the tables.
 > - **Content Strategy**: `controller/ContentStrategyController`, `service/ContentStrategyService` (+`Impl`),
 >   `mapper/ContentStrategyMapper`, `entity/ContentStrategy` (BR-02: one brand → many strategies).
-> - **Content Generation (AI, async)**: `controller/ContentGenerationController`,
->   `service/{ContentGenerationService, ContentGenerationWorker, AiServiceClient}` (+ `Impl/`),
+> - **Content Generation (AI, async)**: `controller/{ContentGenerationController, ContentItemController}`,
+>   `service/{ContentGenerationService, ContentItemService, ContentGenerationWorker, AiServiceClient}` (+ `Impl/`),
 >   `mapper/{ContentGenerationJobMapper, ContentItemMapper, AiContentMapper}`,
 >   `entity/{ContentGenerationJob, ContentItem}`, `dto/ai/*` (payloads mirroring `ai/src/schemas.py`),
 >   `config/{AsyncConfig, AiServiceProperties, AiServiceWebClientConfig}`. See §4 "Content Generation".
@@ -454,8 +454,13 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 |---|---|---|
 | POST | `/content-items/generate` | Khởi động job (strategy phải **ACTIVE**, BR-03); trả job `PENDING` ngay |
 | GET | `/content-items/jobs/{jobId}` | Poll trạng thái job — FE gọi tới khi `SUCCESS`/`FAILED` |
+| GET | `/content-items/{itemId}` | Xem một content item (scoped theo brand profile của user) — `ContentItemController` |
+| PUT | `/content-items/{itemId}` | **FR-33** sửa thủ công (partial: script/caption/hashtags/cta/mediaPrompt); chỉ khi status DRAFT/GENERATED/NEED_REVIEW/APPROVED; sửa item APPROVED → tự quay về NEED_REVIEW |
+| PATCH | `/content-items/{itemId}/status` | **FR-34** review flow; transition hợp lệ duy nhất: GENERATED→NEED_REVIEW, NEED_REVIEW→APPROVED |
 
 **Job status** — `GenerationJobStatus`: `PENDING → RUNNING → SUCCESS | FAILED` (`ContentGenerationJob.status`).
+
+**Item status** — `ContentLifecycle` theo state machine WORKFLOWS.md, có `NEED_REVIEW`/`APPROVED` (review flow `Generated → Need Review → Approved`). `ContentItemService`/`Impl` giữ map transition; đừng thêm status ngoài WORKFLOWS.md.
 
 **Async worker pattern (NFR-04 + rule #24)** — the reference implementation for background AI/posting tasks:
 - `ContentGenerationServiceImpl.startGeneration` tạo job (`PENDING`) qua mapper rồi **dispatch worker sau khi transaction commit** (`TransactionSynchronization.afterCommit`) — tránh `@Async` đọc job trước khi row được ghi (cùng mẫu `UserServiceImpl.scheduleOldAvatarDeletion`).
@@ -475,7 +480,7 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 
 **MVP scope** — AI chỉ sinh **media prompt** (text mô tả), **không** tạo ảnh/video (FR-29).
 
-**ErrorCodes** 1900–1904: `STRATEGY_ID_REQUIRED`, `GENERATION_PLATFORM_REQUIRED`, `STRATEGY_NOT_ACTIVE`, `CONTENT_GENERATION_JOB_NOT_FOUND`, `AI_SERVICE_ERROR`.
+**ErrorCodes** 1900–1904: `STRATEGY_ID_REQUIRED`, `GENERATION_PLATFORM_REQUIRED`, `STRATEGY_NOT_ACTIVE`, `CONTENT_GENERATION_JOB_NOT_FOUND`, `AI_SERVICE_ERROR`; 1920–1923 (content item edit/review): `CONTENT_ITEM_NOT_FOUND`, `CONTENT_ITEM_NOT_EDITABLE`, `INVALID_CONTENT_STATUS_TRANSITION`, `CONTENT_STATUS_REQUIRED`.
 
 ### Trend Research (AI service) — FR-19..FR-23, NFR-04 async
 > "Research ngay": tạo `TrendResearchSession` (PENDING) trả về ngay, worker nền gọi AI `POST /research`
