@@ -22,12 +22,12 @@ export default function IntegrationsLoop() {
   }));
 
   return (
-    <section id="integrations" className="scroll-anchor" style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '10px 0 50px' : '10px 0 70px' }}>
+    <section id="integrations" className="scroll-anchor cv-auto" style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '10px 0 50px' : '10px 0 70px' }}>
       <Reveal>
         <div style={{ textAlign: 'center', padding: '0 18px', margin: '0 auto 26px' }}>
           <p style={{ fontSize: 14, fontWeight: 600, letterSpacing: '.02em', color: '#6b6680', margin: 0 }}>{t.intTitle}</p>
         </div>
-        <LogoLoop logos={logos} speed={50} gap={isMobile ? 20 : 32} repeat={8} ariaLabel={t.intTitle} />
+        <LogoLoop logos={logos} speed={50} gap={isMobile ? 20 : 32} repeat={8} pauseOnHover ariaLabel={t.intTitle} />
       </Reveal>
     </section>
   );

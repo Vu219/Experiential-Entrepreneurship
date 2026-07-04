@@ -158,8 +158,9 @@ export default function Settings() {
               <div style={{ display: 'flex', gap: 12 }}>
                 {themes.map((th) => {
                   const active = theme === th.key;
+                  // Viền card đang chọn lấy màu theo theme hiện tại (var(--brand-to)) → khớp tông vừa chọn.
                   return (
-                    <div key={th.key} onClick={() => setTheme(th.key)} style={{ flex: 1, border: `2px solid ${active ? '#8b5cf6' : '#ece8f6'}`, borderRadius: 13, padding: 10, cursor: 'pointer', background: active ? '#faf6ff' : '#fff' }}>
+                    <div key={th.key} onClick={() => setTheme(th.key)} style={{ flex: 1, border: `2px solid ${active ? 'var(--brand-to)' : '#ece8f6'}`, borderRadius: 13, padding: 10, cursor: 'pointer', background: active ? '#faf6ff' : '#fff' }}>
                       <span style={{ display: 'block', height: 38, borderRadius: 9, background: th.grad }} />
                       <span style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#3f3a55', marginTop: 8 }}>{th.label}</span>
                     </div>

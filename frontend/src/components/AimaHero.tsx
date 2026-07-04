@@ -1,15 +1,20 @@
+import { usePauseWhenOffscreen } from '../hooks/usePauseWhenOffscreen';
+
 /**
  * Hero visual for the landing page: a floating AIMA logo inside a soft
  * glassmorphism slab, with a breathing halo glow behind it. Pure CSS;
  * animations (aima-float / aima-float-rot / aima-breathe / aima-halo) live
  * in index.css and honor prefers-reduced-motion.
  *
- * Replaces the old 3D-dashboard scene on the landing hero only. The login
- * page keeps using AimaScene, so that component is intentionally left as-is.
+ * Các @keyframes infinite được PAUSE khi hero cuộn ra ngoài viewport
+ * (usePauseWhenOffscreen → class 'anim-paused') để không tốn CPU/GPU khi ở
+ * section khác (vd FAQ). Replaces the old 3D-dashboard scene on the landing
+ * hero only. The login page keeps using AimaScene, so it's left as-is.
  */
 export default function AimaHero() {
+  const ref = usePauseWhenOffscreen<HTMLDivElement>();
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div ref={ref} style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ position: 'relative', width: '100%', maxWidth: 460, aspectRatio: '1 / 1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {/* Soft radial halo glow */}
         <div className="aima-halo" style={{ position: 'absolute', width: '82.6%', height: '82.6%', borderRadius: '50%', background: 'radial-gradient(circle at 50% 45%,rgba(124,92,255,.30),rgba(69,212,255,.16) 42%,rgba(255,99,216,.12) 62%,transparent 72%)', filter: 'blur(6px)' }} />

@@ -1,10 +1,12 @@
 import type { Platform } from './types';
 
 // ===== Brand identity (đồng bộ src/styles/tokens.css) =====
-// Dải nhận diện TƯƠI, độc lập theme — dùng cho logo, nút chính, badge, avatar…
-// Giữ bản JS song song với CSS token để code inline (style={{ background }}) dùng trực tiếp.
-export const BRAND_GRADIENT = 'linear-gradient(135deg,#22d3ee,#3b82f6,#8b5cf6)';
-export const BRAND_GLOW = 'rgba(99,102,241,0.45)';
+// Dải nhận diện đọc THẲNG từ CSS token qua var() → đổi theo theme đang chọn
+// (data-theme trên <html>, xem styles/tokens.css). Dùng trực tiếp trong inline style:
+// background = var(--brand-gradient), box-shadow dùng var(--brand-glow).
+// Nhờ đó ~mọi nút/badge/accent dùng brandGradient đổi tông khi đổi theme, không sửa lẻ.
+export const BRAND_GRADIENT = 'var(--brand-gradient)';
+export const BRAND_GLOW = 'var(--brand-glow)';
 
 // Nền deep cho box CTA cuối trang: indigo sâu + glow brand ở 2 góc để có chiều sâu.
 // Chữ trắng trên nền này đạt tương phản WCAG AA thoải mái.

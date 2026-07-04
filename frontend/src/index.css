@@ -86,11 +86,38 @@ button {
    nhưng nền vẫn sáng nên chữ tối luôn đạt tương phản. Bản DỊU tách khỏi dải logo
    nên logo/nút brand luôn nổi bật. color-mix: Chrome/Edge/Safari 16.2+ hỗ trợ. */
 .ambient-surface {
+  position: relative;
+  z-index: 0; /* stacking context để ::before (z-index -1) nằm dưới nội dung, trên nền phẳng */
+  background: #f9f8fd; /* nền phẳng: đổi chiều cao KHÔNG repaint */
+}
+/* Lớp ambient TĨNH: fixed theo viewport (KHÔNG theo chiều cao nội dung) → trang cao
+   lên/thu lại (mở FAQ…) KHÔNG repaint nền, lại là compositor layer riêng. Trước đây
+   gradient nằm ở background của cả trang + toạ độ theo % chiều cao (-10%/8%/112%) → mỗi
+   lần trang đổi cao là repaint TOÀN TRANG → rớt frame khi mở FAQ. */
+.ambient-surface::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background:
     radial-gradient(1100px 600px at 82% -10%, color-mix(in srgb, var(--theme-surface-via) 15%, transparent), transparent 60%),
     radial-gradient(900px 620px at -6% 8%, color-mix(in srgb, var(--theme-surface-from) 17%, transparent), transparent 55%),
-    radial-gradient(760px 520px at 50% 112%, color-mix(in srgb, var(--theme-surface-to) 12%, transparent), transparent 60%),
-    #f9f8fd;
+    radial-gradient(760px 520px at 50% 112%, color-mix(in srgb, var(--theme-surface-to) 12%, transparent), transparent 60%);
+}
+
+/* ===== Tiện ích hiệu năng cuộn/animation ===== */
+/* Pause mọi @keyframes bên trong khi container ra ngoài viewport (JS toggle class
+   qua usePauseWhenOffscreen) → nhả CPU/GPU, không animate nền vô ích. */
+.anim-paused,
+.anim-paused * {
+  animation-play-state: paused !important;
+}
+/* Bỏ render section lớn khi ngoài màn hình → giảm layout/paint khi trang reflow
+   (vd mở FAQ). 'auto' ghi nhớ kích thước thật sau lần đầu → không nhảy khi cuộn lại. */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 720px;
 }
 
 /* ===== Hero logo treatment (AimaHero): glass slab + halo glow ===== */
@@ -370,7 +397,18 @@ html {
   background: linear-gradient(135deg, #6e8efb, #a777e3);
   box-shadow: 0 8px 15px rgba(0, 0, 0, 0.12);
   transition: background 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), transform 0.3s ease, box-shadow 0.4s ease;
-  animation: share-pulse 3s infinite;
+}
+/* Vòng "pulse" — animate transform/opacity (compositor) thay vì box-shadow (paint). */
+.share-fab::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px rgba(110, 142, 251, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+  animation: share-pulse 3s ease-out infinite;
 }
 /* hào quang mờ phía sau khi hover */
 .share-fab::before {
@@ -395,7 +433,10 @@ html {
   background: linear-gradient(135deg, #a777e3, #6e8efb);
   transform: translateY(-4px) scale(1.06);
   box-shadow: 0 14px 26px rgba(110, 142, 251, 0.45);
-  animation: none; /* nhường chỗ cho box-shadow hover */
+}
+.share-fab:hover::after {
+  animation: none; /* dừng pulse khi hover */
+  opacity: 0;
 }
 .share-fab:hover::before {
   opacity: 1;
@@ -409,8 +450,11 @@ html {
 }
 .share-fab:focus-visible {
   outline: none;
-  animation: none;
   box-shadow: 0 0 0 3px rgba(110, 142, 251, 0.55), 0 8px 15px rgba(0, 0, 0, 0.12);
+}
+.share-fab:focus-visible::after {
+  animation: none;
+  opacity: 0;
 }
 
 /* --- Menu / tooltip mở LÊN TRÊN, neo cạnh phải --- */
@@ -534,13 +578,16 @@ html {
 
 @keyframes share-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(110, 142, 251, 0.4);
+    transform: scale(1);
+    opacity: 0.5;
   }
   70% {
-    box-shadow: 0 0 0 18px rgba(110, 142, 251, 0);
+    transform: scale(1.55);
+    opacity: 0;
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(110, 142, 251, 0);
+    transform: scale(1.55);
+    opacity: 0;
   }
 }
 
@@ -563,8 +610,9 @@ html {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .share-fab {
+  .share-fab::after {
     animation: none;
+    opacity: 0;
   }
   .share-fab,
   .share-fab .share-icon,
@@ -762,13 +810,9 @@ html {
   display: flex;
   width: max-content;
   will-change: transform;
-  animation: logoloop-scroll var(--logoloop-duration, 40s) linear infinite;
-}
-.logoloop--reverse .logoloop__track {
-  animation-direction: reverse;
-}
-.logoloop--pausable:hover .logoloop__track {
-  animation-play-state: paused;
+  /* Chuyển động do JS điều khiển qua transform (components/LogoLoop.tsx):
+     chỉ chạy khi trong viewport (IntersectionObserver) + ramp mượt khi hover +
+     tôn trọng prefers-reduced-motion. Không dùng CSS animation nữa. */
 }
 .logoloop__seq {
   display: flex;
@@ -778,16 +822,6 @@ html {
   display: flex;
   align-items: center;
   flex: none;
-}
-@keyframes logoloop-scroll {
-  to {
-    transform: translateX(-50%);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .logoloop__track {
-    animation: none;
-  }
 }
 
 /* ===== Responsive ===== */

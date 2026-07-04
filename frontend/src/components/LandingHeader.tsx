@@ -15,17 +15,19 @@ const scrollToId = (id: string) => {
   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 };
 
-// Home → hero; Features → quy trình; Pricing → TRANG /pricing; Resources → footer.
+// Home → hero; Features → quy trình; Pricing → TRANG /pricing (đồng thời sáng khi
+// cuộn tới section #pricing trên Landing nhờ `spyId`); Resources → footer.
 // `section` cuộn tới id trên Landing (điều hướng về "/#id" nếu đang ở trang khác);
-// `route` điều hướng sang trang riêng.
+// `route` điều hướng sang trang riêng; `spyId` (tuỳ chọn) = id section để scroll-spy
+// vẫn highlight route đó khi đang ở Landing.
 type HeaderNavItem =
   | { label: string; kind: "section"; id: string }
-  | { label: string; kind: "route"; route: Route; path: string };
+  | { label: string; kind: "route"; route: Route; path: string; spyId?: string };
 
 const navItems = (t: ReturnType<typeof useApp>["t"]): HeaderNavItem[] => [
   { label: t.nHome, kind: "section", id: "home" },
   { label: t.nFeatures, kind: "section", id: "features" },
-  { label: t.nPricing, kind: "route", route: "pricing", path: "/pricing" },
+  { label: t.nPricing, kind: "route", route: "pricing", path: "/pricing", spyId: "pricing" },
   { label: t.nResources, kind: "section", id: "resources" },
 ];
 
@@ -42,7 +44,8 @@ export default function LandingHeader() {
   // Một listener duy nhất: cập nhật trạng thái cuộn (zustand) + section đang xem
   // (scroll-spy, chỉ có nghĩa trên Landing) để highlight link tương ứng trên header.
   useEffect(() => {
-    const SPY_IDS = ["home", "features", "resources"];
+    // Thứ tự PHẢI theo chiều tài liệu (offsetTop tăng dần) để scroll-spy chọn đúng.
+    const SPY_IDS = ["home", "features", "pricing", "resources"];
     const onScroll = () => {
       setScrolled(window.scrollY > 20);
       if (!onLanding) return;
@@ -73,9 +76,14 @@ export default function LandingHeader() {
 
   const items = useMemo(() => navItems(t), [t]);
 
-  // Active: item `route` theo pathname; item `section` theo scroll-spy (chỉ trên Landing).
+  // Active: item `route` theo pathname — NGOÀI RA nếu route có `spyId` và đang ở Landing
+  // thì cũng active khi cuộn tới section đó (vd "Bảng giá" sáng khi tới phần Chọn gói).
+  // item `section` theo scroll-spy (chỉ trên Landing).
   const isItemActive = useCallback(
-    (it: HeaderNavItem) => (it.kind === "route" ? pathname === it.path : onLanding && activeSection === it.id),
+    (it: HeaderNavItem) =>
+      it.kind === "route"
+        ? pathname === it.path || (onLanding && it.spyId != null && activeSection === it.spyId)
+        : onLanding && activeSection === it.id,
     [pathname, onLanding, activeSection]
   );
 

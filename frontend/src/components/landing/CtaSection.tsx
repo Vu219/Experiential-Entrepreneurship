@@ -15,7 +15,11 @@ export default function CtaSection() {
   const badges = [t.ctaHint, t.ctaCancelAnytime];
 
   return (
-    <section style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '0 18px 56px' : '0 28px 84px' }}>
+    // contain: giới hạn phạm vi repaint trong section. translateZ(0): đẩy CTA lên
+    // compositor layer riêng → khi FAQ phía trên giãn đẩy CTA xuống, cú dịch chuyển
+    // chỉ RE-COMPOSITE (tái dùng texture gradient đã vẽ) thay vì repaint gradient mỗi
+    // frame → hết giật khi mở item FAQ cuối. Dùng tiết chế: chỉ 1 element này.
+    <section style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '0 18px 56px' : '0 28px 84px', contain: 'layout paint', transform: 'translateZ(0)' }}>
       <Reveal y={18}>
         <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 24, background: CTA_BG, padding: isMobile ? '44px 24px 36px' : '56px 60px 44px', textAlign: 'center' }}>
           <div style={{ position: 'relative' }}>

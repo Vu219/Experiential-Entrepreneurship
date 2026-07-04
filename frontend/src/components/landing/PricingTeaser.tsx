@@ -15,7 +15,7 @@ export default function PricingTeaser() {
   const plans = pricingPlans(lang);
 
   return (
-    <section id="pricing" className="scroll-anchor" style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '10px 18px 56px' : '10px 28px 80px' }}>
+    <section id="pricing" className="scroll-anchor cv-auto" style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '10px 18px 56px' : '10px 28px 80px' }}>
       <Reveal>
         <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto 36px' }}>
           <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 30 : 38, letterSpacing: '-.02em', margin: 0, color: '#171327' }}>{t.prTitle}</h2>

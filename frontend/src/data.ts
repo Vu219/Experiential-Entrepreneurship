@@ -262,10 +262,11 @@ export const notifLabels = (lang: Lang) =>
 // Swatch xem trước = dải AMBIENT (--theme-surface-*) đã làm dịu của mỗi theme —
 // đúng thứ đổi khi chọn theme (đồng bộ styles/tokens.css). Dải brand tươi độc lập theme.
 export function themeOptions(lang: Lang) {
+  // Đại dương (Ocean) là theme mặc định → xếp đầu tiên.
   return [
+    { key: 'ocean' as const, label: P(lang, 'Đại dương', 'Ocean'), grad: 'linear-gradient(135deg,#5BD8EC,#6AA1F2,#7E86F1)' },
     { key: 'aurora' as const, label: 'Aurora', grad: 'linear-gradient(135deg,#6FA8A3,#8098C4,#9E90C2)' },
     { key: 'sunset' as const, label: P(lang, 'Hoàng hôn', 'Sunset'), grad: 'linear-gradient(135deg,#E0A583,#CF8E93,#B983A6)' },
-    { key: 'ocean' as const, label: P(lang, 'Đại dương', 'Ocean'), grad: 'linear-gradient(135deg,#5BD8EC,#6AA1F2,#7E86F1)' },
   ];
 }
 

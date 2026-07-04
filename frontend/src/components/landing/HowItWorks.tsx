@@ -14,7 +14,7 @@ export default function HowItWorks() {
   ];
 
   return (
-    <section id="how-it-works" className="scroll-anchor" style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '10px 18px 50px' : '10px 28px 70px' }}>
+    <section id="how-it-works" className="scroll-anchor cv-auto" style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '10px 18px 50px' : '10px 28px 70px' }}>
       <Reveal>
         <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto 40px' }}>
           <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 30 : 38, letterSpacing: '-.02em', margin: 0, color: '#171327' }}>{t.hiwTitle}</h2>

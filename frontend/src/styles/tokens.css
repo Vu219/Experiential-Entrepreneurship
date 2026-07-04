@@ -1,40 +1,64 @@
 :root {
-  /* Nhận diện thương hiệu — tươi, cố định (logo · CTA · nút · badge) */
+  /* ===== Đại dương (Ocean) — theme mặc định =====
+     Mỗi theme override 2 dải:
+     - Brand TƯƠI (--brand-from/via/to + --brand-glow): logo · CTA · nút · badge ·
+       sidebar active · accent · glow. Đổi theo theme để CẢ APP đổi tông, nhưng luôn
+       giữ ở dải vivid để nổi bật.
+     - Ambient DỊU (--theme-surface-*): tint nền hero (.ambient-surface), tách khỏi
+       dải brand nên nền vẫn sáng, chữ tối luôn đủ tương phản.
+     Đổi data-theme trên <html> là mọi component đọc var(...) đổi theo — không sửa
+     từng component. Áp theme trước paint bằng inline script ở index.html (chống FOUC). */
   --brand-from: #22d3ee;
   --brand-via: #3b82f6;
   --brand-to: #8b5cf6;
-  --brand-gradient: linear-gradient(135deg, var(--brand-from), var(--brand-via), var(--brand-to));
   --brand-glow: rgba(99, 102, 241, 0.45);
+
+  /* Dẫn xuất từ 3 chặng brand — tự đổi khi theme override --brand-from/via/to. */
+  --brand-gradient: linear-gradient(135deg, var(--brand-from), var(--brand-via), var(--brand-to));
   /* Alias tương thích ngược: .gradtext và code cũ đọc var(--brand). */
   --brand: var(--brand-gradient);
 
-  /* Nền deep (CTA cuối trang) — indigo sâu, sang trọng. */
+  /* Nền deep (CTA cuối trang) — indigo sâu, CỐ ĐỊNH (không theo theme, giữ chữ trắng đạt AA). */
   --panel-deep-from: #1e1b4b;
   --panel-deep-to: #312e81;
 
-  /* Ambient theme mặc định = Đại dương (Ocean) — Landing public dùng theme này. */
+  /* Ambient nền (bản DỊU) — Đại dương. */
   --theme-surface-from: #5bd8ec;
   --theme-surface-via: #6aa1f2;
   --theme-surface-to: #7e86f1;
 }
 
-/* Aurora — mát/lạnh, đã giảm chroma & thu hẹp hue (teal → periwinkle → violet dịu). */
+/* Đại dương (Ocean) — bằng giá trị :root mặc định (khai báo tường minh cho đối xứng). */
+:root[data-theme='ocean'] {
+  --brand-from: #22d3ee;
+  --brand-via: #3b82f6;
+  --brand-to: #8b5cf6;
+  --brand-glow: rgba(99, 102, 241, 0.45);
+  --theme-surface-from: #5bd8ec;
+  --theme-surface-via: #6aa1f2;
+  --theme-surface-to: #7e86f1;
+}
+
+/* Aurora — teal → periwinkle → violet dịu.
+   Brand = ĐÚNG bảng màu swatch ở Cài đặt > Giao diện (themeOptions trong data.ts). */
 :root[data-theme='aurora'] {
+  --brand-from: #6fa8a3;
+  --brand-via: #8098c4;
+  --brand-to: #9e90c2;
+  --brand-glow: rgba(128, 152, 196, 0.5);
   --theme-surface-from: #6fa8a3;
   --theme-surface-via: #8098c4;
   --theme-surface-to: #9e90c2;
 }
 
-/* Hoàng hôn (Sunset) — ấm/hoàng hôn dịu (apricot → dusty rose → mauve-plum). */
+/* Hoàng hôn (Sunset) — apricot → dusty rose → mauve dịu.
+   Brand = ĐÚNG bảng màu swatch ở Cài đặt > Giao diện (themeOptions trong data.ts). */
 :root[data-theme='sunset'] {
+  --brand-from: #e0a583;
+  --brand-via: #cf8e93;
+  --brand-to: #b983a6;
+  --brand-glow: rgba(207, 142, 147, 0.5);
   --theme-surface-from: #e0a583;
   --theme-surface-via: #cf8e93;
   --theme-surface-to: #b983a6;
-}
-
-/* Đại dương (Ocean) — giữ nguyên (bằng giá trị :root mặc định). */
-:root[data-theme='ocean'] {
-  --theme-surface-from: #5bd8ec;
-  --theme-surface-via: #6aa1f2;
-  --theme-surface-to: #7e86f1;
 }

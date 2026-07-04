@@ -5,6 +5,19 @@
     <link rel="icon" type="image/png" href="/aima-logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AIMA — AI Content Marketing</title>
+    <!-- Áp theme (bảng màu) TRƯỚC paint để không nhấp nháy khi tải lại.
+         Đồng bộ với store/useAppStore.ts (key "aima-theme", default "ocean"). -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('aima-theme');
+          var ok = ['ocean', 'aurora', 'sunset'].indexOf(t) !== -1;
+          document.documentElement.setAttribute('data-theme', ok ? t : 'ocean');
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'ocean');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

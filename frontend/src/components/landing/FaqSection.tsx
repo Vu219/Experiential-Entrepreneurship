@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { useReducedMotion } from 'framer-motion';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Reveal, RevealGroup, RevealItem } from '../motion/Reveal';
 
-// FAQ accordion — panel animate height 0 ↔ auto bằng framer-motion (thư viện tự đo
-// chiều cao thật nên chuyển động mượt) kèm fade nội dung; icon xoay bằng transform.
-// Dùng chung cho Landing và /pricing.
+// FAQ accordion — panel mở/đóng bằng CSS grid-template-rows 0fr ↔ 1fr (transition
+// thuần, KHÔNG animate height nên không đo layout đồng bộ / không reflow từng frame
+// như framer height:auto trước đây). Icon xoay bằng transform. Dùng chung Landing + /pricing.
 export default function FaqSection() {
   const { t } = useApp();
   const { isMobile } = useBreakpoint();
@@ -22,7 +22,7 @@ export default function FaqSection() {
   ];
 
   return (
-    <section id="faq" className="scroll-anchor" style={{ maxWidth: 760, margin: '0 auto', padding: isMobile ? '10px 18px 56px' : '10px 28px 80px' }}>
+    <section id="faq" className="scroll-anchor" style={{ maxWidth: 760, margin: '0 auto', padding: isMobile ? '10px 18px 56px' : '10px 28px 80px', contain: 'layout' }}>
       <Reveal>
         <div style={{ textAlign: 'center', margin: '0 auto 32px' }}>
           <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 30 : 38, letterSpacing: '-.02em', margin: 0, color: '#171327' }}>{t.faqTitle}</h2>
@@ -45,19 +45,29 @@ export default function FaqSection() {
                   <span style={{ fontWeight: 700, fontSize: 15.5, color: '#211c38', fontFamily: "'Plus Jakarta Sans'" }}>{q}</span>
                   <ChevronDown size={18} color="#7c3aed" strokeWidth={2.2} style={{ flex: 'none', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .3s ease' }} />
                 </button>
-                <motion.div
+                <div
                   id={`faq-panel-${i}`}
-                  initial={false}
-                  animate={{ height: isOpen ? 'auto' : 0, opacity: isOpen ? 1 : 0 }}
-                  transition={
-                    reduced
-                      ? { duration: 0 }
-                      : { height: { duration: 0.34, ease: [0.4, 0, 0.2, 1] }, opacity: { duration: 0.26, ease: 'easeOut' } }
-                  }
-                  style={{ overflow: 'hidden' }}
+                  role="region"
+                  aria-hidden={!isOpen}
+                  style={{
+                    display: 'grid',
+                    gridTemplateRows: isOpen ? '1fr' : '0fr',
+                    // 220ms ease-out: cửa sổ repaint ngắn → CTA phía dưới bị đẩy ít frame hơn.
+                    transition: reduced ? undefined : 'grid-template-rows .22s ease-out',
+                  }}
                 >
-                  <p style={{ fontSize: 14.5, lineHeight: 1.6, color: '#5b5670', margin: 0, padding: isMobile ? '0 18px 16px' : '0 22px 20px' }}>{a}</p>
-                </motion.div>
+                  {/* minHeight:0 để grid item co được về 0; overflow:hidden để clip khi đóng. */}
+                  <div
+                    style={{
+                      overflow: 'hidden',
+                      minHeight: 0,
+                      opacity: isOpen ? 1 : 0,
+                      transition: reduced ? undefined : 'opacity .18s ease-out',
+                    }}
+                  >
+                    <p style={{ fontSize: 14.5, lineHeight: 1.6, color: '#5b5670', margin: 0, padding: isMobile ? '0 18px 16px' : '0 22px 20px' }}>{a}</p>
+                  </div>
+                </div>
               </div>
             </RevealItem>
           );

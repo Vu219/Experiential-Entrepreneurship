@@ -57,9 +57,10 @@ function AdminLayout() {
 
 export default function App() {
   const { theme } = useApp();
-  // Áp theme lên <html data-theme> để :root[data-theme] cascade toàn site (kể cả
-  // overlay/portal). Theme chỉ đổi ambient nền qua --theme-surface-*; dải brand
-  // (logo/nút/badge) giữ TƯƠI cố định trong styles/tokens.css.
+  // Đồng bộ khai báo: gắn data-theme lên <html> để :root[data-theme] cascade toàn site
+  // (kể cả overlay/portal). Đổi theme override cả dải brand (--brand-*) lẫn ambient
+  // (--theme-surface-*) ở styles/tokens.css → nút/badge/accent/nền đổi tông theo.
+  // FOUC lúc tải đã được chặn bằng inline script ở index.html; setTheme cũng áp ngay.
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);

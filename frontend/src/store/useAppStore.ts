@@ -17,6 +17,31 @@ const readActiveBrand = (): string | null => {
   }
 };
 
+// Theme (bảng màu thương hiệu) được người dùng chọn ở Cài đặt > Giao diện.
+// Nguồn chân lý = localStorage (key "aima-theme"), default "ocean". Áp bằng cách gắn
+// data-theme lên <html> → mọi var(--brand-*/--theme-surface-*) đổi theo (tokens.css).
+// FOUC được chặn bằng inline script ở index.html (áp trước paint); ở đây đồng bộ store.
+const THEME_KEY = "aima-theme";
+const ALLOWED_THEMES: ThemeKey[] = ["ocean", "aurora", "sunset"];
+const readTheme = (): ThemeKey => {
+  try {
+    const t = localStorage.getItem(THEME_KEY);
+    return t && (ALLOWED_THEMES as string[]).includes(t) ? (t as ThemeKey) : "ocean";
+  } catch {
+    return "ocean";
+  }
+};
+const applyTheme = (k: ThemeKey): void => {
+  try {
+    localStorage.setItem(THEME_KEY, k);
+  } catch {
+    /* ignore persistence errors */
+  }
+  if (typeof document !== "undefined") {
+    document.documentElement.setAttribute("data-theme", k);
+  }
+};
+
 interface AppStoreState {
   lang: Lang;
   theme: ThemeKey;
@@ -39,7 +64,7 @@ interface AppStoreState {
 
 export const useAppStore = create<AppStoreState>((set) => ({
   lang: "vi",
-  theme: "ocean",
+  theme: readTheme(),
   profile: { name: "AIMA User", email: "contact@aima.studio", bio: bioDefault("vi") },
   brand: { ...brandDefaults("vi"), toneIdx: [0, 1, 3] },
   notif: [true, true, true, false],
@@ -47,7 +72,10 @@ export const useAppStore = create<AppStoreState>((set) => ({
 
   setLang: (l) => set({ lang: l }),
   toggleLang: () => set((s) => ({ lang: s.lang === "vi" ? "en" : "vi" })),
-  setTheme: (k) => set({ theme: k }),
+  setTheme: (k) => {
+    applyTheme(k); // đổi ngay (đồng bộ, trước re-render) + lưu localStorage → không nhấp nháy
+    set({ theme: k });
+  },
   setProfile: (patch) => set((s) => ({ profile: { ...s.profile, ...patch } })),
   setBrand: (patch) => set((s) => ({ brand: { ...s.brand, ...patch } })),
   toggleBrandTone: (i) =>
