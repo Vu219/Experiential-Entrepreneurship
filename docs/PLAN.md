@@ -76,10 +76,10 @@
 *(FR-41 TikTok, FR-43 YouTube Shorts, FR-45 LinkedIn — out of current scope, do not implement yet.)*
 
 ## 9. Scheduling
-- [ ] FR-47 Create schedule (content, platform, date, time, status) `[BE][FE]`
-- [ ] FR-48 Golden hour suggestions (platform defaults → data-driven after ≥10 analyzed posts) `[BE][AI]` — AI endpoint (`POST /golden-hours`, defaults + data-driven) done 2026-06-13; BE scheduling integration pending
-- [ ] FR-49 Posting queue `[BE]`
-- [ ] FR-50 Update schedule / FR-51 Cancel schedule (unpublished only) `[BE][FE]`
+- [ ] FR-47 Create schedule (content, platform, date, time, status) `[BE][FE]` — BE done 2026-07-05 (`POST /schedules`: ContentVersion FORMATTED + PlatformAccount ACTIVE cùng nền tảng (BR-05), giờ đăng phải ở tương lai, version/item → SCHEDULED; lịch CANCELLED được tái sử dụng khi lên lịch lại — cột content_version_id unique 1-1); FE pending (UI-07)
+- [x] FR-48 Golden hour suggestions (platform defaults → data-driven after ≥10 analyzed posts) `[BE][AI]` — AI endpoint (`POST /golden-hours`, defaults + data-driven) done 2026-06-13; BE integration done 2026-07-05 (`GET /schedules/golden-hours?platform=` → `AiServiceClient.goldenHours`; chưa gửi analytics — bổ sung `posts` khi FR-59 xong để bật nhánh data-driven)
+- [x] FR-49 Posting queue `[BE]` — done 2026-07-05 (`GET /schedules` sắp theo scheduledTime, filter status/platform; `status=SCHEDULED` = hàng đợi sắp đăng)
+- [ ] FR-50 Update schedule / FR-51 Cancel schedule (unpublished only) `[BE][FE]` — BE done 2026-07-05 (PUT dời giờ khi SCHEDULED/ON_HOLD; DELETE hủy khi SCHEDULED/ON_HOLD/FAILED → CANCELLED, version về FORMATTED, item về FORMATTED nếu không còn bản nào trong pipeline); FE pending (UI-07)
 
 ## 10. Auto-Posting
 - [ ] FR-52 Post on time (scheduler) `[BE]`

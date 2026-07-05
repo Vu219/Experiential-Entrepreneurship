@@ -5,6 +5,8 @@ import com.aima.dto.ai.FormatPayload;
 import com.aima.dto.ai.FormatResultPayload;
 import com.aima.dto.ai.GenerateContentPayload;
 import com.aima.dto.ai.GeneratedContentResult;
+import com.aima.dto.ai.GoldenHourPayload;
+import com.aima.dto.ai.GoldenHourResultPayload;
 import com.aima.dto.ai.ResearchPayload;
 import com.aima.dto.ai.ResearchResultPayload;
 import com.aima.exception.AppException;
@@ -83,6 +85,24 @@ public class AiServiceClientImpl implements AiServiceClient {
             throw new AppException(ErrorCode.AI_SERVICE_ERROR);
         } catch (Exception e) {
             log.warn("[AiService] POST /format thất bại: {}", e.getMessage());
+            throw new AppException(ErrorCode.AI_SERVICE_ERROR);
+        }
+    }
+
+    @Override
+    public GoldenHourResultPayload goldenHours(GoldenHourPayload payload) {
+        try {
+            return webClient.post()
+                    .uri("/golden-hours")
+                    .bodyValue(payload)
+                    .retrieve()
+                    .bodyToMono(GoldenHourResultPayload.class)
+                    .block(Duration.ofSeconds(properties.timeoutSeconds()));
+        } catch (WebClientResponseException e) {
+            log.warn("[AiService] POST /golden-hours lỗi {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new AppException(ErrorCode.AI_SERVICE_ERROR);
+        } catch (Exception e) {
+            log.warn("[AiService] POST /golden-hours thất bại: {}", e.getMessage());
             throw new AppException(ErrorCode.AI_SERVICE_ERROR);
         }
     }

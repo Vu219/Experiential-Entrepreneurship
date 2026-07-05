@@ -4,6 +4,8 @@ import com.aima.dto.ai.FormatPayload;
 import com.aima.dto.ai.FormatResultPayload;
 import com.aima.dto.ai.GenerateContentPayload;
 import com.aima.dto.ai.GeneratedContentResult;
+import com.aima.dto.ai.GoldenHourPayload;
+import com.aima.dto.ai.GoldenHourResultPayload;
 import com.aima.dto.ai.ResearchPayload;
 import com.aima.dto.ai.ResearchResultPayload;
 
@@ -20,4 +22,7 @@ public interface AiServiceClient {
 
     /** POST /format — FR-40, FR-42, FR-44, Threads (một ContentVersion mỗi nền tảng, FR-46). */
     FormatResultPayload format(FormatPayload payload);
+
+    /** POST /golden-hours — FR-48 (mặc định theo nền tảng cho tới khi có ≥10 bài đã phân tích). */
+    GoldenHourResultPayload goldenHours(GoldenHourPayload payload);
 }

@@ -188,6 +188,10 @@ backend/
 >   `scheduler/DailyTrendResearchJob` (2:00 AM daily run),
 >   `mapper/TrendResearchMapper`, `entity/{TrendResearchSession, Trend, ContentIdea}`,
 >   `dto/ai/{ResearchPayload, ResearchResultPayload, TrendPayload, ContentIdeaPayload}`. See §4 "Trend Research".
+> - **Post Scheduling (FR-47..FR-51 + FR-48 golden hours)**: `controller/PostScheduleController`,
+>   `service/PostScheduleService` (+`Impl`), `AiServiceClient.goldenHours()`, `mapper/PostScheduleMapper`,
+>   `repository/{PostScheduleRepository, ContentVersionRepository}`, entities `PostSchedule`/`Post`/`PostingJob`
+>   (pre-existing), `dto/ai/{GoldenHourPayload, GoldenHourResultPayload}`. See §4 "Post Scheduling".
 
 ---
 
@@ -535,6 +539,31 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 **Scheduler 2:00 AM (FR-19)** — `scheduler/DailyTrendResearchJob` (`@Scheduled(cron = "0 0 2 * * *")`): quét mọi brand profile `isActive` (`findByIsActiveTrueAndDeletedAtIsNull`), yêu cầu strategy ACTIVE, bỏ qua user đang có phiên PENDING/RUNNING (cùng guard với "Research ngay"), tạo session qua `TrendResearchMapper.toSession(brand, FACEBOOK)` rồi dispatch thẳng `TrendResearchWorkerService.process(id)` (không cần afterCommit — scheduler không có transaction bao ngoài, repo save commit ngay). Resilient: lỗi từng hồ sơ log + bỏ qua.
 
 **ErrorCodes** 1910–1913: `ACTIVE_BRAND_PROFILE_REQUIRED`, `ACTIVE_STRATEGY_REQUIRED`, `RESEARCH_ALREADY_RUNNING`, `RESEARCH_SESSION_NOT_FOUND`.
+
+### Post Scheduling — FR-47..FR-51 (+ FR-48 golden hours)
+> Lên lịch đăng một `ContentVersion` đã FORMATTED lên một `PlatformAccount` ACTIVE cùng nền tảng (BR-05).
+> CRUD đồng bộ (không phải async job — việc đăng bài thật là FR-52..FR-56, chưa làm). Slice:
+> `controller/PostScheduleController` → `service/PostScheduleService` (+`Impl`) → `mapper/PostScheduleMapper`
+> (uses `ContentFormattingMapper` + `TrendResearchMapper.parsePlatform`);
+> `repository/{PostScheduleRepository, ContentVersionRepository}`.
+
+**Endpoints** (`/schedules`, auth required):
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/schedules` | **FR-47** tạo lịch: version phải FORMATTED (→ version+item chuyển SCHEDULED), account phải ACTIVE và cùng `platformName` với version, `scheduledTime` phải `@Future` |
+| GET | `/schedules` | **FR-49** hàng đợi: sắp theo `scheduledTime` ASC, filter optional `?status=&platform=` (`status=SCHEDULED` = queue sắp đăng) |
+| GET | `/schedules/golden-hours?platform=` | **FR-48** gợi ý khung giờ vàng — gọi AI `POST /golden-hours`; chưa gửi analytics (đợi FR-59) nên AI trả mặc định nền tảng (`data_driven=false`) |
+| GET | `/schedules/{id}` | Xem một lịch (kèm version + account đích) |
+| PUT | `/schedules/{id}` | **FR-50** dời giờ — chỉ khi SCHEDULED/ON_HOLD |
+| DELETE | `/schedules/{id}` | **FR-51** hủy — chỉ bài chưa đăng (SCHEDULED/ON_HOLD/FAILED) → CANCELLED |
+
+**Ràng buộc 1-1 version↔schedule** — cột `content_version_id` trên `post_schedules` là **unique thật** (không partial), nên hủy lịch **không xóa mềm** bản ghi: status → `CANCELLED` và bản ghi được **tái sử dụng** khi user lên lịch lại cùng version (`create` tìm schedule chưa xóa của version: đang active → `SCHEDULE_ALREADY_EXISTS`; CANCELLED → cập nhật lại account/giờ/status). Ownership scope qua `platformAccount.user` (tạo mới đã đảm bảo version + account cùng user).
+
+**Trạng thái (state machine WORKFLOWS.md)** — tạo lịch: version + item → `SCHEDULED`. Hủy: version → `FORMATTED` (lên lịch lại được, FR-39/FR-58); item chỉ hạ về `FORMATTED` khi **không còn** schedule nào khác của item ở SCHEDULED/ON_HOLD/POSTING/POSTED. `ScheduleStatus`: SCHEDULED/ON_HOLD/POSTING/POSTED/FAILED/CANCELLED (POSTING/POSTED/FAILED do auto-posting FR-52+ cập nhật sau).
+
+**FR-48** — `suggestGoldenHours` **không mở transaction** (rule #24, chỉ gọi HTTP): `GoldenHourPayload{platform}` (field `posts` cố tình bỏ — pydantic default rỗng; bổ sung khi có FR-59) → `GoldenHourResultPayload` → `GoldenHourResponse` (`parsePlatform` chuẩn hoá chuỗi AI về enum).
+
+**ErrorCodes** 1930–1941: `SCHEDULE_CONTENT_VERSION_REQUIRED`, `SCHEDULE_PLATFORM_ACCOUNT_REQUIRED`, `SCHEDULE_TIME_REQUIRED`, `SCHEDULE_TIME_IN_PAST`, `CONTENT_VERSION_NOT_FOUND`, `CONTENT_VERSION_NOT_SCHEDULABLE`, `CONNECTION_NOT_ACTIVE`, `SCHEDULE_PLATFORM_MISMATCH`, `SCHEDULE_ALREADY_EXISTS`, `SCHEDULE_NOT_FOUND`, `SCHEDULE_NOT_EDITABLE`, `SCHEDULE_NOT_CANCELLABLE`.
 
 ---
 

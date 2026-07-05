@@ -149,7 +149,21 @@ public enum ErrorCode {
     // PLATFORM FORMATTING ERRORS
     FORMAT_PLATFORMS_REQUIRED(1924, "Vui lòng chọn ít nhất một nền tảng để định dạng nội dung", HttpStatus.BAD_REQUEST),
     CONTENT_ITEM_NOT_FORMATTABLE(1925, "Nội dung ở trạng thái này không thể định dạng theo nền tảng", HttpStatus.BAD_REQUEST),
-    CONTENT_FORMATTING_JOB_NOT_FOUND(1926, "Không tìm thấy tác vụ định dạng nội dung", HttpStatus.NOT_FOUND),;
+    CONTENT_FORMATTING_JOB_NOT_FOUND(1926, "Không tìm thấy tác vụ định dạng nội dung", HttpStatus.NOT_FOUND),
+
+    // POST SCHEDULING ERRORS (FR-47..FR-51)
+    SCHEDULE_CONTENT_VERSION_REQUIRED(1930, "Thiếu mã bản định dạng nội dung cần lên lịch", HttpStatus.BAD_REQUEST),
+    SCHEDULE_PLATFORM_ACCOUNT_REQUIRED(1931, "Thiếu tài khoản nền tảng để đăng bài", HttpStatus.BAD_REQUEST),
+    SCHEDULE_TIME_REQUIRED(1932, "Thiếu thời gian đăng bài", HttpStatus.BAD_REQUEST),
+    SCHEDULE_TIME_IN_PAST(1933, "Thời gian đăng bài phải ở tương lai", HttpStatus.BAD_REQUEST),
+    CONTENT_VERSION_NOT_FOUND(1934, "Không tìm thấy bản định dạng nội dung", HttpStatus.NOT_FOUND),
+    CONTENT_VERSION_NOT_SCHEDULABLE(1935, "Chỉ lên lịch được nội dung đã định dạng (FORMATTED)", HttpStatus.BAD_REQUEST),
+    CONNECTION_NOT_ACTIVE(1936, "Tài khoản nền tảng chưa kết nối hoặc không còn hoạt động", HttpStatus.BAD_REQUEST),
+    SCHEDULE_PLATFORM_MISMATCH(1937, "Nền tảng của tài khoản không khớp với nền tảng của nội dung", HttpStatus.BAD_REQUEST),
+    SCHEDULE_ALREADY_EXISTS(1938, "Bản nội dung này đã có lịch đăng. Vui lòng cập nhật hoặc hủy lịch cũ.", HttpStatus.CONFLICT),
+    SCHEDULE_NOT_FOUND(1939, "Không tìm thấy lịch đăng bài", HttpStatus.NOT_FOUND),
+    SCHEDULE_NOT_EDITABLE(1940, "Lịch đăng ở trạng thái này không thể cập nhật", HttpStatus.BAD_REQUEST),
+    SCHEDULE_NOT_CANCELLABLE(1941, "Chỉ hủy được lịch chưa đăng bài", HttpStatus.BAD_REQUEST),;
 
     private int code;
     private String message;
