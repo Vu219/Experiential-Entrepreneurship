@@ -60,9 +60,9 @@
 - [x] FR-32 Regenerate / FR-33 Manual edit / FR-34 Review before posting `[BE][FE]` — FR-32 regenerate done end-to-end 2026-07-01 (Create.tsx → `POST /content-items/generate` with `regenerateFrom` → AI `/generate`); FR-33/FR-34 done 2026-07-03: BE `ContentItemController` (`GET/PUT /content-items/{id}`, `PATCH /{id}/status`), thêm `NEED_REVIEW`/`APPROVED` vào `ContentLifecycle` theo state machine, sửa nội dung APPROVED tự quay về NEED_REVIEW; FE Create.tsx panel preview có nút Chỉnh sửa (script/caption/hashtag/media prompt) + badge trạng thái + nút Gửi duyệt → Phê duyệt
 
 ## 7. Policy Violation Handling (no custom filter — SEC-06)
-- [ ] FR-35 Handle platform 400/403 policy errors: `Failed`, no retry, store original code + message, notify `[BE]`
-- [ ] FR-36 Move violating post to `Failed` + store error `[BE]`
-- [ ] FR-37 Classify policy violations vs technical errors `[BE]`
+- [ ] FR-35 Handle platform 400/403 policy errors: `Failed`, no retry, store original code + message, notify `[BE]` — xử lý + lưu mã lỗi gốc done 2026-07-05 (`PublishException` giữ code/message gốc → `PublishResult` + `PostingJob.errorType`, POLICY_VIOLATION không retry — BR-07); phần notify chờ FR-75/76
+- [x] FR-36 Move violating post to `Failed` + store error `[BE]` — done 2026-07-05 (worker `saveFailure`: post/schedule/version/item → FAILED, lỗi lưu ở `PublishResult` + job)
+- [x] FR-37 Classify policy violations vs technical errors `[BE]` — done 2026-07-05 (`MetaApiClientImpl.classifyPublishError`: policy 368/message "policy" > tạm thời 5xx/rate-limit 1,2,4,17,32,341,613 > còn lại vĩnh viễn; enum `PublishErrorType`)
 - [ ] FR-38 Violation notification (platform, reason, next steps) `[BE][FE]`
 - [ ] FR-39 Edit/regenerate then reschedule `[BE][FE]`
 
@@ -82,11 +82,11 @@
 - [ ] FR-50 Update schedule / FR-51 Cancel schedule (unpublished only) `[BE][FE]` — BE done 2026-07-05 (PUT dời giờ khi SCHEDULED/ON_HOLD; DELETE hủy khi SCHEDULED/ON_HOLD/FAILED → CANCELLED, version về FORMATTED, item về FORMATTED nếu không còn bản nào trong pipeline); FE pending (UI-07)
 
 ## 10. Auto-Posting
-- [ ] FR-52 Post on time (scheduler) `[BE]`
-- [ ] FR-53 Call platform API / FR-54 receive result `[BE]`
-- [ ] FR-55 Persist post status (state machine in WORKFLOWS.md) `[BE]`
-- [ ] FR-56 Retry policy (3 attempts at 5/15/30 min, temporary errors only) `[BE]`
-- [ ] FR-57 Failure notification / FR-58 user resolution (edit/reconnect/repost) `[BE][FE]`
+- [x] FR-52 Post on time (scheduler) `[BE]` — done 2026-07-05 (`PostingDispatchJob` quét mỗi phút: lịch đến hạn → Post + PostingJob → worker nền `postPublishExecutor`; kèm chạy retry đến hạn + vớt job PENDING mất dispatch)
+- [x] FR-53 Call platform API / FR-54 receive result `[BE]` — done 2026-07-05 (adapter `PlatformPublisher` (NFR-09): Facebook Page `POST /{page-id}/feed` + Threads container TEXT→publish qua `MetaApiClient`; Instagram trả lỗi vĩnh viễn rõ ràng — cần media, MVP chỉ có media prompt FR-29; kết quả lưu `Post.platformPostId` + `PublishResult`)
+- [x] FR-55 Persist post status (state machine in WORKFLOWS.md) `[BE]` — done 2026-07-05 (Scheduled → Posting → Posted/Failed đồng bộ trên PostSchedule + Post + ContentVersion + ContentItem; retry giữ Posting, thất bại chung cuộc → Failed)
+- [x] FR-56 Retry policy (3 attempts at 5/15/30 min, temporary errors only) `[BE]` — done 2026-07-05 (chỉ TEMPORARY; job RETRYING với `nextRetryAt` 5/15/30 phút, tối đa 3 lần; POLICY_VIOLATION/PERMANENT dừng ngay — BR-07)
+- [ ] FR-57 Failure notification / FR-58 user resolution (edit/reconnect/repost) `[BE][FE]` — chờ hệ thống notification (FR-75..79) + FE
 
 ## 11. Performance Analysis
 - [ ] FR-59 Collect metrics (views, likes, comments, shares, saves, CTR, conversion, watch time) at 24h/48h/7d `[BE]`
@@ -101,10 +101,10 @@
 - [ ] FR-68 User accepts/rejects proposals `[BE][FE]`
 
 ## 13. Error Management
-- [ ] FR-69 Unconnected account → block posting + notify `[BE]`
-- [ ] FR-70 Expired token handling (align with FR-18b: `On Hold` + reconnect prompt) `[BE]`
+- [ ] FR-69 Unconnected account → block posting + notify `[BE]` — chặn done 2026-07-05 (tạo lịch yêu cầu account ACTIVE — `CONNECTION_NOT_ACTIVE`, BR-05); notify chờ FR-75+
+- [ ] FR-70 Expired token handling (align with FR-18b: `On Hold` + reconnect prompt) `[BE]` — BE done 2026-07-05 (đăng bài gặp mã 190 → account EXPIRED + các lịch SCHEDULED của account → ON_HOLD); reconnect prompt (FE/notification) pending
 - [ ] FR-71 Invalid media format → notify + suggest fix `[BE]`
-- [ ] FR-72 Platform API error → log + retry where appropriate `[BE]`
+- [x] FR-72 Platform API error → log + retry where appropriate `[BE]` — done 2026-07-05 (mọi lỗi đăng bài được log + lưu `PublishResult`; retry chỉ cho lỗi tạm thời theo FR-56; các call Meta khác log qua `MetaApiClient`)
 - [ ] FR-73 Restricted account → stop posting + notify `[BE]`
 - [ ] FR-74 System error logging `[BE]`
 
@@ -147,9 +147,9 @@
 - [x] Input validation + clear error responses (API-04, API-05) `[BE]` — done 2026-06-12
 - [x] Password hashing (SEC-01) + JWT protection (SEC-02) `[BE]` — done 2026-06-12
 - [ ] AES-256 token encryption, never exposed to frontend (SEC-03) `[BE]`
-- [ ] Async background jobs for all AI/posting tasks (NFR-04) `[BE][AI]` — content generation done 2026-07-01 (`ContentGenerationJob` + `@Async` worker + FE polling); trend research done 2026-07-02; platform formatting done 2026-07-03 (`ContentFormattingJob` + worker); analysis/posting still pending
-- [ ] Scheduler (posting calendar trigger + 2:00 AM research run) `[BE]` — 2:00 AM research run done 2026-07-03 (`DailyTrendResearchJob`); posting calendar trigger pending
-- [ ] Platform adapter/interface layer for future platforms (NFR-09) `[BE]`
+- [ ] Async background jobs for all AI/posting tasks (NFR-04) `[BE][AI]` — content generation done 2026-07-01 (`ContentGenerationJob` + `@Async` worker + FE polling); trend research done 2026-07-02; platform formatting done 2026-07-03 (`ContentFormattingJob` + worker); auto-posting done 2026-07-05 (`PostPublishWorkerService` + `postPublishExecutor`); analysis still pending
+- [x] Scheduler (posting calendar trigger + 2:00 AM research run) `[BE]` — 2:00 AM research run done 2026-07-03 (`DailyTrendResearchJob`); posting calendar trigger done 2026-07-05 (`PostingDispatchJob` mỗi phút)
+- [ ] Platform adapter/interface layer for future platforms (NFR-09) `[BE]` — publishing adapter done 2026-07-05 (`PlatformPublisher` + bean/nền tảng, worker chọn theo platform — thêm nền tảng = thêm bean); tầng kết nối OAuth vẫn Meta-specific (`MetaOAuthService`)
 - [ ] Webhook endpoints for post-publication violation notifications `[BE]`
 - [ ] Logging for AI errors, posting, platform API calls (NFR-11) `[BE][AI]`
 - [ ] AI transparency markers in UI (AI-generated / needs review / auto-posted) `[FE]`

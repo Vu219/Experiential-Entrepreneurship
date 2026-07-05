@@ -6,6 +6,7 @@ import com.aima.enums.ScheduleStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,4 +35,11 @@ public interface PostScheduleRepository extends JpaRepository<PostSchedule, UUID
     // Cùng item còn bản khác đang trong pipeline đăng không — để hạ trạng thái item khi hủy lịch.
     boolean existsByContentVersion_ContentItem_IdAndStatusInAndDeletedAtIsNull(
             UUID contentItemId, List<ScheduleStatus> statuses);
+
+    // FR-52: các lịch đến hạn đăng (PostingDispatchJob quét mỗi phút).
+    List<PostSchedule> findByStatusAndScheduledTimeLessThanEqualAndDeletedAtIsNull(
+            ScheduleStatus status, LocalDateTime threshold);
+
+    // FR-18b/FR-70: token hết hạn → các lịch SCHEDULED của tài khoản đó chuyển ON_HOLD.
+    List<PostSchedule> findByPlatformAccount_IdAndStatusAndDeletedAtIsNull(UUID accountId, ScheduleStatus status);
 }

@@ -2,8 +2,10 @@ package com.aima.service.Impl;
 
 import com.aima.config.MetaProperties;
 import com.aima.enums.Platform;
+import com.aima.enums.PublishErrorType;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
+import com.aima.exception.PublishException;
 import com.aima.service.MetaApiClient;
 import com.aima.service.PlatformVersionService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -12,7 +14,11 @@ import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -23,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Cài đặt {@link MetaApiClient} bằng WebClient (đồng bộ qua .block() vì app dùng Spring MVC).
@@ -219,6 +226,59 @@ public class MetaApiClientImpl implements MetaApiClient {
         }
     }
 
+    // ---------- Publish (FR-53/FR-54) ----------
+
+    @Override
+    public MetaPostResult publishPagePost(String pageId, String pageToken, String message) {
+        Platform platform = Platform.FACEBOOK;
+        String version = versionService.getCurrentVersion(platform);
+        String url = UriComponentsBuilder.fromUriString(metaProperties.graphBaseUrl())
+                .pathSegment(version, pageId, "feed")
+                .toUriString();
+
+        // Form body (không query string) — message có thể dài và chứa ký tự đặc biệt.
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("message", message);
+        form.add("access_token", pageToken);
+        if (metaProperties.appSecretProofEnabled()) {
+            form.add("appsecret_proof", generateAppSecretProof(pageToken, appConfig(platform).appSecret()));
+        }
+
+        JsonNode body = postFormForPublish(url, form, platform);
+        return new MetaPostResult(text(body, "id"));
+    }
+
+    @Override
+    public MetaPostResult publishThreadsPost(String token, String text) {
+        Platform platform = Platform.THREADS;
+        String version = versionService.getCurrentVersion(platform);
+
+        // Bước 1: tạo media container dạng TEXT.
+        String createUrl = UriComponentsBuilder.fromUriString(metaProperties.threadsBaseUrl())
+                .pathSegment(version, "me", "threads")
+                .toUriString();
+        MultiValueMap<String, String> createForm = new LinkedMultiValueMap<>();
+        createForm.add("media_type", "TEXT");
+        createForm.add("text", text);
+        createForm.add("access_token", token);
+        JsonNode container = postFormForPublish(createUrl, createForm, platform);
+        String creationId = text(container, "id");
+        if (creationId == null) {
+            throw new PublishException(PublishErrorType.TEMPORARY, "NO_CONTAINER",
+                    "Threads không trả về container id khi tạo bài");
+        }
+
+        // Bước 2: publish container.
+        String publishUrl = UriComponentsBuilder.fromUriString(metaProperties.threadsBaseUrl())
+                .pathSegment(version, "me", "threads_publish")
+                .toUriString();
+        MultiValueMap<String, String> publishForm = new LinkedMultiValueMap<>();
+        publishForm.add("creation_id", creationId);
+        publishForm.add("access_token", token);
+        JsonNode published = postFormForPublish(publishUrl, publishForm, platform);
+        return new MetaPostResult(text(published, "id"));
+    }
+
     @Override
     public String generateAppSecretProof(String token, String appSecret) {
         try {
@@ -268,6 +328,63 @@ public class MetaApiClientImpl implements MetaApiClient {
             log.warn("[Meta] POST lỗi {} {}: {}", platform, e.getStatusCode(), mask(e.getResponseBodyAsString()));
             throw new AppException(ErrorCode.META_API_ERROR);
         }
+    }
+
+    // POST form cho luồng đăng bài: KHÔNG gộp lỗi thành META_API_ERROR như get/post — parse body lỗi
+    // của nền tảng và ném PublishException đã phân loại (FR-35/FR-37) để worker quyết định retry (FR-56).
+    private JsonNode postFormForPublish(String url, MultiValueMap<String, String> form, Platform platform) {
+        log.debug("[Meta] POST(form) {} ({})", mask(url), platform);
+        try {
+            String raw = webClient.post().uri(url)
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(BodyInserters.fromFormData(form))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+            return parse(raw);
+        } catch (WebClientResponseException e) {
+            log.warn("[Meta] Đăng bài lỗi {} {}: {}", platform, e.getStatusCode(), mask(e.getResponseBodyAsString()));
+            throw toPublishException(e);
+        } catch (PublishException e) {
+            throw e;
+        } catch (Exception e) {
+            // Lỗi mạng/timeout không có response — coi là tạm thời (FR-56: retry).
+            log.warn("[Meta] Đăng bài thất bại (network) {}: {}", platform, e.getMessage());
+            throw new PublishException(PublishErrorType.TEMPORARY, "NETWORK", e.getMessage());
+        }
+    }
+
+    // Mã lỗi Graph tạm thời: 1/2 (unknown/service), 4/17/32/613 (rate limit), 341 (application limit).
+    private static final Set<Integer> TEMPORARY_GRAPH_CODES = Set.of(1, 2, 4, 17, 32, 341, 613);
+
+    /** Body lỗi Graph/Threads: {"error":{message,type,code,error_subcode,...}} — giữ nguyên mã + message gốc (FR-35). */
+    private PublishException toPublishException(WebClientResponseException e) {
+        JsonNode error = null;
+        try {
+            error = objectMapper.readTree(e.getResponseBodyAsString()).path("error");
+        } catch (Exception ignored) {
+            // body không phải JSON — phân loại theo HTTP status bên dưới
+        }
+        int code = error == null ? -1 : error.path("code").asInt(-1);
+        String message = error == null || !error.hasNonNull("message")
+                ? "HTTP " + e.getStatusCode().value()
+                : error.path("message").asText();
+        String responseCode = code >= 0 ? String.valueOf(code) : String.valueOf(e.getStatusCode().value());
+
+        PublishErrorType type = classifyPublishError(e.getStatusCode().is5xxServerError(), code, message);
+        return new PublishException(type, responseCode, message);
+    }
+
+    // FR-37: policy (368/message chứa "policy") > tạm thời (5xx/rate limit) > còn lại vĩnh viễn
+    // (190 token hết hạn, 100 tham số sai, 200-299 thiếu quyền, ...).
+    private static PublishErrorType classifyPublishError(boolean serverError, int code, String message) {
+        if (code == 368 || (message != null && message.toLowerCase().contains("policy"))) {
+            return PublishErrorType.POLICY_VIOLATION;
+        }
+        if (serverError || TEMPORARY_GRAPH_CODES.contains(code)) {
+            return PublishErrorType.TEMPORARY;
+        }
+        return PublishErrorType.PERMANENT;
     }
 
     private JsonNode parse(String raw) {

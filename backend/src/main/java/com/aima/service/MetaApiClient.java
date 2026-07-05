@@ -29,6 +29,14 @@ public interface MetaApiClient {
     /** appsecret_proof = HMAC-SHA256(token, appSecret) hex — bắt buộc ở production. */
     String generateAppSecretProof(String token, String appSecret);
 
+    // --- Đăng bài (FR-53/FR-54) — lỗi ném PublishException kèm mã lỗi gốc + phân loại (FR-35/FR-37) ---
+
+    /** Đăng bài text lên Facebook Page: POST /{page-id}/feed (dùng page token). */
+    MetaPostResult publishPagePost(String pageId, String pageToken, String message);
+
+    /** Đăng bài text lên Threads: tạo container (media_type=TEXT) rồi publish. */
+    MetaPostResult publishThreadsPost(String token, String text);
+
     // --- Kết quả trả về ---
     record MetaTokenResult(String accessToken, Long expiresInSeconds) {
     }
@@ -40,5 +48,8 @@ public interface MetaApiClient {
     }
 
     record MetaUser(String id, String name, String username, String pictureUrl) {
+    }
+
+    record MetaPostResult(String platformPostId) {
     }
 }

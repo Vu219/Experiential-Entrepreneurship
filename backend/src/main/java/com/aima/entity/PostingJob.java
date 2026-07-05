@@ -1,6 +1,7 @@
 package com.aima.entity;
 
 import com.aima.enums.PostingJobStatus;
+import com.aima.enums.PublishErrorType;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -36,6 +37,15 @@ public class PostingJob extends BaseEntity {
 
     @Column(name = "error_message", columnDefinition = "text")
     String errorMessage;
+
+    // FR-37: phân loại lỗi của lần đăng này (policy / tạm thời / vĩnh viễn).
+    @Enumerated(EnumType.STRING)
+    @Column(name = "error_type", length = 20)
+    PublishErrorType errorType;
+
+    // FR-56: thời điểm chạy lại — chỉ set trên job RETRYING (5/15/30 phút sau lần thất bại).
+    @Column(name = "next_retry_at")
+    LocalDateTime nextRetryAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)

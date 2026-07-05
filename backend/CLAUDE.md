@@ -192,6 +192,11 @@ backend/
 >   `service/PostScheduleService` (+`Impl`), `AiServiceClient.goldenHours()`, `mapper/PostScheduleMapper`,
 >   `repository/{PostScheduleRepository, ContentVersionRepository}`, entities `PostSchedule`/`Post`/`PostingJob`
 >   (pre-existing), `dto/ai/{GoldenHourPayload, GoldenHourResultPayload}`. See §4 "Post Scheduling".
+> - **Auto-Posting (FR-52..FR-56, FR-35..FR-37)**: `scheduler/PostingDispatchJob` (quét mỗi phút),
+>   `service/{PostPublishWorkerService, PlatformPublisher}` (+ `Impl/{PostPublishWorkerServiceImpl,
+>   FacebookPublisherImpl, InstagramPublisherImpl, ThreadsPublisherImpl}`), `MetaApiClient.publishPagePost/
+>   publishThreadsPost`, `mapper/PostPublishMapper`, `repository/{PostRepository, PostingJobRepository}`,
+>   `exception/PublishException` + `enums/PublishErrorType`. See §4 "Auto-Posting".
 
 ---
 
@@ -565,9 +570,34 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 
 **ErrorCodes** 1930–1941: `SCHEDULE_CONTENT_VERSION_REQUIRED`, `SCHEDULE_PLATFORM_ACCOUNT_REQUIRED`, `SCHEDULE_TIME_REQUIRED`, `SCHEDULE_TIME_IN_PAST`, `CONTENT_VERSION_NOT_FOUND`, `CONTENT_VERSION_NOT_SCHEDULABLE`, `CONNECTION_NOT_ACTIVE`, `SCHEDULE_PLATFORM_MISMATCH`, `SCHEDULE_ALREADY_EXISTS`, `SCHEDULE_NOT_FOUND`, `SCHEDULE_NOT_EDITABLE`, `SCHEDULE_NOT_CANCELLABLE`.
 
----
+### Auto-Posting — FR-52..FR-56 (+ FR-35..FR-37 xử lý lỗi/vi phạm)
+> Không có endpoint — chạy hoàn toàn nền: `PostingDispatchJob` (`@Scheduled fixedDelay=60s`) quét lịch
+> đến hạn → tạo `Post` + `PostingJob` (transaction ngắn) → dispatch `PostPublishWorkerService.process(jobId)`
+> (`@Async("postPublishExecutor")`). Cùng tick còn: chạy các retry đến hạn và "vớt" job PENDING > 5 phút
+> (mất dispatch do crash). Mỗi item lỗi chỉ log + bỏ qua (resilient, rule #27).
 
-## 5. Database & Cache
+**Adapter đăng bài (NFR-09)** — `PlatformPublisher` (interface `service/`): `platform()` + `publish(account, version)`;
+worker giữ `Map<Platform, PlatformPublisher>` bơm từ `List<PlatformPublisher>` — thêm nền tảng = thêm bean, không sửa worker.
+- `FacebookPublisherImpl` — chỉ account type **PAGE** (Graph không cho đăng feed cá nhân) → `MetaApiClient.publishPagePost` (`POST /{v}/{page-id}/feed`, form body, page token).
+- `ThreadsPublisherImpl` — `MetaApiClient.publishThreadsPost`: container `media_type=TEXT` → `threads_publish`.
+- `InstagramPublisherImpl` — **luôn** ném lỗi PERMANENT `IG_MEDIA_REQUIRED`: IG Content Publishing API bắt buộc image/video, MVP chỉ sinh media prompt (FR-29). Đây là hành vi đúng, không phải stub tạm.
+- Nội dung bài = `buildMessage(version)` (default method): formattedCaption + "\n\n" + hashtags CSV→"#a #b".
+
+**Phân loại lỗi (FR-37)** — publish dùng `postFormForPublish` trong `MetaApiClientImpl`: KHÔNG gộp thành `META_API_ERROR`
+mà parse body `{"error":{code,message,...}}` và ném **`PublishException`** (`exception/`, KHÔNG dùng cho luồng HTTP) mang
+`PublishErrorType` + mã lỗi **gốc** (FR-35): policy (code 368 / message chứa "policy") > tạm thời (5xx, network, rate-limit
+1/2/4/17/32/341/613) > còn lại PERMANENT (190 token, 100 tham số, 200-299 quyền). Lỗi network không có response → TEMPORARY.
+
+**Worker & state machine (FR-55)** — claim **nguyên tử** qua `PostingJobRepository.claim` (`UPDATE ... SET RUNNING WHERE status IN
+(PENDING, RETRYING)`, đổi được 0 row = worker khác đã nhận — chống double-publish). Tx1: claim + cả pipeline (schedule/post/version/item)
+→ POSTING; gọi nền tảng **ngoài** transaction; tx2 success: job SUCCESS, post POSTED + `platformPostId` + `publishedAt` + `PublishResult`
+thành công, schedule/version/item → POSTED; tx3 failure: `PublishResult` lưu code+message gốc, job FAILED + `errorType`.
+
+**Retry (FR-56, BR-07/BR-08)** — chỉ `TEMPORARY` và `retryCount < 3`: tạo `PostingJob` mới status `RETRYING`, `retryCount+1`,
+`nextRetryAt = now + {5,15,30} phút` (theo retryCount của lần fail); schedule/version/item giữ POSTING trong chu kỳ retry.
+Hết retry hoặc lỗi POLICY_VIOLATION/PERMANENT → schedule/version/item FAILED (notification FR-57 chưa có — log). Mã **190**
+(token hết hạn) → account `EXPIRED` + mọi lịch SCHEDULED của account → `ON_HOLD` (FR-70, khớp FR-18b). `PostingJob` có 2 cột mới:
+`error_type`, `next_retry_at`. Lịch FAILED bị user hủy rồi lên lịch lại sẽ **tái sử dụng Post** cũ (unique `schedule_id`), mở chu kỳ mới retryCount=0.
 
 ### PostgreSQL (`application.yml` + `.env`)
 ```
