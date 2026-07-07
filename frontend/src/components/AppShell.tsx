@@ -117,6 +117,7 @@ function Topbar({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen?: boolea
 const PAGE_KEYS = {
   dashboard: ['navDashboard', 'pageSubDashboard'],
   create: ['navCreate', 'pageSubCreate'],
+  createWizard: ['cwTitle', 'cwSub'],
   calendar: ['navCalendar', 'pageSubCalendar'],
   analytics: ['navAnalytics', 'pageSubAnalytics'],
   trends: ['navTrends', 'pageSubTrends'],

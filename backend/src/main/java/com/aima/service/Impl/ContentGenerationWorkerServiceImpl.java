@@ -1,7 +1,9 @@
 package com.aima.service.Impl;
 
+import com.aima.dto.ai.ContentIdeaPayload;
 import com.aima.dto.ai.GenerateContentPayload;
 import com.aima.dto.ai.GeneratedContentResult;
+import com.aima.dto.ai.TrendPayload;
 import com.aima.entity.BrandProfile;
 import com.aima.entity.ContentGenerationJob;
 import com.aima.entity.ContentItem;
@@ -11,7 +13,9 @@ import com.aima.enums.NotificationType;
 import com.aima.mapper.AiContentMapper;
 import com.aima.mapper.ContentItemMapper;
 import com.aima.repository.ContentGenerationJobRepository;
+import com.aima.repository.ContentIdeaRepository;
 import com.aima.repository.ContentItemRepository;
+import com.aima.repository.TrendRepository;
 import com.aima.service.AiServiceClient;
 import com.aima.service.ContentGenerationWorkerService;
 import com.aima.service.NotificationService;
@@ -40,6 +44,8 @@ public class ContentGenerationWorkerServiceImpl implements ContentGenerationWork
 
     ContentGenerationJobRepository jobRepository;
     ContentItemRepository contentItemRepository;
+    TrendRepository trendRepository;
+    ContentIdeaRepository contentIdeaRepository;
     AiServiceClient aiServiceClient;
     ContentItemMapper contentItemMapper;
     AiContentMapper aiContentMapper;
@@ -79,13 +85,44 @@ public class ContentGenerationWorkerServiceImpl implements ContentGenerationWork
 
         ContentStrategy strategy = job.getContentStrategy();
         BrandProfile brand = strategy.getBrandProfile();
+        UUID userId = brand.getUser().getId();
         return GenerateContentPayload.builder()
                 .brandProfile(aiContentMapper.toBrandProfilePayload(brand))
                 .strategy(aiContentMapper.toStrategyPayload(strategy))
                 .platform(job.getPlatform().name())
+                .trend(resolveTrend(job.getTrendId(), userId))
+                .idea(resolveIdea(job.getIdeaId(), userId))
                 .topic(job.getTopic())
+                .note(job.getNote())
                 .regenerateFrom(job.getRegenerateFrom())
                 .build();
+    }
+
+    // Trend/idea gắn kèm resolve "mềm": id null → bỏ qua; id không tồn tại / không thuộc user
+    // (chống gắn id của người khác) → log + bỏ qua, KHÔNG làm hỏng job. Python nhận null = None.
+    private TrendPayload resolveTrend(UUID trendId, UUID userId) {
+        if (trendId == null) {
+            return null;
+        }
+        return trendRepository.findByIdAndResearchSession_BrandProfile_User_IdAndDeletedAtIsNull(trendId, userId)
+                .map(aiContentMapper::toTrendPayload)
+                .orElseGet(() -> {
+                    log.warn("[ContentGeneration] Trend {} không tồn tại hoặc không thuộc user — bỏ qua", trendId);
+                    return null;
+                });
+    }
+
+    private ContentIdeaPayload resolveIdea(UUID ideaId, UUID userId) {
+        if (ideaId == null) {
+            return null;
+        }
+        return contentIdeaRepository
+                .findByIdAndTrend_ResearchSession_BrandProfile_User_IdAndDeletedAtIsNull(ideaId, userId)
+                .map(aiContentMapper::toContentIdeaPayload)
+                .orElseGet(() -> {
+                    log.warn("[ContentGeneration] ContentIdea {} không tồn tại hoặc không thuộc user — bỏ qua", ideaId);
+                    return null;
+                });
     }
 
     private void saveSuccess(UUID jobId, GeneratedContentResult result) {

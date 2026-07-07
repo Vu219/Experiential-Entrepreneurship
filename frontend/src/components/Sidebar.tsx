@@ -97,7 +97,8 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
   const springConfig = { mass: 0.1, stiffness: 200, damping: 15 };
 
     const renderItem = (n: Item) => {
-      const active = route === n.key;
+      // Wizard tạo nội dung (/create/new) vẫn highlight mục "Tạo nội dung".
+      const active = route === n.key || (n.key === 'create' && route === 'createWizard');
       return (
         <motion.button
           key={n.key}

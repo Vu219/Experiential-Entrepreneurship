@@ -25,6 +25,10 @@ interface UiState {
   // ở StrategyManager — tăng nonce để StrategyManager mở form tạo mới (không lift toàn bộ state).
   strategyCreateNonce: number;
   requestStrategyCreate: () => void;
+  // Tab mở sẵn khi điều hướng tới /brand từ nơi khác (vd wizard Tạo nội dung →
+  // "Chỉnh sửa hồ sơ/chiến lược"). Brand đọc 1 lần lúc mount rồi xóa.
+  brandInitialTab: 'brand' | 'strategy' | null;
+  setBrandInitialTab: (t: 'brand' | 'strategy' | null) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -43,4 +47,6 @@ export const useUiStore = create<UiState>((set) => ({
   setProfileOrigin: (r) => set((s) => (s.profileOrigin === r ? s : { profileOrigin: r })),
   strategyCreateNonce: 0,
   requestStrategyCreate: () => set((s) => ({ strategyCreateNonce: s.strategyCreateNonce + 1 })),
+  brandInitialTab: null,
+  setBrandInitialTab: (t) => set((s) => (s.brandInitialTab === t ? s : { brandInitialTab: t })),
 }));

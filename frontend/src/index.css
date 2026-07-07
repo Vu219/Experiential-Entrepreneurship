@@ -840,3 +840,18 @@ html {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
+
+/* Chấm trạng thái job tạo nội dung theo nền tảng (PlatformTabs, mốc 2 wizard) —
+   nhấp nháy khi đang tạo. */
+@keyframes run-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.run-dot-pulse {
+  animation: run-pulse 1.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .run-dot-pulse {
+    animation: none;
+  }
+}

@@ -12,6 +12,7 @@ import PricingPage from "./pages/PricingPage";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/app/Dashboard.tsx";
 import Create from "./pages/app/Create.tsx";
+import CreateWizard from "./pages/app/CreateWizard.tsx";
 import Calendar from "./pages/app/Calendar.tsx";
 import Analytics from "./pages/app/Analytics.tsx";
 import Trends from "./pages/app/Trends.tsx";
@@ -80,6 +81,7 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/create" element={<Create />} />
+          <Route path="/create/new" element={<CreateWizard />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/trends" element={<Trends />} />

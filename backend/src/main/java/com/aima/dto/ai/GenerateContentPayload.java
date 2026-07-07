@@ -10,8 +10,8 @@ import lombok.experimental.FieldDefaults;
 
 /**
  * Mirrors ai/src/schemas.py GenerateRequest — sent as the body of POST {ai-service}/generate.
- * trend/idea are omitted (Trend Research is not built yet); the Python side treats them as
- * Optional and defaults to None when absent.
+ * trend/idea/note là Optional phía Python (None khi vắng) — backend chỉ gửi khi job có gắn
+ * id và resolve được (đúng ownership); ngược lại để null.
  */
 @Data
 @Builder
@@ -27,7 +27,16 @@ public class GenerateContentPayload {
 
     String platform;
 
+    /** Trend user gắn ở bước Chọn nguồn — NỘI DUNG đầy đủ đã resolve, không phải id. */
+    TrendPayload trend;
+
+    /** Ý tưởng content user gắn — NỘI DUNG đầy đủ đã resolve, không phải id. */
+    ContentIdeaPayload idea;
+
     String topic;
+
+    /** Ghi chú thêm của user (chỉ dẫn cho AI, khác topic là chủ đề). */
+    String note;
 
     @JsonProperty("regenerate_from")
     String regenerateFrom;

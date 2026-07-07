@@ -19,6 +19,7 @@ const PATH_BY_ROUTE: Record<Route, string> = {
   logout: '/logout',
   dashboard: '/dashboard',
   create: '/create',
+  createWizard: '/create/new',
   calendar: '/calendar',
   analytics: '/analytics',
   trends: '/trends',

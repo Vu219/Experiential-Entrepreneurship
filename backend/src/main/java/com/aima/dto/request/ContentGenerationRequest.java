@@ -35,6 +35,17 @@ public class ContentGenerationRequest {
     @Schema(description = "Free-text topic to ground the generation (optional).", example = "Ưu đãi mùa hè")
     String topic;
 
+    @Schema(description = "Trend to ground the generation (optional); must belong to the caller — "
+            + "unknown/foreign ids are ignored, not an error.")
+    UUID trendId;
+
+    @Schema(description = "Content idea to ground the generation (optional); must belong to the caller — "
+            + "unknown/foreign ids are ignored, not an error.")
+    UUID ideaId;
+
+    @Schema(description = "Extra instruction from the user (optional), e.g. 'nhấn mạnh khuyến mãi tháng này'.")
+    String note;
+
     @Schema(description = "Prior caption/version to improve on (regenerate flow, FR-32).")
     String regenerateFrom;
 }

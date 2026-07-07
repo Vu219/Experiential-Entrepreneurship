@@ -6,6 +6,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,6 +28,17 @@ public class ContentGenerationJob extends BaseEntity {
 
     @Column(name = "topic", columnDefinition = "text")
     String topic;
+
+    // Trend/idea gắn kèm lưu dạng UUID rời (không FK): resolve "mềm" lúc chạy job —
+    // id không còn/không thuộc user thì bỏ qua, không làm hỏng job (xem worker).
+    @Column(name = "trend_id")
+    UUID trendId;
+
+    @Column(name = "idea_id")
+    UUID ideaId;
+
+    @Column(name = "note", columnDefinition = "text")
+    String note;
 
     @Column(name = "regenerate_from", columnDefinition = "text")
     String regenerateFrom;

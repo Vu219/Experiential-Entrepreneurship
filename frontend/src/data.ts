@@ -128,37 +128,7 @@ export function posts(lang: Lang) {
 }
 
 // ===== Create page =====
-export function ideas(lang: Lang) {
-  const rows: [string, string, string, string, string][] =
-    lang === 'en'
-      ? [
-          ['Reel: "Get ready with me" — founder edition', 'Instagram', PLATFORM_BG.IG, '92', 'Reel'],
-          ['Carousel: 5 personal branding mistakes', 'Instagram', PLATFORM_BG.IG, '88', 'Carousel'],
-          ['Thread: Marketing automation in 5 posts', 'Threads', PLATFORM_BG.TH, '85', 'Thread'],
-          ['Post: AI Marketing trends 2026 for SMEs', 'Facebook', PLATFORM_BG.FB, '80', 'Post'],
-        ]
-      : [
-          ['Reel "Get ready with me" phiên bản chủ doanh nghiệp', 'Instagram', PLATFORM_BG.IG, '92', 'Reel'],
-          ['Carousel: 5 sai lầm khi xây thương hiệu cá nhân', 'Instagram', PLATFORM_BG.IG, '88', 'Carousel'],
-          ['Thread: Tự động hoá marketing trong 5 bài', 'Threads', PLATFORM_BG.TH, '85', 'Thread'],
-          ['Bài viết: Xu hướng AI Marketing 2026 cho SME', 'Facebook', PLATFORM_BG.FB, '80', 'Bài viết'],
-        ];
-  return rows.map((r) => ({ title: r[0], platform: r[1], tag: tagOf(r[1]), bg: r[2], score: r[3], fmt: r[4] }));
-}
-
-export const toneLabels = (lang: Lang) =>
-  lang === 'en' ? ['Inspiring', 'Playful', 'Professional', 'Friendly'] : ['Truyền cảm hứng', 'Hài hước', 'Chuyên nghiệp', 'Gần gũi'];
-
-export function scriptLines(lang: Lang) {
-  return lang === 'en'
-    ? ['Hook (0–3s): "Spending 5 hours a week just thinking up content?"', 'Body (3–25s): Show how AIMA auto-generates ideas & writes the script.', 'CTA (25–30s): "Try AIMA free — link in bio!"']
-    : ['Hook (0–3s): "Bạn mất 5 giờ mỗi tuần chỉ để nghĩ nội dung?"', 'Thân (3–25s): Cách AIMA tự lên ý tưởng & viết kịch bản giúp bạn.', 'CTA (25–30s): "Thử AIMA miễn phí — link ở bio!"'];
-}
-export const genCaption = (lang: Lang) =>
-  lang === 'en'
-    ? 'Say goodbye to creative block 👋 AIMA turns a 5-hour content process into 5 minutes. Create, schedule & publish — all automatically.'
-    : 'Tạm biệt việc bí ý tưởng 👋 AIMA biến quy trình content 5 giờ thành 5 phút. Sáng tạo, lên lịch và đăng bài — tất cả tự động.';
-export const genHashtags = ['#AIMarketing', '#ContentCreator', '#MarketingAutomation', '#AIMA', '#SocialMediaTips', '#ContentStrategy'];
+// Mock màn Tạo nội dung (list + wizard) đã chuyển sang src/createData.ts.
 
 // ===== Calendar =====
 export function calendarDays() {
@@ -217,22 +187,6 @@ export const brandToneLabels = (lang: Lang) =>
     ? ['Inspiring', 'Creative', 'Trustworthy', 'Youthful', 'Minimal', 'Professional']
     : ['Truyền cảm hứng', 'Sáng tạo', 'Đáng tin', 'Trẻ trung', 'Tối giản', 'Chuyên nghiệp'];
 export const brandColors = ['#22D3EE', '#8B5CF6', '#EC4899', '#6366F1', '#1877f2'];
-
-/** Backend platform enum values, aligned with the FB/IG/Threads channel list below. */
-export const CHANNEL_PLATFORMS = ['FACEBOOK', 'INSTAGRAM', 'THREADS'] as const;
-
-export function channels(lang: Lang, connected: readonly string[] = ['FACEBOOK', 'INSTAGRAM']) {
-  const d = getDict(lang);
-  const rows: [string, string, string, (typeof CHANNEL_PLATFORMS)[number]][] = [
-    ['Facebook', 'FB', PLATFORM_BG.FB, 'FACEBOOK'],
-    ['Instagram', 'IG', PLATFORM_BG.IG, 'INSTAGRAM'],
-    ['Threads', 'TH', PLATFORM_BG.TH, 'THREADS'],
-  ];
-  return rows.map((c) => {
-    const on = connected.includes(c[3]);
-    return { name: c[0], tag: c[1], bg: c[2], platform: c[3], on, pillText: on ? d.connected : d.notConnected, btnText: on ? d.connected : d.connect };
-  });
-}
 
 // ===== Profile activity =====
 export function activity(lang: Lang) {

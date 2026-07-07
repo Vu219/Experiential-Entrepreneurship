@@ -16,9 +16,14 @@ type Tab = 'brand' | 'strategy';
 export default function Brand() {
   const { t, brandGradient } = useApp();
   const { width } = useBreakpoint();
-  const [tab, setTab] = useState<Tab>('brand');
+  // Tab mở sẵn do nơi khác yêu cầu (vd wizard Tạo nội dung → "Chỉnh sửa chiến lược");
+  // đọc 1 lần lúc mount rồi xóa để lần vào sau trở về mặc định.
+  const [tab, setTab] = useState<Tab>(() => useUiStore.getState().brandInitialTab ?? 'brand');
   const setSidebarCollapsed = useUiStore((s) => s.setSidebarCollapsed);
   const requestStrategyCreate = useUiStore((s) => s.requestStrategyCreate);
+  useEffect(() => {
+    useUiStore.getState().setBrandInitialTab(null);
+  }, []);
 
   // Tự thu gọn sidebar khi ở trang Hồ sơ thương hiệu để có không gian rộng hơn cho
   // form full-page; trả lại trạng thái trước đó khi rời trang (dùng đúng cơ chế collapse

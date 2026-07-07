@@ -38,6 +38,11 @@ class BrandProfileInput(BaseModel):
     target_audience: str
     content_goals: List[str] = Field(default_factory=list)
     platforms: List[str] = Field(default_factory=list, description="Facebook, Instagram, Threads")
+    # Brand guardrails (FR-05): keywords to weave in, do's to follow, don'ts to avoid.
+    # Defaults keep older backend payloads (without these fields) valid.
+    brand_keywords: List[str] = Field(default_factory=list)
+    brand_dos: List[str] = Field(default_factory=list)
+    brand_donts: List[str] = Field(default_factory=list)
 
 
 class ContentStrategyInput(BaseModel):
@@ -114,12 +119,17 @@ class ResearchResponse(BaseModel):
 
 
 class VideoScript(BaseModel):
-    """Structured video script (FR-25)."""
+    """Structured video script the USER FOLLOWS TO FILM (FR-25) — NOT the posted text.
 
-    hook: str = Field(..., description="Attention-grabbing opening line")
-    main_content: str
-    shot_suggestions: List[str] = Field(default_factory=list)
-    cta: str
+    Structure: hook -> main content broken into scenes with shot suggestions -> closing CTA.
+    """
+
+    hook: str = Field(..., description="Attention-grabbing opening line the creator says/shows on camera")
+    main_content: str = Field(..., description="Scene-by-scene body of what to film/say")
+    shot_suggestions: List[str] = Field(
+        default_factory=list, description="Concrete filming directions (framing, b-roll, transitions)"
+    )
+    cta: str = Field(..., description="Closing call-to-action spoken/shown at the end of the video")
 
 
 class BrandVoiceCheck(BaseModel):
@@ -138,19 +148,41 @@ class GenerateRequest(BaseModel):
     idea: Optional[ContentIdea] = None
     # Free-text topic from the user (Create.tsx has no structured idea/trend input yet).
     topic: Optional[str] = None
+    # Extra instruction typed by the user in the wizard's source step (e.g. "nhấn mạnh
+    # khuyến mãi tháng này") — distinct from topic, which names the subject itself.
+    note: Optional[str] = None
     # FR-32: when regenerating, prior text the user wants improved/varied.
     regenerate_from: Optional[str] = None
 
 
 class ContentItem(BaseModel):
-    """Original generated content before platform formatting (FR-24..FR-31)."""
+    """Original generated content before platform formatting (FR-24..FR-31).
+
+    script vs caption are DIFFERENT things: script is the shooting guide (what to film),
+    caption is the short posted text readers see. Hashtags live in their own field only.
+    """
 
     script: VideoScript
-    caption: str
-    hashtags: List[str] = Field(default_factory=list)
+    caption: str = Field(
+        ...,
+        description="Short posted text (1-3 sentences) readers see next to the post. NOT the script, "
+        "not a restatement of it. Contains NO hashtags and NO '#' character.",
+    )
+    hashtags: List[str] = Field(
+        default_factory=list,
+        description="Hashtags as a separate list (leading '#' optional) — never embedded in the caption",
+    )
     cta: str
     media_prompt: str = Field(
-        ..., description="TEXT description of the image/video only — no media is generated (FR-29)"
+        ..., description="TEXT description of the VIDEO to film (scene, style, framing, mood) — no media is generated (FR-29)"
+    )
+    # Reserved for the upcoming static-image feature — a TEXT prompt describing one still
+    # image for the post. Optional/default so current payloads (script/video only) stay valid;
+    # backend/FE can wire it in later without changing this structure.
+    image_prompt: str = Field(
+        default="",
+        description="TEXT prompt describing ONE static image for the post (reserved for the image "
+        "feature; may be empty). No image is generated here.",
     )
     brand_voice_check: BrandVoiceCheck
 

@@ -37,4 +37,14 @@ public class BrandProfileInputPayload {
     List<String> contentGoals;
 
     List<String> platforms;
+
+    // Brand guardrails (FR-05) — AI dệt keywords tự nhiên, theo dos, TRÁNH donts.
+    @JsonProperty("brand_keywords")
+    List<String> brandKeywords;
+
+    @JsonProperty("brand_dos")
+    List<String> brandDos;
+
+    @JsonProperty("brand_donts")
+    List<String> brandDonts;
 }

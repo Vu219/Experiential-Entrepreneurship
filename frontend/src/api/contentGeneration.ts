@@ -44,6 +44,13 @@ export interface ContentGenerationInput {
   strategyId: string;
   platform: Platform;
   topic?: string;
+  /** Trend gắn kèm (bước Chọn nguồn) — backend resolve NỘI DUNG theo ownership, id lạ bị bỏ qua. */
+  trendId?: string;
+  /** Ý tưởng content gắn kèm — như trendId. */
+  ideaId?: string;
+  /** Ghi chú thêm của user cho AI (chỉ dẫn, khác topic là chủ đề). */
+  note?: string;
+  /** TEXT bản trước cần cải thiện khi tạo lại (FR-32) — KHÔNG phải id. */
   regenerateFrom?: string;
 }
 

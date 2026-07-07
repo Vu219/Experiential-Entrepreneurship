@@ -14,6 +14,7 @@ export type Route =
   | 'logout'
   | 'dashboard'
   | 'create'
+  | 'createWizard'
   | 'calendar'
   | 'analytics'
   | 'trends'
