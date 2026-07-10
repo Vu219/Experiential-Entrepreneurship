@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Icon } from '../ui';
-import type { ContentVersion, ScriptSection } from '../../api/contentCreationService';
+import type { ContentVersion } from '../../api/contentCreationService';
+import ScriptBlock from './ScriptBlock';
 import { CaptionCounter, HashtagCounter } from './platformLimits';
 
 const sectionLabel = { fontSize: 12, fontWeight: 700, letterSpacing: '.04em', color: '#a59fbb', marginBottom: 8 } as const;
@@ -42,58 +43,17 @@ export function VersionTabs({ value, onChange }: { value: VersionTab; onChange: 
   );
 }
 
-/** Một phần kịch bản (hook/bước/CTA): badge + timing, nội dung, và khối "Gợi ý cảnh quay" TÁCH RIÊNG. */
-function ScriptSectionBlock({
-  accent,
-  badgeBg,
-  badgeColor,
-  badgeLabel,
-  section,
-}: {
-  accent: string;
-  badgeBg: string;
-  badgeColor: string;
-  badgeLabel: string;
-  section: ScriptSection;
-}) {
-  const { t } = useApp();
-  return (
-    <div style={{ ...block, borderLeft: `3px solid ${accent}`, borderRadius: '0 12px 12px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-        <span style={{ display: 'inline-block', background: badgeBg, color: badgeColor, borderRadius: 7, padding: '2px 8px', fontSize: 10.5, fontWeight: 700 }}>{badgeLabel}</span>
-        {section.timing && (
-          <span style={{ display: 'inline-block', background: '#fff', border: '1px solid #ece7f6', color: '#8a85a0', borderRadius: 7, padding: '1px 8px', fontSize: 10.5, fontWeight: 700 }}>⏱ {section.timing}</span>
-        )}
-      </div>
-      <div style={{ whiteSpace: 'pre-line' }}>{section.content}</div>
-      {section.sceneSuggestion && (
-        <div style={{ background: '#fff', border: '1px dashed #e3dcf4', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, color: '#6b6680' }}>
-          <span style={{ fontWeight: 700, color: '#8a85a0' }}>🎬 {t.cwScene}: </span>
-          {section.sceneSuggestion}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** Tab Script video (read-only): hook có timing → các bước đánh số → CTA cuối có timing (FR-25). */
+/** Tab Script video (read-only): hook có timing → các bước đánh số → CTA cuối có timing (FR-25).
+ *  Dùng chung khung ScriptBlock 2 cột (nội dung | gợi ý cảnh quay) với editor — tuyệt đối nhất quán. */
 export function ScriptView({ version }: { version: ContentVersion }) {
-  const { t } = useApp();
   const { hook, steps, cta } = version.script;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <ScriptSectionBlock accent="#8b5cf6" badgeBg="#f3edff" badgeColor="#7c3aed" badgeLabel={t.cwHook} section={hook} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <ScriptBlock variant="hook" section={hook} />
       {steps.map((step) => (
-        <ScriptSectionBlock
-          key={step.index}
-          accent="#22d3ee"
-          badgeBg="#e0f7fb"
-          badgeColor="#0e7490"
-          badgeLabel={`${t.cwStepWord} ${step.index}`}
-          section={{ ...step, timing: '' }}
-        />
+        <ScriptBlock key={step.index} variant="step" index={step.index} section={{ ...step, timing: '' }} />
       ))}
-      <ScriptSectionBlock accent="#ec4899" badgeBg="#fdeef5" badgeColor="#be185d" badgeLabel={t.cwEndCta} section={cta} />
+      <ScriptBlock variant="cta" section={cta} />
     </div>
   );
 }

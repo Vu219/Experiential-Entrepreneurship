@@ -10,7 +10,9 @@ import {
 } from '../../../api/contentCreationService';
 import type { ApiError } from '../../../api/apiClient';
 import type { SourceSelection } from './SourceStep';
+import { TONE_COLORS } from '../../../statusTokens';
 import StepLayout from '../StepLayout';
+import SourceContextChip from '../SourceContextChip';
 import PlatformTabs, { type PlatformRunStatus } from '../PlatformTabs';
 import VersionContent from '../VersionContent';
 import BrandVoicePanel from '../BrandVoicePanel';
@@ -145,7 +147,7 @@ export default function GenerateStep({
 
           {/* NFR-14: nhãn minh bạch AI + nhãn tối ưu theo nền tảng */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 14 }}>
-            <span style={{ background: '#f3edff', color: '#7c3aed', borderRadius: 7, padding: '2px 9px', fontSize: 10.5, fontWeight: 700 }}>✨ {t.cwAiLabel} · {t.cwVersion} {genIndex + 1}/{gens.length}</span>
+            <span style={{ background: TONE_COLORS.ai.bg, color: TONE_COLORS.ai.color, borderRadius: 7, padding: '2px 9px', fontSize: 10.5, fontWeight: 700 }}>✨ {t.cwAiLabel} · {t.cwVersion} {genIndex + 1}/{gens.length}</span>
             <span style={{ background: '#e0f7fb', color: '#0e7490', borderRadius: 7, padding: '2px 9px', fontSize: 10.5, fontWeight: 700 }}>{t.cwOptimizedPer}</span>
           </div>
 
@@ -219,9 +221,10 @@ export default function GenerateStep({
     </Card>
   );
 
-  // Cột phải — brand voice + preview của TAB đang chọn: placeholder khi tab đó chưa xong.
+  // Cột phải — chip ngữ cảnh nguồn + brand voice + preview của TAB đang chọn.
   const side = (
     <>
+      <SourceContextChip source={source} />
       <BrandVoicePanel
         check={version?.brandVoice ?? null}
         busy={voice.busy}

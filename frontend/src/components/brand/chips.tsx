@@ -1,5 +1,5 @@
-import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { Check } from 'lucide-react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Check, ChevronDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { PlatformTag } from '../ui';
 import { PLATFORMS } from '../../theme';
@@ -85,6 +85,84 @@ export function ChipMultiSelect({ options, value, onChange, max, creatable }: { 
           </span>
         ))}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Combobox MỘT giá trị: vừa chọn từ danh sách gợi ý vừa gõ TỰ DO (vd Ngành hàng) —
+ * giá trị lưu nguyên văn, không ép về option có sẵn. Gợi ý lọc theo chữ đang gõ;
+ * focus khi ô trống hiện đủ danh sách (hành xử như select nhưng không khóa giá trị).
+ */
+export function ComboInput({
+  value,
+  onChange,
+  suggestions,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  suggestions: string[];
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [hi, setHi] = useState(-1); // index gợi ý đang chọn bằng phím mũi tên
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const q = value.trim().toLowerCase();
+  const matches = suggestions.filter((s) => !q || s.toLowerCase().includes(q)).slice(0, 12);
+
+  // Đóng dropdown khi click ra ngoài.
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  const choose = (s: string) => { onChange(s); setOpen(false); setHi(-1); };
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown' && matches.length) { e.preventDefault(); setOpen(true); setHi((h) => (h + 1) % matches.length); return; }
+    if (e.key === 'ArrowUp' && matches.length) { e.preventDefault(); setOpen(true); setHi((h) => (h <= 0 ? matches.length - 1 : h - 1)); return; }
+    if (e.key === 'Enter') { e.preventDefault(); if (open && hi >= 0 && matches[hi]) choose(matches[hi]); else setOpen(false); return; }
+    if (e.key === 'Escape') { setOpen(false); setHi(-1); }
+  };
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative' }}>
+      <input
+        value={value}
+        onChange={(e) => { onChange(e.target.value); setOpen(true); setHi(-1); }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={onKeyDown}
+        placeholder={placeholder}
+        role="combobox"
+        aria-expanded={open && matches.length > 0}
+        aria-autocomplete="list"
+        style={{ ...fieldInput, paddingRight: 34 }}
+      />
+      <span aria-hidden style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', display: 'flex', color: '#a39bbf', pointerEvents: 'none' }}>
+        <ChevronDown size={15} strokeWidth={1.9} />
+      </span>
+      {open && matches.length > 0 && (
+        <div role="listbox" style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 40, background: '#fff', border: '1px solid #ece8f6', borderRadius: 12, boxShadow: '0 12px 32px -10px rgba(40,20,90,.28)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 264, overflowY: 'auto' }}>
+          {matches.map((s, i) => (
+            <button
+              key={s}
+              type="button"
+              role="option"
+              aria-selected={i === hi || s === value}
+              // onMouseDown (không phải onClick) để chạy trước khi input mất focus/đóng dropdown.
+              onMouseDown={(e) => { e.preventDefault(); choose(s); }}
+              onMouseEnter={() => setHi(i)}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', border: 'none', background: i === hi ? '#f4f1fb' : 'transparent', borderRadius: 8, padding: '8px 10px', fontSize: 13.5, fontWeight: 600, color: '#3f3a55', cursor: 'pointer' }}
+            >
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s}</span>
+              {s === value && <Check size={14} color="#7c3aed" strokeWidth={2.4} aria-hidden="true" />}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

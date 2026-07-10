@@ -5,7 +5,9 @@ import { Card, Icon } from '../../ui';
 import type { ContentLifecycle } from '../../../api/contentGeneration';
 import type { ContentVersion, GenerationResult } from '../../../api/contentCreationService';
 import type { SourceSelection } from './SourceStep';
+import { TONE_COLORS } from '../../../statusTokens';
 import StepLayout from '../StepLayout';
+import SourceContextChip from '../SourceContextChip';
 import PlatformTabs from '../PlatformTabs';
 import VersionContent from '../VersionContent';
 import PostImagePreview from '../PostImagePreview';
@@ -61,7 +63,7 @@ export default function ReviewStep({
       </div>
       {/* NFR-14: nhãn minh bạch AI + tối ưu theo nền tảng */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 16 }}>
-        <span style={{ background: '#f3edff', color: '#7c3aed', borderRadius: 7, padding: '2px 9px', fontSize: 10.5, fontWeight: 700 }}>✨ {t.cwAiLabel}</span>
+        <span style={{ background: TONE_COLORS.ai.bg, color: TONE_COLORS.ai.color, borderRadius: 7, padding: '2px 9px', fontSize: 10.5, fontWeight: 700 }}>✨ {t.cwAiLabel}</span>
         <span style={{ background: '#e0f7fb', color: '#0e7490', borderRadius: 7, padding: '2px 9px', fontSize: 10.5, fontWeight: 700 }}>{t.cwOptimizedPer}</span>
       </div>
 
@@ -71,6 +73,7 @@ export default function ReviewStep({
 
   const side = (
     <>
+      <SourceContextChip source={source} />
       {/* Xác nhận cuối: brand voice của bản sẽ lưu (cảnh báo nếu điểm tụt sau chỉnh sửa) */}
       <BrandVoicePanel
         check={version.brandVoice}

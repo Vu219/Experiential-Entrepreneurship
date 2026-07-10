@@ -1,20 +1,13 @@
 import type { CSSProperties } from 'react';
+import { TONE_COLORS, type Tone } from '../../statusTokens';
 
 /**
- * Badge trạng thái thống nhất toàn hệ thống. Một nguồn màu duy nhất (TONES) cho
- * mọi loại trạng thái — user, bài đăng, log, dịch vụ — để màu sắc đồng nhất.
- * Mỗi nơi dùng chỉ cần truyền `tone` (ngữ nghĩa) + `label` (chữ hiển thị, đã i18n).
+ * Badge trạng thái thống nhất toàn hệ thống. Một nguồn màu duy nhất
+ * (TONE_COLORS trong src/statusTokens.ts) cho mọi loại trạng thái — user, bài
+ * đăng, log, dịch vụ — để màu sắc đồng nhất. Mỗi nơi dùng chỉ cần truyền
+ * `tone` (ngữ nghĩa) + `label` (chữ hiển thị, đã i18n).
  */
-export type Tone = 'success' | 'danger' | 'warning' | 'info' | 'purple' | 'neutral';
-
-const TONES: Record<Tone, { color: string; bg: string }> = {
-  success: { color: '#16a34a', bg: '#e8f8ee' }, // Posted / Active / Operational
-  danger: { color: '#dc2626', bg: '#fde8e8' }, // Failed / Locked / Down / ERROR
-  warning: { color: '#d97706', bg: '#fdf0dc' }, // Pending / Retrying / Degraded / WARN
-  info: { color: '#0e7490', bg: '#e0f7fb' }, // INFO / Plus
-  purple: { color: '#7c3aed', bg: '#f1e9ff' }, // Scheduled / Need review / Pro
-  neutral: { color: '#64748b', bg: '#eef2f7' }, // Draft / Idle / DEBUG
-};
+export type { Tone };
 
 export default function StatusBadge({
   tone,
@@ -25,7 +18,7 @@ export default function StatusBadge({
   label: string;
   style?: CSSProperties;
 }) {
-  const c = TONES[tone];
+  const c = TONE_COLORS[tone];
   return (
     <span
       style={{

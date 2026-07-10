@@ -5,6 +5,7 @@ import { Card, Icon } from '../../ui';
 import type { ContentVersion, GenerationResult } from '../../../api/contentCreationService';
 import type { SourceSelection } from './SourceStep';
 import StepLayout from '../StepLayout';
+import SourceContextChip from '../SourceContextChip';
 import PlatformTabs from '../PlatformTabs';
 import ScriptEditor from '../ScriptEditor';
 import PostImagePreview from '../PostImagePreview';
@@ -61,7 +62,9 @@ export default function EditStep({
       </div>
 
       <label style={label}>{t.cwTabScript}</label>
-      <ScriptEditor script={version.script} onChange={(script) => onPatchVersion(version.id, { script })} />
+      {/* Accordion từng phần (thu gọn mặc định — thường chỉ sửa vài bước); trạng thái mở/đóng
+          giữ theo TỪNG bản nền tảng (stateKey) — chuyển tab Instagram/Facebook/Threads không mất. */}
+      <ScriptEditor script={version.script} onChange={(script) => onPatchVersion(version.id, { script })} collapsible stateKey={version.id} />
 
       <label style={{ ...label, marginTop: 16 }}>{t.cwTabCaption}</label>
       {area(version.caption, (v) => onPatchVersion(version.id, { caption: v }), 90)}
@@ -89,6 +92,7 @@ export default function EditStep({
 
   const side = (
     <>
+      <SourceContextChip source={source} />
       <BrandVoicePanel
         check={version.brandVoice}
         busy={voice.busy}

@@ -1,15 +1,15 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Card, Icon } from '../ui';
 import { brandToneLabels, industryOptions, audienceSampleOptions } from '../../data';
-import { createBrandProfile, updateBrandProfile, type BrandProfile, type BrandProfileInput, type Platform } from '../../api/brandProfile';
+import { createBrandProfile, updateBrandProfile, listAllBrandProfiles, type BrandProfile, type BrandProfileInput, type Platform } from '../../api/brandProfile';
 import { validateBrandProfile, type BrandFormErrors } from '../../validations/brandValidation';
 import type { Dict } from '../../i18n';
 import AiBrandPanel from './AiBrandPanel';
 import { brandHealth } from './brandHealth';
-import { Field, ChipMultiSelect, TagInput, PlatformSelect, LogoUploader, fieldInput } from './chips';
+import { Field, ChipMultiSelect, ComboInput, TagInput, PlatformSelect, LogoUploader, fieldInput } from './chips';
 
 const splitTags = (s: string | null): string[] => (s ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 
@@ -20,7 +20,17 @@ export default function BrandProfileForm({ profile, onClose, onSaved }: { profil
   const isMobile = width < 640;
   const stack = width < 1024;
   const tones = brandToneLabels(lang);
-  const industries = industryOptions(lang);
+  // Ngành hàng là COMBOBOX (chọn gợi ý HOẶC gõ tự do) — bỏ option "Khác" vì gõ tự do đã thay nó.
+  const industries = industryOptions(lang).filter((o) => o !== 'Khác' && o !== 'Other');
+  // Gợi ý thêm từ ngành hàng của các hồ sơ ĐÃ LƯU (giá trị user từng nhập) — tránh phân mảnh
+  // dữ liệu kiểu "F&B" vs "Ẩm thực": người dùng thấy lại đúng chữ mình đã dùng để chọn lại.
+  const [savedIndustries, setSavedIndustries] = useState<string[]>([]);
+  useEffect(() => {
+    listAllBrandProfiles()
+      .then((all) => setSavedIndustries(all.map((p) => p.industry).filter(Boolean)))
+      .catch(() => {});
+  }, []);
+  const industrySuggestions = [...new Set([...industries, ...savedIndustries])];
 
   const [name, setName] = useState(profile?.brandName ?? '');
   const [industry, setIndustry] = useState(profile?.industry ?? '');
@@ -110,10 +120,7 @@ export default function BrandProfileForm({ profile, onClose, onSaved }: { profil
                     <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t.bpfNamePh} style={fieldInput} />
                   </Field>
                   <Field label={t.bpfIndustry} required error={err('industry')}>
-                    <select value={industry} onChange={(e) => setIndustry(e.target.value)} style={{ ...fieldInput, cursor: 'pointer' }}>
-                      <option value="">{t.bpfIndustry}…</option>
-                      {industries.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
+                    <ComboInput value={industry} onChange={setIndustry} suggestions={industrySuggestions} placeholder={t.bpfIndustryPh} />
                   </Field>
                 </div>
                 <Field label={t.bpfDesc}>

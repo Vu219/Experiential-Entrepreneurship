@@ -6,7 +6,8 @@ import { useBreakpoint } from '../../hooks/useBreakpoint';
  * giật layout khi chuyển bước.
  * - Desktop (>1024): trái 1.2fr (nội dung thao tác) / phải .9fr (panel phụ trợ, sticky).
  * - Tablet (760–1024): 1 cột, panel phụ trợ xuống dưới nội dung.
- * - Mobile (<760): 1 cột; nút hành động chính nổi ở thanh sticky đáy màn cho dễ bấm.
+ * - Nút hành động chính (Quay lại / Tiếp tục / Lưu) là THANH NEO ĐÁY (sticky footer)
+ *   ở mọi breakpoint — không phải kéo xuống cuối trang mới bấm được.
  */
 export default function StepLayout({
   main,
@@ -15,7 +16,7 @@ export default function StepLayout({
 }: {
   main: ReactNode;
   side?: ReactNode;
-  /** Nút hành động chính của bước (Tiếp tục / Lưu) — desktop nằm cuối cột phải, mobile dính đáy. */
+  /** Cụm nút hành động chính của bước — hiển thị trong thanh sticky đáy màn. */
   action?: ReactNode;
 }) {
   const { isMobile, isTablet } = useBreakpoint();
@@ -27,12 +28,12 @@ export default function StepLayout({
         <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>{main}</div>
         <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 18, position: stacked ? 'static' : 'sticky', top: 98 }}>
           {side}
-          {!isMobile && action}
         </div>
       </div>
-      {isMobile && action && (
+      {action && (
         <div style={{ position: 'sticky', bottom: 8, zIndex: 20, background: '#fff', border: '1px solid #efeaf8', borderRadius: 14, padding: 10, boxShadow: '0 10px 30px -12px rgba(80,40,140,.35)' }}>
-          {action}
+          {/* Desktop: cụm nút neo phải với bề rộng vừa tay — không kéo nút Tiếp tục dài hết trang */}
+          <div style={{ maxWidth: isMobile ? '100%' : 460, marginLeft: 'auto' }}>{action}</div>
         </div>
       )}
     </>

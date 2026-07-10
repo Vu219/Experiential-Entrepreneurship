@@ -22,6 +22,8 @@ import BrandVoicePanel from './BrandVoicePanel';
 import { CaptionCounter, HashtagCounter, parseHashtags } from './platformLimits';
 import { ContentViewSkeleton } from './CreateSkeleton';
 import { CONTENT_STATUS_META, aiLabelKey } from './statusMeta';
+import StatusBadge from '../admin/StatusBadge';
+import { TONE_COLORS } from '../../statusTokens';
 
 // FR-33: chỉ sửa được trước khi vào pipeline đăng (khớp EDITABLE_STATUSES backend).
 const EDITABLE_STATUSES: ContentLifecycle[] = ['DRAFT', 'GENERATED', 'NEED_REVIEW', 'APPROVED'];
@@ -44,16 +46,25 @@ const inputBase = {
   fontSize: 13.5, lineHeight: 1.55, color: '#241f3a', background: '#fbfaff', outline: 'none',
 } as const;
 
-/** Xem nội dung FULL-PAGE thay grid — mỗi nền tảng một version, 3 sub-tab + sửa tại chỗ + đổi trạng thái. */
+// Bản sao sâu một version để sửa cục bộ (draft) — không đụng bản đang hiển thị.
+const cloneVersion = (v: ContentVersion): ContentVersion => ({
+  ...v,
+  script: { ...v.script, hook: { ...v.script.hook }, cta: { ...v.script.cta }, steps: v.script.steps.map((s) => ({ ...s })) },
+});
+
+/** Xem nội dung FULL-PAGE thay bảng — mỗi nền tảng một version, 3 sub-tab + sửa tại chỗ + đổi trạng thái. */
 export default function ContentViewPanel({
   item,
   onClose,
   onChanged,
+  startInEdit = false,
 }: {
   item: ContentListItem;
   onClose: () => void;
   /** Gọi sau mỗi thay đổi thành công (sửa/đổi trạng thái) để danh sách phía sau refresh. */
   onChanged?: () => void;
+  /** Mở thẳng chế độ sửa (nút "Sửa" ở bảng danh sách) — chỉ khi trạng thái còn sửa được. */
+  startInEdit?: boolean;
 }) {
   const { t, brandGradient } = useApp();
   const { isMobile, isTablet } = useBreakpoint();
@@ -80,9 +91,15 @@ export default function ContentViewPanel({
         setVersions(vs);
         setStatus(it.status);
         setLoad('ok');
+        // Nút "Sửa" ở bảng danh sách → vào thẳng chế độ sửa của nền tảng đầu tiên.
+        if (startInEdit && EDITABLE_STATUSES.includes(it.status)) {
+          const v = vs.find((x) => x.platform === item.platforms[0]) ?? vs[0];
+          if (v) { setDraft(cloneVersion(v)); setHashtagText(v.hashtags.join(' ')); }
+        }
       })
       .catch(() => { if (!cancelled) setLoad('error'); });
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.id]);
 
   const version = versions.find((v) => v.platform === platform) ?? versions[0] ?? null;
@@ -91,7 +108,7 @@ export default function ContentViewPanel({
 
   const startEdit = () => {
     if (!version) return;
-    setDraft({ ...version, script: { ...version.script, hook: { ...version.script.hook }, cta: { ...version.script.cta }, steps: version.script.steps.map((s) => ({ ...s })) } });
+    setDraft(cloneVersion(version));
     setHashtagText(version.hashtags.join(' '));
     setEditError(null);
   };
@@ -214,17 +231,35 @@ export default function ContentViewPanel({
     </div>
   );
 
+  const ai = TONE_COLORS.ai;
+
   return (
     <div className="view-pop" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Thanh action bar cố định: Quay lại + tiêu đề + badges + nút hành động gom chung */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'rgba(255,255,255,.92)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', margin: '-24px -24px 0', padding: '12px 24px', borderBottom: '1px solid #efeaf8', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <button onClick={onClose} className="btn-soft" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: '#574f6e', cursor: 'pointer' }}>
-          <Icon icon={ArrowLeft} size={15} stroke="#574f6e" />{t.bpBack}
-        </button>
-        <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: '#211c38', minWidth: 0 }}>{item.title}</div>
-        <span style={{ background: st.bg, color: st.color, borderRadius: 8, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>{t[st.labelKey]}</span>
-        <span style={{ background: '#f3edff', color: '#7c3aed', borderRadius: 8, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>✨ {t[aiLabelKey(status)]}</span>
-        {actionButtons}
+      {/* Header sticky 2 TẦNG: tầng 1 quay lại + breadcrumb (nhỏ, mờ); tầng 2 tiêu đề +
+          badge cạnh/dưới tiêu đề, cụm nút hành động neo phải — tiêu đề dài không phá layout. */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'rgba(255,255,255,.92)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', margin: '-24px -24px 0', padding: '10px 24px 12px', borderBottom: '1px solid #efeaf8', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <button onClick={onClose} className="btn-soft" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flex: 'none', border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '6px 11px', fontSize: 12.5, fontWeight: 700, color: '#574f6e', cursor: 'pointer' }}>
+            <Icon icon={ArrowLeft} size={14} stroke="#574f6e" />{t.bpBack}
+          </button>
+          <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, minWidth: 0, whiteSpace: 'nowrap' }}>
+            <button onClick={onClose} className="link-underline" style={{ border: 'none', background: 'transparent', padding: 0, fontSize: 12, fontWeight: 600, color: '#8a85a0', cursor: 'pointer' }}>
+              {t.navCreate}
+            </button>
+            <span aria-hidden style={{ color: '#c4bdd6' }}>/</span>
+            <span style={{ fontWeight: 700, color: '#574f6e' }}>{t.cvBreadcrumbDetail}</span>
+          </nav>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 18, color: '#211c38', lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.title}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginTop: 6 }}>
+              <StatusBadge tone={st.tone} label={t[st.labelKey]} />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: ai.bg, color: ai.color, borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>✨ {t[aiLabelKey(status)]}</span>
+            </div>
+          </div>
+          {actionButtons}
+        </div>
       </div>
       {statusError && (
         <div style={{ fontSize: 12.5, color: '#d1435b', background: '#fdf1f3', borderRadius: 10, padding: '10px 12px' }}>{statusError}</div>
