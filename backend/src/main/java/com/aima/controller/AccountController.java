@@ -2,6 +2,7 @@ package com.aima.controller;
 
 import com.aima.dto.request.*;
 import com.aima.dto.response.ApiResponse;
+import com.aima.enums.UserStatus;
 import com.aima.dto.response.DeleteAccountResponse;
 import com.aima.dto.response.MeResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -54,14 +55,29 @@ public class AccountController {
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
-            summary = "List all users (paginated)",
-            description = "Returns user accounts in pages (query params: page, size, sort). " +
-                    "Defaults to 10 newest users per page. Restricted to ADMIN."
+            summary = "List all users (paginated, FR-80)",
+            description = "Returns user accounts in pages, newest first; optional q searches name/email, " +
+                    "status filters by account status. Restricted to ADMIN."
     )
     public ApiResponse<PageResponse<UserResponse>> getAllUsers(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) UserStatus status,
             @ParameterObject @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable) {
-        return userService.getAllUsers(pageable);
+        return userService.getAllUsers(q, status, pageable);
+    }
+
+    @PatchMapping("/{userId}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "Lock/unlock a user account (FR-80)",
+            description = "Sets the account status to ACTIVE or LOCKED. ADMIN accounts are protected. Restricted to ADMIN."
+    )
+    public ApiResponse<UserResponse> updateUserStatus(
+            @AuthenticationPrincipal UserDetails principal,
+            @PathVariable UUID userId,
+            @Valid @RequestBody UserStatusUpdateRequest request) {
+        return userService.updateUserStatus(principal.getUsername(), userId, request);
     }
 
     @GetMapping("/{userId}")

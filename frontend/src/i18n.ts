@@ -212,8 +212,27 @@ export const STRINGS = {
     cwScheduleBtn: 'Lên lịch đăng bài',
     // calendar
     calMonth: 'Tháng 6, 2026', calUpcoming: 'Sắp đăng', calAuto: 'Tự động đăng', calNew: '+ Lên lịch bài mới',
+    // lịch đăng bài (UI-07, FR-47..FR-51, FR-58)
+    schNew: 'Lên lịch đăng', schNewSub: 'Chọn bản nội dung đã định dạng, tài khoản đích và thời gian đăng.',
+    schQueue: 'Hàng đợi đăng bài', schAll: 'Tất cả', schEmpty: 'Chưa có lịch đăng nào', schEmptyDay: 'Không có lịch trong ngày này',
+    schShowAll: 'Xem tất cả ngày', schErr: 'Không tải được lịch đăng.', schNoCaption: '(chưa có caption)',
+    schVersion: 'Bản nội dung (đã định dạng)', schNoVersions: 'Chưa có bản nội dung nào ở trạng thái Đã định dạng — hãy định dạng nội dung trong mục Nội dung trước.',
+    schAccount: 'Đăng lên tài khoản', schNoAccounts: 'Không có tài khoản đang hoạt động cùng nền tảng — kết nối trong Cài đặt.',
+    schTime: 'Thời gian đăng', schGolden: 'Khung giờ vàng', schGoldenDefault: 'gợi ý mặc định theo nền tảng', schGoldenData: 'theo dữ liệu bài đã phân tích',
+    schCreate: 'Lên lịch', schCreating: 'Đang lưu…', schSave: 'Lưu', schErrPast: 'Thời gian đăng phải ở tương lai.',
+    schReschedule: 'Dời giờ', schReactivate: 'Kích hoạt lại', schReactivateSub: 'Chọn giờ đăng mới — nếu tài khoản đã hoạt động trở lại, lịch sẽ tự chuyển về Đã lên lịch.',
+    schCancel: 'Hủy lịch', schConfirmCancel: 'Bấm lần nữa để hủy', schResetFailed: 'Hủy lịch để đăng lại', schEditContent: 'Sửa nội dung',
+    schOnHoldHint: 'Lịch đang tạm giữ do tài khoản hết hạn/bị hạn chế. Kết nối lại tài khoản trong Cài đặt rồi bấm Kích hoạt lại.',
+    schFailedHint: 'Đăng thất bại. Sửa nội dung nếu cần, hủy lịch để bản quay về Đã định dạng rồi lên lịch lại.',
+    schStSCHEDULED: 'Đã lên lịch', schStON_HOLD: 'Tạm giữ', schStPOSTING: 'Đang đăng', schStPOSTED: 'Đã đăng', schStFAILED: 'Thất bại', schStCANCELLED: 'Đã hủy',
     // analytics
     anReach: 'Lượt tiếp cận theo tháng', anTop: 'Nội dung hiệu quả nhất', anAudience: 'Phân bổ khán giả', anExport: 'Xuất báo cáo',
+    // phân tích hiệu quả (UI-08, FR-60..FR-62)
+    anaViews: 'Lượt xem', anaLikes: 'Lượt thích', anaComments: 'Bình luận', anaShares: 'Chia sẻ',
+    anaListTitle: 'Bài đã đăng & số liệu', anaListSub: 'Số liệu thu tại mốc 24 giờ / 48 giờ / 7 ngày sau khi đăng',
+    anaEmpty: 'Chưa có bài nào được phân tích. Số liệu được thu tự động 24 giờ sau khi bài được đăng thành công.',
+    anaErr: 'Không tải được số liệu.', anaCompare: 'So sánh các mốc thu số liệu', anaMilestone: 'Mốc',
+    anaHours: ' giờ', ana7d: '7 ngày', anaCollected: 'Thu lúc', anaPending: 'chưa thu',
     // trends
     trTitle: 'Nghiên cứu xu hướng', trSubtitle: 'Agent AI giúp bạn tìm trend phù hợp và tạo ý tưởng content hiệu quả',
     trLoading: 'Đang tải dữ liệu xu hướng...',
@@ -432,6 +451,13 @@ export const STRINGS = {
     csSumGoals: 'Mục tiêu', csSumFreq: 'Tần suất', csSumPlatforms: 'Nền tảng', csSumAudience: 'Đối tượng', csSumStyle: 'Phong cách', csSumCta: 'CTA',
     csUnitGoals: 'mục tiêu', csUnitGroups: 'nhóm', csUnitStyles: 'phong cách', csUnitPlatforms: 'nền tảng', csUnitCta: 'CTA',
     csErrName: 'Vui lòng nhập tên chiến lược', csErrGoal: 'Chọn ít nhất 1 mục tiêu', csErrType: 'Chọn ít nhất 1 loại nội dung',
+    // tối ưu chiến lược từ dữ liệu (FR-65..FR-68)
+    soTitle: 'Tối ưu từ dữ liệu', soSub: 'AI phân tích số liệu các bài đã đăng và đề xuất điều chỉnh chiến lược. Bạn duyệt từng đề xuất — chấp nhận rồi tự cập nhật chiến lược theo gợi ý.',
+    soRun: 'Chạy tối ưu', soRunning: 'Đang phân tích…', soErrRun: 'Chạy tối ưu thất bại. Vui lòng thử lại.',
+    soNoData: 'Chưa có bài đăng nào được thu số liệu — hãy đăng bài và chờ analytics (24h sau khi đăng) rồi thử lại.',
+    soEmpty: 'Chưa có đề xuất nào. Bấm "Chạy tối ưu" để AI phân tích các bài đã đăng.',
+    soImprovements: 'Cải tiến cho bài viết tương lai', soHistory: 'Lịch sử điều chỉnh',
+    soAccept: 'Chấp nhận', soReject: 'Từ chối', soApplied: 'Đã chấp nhận', soRejected: 'Đã từ chối', soPending: 'Chờ duyệt',
   },
   en: {
     nHome: 'Home', nFeatures: 'Features', nPricing: 'Pricing', nResources: 'Resources',
@@ -634,7 +660,26 @@ export const STRINGS = {
     cwScheduleTitle: 'Schedule posts', cwScheduleSoon: 'Feature in development — will connect to the Calendar tab.',
     cwScheduleBtn: 'Schedule posts',
     calMonth: 'June 2026', calUpcoming: 'Upcoming', calAuto: 'Auto-publish', calNew: '+ Schedule new post',
+    // schedule page (UI-07, FR-47..FR-51, FR-58)
+    schNew: 'Schedule a post', schNewSub: 'Pick a formatted content version, a target account and a publish time.',
+    schQueue: 'Posting queue', schAll: 'All', schEmpty: 'Nothing scheduled yet', schEmptyDay: 'Nothing scheduled on this day',
+    schShowAll: 'Show all days', schErr: "Couldn't load schedules.", schNoCaption: '(no caption yet)',
+    schVersion: 'Content version (formatted)', schNoVersions: 'No content version is in Formatted status yet — format your content in the Content section first.',
+    schAccount: 'Publish to account', schNoAccounts: 'No active account on this platform — connect one in Settings.',
+    schTime: 'Publish time', schGolden: 'Golden hours', schGoldenDefault: 'platform defaults', schGoldenData: 'based on analyzed posts',
+    schCreate: 'Schedule', schCreating: 'Saving…', schSave: 'Save', schErrPast: 'Publish time must be in the future.',
+    schReschedule: 'Reschedule', schReactivate: 'Reactivate', schReactivateSub: 'Pick a new time — if the account is active again, the schedule returns to Scheduled.',
+    schCancel: 'Cancel', schConfirmCancel: 'Click again to confirm', schResetFailed: 'Cancel to repost', schEditContent: 'Edit content',
+    schOnHoldHint: 'On hold because the account expired or is restricted. Reconnect the account in Settings, then hit Reactivate.',
+    schFailedHint: 'Publishing failed. Edit the content if needed, cancel the schedule so the version returns to Formatted, then reschedule.',
+    schStSCHEDULED: 'Scheduled', schStON_HOLD: 'On hold', schStPOSTING: 'Posting', schStPOSTED: 'Posted', schStFAILED: 'Failed', schStCANCELLED: 'Cancelled',
     anReach: 'Monthly reach', anTop: 'Top performing content', anAudience: 'Audience breakdown', anExport: 'Export report',
+    // analytics page (UI-08, FR-60..FR-62)
+    anaViews: 'Views', anaLikes: 'Likes', anaComments: 'Comments', anaShares: 'Shares',
+    anaListTitle: 'Published posts & metrics', anaListSub: 'Metrics collected 24h / 48h / 7 days after publishing',
+    anaEmpty: 'No analyzed posts yet. Metrics are collected automatically 24 hours after a post is published.',
+    anaErr: "Couldn't load metrics.", anaCompare: 'Milestone comparison', anaMilestone: 'Milestone',
+    anaHours: 'h', ana7d: '7 days', anaCollected: 'Collected at', anaPending: 'pending',
     trTitle: 'Trend research', trSubtitle: 'The AI agent finds the right trends and turns them into effective content ideas',
     trLoading: 'Loading trend data...',
     trSearchPh: 'Search trends, topics, hashtags...', trResearchNow: 'Research now',
@@ -828,6 +873,13 @@ export const STRINGS = {
     csSumGoals: 'Goals', csSumFreq: 'Frequency', csSumPlatforms: 'Platforms', csSumAudience: 'Audience', csSumStyle: 'Style', csSumCta: 'CTA',
     csUnitGoals: 'goals', csUnitGroups: 'groups', csUnitStyles: 'styles', csUnitPlatforms: 'platforms', csUnitCta: 'CTA',
     csErrName: 'Please enter a strategy name', csErrGoal: 'Choose at least 1 goal', csErrType: 'Choose at least 1 content type',
+    // data-driven strategy optimization (FR-65..FR-68)
+    soTitle: 'Data-driven optimization', soSub: 'AI analyzes your published posts and proposes strategy adjustments. Review each proposal — accept it, then update the strategy accordingly.',
+    soRun: 'Run optimization', soRunning: 'Analyzing…', soErrRun: 'Optimization failed. Please try again.',
+    soNoData: 'No post has collected metrics yet — publish a post, wait for analytics (24h after publishing) and try again.',
+    soEmpty: 'No proposals yet. Hit "Run optimization" to let the AI analyze your published posts.',
+    soImprovements: 'Improvements for future posts', soHistory: 'Adjustment history',
+    soAccept: 'Accept', soReject: 'Reject', soApplied: 'Accepted', soRejected: 'Rejected', soPending: 'Pending',
   },
 } as const;
 

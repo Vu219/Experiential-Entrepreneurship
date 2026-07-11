@@ -48,6 +48,9 @@ public class UserResponse {
     @Schema(description = "Timestamp of the last password change.", example = "2026-06-08T09:30:00")
     LocalDateTime lastPasswordChangeAt;
 
+    @Schema(description = "Last time the user was active (last login).", example = "2026-07-10T21:12:00")
+    LocalDateTime lastActiveAt;
+
     @Schema(description = "Role assigned to the user.")
     RoleResponse role;
 

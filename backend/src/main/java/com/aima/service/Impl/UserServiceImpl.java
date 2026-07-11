@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -82,8 +83,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public ApiResponse<PageResponse<UserResponse>> getAllUsers(Pageable pageable) {
-        Page<User> users = userRepository.findAll(pageable);
+    public ApiResponse<PageResponse<UserResponse>> getAllUsers(String q, UserStatus status, Pageable pageable) {
+        // FR-80: tìm theo tên/email + lọc trạng thái; ORDER BY nằm trong native query
+        // nên Pageable không mang Sort riêng (cùng mẫu ContentItemServiceImpl.list).
+        Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        Page<User> users = userRepository.search(q == null ? "" : q.trim(),
+                status == null ? null : status.name(), unsorted);
 
         if (users.getTotalElements() == 0) {
             throw new AppException(ErrorCode.USER_LIST_EMPTY);
@@ -92,6 +97,26 @@ public class UserServiceImpl implements UserService {
         PageResponse<UserResponse> result =
                 PageResponse.from(users, userMapper.toResponseList(users.getContent()));
         return ApiResponse.success("Lấy danh sách người dùng thành công", result);
+    }
+
+    // FR-80: admin khóa/mở khóa — chỉ đổi qua lại ACTIVE/LOCKED; tài khoản ADMIN được bảo vệ (SEC-05).
+    @Override
+    public ApiResponse<UserResponse> updateUserStatus(String adminEmail, UUID userId, UserStatusUpdateRequest request) {
+        if (request.getStatus() != UserStatus.ACTIVE && request.getStatus() != UserStatus.LOCKED) {
+            throw new AppException(ErrorCode.INVALID_USER_STATUS);
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        if (user.getRole() != null && "ADMIN".equals(user.getRole().getRoleName())) {
+            throw new AppException(ErrorCode.ADMIN_PROTECTED);
+        }
+
+        user.setStatus(request.getStatus());
+        User saved = userRepository.save(user);
+        log.info("[Admin] {} đổi trạng thái user {} thành {}", adminEmail, userId, request.getStatus());
+
+        UserResponse response = userMapper.toResponse(saved);
+        return ApiResponse.success("Cập nhật trạng thái tài khoản thành công", response);
     }
 
     @Override

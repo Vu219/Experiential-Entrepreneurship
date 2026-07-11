@@ -64,7 +64,7 @@
 - [x] FR-36 Move violating post to `Failed` + store error `[BE]` — done 2026-07-05 (worker `saveFailure`: post/schedule/version/item → FAILED, lỗi lưu ở `PublishResult` + job)
 - [x] FR-37 Classify policy violations vs technical errors `[BE]` — done 2026-07-05 (`MetaApiClientImpl.classifyPublishError`: policy 368/message "policy" > tạm thời 5xx/rate-limit 1,2,4,17,32,341,613 > còn lại vĩnh viễn; enum `PublishErrorType`)
 - [x] FR-38 Violation notification (platform, reason, next steps) `[BE][FE]` — BE done 2026-07-05 (notification POST_FAILED riêng cho vi phạm: nền tảng + mã/lý do gốc + bước tiếp theo); FE done 2026-07-11 (hiển thị qua `NotificationBell` — title/message đầy đủ, click điều hướng tới lịch đăng)
-- [ ] FR-39 Edit/regenerate then reschedule `[BE][FE]` — một phần 2026-07-05: regenerate (FR-32/FR-88) + hủy lịch FAILED → version về FORMATTED → lên lịch lại đã có; BE hoàn tất 2026-07-11 (`EDITABLE_STATUSES` thêm FAILED — sửa bài/bản FAILED được; luồng: sửa nội dung → hủy lịch FAILED → lên lịch lại); FE flow pending (UI-07)
+- [x] FR-39 Edit/regenerate then reschedule `[BE][FE]` — một phần 2026-07-05: regenerate (FR-32/FR-88) + hủy lịch FAILED → version về FORMATTED → lên lịch lại đã có; done 2026-07-11: BE `EDITABLE_STATUSES` thêm FAILED (sửa bài/bản FAILED được), FE trang Lịch (UI-07) — lịch FAILED có nút Sửa nội dung + Hủy lịch để đăng lại, modal lên lịch mới nhặt lại bản FORMATTED
 
 ## 8. Platform Formatting
 - [x] FR-40 Create one version per selected platform `[AI]` — done 2026-06-13 (AI svc)
@@ -76,29 +76,29 @@
 *(FR-41 TikTok, FR-43 YouTube Shorts, FR-45 LinkedIn — out of current scope, do not implement yet.)*
 
 ## 9. Scheduling
-- [ ] FR-47 Create schedule (content, platform, date, time, status) `[BE][FE]` — BE done 2026-07-05 (`POST /schedules`: ContentVersion FORMATTED + PlatformAccount ACTIVE cùng nền tảng (BR-05), giờ đăng phải ở tương lai, version/item → SCHEDULED; lịch CANCELLED được tái sử dụng khi lên lịch lại — cột content_version_id unique 1-1); FE pending (UI-07)
+- [x] FR-47 Create schedule (content, platform, date, time, status) `[BE][FE]` — BE done 2026-07-05 (`POST /schedules`: ContentVersion FORMATTED + PlatformAccount ACTIVE cùng nền tảng (BR-05), giờ đăng phải ở tương lai, version/item → SCHEDULED; lịch CANCELLED được tái sử dụng khi lên lịch lại — cột content_version_id unique 1-1); FE done 2026-07-11 (UI-07: modal "Lên lịch đăng" — chọn bản FORMATTED (flatten từ thư viện) → tài khoản ACTIVE cùng nền tảng → datetime-local, kèm chip khung giờ vàng FR-48 áp giờ một chạm)
 - [x] FR-48 Golden hour suggestions (platform defaults → data-driven after ≥10 analyzed posts) `[BE][AI]` — AI endpoint (`POST /golden-hours`, defaults + data-driven) done 2026-06-13; BE integration done 2026-07-05 (`GET /schedules/golden-hours?platform=` → `AiServiceClient.goldenHours`; chưa gửi analytics — bổ sung `posts` khi FR-59 xong để bật nhánh data-driven)
 - [x] FR-49 Posting queue `[BE]` — done 2026-07-05 (`GET /schedules` sắp theo scheduledTime, filter status/platform; `status=SCHEDULED` = hàng đợi sắp đăng)
-- [ ] FR-50 Update schedule / FR-51 Cancel schedule (unpublished only) `[BE][FE]` — BE done 2026-07-05 (PUT dời giờ khi SCHEDULED/ON_HOLD; DELETE hủy khi SCHEDULED/ON_HOLD/FAILED → CANCELLED, version về FORMATTED, item về FORMATTED nếu không còn bản nào trong pipeline); FE pending (UI-07)
+- [x] FR-50 Update schedule / FR-51 Cancel schedule (unpublished only) `[BE][FE]` — BE done 2026-07-05 (PUT dời giờ khi SCHEDULED/ON_HOLD; DELETE hủy khi SCHEDULED/ON_HOLD/FAILED → CANCELLED, version về FORMATTED, item về FORMATTED nếu không còn bản nào trong pipeline); FE done 2026-07-11 (UI-07: nút Dời giờ (modal), Hủy lịch xác nhận 2 lần bấm; ON_HOLD có nút Kích hoạt lại, FAILED có "Hủy lịch để đăng lại")
 
 ## 10. Auto-Posting
 - [x] FR-52 Post on time (scheduler) `[BE]` — done 2026-07-05 (`PostingDispatchJob` quét mỗi phút: lịch đến hạn → Post + PostingJob → worker nền `postPublishExecutor`; kèm chạy retry đến hạn + vớt job PENDING mất dispatch)
 - [x] FR-53 Call platform API / FR-54 receive result `[BE]` — done 2026-07-05 (adapter `PlatformPublisher` (NFR-09): Facebook Page `POST /{page-id}/feed` + Threads container TEXT→publish qua `MetaApiClient`; Instagram trả lỗi vĩnh viễn rõ ràng — cần media, MVP chỉ có media prompt FR-29; kết quả lưu `Post.platformPostId` + `PublishResult`)
 - [x] FR-55 Persist post status (state machine in WORKFLOWS.md) `[BE]` — done 2026-07-05 (Scheduled → Posting → Posted/Failed đồng bộ trên PostSchedule + Post + ContentVersion + ContentItem; retry giữ Posting, thất bại chung cuộc → Failed)
 - [x] FR-56 Retry policy (3 attempts at 5/15/30 min, temporary errors only) `[BE]` — done 2026-07-05 (chỉ TEMPORARY; job RETRYING với `nextRetryAt` 5/15/30 phút, tối đa 3 lần; POLICY_VIOLATION/PERMANENT dừng ngay — BR-07)
-- [ ] FR-57 Failure notification / FR-58 user resolution (edit/reconnect/repost) `[BE][FE]` — FR-57 BE done 2026-07-05 (POST_FAILED khi thất bại chung cuộc, RECONNECT_NEEDED khi token hết hạn); FR-58 BE một phần (hủy lịch FAILED → version về FORMATTED → lên lịch lại; PUT lịch ON_HOLD với account đã ACTIVE lại → tự về SCHEDULED); FE pending
+- [x] FR-57 Failure notification / FR-58 user resolution (edit/reconnect/repost) `[BE][FE]` — FR-57 BE done 2026-07-05 (POST_FAILED khi thất bại chung cuộc, RECONNECT_NEEDED khi token hết hạn), FE done 2026-07-11 (`NotificationBell`); FR-58 done 2026-07-11: BE đủ 3 hướng (SỬA — item FAILED sửa được theo FR-39; KẾT NỐI LẠI — PUT lịch ON_HOLD khi account ACTIVE lại → SCHEDULED; ĐĂNG LẠI — hủy lịch FAILED → version về FORMATTED → lên lịch lại), FE trang Lịch có hint + nút cho từng hướng
 
 ## 11. Performance Analysis
 - [x] FR-59 Collect metrics (views, likes, comments, shares, saves, CTR, conversion, watch time) at 24h/48h/7d `[BE]` — done 2026-07-05 (`AnalyticsCollectionJob` mỗi giờ, mốc 24/48/168h mỗi bài thu một lần; FB: likes/comments/shares qua fields + views qua insights best-effort (cần read_insights); Threads: views/likes/replies + reposts+quotes→shares; CTR/conversion/watch time = null trong MVP — nền tảng không cung cấp cho bài text; version/item POSTED → ANALYZING khi có số liệu đầu tiên)
-- [ ] FR-60 Store in DB / FR-61 display to user / FR-62 compare posts `[BE][FE]` — BE done 2026-07-05 (`PostAnalytics` + cột `milestone_hours`; API `GET /analytics/posts` phân trang + `GET /analytics/posts/{id}`, mỗi bài kèm đủ snapshot các mốc để so sánh); FE (UI-08) pending
+- [x] FR-60 Store in DB / FR-61 display to user / FR-62 compare posts `[BE][FE]` — BE done 2026-07-05 (`PostAnalytics` + cột `milestone_hours`; API `GET /analytics/posts` phân trang + `GET /analytics/posts/{id}`, mỗi bài kèm đủ snapshot các mốc để so sánh); FE done 2026-07-11 (UI-08)
 - [x] FR-63 Success factor analysis (hook, caption, hashtags, CTA, media, timing, platform) `[AI]` — done 2026-06-13 (AI svc)
 - [x] FR-64 Produce optimization insights `[AI]` — done 2026-06-13 (AI svc)
 
 ## 12. Strategy Optimization
 - [x] FR-65 Propose strategy adjustments from data `[AI]` — done 2026-06-13 (AI svc)
 - [x] FR-66 Propose improvements for future posts `[AI]` — done 2026-06-13 (AI svc)
-- [ ] FR-67 Store adjustment history `[BE]`
-- [ ] FR-68 User accepts/rejects proposals `[BE][FE]`
+- [x] FR-67 Store adjustment history `[BE]` — done 2026-07-11 (job async `StrategyOptimizationJob`: `POST /content-strategies/{id}/optimize` → worker gom analytics bài POSTED của brand (snapshot mốc muộn nhất, tối đa 50 bài) → AI `/analyze` rồi `/optimize` → lưu `OptimizationInsight` (neo snapshot mới nhất — schema DATA_MODEL buộc FK analytics) + `StrategyAdjustment` PENDING (thêm cột `rationale`/`decided_at`); lịch sử đọc qua `GET /content-strategies/{id}/adjustments`; future improvements lưu trên job; notification NEW_INSIGHT khi xong)
+- [x] FR-68 User accepts/rejects proposals `[BE][FE]` — done 2026-07-11 (BE `PATCH /content-strategies/adjustments/{id}` APPLIED/REJECTED — chỉ từ PENDING, ghi `decidedAt`; APPLIED = user đồng ý và tự cập nhật chiến lược theo gợi ý; FE mục "Tối ưu từ dữ liệu" trong chi tiết chiến lược (`StrategyOptimization.tsx`): nút Chạy tối ưu → poll job, card đề xuất kèm rationale + insight, nút Chấp nhận/Từ chối, lịch sử gấp gọn, hiển thị cải tiến tương lai; lỗi 1961 khi chưa có bài thu analytics)
 
 ## 13. Error Management
 - [x] FR-69 Unconnected account → block posting + notify `[BE]` — done 2026-07-05 (tạo lịch yêu cầu account ACTIVE — `CONNECTION_NOT_ACTIVE`, BR-05; thất bại lúc đăng → notification POST_FAILED)
@@ -110,7 +110,7 @@
 
 ## 14. Notifications
 - [x] FR-75 Post published / FR-76 post failed `[BE][FE]` — BE done 2026-07-05 (entity `Notification` + `NotificationService.notify` best-effort; API `/notifications` list phân trang + unread-count + đánh dấu đã đọc; phát từ worker đăng bài); FE done 2026-07-11 (`NotificationBell` trên Topbar: badge số chưa đọc poll 60s, dropdown danh sách phân trang + icon/màu theo loại + thời gian tương đối, click = đánh dấu đã đọc (optimistic) + điều hướng theo loại, nút Đọc tất cả)
-- [ ] FR-77 Review needed / FR-78 reconnection needed / FR-79 new insight `[BE][FE]` — FR-77 BE done 2026-07-05 (phát khi AI tạo nội dung xong); FR-78 BE done 2026-07-05 (phát từ luồng đăng bài mã 190 + `TokenHealthCheckJob`); FE done 2026-07-11 (cùng `NotificationBell`); còn thiếu: FR-79 BE (chờ analytics FR-59+ sinh insight)
+- [x] FR-77 Review needed / FR-78 reconnection needed / FR-79 new insight `[BE][FE]` — FR-77 BE done 2026-07-05 (phát khi AI tạo nội dung xong); FR-78 BE done 2026-07-05 (phát từ luồng đăng bài mã 190 + `TokenHealthCheckJob`); FE done 2026-07-11 (cùng `NotificationBell`); FR-79 BE done 2026-07-11 (NEW_INSIGHT phát từ worker tối ưu chiến lược khi có đề xuất mới — FR-65..FR-68)
 
 ## 15. Admin
 - [ ] FR-80 Manage users `[BE][FE]` — FE UI done 2026-06-23 (list + search/filter/pagination, lock/unlock, detail; mock via `api/admin.ts`, BE endpoint pending)
@@ -135,9 +135,9 @@
 - [x] UI-04 Content Strategy page `[FE]` — done 2026-06-25 (list-left + detail 01–08 + summary + DRAFT/ACTIVE/PAUSED toggle, gộp vào /brand 2 tab); nối BE thật `api/contentStrategy.ts` 2026-06-26; nâng cấp 2026-07-03: drawer danh sách cho mobile+tablet (<1024), phân trang server-side 4 item/trang, skeleton loading, ô tìm kiếm có dropdown gợi ý tên chiến lược — chỉ tìm khi Enter/chọn gợi ý
 - [x] UI-05 Trend Research page `[FE]` — done 2026-07-02 (redesign 3 sub-tab: Trend nổi bật (bảng + sparkline + filter) / Ý tưởng content / Lịch sử research, sidebar phải trạng thái + lịch tự động, section "Cách hoạt động"; mock data ở `src/trendsData.ts`, chờ nối BE); tối ưu 2026-07-02: sidebar theo tab + sticky, bảng→card <1024px, phân trang 3 danh sách, responsive 4 mốc màn hình; nối BE 2026-07-02 (`api/trendResearch.ts` + map `trendsLive.ts`, nút Research ngay poll phiên async; mock chỉ còn là fallback khi BE chưa chạy)
 - [x] UI-06 Content Workspace `[FE]` — done 2026-07-01 (Create.tsx wired to real generation: strategy picker + `api/contentGeneration.ts` + job polling, replacing mock data)
-- [ ] UI-07 Calendar / Schedule `[FE]`
-- [ ] UI-08 Analytics page `[FE]`
-- [ ] UI-09 Social Account page `[FE]`
+- [x] UI-07 Calendar / Schedule `[FE]` — done 2026-07-11 (Calendar.tsx nối API thật `/schedules` qua `api/schedules.ts`: lịch tháng điều hướng ‹› với dot màu theo nền tảng + click ngày lọc; hàng đợi filter theo trạng thái (chip màu theo `statusTokens`) với hành động theo state machine — Dời giờ/Hủy (SCHEDULED), Kích hoạt lại (ON_HOLD), Sửa nội dung + Hủy để đăng lại (FAILED); modal Lên lịch đăng kèm khung giờ vàng FR-48)
+- [x] UI-08 Analytics page `[FE]` — done 2026-07-11 (Analytics.tsx nối API thật `/analytics/posts` qua `api/analytics.ts`: 4 thẻ tổng views/likes/comments/shares theo mốc mới nhất, bảng bài đã đăng phân trang server-side, mở rộng từng dòng = bảng so sánh mốc 24h/48h/7 ngày kèm chênh lệch (FR-62); empty state giải thích số liệu thu sau 24h; metric nền tảng không cung cấp hiện "—")
+- [x] UI-09 Social Account page `[FE]` — done 2026-06-27, ghi nhận 2026-07-11: sống trong Settings.tsx (không cần trang riêng) — kết nối qua OAuth dialog (`getAuthorizationUrl` → redirect), danh sách kết nối + stats, kiểm tra (validate), làm mới token (refresh), ngắt kết nối (disconnect)
 - [x] UI-10 Admin Dashboard `[FE]` — done 2026-06-23 (separated into a role-guarded System Administration module: Overview + Users + Failed/Rejected posts + System status + Logs + Platform API versions + Revenue)
 
 ## Cross-Cutting / Infrastructure
@@ -147,7 +147,7 @@
 - [x] Input validation + clear error responses (API-04, API-05) `[BE]` — done 2026-06-12
 - [x] Password hashing (SEC-01) + JWT protection (SEC-02) `[BE]` — done 2026-06-12
 - [ ] AES-256 token encryption, never exposed to frontend (SEC-03) `[BE]`
-- [ ] Async background jobs for all AI/posting tasks (NFR-04) `[BE][AI]` — content generation done 2026-07-01 (`ContentGenerationJob` + `@Async` worker + FE polling); trend research done 2026-07-02; platform formatting done 2026-07-03 (`ContentFormattingJob` + worker); auto-posting done 2026-07-05 (`PostPublishWorkerService` + `postPublishExecutor`); analysis still pending
+- [x] Async background jobs for all AI/posting tasks (NFR-04) `[BE][AI]` — content generation done 2026-07-01 (`ContentGenerationJob` + `@Async` worker + FE polling); trend research done 2026-07-02; platform formatting done 2026-07-03 (`ContentFormattingJob` + worker); auto-posting done 2026-07-05 (`PostPublishWorkerService` + `postPublishExecutor`); analysis/optimization done 2026-07-11 (`StrategyOptimizationJob` + `strategyOptimizationExecutor`; thu metric chạy nền qua scheduler `AnalyticsCollectionJob` từ 2026-07-05)
 - [x] Scheduler (posting calendar trigger + 2:00 AM research run) `[BE]` — 2:00 AM research run done 2026-07-03 (`DailyTrendResearchJob`); posting calendar trigger done 2026-07-05 (`PostingDispatchJob` mỗi phút)
 - [ ] Platform adapter/interface layer for future platforms (NFR-09) `[BE]` — publishing adapter done 2026-07-05 (`PlatformPublisher` + bean/nền tảng, worker chọn theo platform — thêm nền tảng = thêm bean); tầng kết nối OAuth vẫn Meta-specific (`MetaOAuthService`)
 - [ ] Webhook endpoints for post-publication violation notifications `[BE]`

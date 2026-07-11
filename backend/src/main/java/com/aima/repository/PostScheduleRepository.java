@@ -42,4 +42,7 @@ public interface PostScheduleRepository extends JpaRepository<PostSchedule, UUID
 
     // FR-18b/FR-70: token hết hạn → các lịch SCHEDULED của tài khoản đó chuyển ON_HOLD.
     List<PostSchedule> findByPlatformAccount_IdAndStatusAndDeletedAtIsNull(UUID accountId, ScheduleStatus status);
+
+    // FR-81: số lịch đang chờ đăng trên toàn hệ thống (trang System status của admin).
+    long countByStatusAndDeletedAtIsNull(ScheduleStatus status);
 }

@@ -1,11 +1,15 @@
 package com.aima.service;
 
+import com.aima.dto.ai.AnalyzePayload;
+import com.aima.dto.ai.AnalyzeResultPayload;
 import com.aima.dto.ai.FormatPayload;
 import com.aima.dto.ai.FormatResultPayload;
 import com.aima.dto.ai.GenerateContentPayload;
 import com.aima.dto.ai.GeneratedContentResult;
 import com.aima.dto.ai.GoldenHourPayload;
 import com.aima.dto.ai.GoldenHourResultPayload;
+import com.aima.dto.ai.OptimizePayload;
+import com.aima.dto.ai.OptimizeResultPayload;
 import com.aima.dto.ai.RegeneratePartPayload;
 import com.aima.dto.ai.RegeneratePartResultPayload;
 import com.aima.dto.ai.ResearchPayload;
@@ -30,4 +34,10 @@ public interface AiServiceClient {
 
     /** POST /regenerate-part — tạo lại MỘT phần kịch bản (hook/body/cta × content/scene). */
     RegeneratePartResultPayload regeneratePart(RegeneratePartPayload payload);
+
+    /** POST /analyze — FR-63/FR-64: success factors + insights từ analytics các bài đã đăng. */
+    AnalyzeResultPayload analyze(AnalyzePayload payload);
+
+    /** POST /optimize — FR-65/FR-66: đề xuất điều chỉnh chiến lược + cải tiến bài tương lai. */
+    OptimizeResultPayload optimize(OptimizePayload payload);
 }

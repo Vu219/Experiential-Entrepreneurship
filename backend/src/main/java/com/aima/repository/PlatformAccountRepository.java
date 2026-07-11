@@ -35,4 +35,7 @@ public interface PlatformAccountRepository extends JpaRepository<PlatformAccount
 
     // TokenValidationJob: mẫu các kết nối đang ACTIVE để ping /me.
     List<PlatformAccount> findByConnectionStatusAndDeletedAtIsNull(ConnectionStatus status);
+
+    // FR-81: tổng kết nối ACTIVE toàn hệ thống (trang System status của admin).
+    long countByConnectionStatusAndDeletedAtIsNull(ConnectionStatus status);
 }

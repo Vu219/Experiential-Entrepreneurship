@@ -59,6 +59,17 @@ public class AsyncConfig {
         return executor;
     }
 
+    @Bean(name = "strategyOptimizationExecutor")
+    public Executor strategyOptimizationExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(10);
+        executor.setThreadNamePrefix("strategy-opt-");
+        executor.initialize();
+        return executor;
+    }
+
     @Bean(name = "trendResearchExecutor")
     public Executor trendResearchExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

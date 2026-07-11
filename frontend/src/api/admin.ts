@@ -1,10 +1,10 @@
 import type { Lang } from '../types';
 import type { Tone } from '../components/admin/StatusBadge';
+import client, { type ApiError, type ApiResponse, type PageResponse } from './apiClient';
 
-// ⚠️ TODO(backend): toàn bộ file này hiện trả MOCK để dựng UI Quản trị hệ thống.
-// Khi BE sẵn sàng, thay phần thân mỗi hàm bằng lời gọi `client.get(...)` qua
-// api/apiClient.ts (envelope { code, message, result }) — GIỮ NGUYÊN chữ ký hàm
-// để các trang admin không phải đổi. Endpoint dự kiến ghi chú ở từng hàm.
+// 2026-07-11: users (list/lock/unlock), bài thất bại (FR-82/83), system status (FR-81) và
+// logs (FR-84) đã nối BE thật — GIỮ NGUYÊN chữ ký hàm nên các trang admin không phải đổi.
+// Còn MOCK: tạo/sửa/xóa user thủ công (chưa có endpoint BE) và Revenue (chưa có billing BE).
 
 // Giả lập độ trễ mạng để các trang thể hiện đúng trạng thái loading.
 const delay = <T>(value: T, ms = 450): Promise<T> => new Promise((r) => setTimeout(() => r(value), ms));
@@ -69,8 +69,57 @@ const seedUsers = (): AdminUserRow[] =>
   }));
 const users = (): AdminUserRow[] => (USERS ??= seedUsers());
 
+// ==== BE thật: shape UserResponse của backend (GET /users, admin) ====
+interface BeUserResponse {
+  id: string;
+  username: string | null;
+  fullName: string | null;
+  email: string;
+  phone: string | null;
+  status: UserStatus;
+  avatarUrl: string | null;
+  createdAt: string | null;
+  lastActiveAt: string | null;
+  role: { roleName: UserRole } | null;
+}
+
+const ERR_USER_LIST_EMPTY = 1018;
+const ERR_ADMIN_PROTECTED = 1972;
+
+const beDateTime = (iso: string | null): string | null => (iso ? iso.slice(0, 16).replace('T', ' ') : null);
+
+// Gói/kênh/token là khái niệm billing chưa có ở BE — hiển thị mặc định Free/0.
+const toAdminRow = (u: BeUserResponse): AdminUserRow => ({
+  id: u.id,
+  name: u.fullName || u.email,
+  email: u.email,
+  role: u.role?.roleName === 'ADMIN' ? 'ADMIN' : 'USER',
+  status: u.status,
+  createdAt: (u.createdAt ?? '').slice(0, 10),
+  initials: initials(u.fullName || u.email),
+  plan: 'free',
+  channelsUsed: 0,
+  channelsLimit: PLAN_LIMITS.free,
+  tokenUsagePercent: 0,
+  lastLoginAt: beDateTime(u.lastActiveAt),
+  phone: u.phone ?? undefined,
+});
+
+// GET /users (ADMIN, FR-80) — trang admin lọc/tìm client-side nên lấy một trang lớn.
 export async function getAdminUsers(): Promise<AdminUserRow[]> {
-  return delay(users().map((u) => ({ ...u })));
+  try {
+    const { data } = await client.get<ApiResponse<PageResponse<BeUserResponse>>>('/users', {
+      params: { size: 200 },
+    });
+    USERS = data.result.content.map(toAdminRow);
+    return USERS.map((u) => ({ ...u }));
+  } catch (e) {
+    if ((e as ApiError).code === ERR_USER_LIST_EMPTY) {
+      USERS = [];
+      return [];
+    }
+    throw e;
+  }
 }
 
 export const userStatusMeta = (lang: Lang, s: UserStatus): { tone: Tone; label: string } =>

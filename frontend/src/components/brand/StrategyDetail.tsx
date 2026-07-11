@@ -8,6 +8,7 @@ import StrategySummary from './StrategySummary';
 import { ReadChips } from './chips';
 import type { ContentStrategy, Platform } from '../../api/contentStrategy';
 import { FREQUENCY_UNIT_OPTIONS } from '../../data';
+import StrategyOptimization from './StrategyOptimization';
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
@@ -47,6 +48,9 @@ export default function StrategyDetail({ s, onEdit, onDelete }: { s: ContentStra
         <Sec label={t.csStyle}><ReadChips items={s.styles} /></Sec>
         <Sec label={t.csCta}><ReadChips items={s.ctas} /></Sec>
       </div>
+
+      {/* FR-65..FR-68: đề xuất tối ưu từ dữ liệu + duyệt/từ chối + lịch sử */}
+      <StrategyOptimization strategyId={s.id} />
 
       <div style={{
         position: 'sticky',

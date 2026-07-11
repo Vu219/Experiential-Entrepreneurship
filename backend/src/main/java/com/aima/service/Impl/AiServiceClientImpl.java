@@ -1,12 +1,16 @@
 package com.aima.service.Impl;
 
 import com.aima.config.AiServiceProperties;
+import com.aima.dto.ai.AnalyzePayload;
+import com.aima.dto.ai.AnalyzeResultPayload;
 import com.aima.dto.ai.FormatPayload;
 import com.aima.dto.ai.FormatResultPayload;
 import com.aima.dto.ai.GenerateContentPayload;
 import com.aima.dto.ai.GeneratedContentResult;
 import com.aima.dto.ai.GoldenHourPayload;
 import com.aima.dto.ai.GoldenHourResultPayload;
+import com.aima.dto.ai.OptimizePayload;
+import com.aima.dto.ai.OptimizeResultPayload;
 import com.aima.dto.ai.RegeneratePartPayload;
 import com.aima.dto.ai.RegeneratePartResultPayload;
 import com.aima.dto.ai.ResearchPayload;
@@ -64,6 +68,16 @@ public class AiServiceClientImpl implements AiServiceClient {
     @Override
     public RegeneratePartResultPayload regeneratePart(RegeneratePartPayload payload) {
         return post("/regenerate-part", payload, RegeneratePartResultPayload.class);
+    }
+
+    @Override
+    public AnalyzeResultPayload analyze(AnalyzePayload payload) {
+        return post("/analyze", payload, AnalyzeResultPayload.class);
+    }
+
+    @Override
+    public OptimizeResultPayload optimize(OptimizePayload payload) {
+        return post("/optimize", payload, OptimizeResultPayload.class);
     }
 
     private <T> T post(String uri, Object payload, Class<T> resultType) {

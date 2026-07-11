@@ -179,7 +179,20 @@ public enum ErrorCode {
     REGEN_SECTION_REQUIRED(1950, "Thiếu phần cần tạo lại (hook/body/cta)", HttpStatus.BAD_REQUEST),
     REGEN_FIELD_REQUIRED(1951, "Thiếu loại nội dung cần tạo lại (content/scene)", HttpStatus.BAD_REQUEST),
     CONTENT_REGENERATION_JOB_NOT_FOUND(1952, "Không tìm thấy tác vụ tạo lại", HttpStatus.NOT_FOUND),
-    REGEN_STEP_NOT_FOUND(1953, "Không tìm thấy bước cần tạo lại trong kịch bản", HttpStatus.BAD_REQUEST),;
+    REGEN_STEP_NOT_FOUND(1953, "Không tìm thấy bước cần tạo lại trong kịch bản", HttpStatus.BAD_REQUEST),
+
+    // STRATEGY OPTIMIZATION ERRORS (FR-65..FR-68)
+    STRATEGY_OPTIMIZATION_JOB_NOT_FOUND(1960, "Không tìm thấy tác vụ tối ưu chiến lược", HttpStatus.NOT_FOUND),
+    NO_ANALYZED_POSTS(1961, "Chưa có bài đăng nào có số liệu để phân tích — cần ít nhất một bài đã thu analytics", HttpStatus.BAD_REQUEST),
+    ADJUSTMENT_NOT_FOUND(1962, "Không tìm thấy đề xuất điều chỉnh chiến lược", HttpStatus.NOT_FOUND),
+    ADJUSTMENT_ALREADY_DECIDED(1963, "Đề xuất này đã được quyết định trước đó", HttpStatus.BAD_REQUEST),
+    ADJUSTMENT_DECISION_REQUIRED(1964, "Thiếu quyết định cho đề xuất (APPLIED/REJECTED)", HttpStatus.BAD_REQUEST),
+    INVALID_ADJUSTMENT_DECISION(1965, "Quyết định không hợp lệ — chỉ chấp nhận APPLIED hoặc REJECTED", HttpStatus.BAD_REQUEST),
+
+    // ADMIN ERRORS (FR-80..FR-84)
+    USER_STATUS_REQUIRED(1970, "Thiếu trạng thái tài khoản (ACTIVE/LOCKED)", HttpStatus.BAD_REQUEST),
+    INVALID_USER_STATUS(1971, "Trạng thái không hợp lệ — chỉ đổi được sang ACTIVE hoặc LOCKED", HttpStatus.BAD_REQUEST),
+    ADMIN_PROTECTED(1972, "Không thể khóa/xóa tài khoản quản trị", HttpStatus.BAD_REQUEST),;
 
     private int code;
     private String message;

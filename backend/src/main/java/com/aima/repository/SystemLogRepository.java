@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public interface SystemLogRepository extends JpaRepository<SystemLog, UUID> {
@@ -20,4 +21,7 @@ public interface SystemLogRepository extends JpaRepository<SystemLog, UUID> {
 
     Page<SystemLog> findByLevelAndCreatedAtBetweenAndDeletedAtIsNullOrderByCreatedAtDesc(
             LogLevel level, LocalDateTime from, LocalDateTime to, Pageable pageable);
+
+    // FR-81: các lỗi mới nhất làm alert nhanh trên trang System status.
+    List<SystemLog> findTop5ByLevelAndDeletedAtIsNullOrderByCreatedAtDesc(LogLevel level);
 }

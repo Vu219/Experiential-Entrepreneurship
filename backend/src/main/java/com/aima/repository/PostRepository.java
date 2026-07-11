@@ -29,4 +29,22 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             PostStatus status, UUID userId, Pageable pageable);
 
     Optional<Post> findByIdAndSchedule_PlatformAccount_User_IdAndDeletedAtIsNull(UUID id, UUID userId);
+
+    // FR-63..FR-65: bài đã đăng của một brand profile (qua version → item) cho luồng tối ưu chiến lược.
+    List<Post> findBySchedule_ContentVersion_ContentItem_BrandProfile_IdAndStatusAndDeletedAtIsNullOrderByPublishedAtDesc(
+            UUID brandProfileId, PostStatus status);
+
+    boolean existsBySchedule_ContentVersion_ContentItem_BrandProfile_IdAndStatusAndDeletedAtIsNullAndPostAnalyticsIsNotEmpty(
+            UUID brandProfileId, PostStatus status);
+
+    // FR-82/FR-83: admin xem bài thất bại; violationOnly = true → chỉ bài bị từ chối do vi phạm chính sách.
+    @Query("select p from Post p where p.status = com.aima.enums.PostStatus.FAILED and p.deletedAt is null "
+            + "and (:violationOnly = false or exists (select j from PostingJob j where j.post = p "
+            + "and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION)) "
+            + "order by p.updatedAt desc")
+    Page<Post> findFailedForAdmin(@Param("violationOnly") boolean violationOnly, Pageable pageable);
+
+    long countByStatusAndPublishedAtAfterAndDeletedAtIsNull(PostStatus status, LocalDateTime after);
+
+    long countByStatusAndUpdatedAtAfterAndDeletedAtIsNull(PostStatus status, LocalDateTime after);
 }
