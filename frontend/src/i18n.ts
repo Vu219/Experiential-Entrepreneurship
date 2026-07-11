@@ -43,6 +43,10 @@ export const STRINGS = {
     // shell
     secMain: 'TỔNG QUAN', upgradeTitle: 'Nâng cấp Pro', upgradeMsg: 'Mở khoá AI không giới hạn & phân tích nâng cao.', upgradeBtn: 'Nâng cấp ngay',
     searchPh: 'Tìm nội dung, chiến dịch...', greeting: 'Chào', dashHeadline: 'Hôm nay AIMA đã sẵn sàng',
+    // chuông thông báo (FR-75..FR-78)
+    ntfTitle: 'Thông báo', ntfEmpty: 'Chưa có thông báo nào', ntfMarkAll: 'Đọc tất cả',
+    ntfMore: 'Xem thêm', ntfErr: 'Không tải được thông báo.', ntfRetry: 'Thử lại',
+    ntfNow: 'Vừa xong', ntfMinAgo: '{n} phút trước', ntfHourAgo: '{n} giờ trước', ntfDayAgo: '{n} ngày trước',
     dashHeadSub: '3 ý tưởng nội dung mới và 2 bài đăng đang chờ duyệt. Hãy bắt đầu sáng tạo!', createNew: 'Tạo nội dung mới',
     perfTitle: 'Hiệu quả nội dung', perfSub: 'Lượt tiếp cận 7 ngày qua', perfSub30: 'Lượt tiếp cận 30 ngày qua', platTitle: 'Theo nền tảng', platSub: 'Phân bổ tương tác',
     recentTitle: 'Bài đăng gần đây', viewAll: 'Xem tất cả', colPost: 'Nội dung', colPlatform: 'Nền tảng', colStatus: 'Trạng thái', colReach: 'Tiếp cận', colDate: 'Ngày',
@@ -465,6 +469,10 @@ export const STRINGS = {
     fpSuccess: 'Password reset successfully. Please sign in.',
     secMain: 'OVERVIEW', upgradeTitle: 'Upgrade to Pro', upgradeMsg: 'Unlock unlimited AI & advanced analytics.', upgradeBtn: 'Upgrade now',
     searchPh: 'Search content, campaigns...', greeting: 'Hi', dashHeadline: 'AIMA is ready for you today',
+    // notification bell (FR-75..FR-78)
+    ntfTitle: 'Notifications', ntfEmpty: 'No notifications yet', ntfMarkAll: 'Mark all read',
+    ntfMore: 'Load more', ntfErr: "Couldn't load notifications.", ntfRetry: 'Retry',
+    ntfNow: 'Just now', ntfMinAgo: '{n} min ago', ntfHourAgo: '{n}h ago', ntfDayAgo: '{n}d ago',
     dashHeadSub: '3 new content ideas and 2 posts awaiting approval. Let’s start creating!', createNew: 'Create content',
     perfTitle: 'Content performance', perfSub: 'Reach over last 7 days', perfSub30: 'Reach over last 30 days', platTitle: 'By platform', platSub: 'Engagement split',
     recentTitle: 'Recent posts', viewAll: 'View all', colPost: 'Content', colPlatform: 'Platform', colStatus: 'Status', colReach: 'Reach', colDate: 'Date',

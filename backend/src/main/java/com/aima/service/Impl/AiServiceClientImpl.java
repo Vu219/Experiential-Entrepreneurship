@@ -14,6 +14,7 @@ import com.aima.dto.ai.ResearchResultPayload;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.service.AiServiceClient;
+import com.aima.service.SystemLogService;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -31,99 +32,59 @@ public class AiServiceClientImpl implements AiServiceClient {
 
     WebClient webClient;
     AiServiceProperties properties;
+    SystemLogService systemLogService;
 
-    public AiServiceClientImpl(@Qualifier("aiServiceWebClient") WebClient webClient, AiServiceProperties properties) {
+    public AiServiceClientImpl(@Qualifier("aiServiceWebClient") WebClient webClient, AiServiceProperties properties,
+                               SystemLogService systemLogService) {
         this.webClient = webClient;
         this.properties = properties;
+        this.systemLogService = systemLogService;
     }
 
     @Override
     public GeneratedContentResult generateContent(GenerateContentPayload payload) {
-        try {
-            return webClient.post()
-                    .uri("/generate")
-                    .bodyValue(payload)
-                    .retrieve()
-                    .bodyToMono(GeneratedContentResult.class)
-                    .block(Duration.ofSeconds(properties.timeoutSeconds()));
-        } catch (WebClientResponseException e) {
-            log.warn("[AiService] POST /generate lỗi {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new AppException(ErrorCode.AI_SERVICE_ERROR);
-        } catch (Exception e) {
-            log.warn("[AiService] POST /generate thất bại: {}", e.getMessage());
-            throw new AppException(ErrorCode.AI_SERVICE_ERROR);
-        }
+        return post("/generate", payload, GeneratedContentResult.class);
     }
 
     @Override
     public ResearchResultPayload research(ResearchPayload payload) {
-        try {
-            return webClient.post()
-                    .uri("/research")
-                    .bodyValue(payload)
-                    .retrieve()
-                    .bodyToMono(ResearchResultPayload.class)
-                    .block(Duration.ofSeconds(properties.timeoutSeconds()));
-        } catch (WebClientResponseException e) {
-            log.warn("[AiService] POST /research lỗi {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new AppException(ErrorCode.AI_SERVICE_ERROR);
-        } catch (Exception e) {
-            log.warn("[AiService] POST /research thất bại: {}", e.getMessage());
-            throw new AppException(ErrorCode.AI_SERVICE_ERROR);
-        }
+        return post("/research", payload, ResearchResultPayload.class);
     }
 
     @Override
     public FormatResultPayload format(FormatPayload payload) {
-        try {
-            return webClient.post()
-                    .uri("/format")
-                    .bodyValue(payload)
-                    .retrieve()
-                    .bodyToMono(FormatResultPayload.class)
-                    .block(Duration.ofSeconds(properties.timeoutSeconds()));
-        } catch (WebClientResponseException e) {
-            log.warn("[AiService] POST /format lỗi {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new AppException(ErrorCode.AI_SERVICE_ERROR);
-        } catch (Exception e) {
-            log.warn("[AiService] POST /format thất bại: {}", e.getMessage());
-            throw new AppException(ErrorCode.AI_SERVICE_ERROR);
-        }
+        return post("/format", payload, FormatResultPayload.class);
     }
 
     @Override
     public GoldenHourResultPayload goldenHours(GoldenHourPayload payload) {
-        try {
-            return webClient.post()
-                    .uri("/golden-hours")
-                    .bodyValue(payload)
-                    .retrieve()
-                    .bodyToMono(GoldenHourResultPayload.class)
-                    .block(Duration.ofSeconds(properties.timeoutSeconds()));
-        } catch (WebClientResponseException e) {
-            log.warn("[AiService] POST /golden-hours lỗi {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new AppException(ErrorCode.AI_SERVICE_ERROR);
-        } catch (Exception e) {
-            log.warn("[AiService] POST /golden-hours thất bại: {}", e.getMessage());
-            throw new AppException(ErrorCode.AI_SERVICE_ERROR);
-        }
+        return post("/golden-hours", payload, GoldenHourResultPayload.class);
     }
 
     @Override
     public RegeneratePartResultPayload regeneratePart(RegeneratePartPayload payload) {
+        return post("/regenerate-part", payload, RegeneratePartResultPayload.class);
+    }
+
+    private <T> T post(String uri, Object payload, Class<T> resultType) {
         try {
             return webClient.post()
-                    .uri("/regenerate-part")
+                    .uri(uri)
                     .bodyValue(payload)
                     .retrieve()
-                    .bodyToMono(RegeneratePartResultPayload.class)
+                    .bodyToMono(resultType)
                     .block(Duration.ofSeconds(properties.timeoutSeconds()));
         } catch (WebClientResponseException e) {
-            log.warn("[AiService] POST /regenerate-part lỗi {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new AppException(ErrorCode.AI_SERVICE_ERROR);
+            throw aiFailure(uri, e.getStatusCode() + ": " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
-            log.warn("[AiService] POST /regenerate-part thất bại: {}", e.getMessage());
-            throw new AppException(ErrorCode.AI_SERVICE_ERROR);
+            throw aiFailure(uri, e.getMessage(), e);
         }
+    }
+
+    // NFR-11/FR-74: lỗi gọi AI service log console + lưu log hệ thống (trang Logs của admin) rồi mới ném.
+    private AppException aiFailure(String uri, String detail, Exception cause) {
+        log.warn("[AiService] POST {} lỗi: {}", uri, detail);
+        systemLogService.error("ai.client", "POST " + uri + " lỗi: " + detail, cause);
+        return new AppException(ErrorCode.AI_SERVICE_ERROR);
     }
 }

@@ -3,9 +3,8 @@ import { Globe, Search, Home, Menu, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
-import { Icon } from './ui';
-import { ICON } from '../data';
 import Sidebar from './Sidebar';
+import NotificationBell from './NotificationBell';
 
 /** Globe / language switch button (shared between landing, auth and topbar). */
 export function LangButton({ compact = false }: { compact?: boolean }) {
@@ -95,10 +94,7 @@ function Topbar({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen?: boolea
         </button>
       )}
       {!isMobile && <LangButton compact />}
-      <button style={{ position: 'relative', width: isMobile ? 38 : 42, height: isMobile ? 38 : 42, borderRadius: 11, background: '#f4f2fb', border: '1px solid #ece8f6', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-        <Icon icon={ICON.bell} size={19} stroke="#5b5670" />
-        <span style={{ position: 'absolute', top: 9, right: 10, width: 8, height: 8, borderRadius: '50%', background: '#ec4899', border: '2px solid #f4f2fb' }} />
-      </button>
+      <NotificationBell />
       <div onClick={() => go('profile')} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', paddingLeft: 6, borderLeft: '1px solid #eee9f6' }}>
         <div style={{ width: isMobile ? 36 : 40, height: isMobile ? 36 : 40, borderRadius: '50%', background: brandGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 15, overflow: 'hidden' }}>
           {avatarUrl ? <img src={avatarUrl} alt={profile.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}

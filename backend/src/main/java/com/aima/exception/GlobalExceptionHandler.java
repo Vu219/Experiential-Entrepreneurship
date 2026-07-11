@@ -1,6 +1,8 @@
 package com.aima.exception;
 
+import com.aima.service.SystemLogService;
 import jakarta.validation.ConstraintViolation;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,10 +20,13 @@ import java.util.Objects;
 
 @ControllerAdvice
 @Slf4j
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
 
     private static final String MIN_ATTRIBUTE = "min";
     private static final String MAX_ATTRIBUTE = "max";
+
+    private final SystemLogService systemLogService;
 
     @ExceptionHandler(value = Exception.class)
     public ResponseEntity<ApiResponse> handlingRuntimeException(Exception exception) {
@@ -31,6 +36,8 @@ public class GlobalExceptionHandler {
         apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage());
 
         log.error("Unhandled exception", exception);
+        // FR-74: lỗi 500 chưa phân loại là lỗi hệ thống — lưu DB cho trang Logs của admin (FR-84).
+        systemLogService.error("api", exception.toString(), exception);
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiResponse);
     }

@@ -54,9 +54,10 @@ import java.util.UUID;
 public class ContentItemServiceImpl implements ContentItemService {
 
     // FR-33: chỉ sửa được trước khi vào pipeline đăng (WORKFLOWS.md).
+    // FR-39/EX-02: bài FAILED cũng sửa được (sửa xong hủy lịch FAILED → version về FORMATTED → lên lịch lại).
     static final Set<ContentLifecycle> EDITABLE_STATUSES = EnumSet.of(
             ContentLifecycle.DRAFT, ContentLifecycle.GENERATED,
-            ContentLifecycle.NEED_REVIEW, ContentLifecycle.APPROVED);
+            ContentLifecycle.NEED_REVIEW, ContentLifecycle.APPROVED, ContentLifecycle.FAILED);
 
     // FR-34: các bước hợp lệ của review flow — Generated → Need Review → Approved.
     // B2: bài giữ DRAFT suốt wizard (job không lật status) → user gửi duyệt từ DRAFT.

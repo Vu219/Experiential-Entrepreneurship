@@ -23,6 +23,7 @@ import com.aima.service.MetaApiClient;
 import com.aima.service.NotificationService;
 import com.aima.service.PlatformPublisher;
 import com.aima.service.PostPublishWorkerService;
+import com.aima.service.SystemLogService;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -56,11 +57,15 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
     // Mã lỗi Graph 190 = token hết hạn/không hợp lệ → FR-70/FR-18b.
     static final String TOKEN_EXPIRED_CODE = "190";
 
+    // FR-71: mã lỗi media của chính hệ thống (InstagramPublisherImpl) — MVP chỉ đăng text.
+    static final String MEDIA_REQUIRED_CODE = "IG_MEDIA_REQUIRED";
+
     PostingJobRepository jobRepository;
     PostScheduleRepository scheduleRepository;
     PostPublishMapper postPublishMapper;
     TransactionTemplate transactionTemplate;
     NotificationService notificationService;
+    SystemLogService systemLogService;
     Map<Platform, PlatformPublisher> publishers;
 
     public PostPublishWorkerServiceImpl(PostingJobRepository jobRepository,
@@ -68,12 +73,14 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
                                         PostPublishMapper postPublishMapper,
                                         TransactionTemplate transactionTemplate,
                                         NotificationService notificationService,
+                                        SystemLogService systemLogService,
                                         List<PlatformPublisher> publisherList) {
         this.jobRepository = jobRepository;
         this.scheduleRepository = scheduleRepository;
         this.postPublishMapper = postPublishMapper;
         this.transactionTemplate = transactionTemplate;
         this.notificationService = notificationService;
+        this.systemLogService = systemLogService;
         this.publishers = publisherList.stream()
                 .collect(Collectors.toUnmodifiableMap(PlatformPublisher::platform, Function.identity()));
     }
@@ -203,6 +210,10 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         item.setStatus(ContentLifecycle.FAILED);
         log.warn("[PostPublish] Bài {} thất bại chung cuộc trên {} [{}]: {}",
                 post.getId(), post.getPlatformName(), e.getErrorType(), e.getMessage());
+        // FR-74: lưu lỗi đăng bài chung cuộc vào log hệ thống cho admin (FR-83/FR-84).
+        systemLogService.error("posting.worker",
+                "Bài " + post.getId() + " thất bại chung cuộc trên " + post.getPlatformName()
+                        + " [" + e.getErrorType() + " - mã " + e.getResponseCode() + "]: " + e.getMessage(), e);
 
         PlatformAccount account = schedule.getPlatformAccount();
         notifyFailure(account, post, e);
@@ -210,11 +221,9 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         // FR-70 (khớp FR-18b): token hết hạn → tài khoản EXPIRED, các lịch SCHEDULED khác → ON_HOLD.
         if (TOKEN_EXPIRED_CODE.equals(e.getResponseCode())) {
             account.setConnectionStatus(ConnectionStatus.EXPIRED);
-            List<PostSchedule> waiting = scheduleRepository
-                    .findByPlatformAccount_IdAndStatusAndDeletedAtIsNull(account.getId(), ScheduleStatus.SCHEDULED);
-            waiting.forEach(s -> s.setStatus(ScheduleStatus.ON_HOLD));
+            int held = holdWaitingSchedules(account);
             log.warn("[PostPublish] Token {} hết hạn — chuyển {} lịch chờ sang ON_HOLD",
-                    account.getPlatformName(), waiting.size());
+                    account.getPlatformName(), held);
             // FR-78: nhắc kết nối lại.
             notificationService.notify(account.getUser(), NotificationType.RECONNECT_NEEDED,
                     "Cần kết nối lại tài khoản",
@@ -222,12 +231,53 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
                             + " đã hết hạn — các bài đã lên lịch được tạm giữ (On Hold). "
                             + "Vui lòng kết nối lại trong phần Cài đặt.",
                     account.getId());
+        } else if (isAccountRestricted(e)) {
+            // FR-73: tài khoản bị nền tảng hạn chế → dừng đăng các lịch còn lại + báo user.
+            account.setConnectionStatus(ConnectionStatus.ERROR);
+            int held = holdWaitingSchedules(account);
+            log.warn("[PostPublish] Tài khoản {} ({}) bị hạn chế — chuyển {} lịch chờ sang ON_HOLD",
+                    account.getAccountName(), account.getPlatformName(), held);
+            notificationService.notify(account.getUser(), NotificationType.RECONNECT_NEEDED,
+                    "Tài khoản bị nền tảng hạn chế",
+                    account.getPlatformName() + " đang hạn chế tài khoản " + account.getAccountName()
+                            + " (mã " + e.getResponseCode() + "): " + e.getMessage()
+                            + ". Các bài đã lên lịch được tạm giữ (On Hold). Vui lòng xử lý hạn chế"
+                            + " trên nền tảng rồi xác thực lại kết nối trong phần Cài đặt.",
+                    account.getId());
         }
+    }
+
+    /** Dừng đăng: mọi lịch SCHEDULED của tài khoản → ON_HOLD (kích hoạt lại qua PUT /schedules). */
+    private int holdWaitingSchedules(PlatformAccount account) {
+        List<PostSchedule> waiting = scheduleRepository
+                .findByPlatformAccount_IdAndStatusAndDeletedAtIsNull(account.getId(), ScheduleStatus.SCHEDULED);
+        waiting.forEach(s -> s.setStatus(ScheduleStatus.ON_HOLD));
+        return waiting.size();
+    }
+
+    // FR-73: Graph 368 = tài khoản bị chặn tạm thời do vi phạm; ngoài ra nhận diện theo message.
+    private static boolean isAccountRestricted(PublishException e) {
+        if ("368".equals(e.getResponseCode())) {
+            return true;
+        }
+        String message = e.getMessage() == null ? "" : e.getMessage().toLowerCase();
+        return message.contains("restricted") || message.contains("checkpoint")
+                || message.contains("account is locked") || message.contains("account has been disabled");
     }
 
     // FR-38/FR-76: nền tảng nào, lý do gì, bước tiếp theo — phân biệt vi phạm chính sách và lỗi kỹ thuật.
     private void notifyFailure(PlatformAccount account, Post post, PublishException e) {
         String platform = String.valueOf(post.getPlatformName());
+        // FR-71: lỗi media (thiếu/sai định dạng) — báo kèm hướng khắc phục cụ thể.
+        if (MEDIA_REQUIRED_CODE.equals(e.getResponseCode())) {
+            notificationService.notify(account.getUser(), NotificationType.POST_FAILED,
+                    "Bài cần ảnh/video hợp lệ",
+                    platform + " yêu cầu ảnh/video khi đăng bài. Hãy dùng media prompt của bài để tự tạo"
+                            + " ảnh/video và đăng thủ công trên nền tảng, hoặc lên lịch bài này cho"
+                            + " Facebook/Threads (đăng dạng chữ).",
+                    post.getId());
+            return;
+        }
         if (e.getErrorType() == PublishErrorType.POLICY_VIOLATION) {
             notificationService.notify(account.getUser(), NotificationType.POST_FAILED,
                     "Bài bị từ chối do vi phạm chính sách",
