@@ -8,7 +8,8 @@ import PlanCard from '../components/landing/PlanCard';
 import FaqSection from '../components/landing/FaqSection';
 import CtaSection from '../components/landing/CtaSection';
 import LandingFooter from '../components/landing/LandingFooter';
-import { pricingPlans, comparisonGroups, type ComparisonValue } from '../config/plans';
+import { usePublicPlans } from '../hooks/usePublicPlans';
+import type { ComparisonValue } from '../config/plans';
 
 // Ô giá trị của bảng so sánh: boolean → ✓ / —, string → hiển thị nguyên văn.
 function CompareCell({ value }: { value: ComparisonValue }) {
@@ -27,8 +28,15 @@ export default function PricingPage() {
   const { t, lang } = useApp();
   const { isMobile, isTablet } = useBreakpoint();
   const stacked = isMobile || isTablet;
-  const plans = pricingPlans(lang);
-  const groups = comparisonGroups(lang);
+  // Gói + bảng so sánh từ API public (DB) — fallback hardcode khi API lỗi.
+  const { plans, groups } = usePublicPlans(lang);
+
+  // Desktop: ≤3 gói giữ kích cỡ card như cũ (3 cột), ≥4 gói chuyển 4 cột (tối đa 4 card/hàng);
+  // tablet 2, mobile 1. Flex-wrap + justify center thay grid 1fr: hàng cuối thiếu card tự
+  // căn giữa, bề rộng card cố định theo cột (không giãn khi ít gói).
+  const cols = isMobile ? 1 : isTablet ? 2 : plans.length <= 3 ? 3 : 4;
+  const gap = 22;
+  const cardWidth = `calc((100% - ${(cols - 1) * gap}px) / ${cols})`;
 
   const cellPad = isMobile ? '12px 14px' : '14px 18px';
 
@@ -50,9 +58,9 @@ export default function PricingPage() {
 
         {/* 3 gói đầy đủ */}
         <section style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '0 18px 56px' : '0 28px 80px' }}>
-          <RevealGroup style={{ display: 'grid', gridTemplateColumns: stacked ? '1fr' : 'repeat(3,1fr)', gap: 22, alignItems: 'stretch', maxWidth: stacked ? 520 : undefined, margin: '0 auto' }}>
+          <RevealGroup style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap, alignItems: 'stretch', maxWidth: isMobile ? 520 : undefined, margin: '0 auto' }}>
             {plans.map((p) => (
-              <RevealItem key={p.id} style={{ display: 'flex' }}>
+              <RevealItem key={p.id} style={{ display: 'flex', flex: '0 0 auto', width: cardWidth }}>
                 <PlanCard plan={p} stacked={stacked} popularLabel={t.prPopular} />
               </RevealItem>
             ))}
@@ -87,7 +95,7 @@ export default function PricingPage() {
                   {groups.map((g) => (
                     <Fragment key={g.title}>
                       <tr>
-                        <td colSpan={4} style={{ padding: `${isMobile ? 14 : 18}px ${isMobile ? 14 : 18}px 8px`, fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 13.5, color: '#7c3aed' }}>{g.title}</td>
+                        <td colSpan={plans.length + 1} style={{ padding: `${isMobile ? 14 : 18}px ${isMobile ? 14 : 18}px 8px`, fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 13.5, color: '#7c3aed' }}>{g.title}</td>
                       </tr>
                       {g.rows.map((row) => (
                         <tr key={row.label} style={{ borderBottom: '1px solid #f6f3fb' }}>

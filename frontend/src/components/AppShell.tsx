@@ -1,10 +1,10 @@
 import { useState, type ReactNode } from 'react';
-import { Globe, Search, Home, Menu, X } from 'lucide-react';
+import { Globe, Search, Menu, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { useAuth } from '../auth/AuthContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import Sidebar from './Sidebar';
 import NotificationBell from './NotificationBell';
+import UserMenu from './UserMenu';
 
 /** Globe / language switch button (shared between landing, auth and topbar). */
 export function LangButton({ compact = false }: { compact?: boolean }) {
@@ -34,11 +34,8 @@ export function LangButton({ compact = false }: { compact?: boolean }) {
 }
 
 function Topbar({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen?: boolean, setMobileMenuOpen?: (v: boolean) => void }) {
-  const { t, brandGradient, profile, go } = useApp();
-  const { user } = useAuth();
+  const { t, go } = useApp();
   const { isMobile } = useBreakpoint();
-  const initials = (profile.name || 'A U').trim().split(/\s+/).map((w) => w[0]).slice(-2).join('').toUpperCase();
-  const avatarUrl = user?.avatarUrl ?? null;
 
   return (
     <header
@@ -82,29 +79,12 @@ function Topbar({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen?: boolea
         </div>
       )}
       {isMobile && <div style={{ flex: 1 }} />}
-      {!isMobile && (
-        <button
-          onClick={() => go('landing')}
-          title={t.nHome}
-          aria-label={t.nHome}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f4f2fb', border: '1px solid #ece8f6', borderRadius: 10, padding: '9px 12px', fontSize: 13, fontWeight: 600, color: '#4b4660', cursor: 'pointer' }}
-        >
-          <Home size={16} color="#8b5cf6" strokeWidth={1.8} />
-          {t.nHome}
-        </button>
-      )}
       {!isMobile && <LangButton compact />}
       <NotificationBell />
-      <div onClick={() => go('profile')} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', paddingLeft: 6, borderLeft: '1px solid #eee9f6' }}>
-        <div style={{ width: isMobile ? 36 : 40, height: isMobile ? 36 : 40, borderRadius: '50%', background: brandGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 15, overflow: 'hidden' }}>
-          {avatarUrl ? <img src={avatarUrl} alt={profile.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
-        </div>
-        {!isMobile && (
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 14, color: '#211c38' }}>{profile.name}</div>
-            <div style={{ fontSize: 11.5, color: '#8a85a0' }}>{t.userPlan}</div>
-          </div>
-        )}
+      {/* Dropdown avatar (tái dùng UserMenu của landing): Trang chủ / Hồ sơ / Cài đặt / Đăng xuất.
+          Dòng phụ hiển thị GÓI THẬT của user (Free/Plus/Pro) — không hardcode. */}
+      <div style={{ paddingLeft: 6, borderLeft: '1px solid #eee9f6' }}>
+        <UserMenu variant="app" />
       </div>
     </header>
   );
@@ -127,6 +107,7 @@ const PAGE_KEYS = {
   adminLogs: ['navAdminLogs', 'pageSubAdminLogs'],
   adminApiVersions: ['navAdminApi', 'pageSubAdminApi'],
   adminRevenue: ['navAdminRevenue', 'pageSubAdminRevenue'],
+  adminPlans: ['navAdminPlans', 'pageSubAdminPlans'],
 } as const;
 
 function PageHeading() {

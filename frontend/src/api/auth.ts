@@ -10,6 +10,8 @@ export interface User {
   provider: string | null; // "LOCAL" | "GOOGLE"
   avatarUrl: string | null;
   status: "ACTIVE" | "LOCKED" | "PENDING_DELETE";
+  /** Gói dịch vụ của user — hiển thị ở header/hồ sơ + điều kiện card "Nâng cấp Pro" (null coi như FREE). */
+  plan: "FREE" | "PLUS" | "PRO" | null;
   deletionDate: string | null; // ISO datetime, set only while status === PENDING_DELETE
   profileCompleted: boolean;
 }

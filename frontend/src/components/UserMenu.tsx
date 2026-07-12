@@ -1,24 +1,32 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { ChevronDown, LayoutDashboard, LogOut, Shield, UserCircle } from "lucide-react";
+import { ChevronDown, Home, LayoutDashboard, LogOut, Settings, Shield, UserCircle } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { useApp } from "../context/AppContext";
+import { useBreakpoint } from "../hooks/useBreakpoint";
 
 /**
- * Chip người dùng đã đăng nhập trên header. Hover (desktop) hoặc click để mở
- * dropdown Hồ sơ / Bảng điều khiển / (Quản trị) / Đăng xuất.
- * Bản AIMA: dùng token gradient/tím của AIMA, lucide icons, animation bằng CSS
- * (thay cho framer-motion ở bản UML).
+ * Chip người dùng đã đăng nhập trên header. Hover (desktop) hoặc click để mở dropdown.
+ * Dùng ở 2 nơi (một component để đồng nhất giao diện):
+ *  - variant "landing" (mặc định): Hồ sơ / Bảng điều khiển / (Quản trị) / Đăng xuất; dòng phụ = email.
+ *  - variant "app" (topbar trong ứng dụng): Trang chủ / Hồ sơ / Cài đặt / Đăng xuất;
+ *    dòng phụ = GÓI THẬT của user (Free/Plus/Pro — lấy từ /users/me, không hardcode).
+ * Hỗ trợ: click ra ngoài đóng, Esc đóng (focus trả về nút mở), điều hướng bàn phím qua Tab.
  */
-export default function UserMenu() {
+export default function UserMenu({ variant = "landing" }: { variant?: "landing" | "app" }) {
   const { user } = useAuth();
   const { t, go, logout, brandGradient } = useApp();
+  const { isMobile } = useBreakpoint();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const displayName = user?.fullName || user?.email.split("@")[0] || "User";
   const initial = (user?.fullName || user?.email || "?").charAt(0).toUpperCase();
   const role = user?.role ?? null;
+  // Nhãn gói động theo user.plan (null coi như FREE) — thay hardcode "Gói Premium" cũ.
+  const planLabel = user?.plan === "PRO" ? t.planPro : user?.plan === "PLUS" ? t.planPlus : t.planFree;
+  const isApp = variant === "app";
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
@@ -27,6 +35,19 @@ export default function UserMenu() {
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
+
+  // Esc đóng menu và trả focus về nút mở (truy cập bàn phím).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
 
   const openMenu = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -42,10 +63,18 @@ export default function UserMenu() {
     color: "#fff", fontWeight: 800, fontSize: font, overflow: "hidden", flex: "none",
   });
 
+  const pick = (onPick: () => void) => () => {
+    setOpen(false);
+    onPick();
+  };
+
+  const showText = !(isApp && isMobile); // topbar mobile: chỉ avatar + mũi tên cho gọn
+
   return (
     <div ref={wrapRef} style={{ position: "relative" }} onMouseEnter={openMenu} onMouseLeave={scheduleClose}>
       {/* Trigger chip */}
       <button
+        ref={triggerRef}
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -58,10 +87,12 @@ export default function UserMenu() {
         <span style={avatar(32, 13)}>
           {user?.avatarUrl ? <img src={user.avatarUrl} alt={displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : initial}
         </span>
-        <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.15, maxWidth: 140 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#241f3a", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</span>
-          <span style={{ fontSize: 10.5, color: "#8a85a0", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email}</span>
-        </span>
+        {showText && (
+          <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.15, maxWidth: 140 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#241f3a", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</span>
+            <span style={{ fontSize: 10.5, color: "#8a85a0", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{isApp ? planLabel : user?.email}</span>
+          </span>
+        )}
         <ChevronDown size={15} style={{ color: "#a39bbf", transition: "transform .2s", transform: open ? "rotate(180deg)" : "none" }} />
       </button>
 
@@ -82,19 +113,35 @@ export default function UserMenu() {
             <div style={{ minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#241f3a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</p>
               <p style={{ margin: 0, fontSize: 11, color: "#8a85a0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email}</p>
-              {role && (
-                <span style={{ display: "inline-block", marginTop: 4, padding: "1px 6px", borderRadius: 5, fontSize: 9, fontWeight: 900, letterSpacing: ".12em", textTransform: "uppercase", color: "#7c3aed", background: "rgba(124,58,237,.1)", border: "1px solid rgba(124,58,237,.22)" }}>{role}</span>
-              )}
+              <span style={{ display: "inline-flex", gap: 4, marginTop: 4 }}>
+                {role && (
+                  <span style={{ display: "inline-block", padding: "1px 6px", borderRadius: 5, fontSize: 9, fontWeight: 900, letterSpacing: ".12em", textTransform: "uppercase", color: "#7c3aed", background: "rgba(124,58,237,.1)", border: "1px solid rgba(124,58,237,.22)" }}>{role}</span>
+                )}
+                {isApp && (
+                  <span style={{ display: "inline-block", padding: "1px 6px", borderRadius: 5, fontSize: 9, fontWeight: 900, letterSpacing: ".08em", textTransform: "uppercase", color: "#0e7490", background: "rgba(14,116,144,.08)", border: "1px solid rgba(14,116,144,.2)" }}>{planLabel}</span>
+                )}
+              </span>
             </div>
           </div>
 
           <div style={{ padding: "6px 0" }}>
-            <MenuItem icon={<UserCircle size={17} />} label={t.navProfile} onClick={() => { setOpen(false); go("profile"); }} />
-            <MenuItem icon={<LayoutDashboard size={17} />} label={t.navDashboard} onClick={() => { setOpen(false); go("dashboard"); }} />
-            {role === "ADMIN" && <MenuItem icon={<Shield size={17} />} label={t.navAdmin} onClick={() => { setOpen(false); go("admin"); }} />}
+            {isApp ? (
+              <>
+                <MenuItem icon={<Home size={17} />} label={t.nHome} onClick={pick(() => go("landing"))} />
+                <MenuItem icon={<UserCircle size={17} />} label={t.navProfile} onClick={pick(() => go("profile"))} />
+                <MenuItem icon={<Settings size={17} />} label={t.navSettings} onClick={pick(() => go("settings"))} />
+              </>
+            ) : (
+              <>
+                <MenuItem icon={<UserCircle size={17} />} label={t.navProfile} onClick={pick(() => go("profile"))} />
+                <MenuItem icon={<LayoutDashboard size={17} />} label={t.navDashboard} onClick={pick(() => go("dashboard"))} />
+                {role === "ADMIN" && <MenuItem icon={<Shield size={17} />} label={t.navAdmin} onClick={pick(() => go("admin"))} />}
+              </>
+            )}
           </div>
+          {/* Đăng xuất tách riêng dưới cùng, có đường kẻ ngăn cách */}
           <div style={{ borderTop: "1px solid #f0ecf8", padding: "6px 0" }}>
-            <MenuItem icon={<LogOut size={17} />} label={t.signOut} danger onClick={() => { setOpen(false); logout(); }} />
+            <MenuItem icon={<LogOut size={17} />} label={t.signOut} danger onClick={pick(logout)} />
           </div>
         </div>
       )}

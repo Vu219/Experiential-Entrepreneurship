@@ -205,6 +205,14 @@ backend/
 >   `MetaApiClient.getPostMetrics`, `controller/PostAnalyticsController`, `service/PostAnalyticsService`
 >   (+`Impl`), `mapper/PostAnalyticsMapper`, entity `PostAnalytics` (+ cột `milestone_hours`). See §4
 >   "Performance Analysis".
+> - **Plan Management (gói dịch vụ + bảng so sánh landing, 2026-07-12)**: `controller/PlanController`
+>   (`GET /plans/public` — public, trong `PUBLIC_ENDPOINTS`) + `controller/PlanAdminController`
+>   (`/admin/plans` CRUD gói + `/admin/plans/features` CRUD dòng so sánh, class-level ADMIN),
+>   `service/PlanService` (+`Impl`), `mapper/PlanMapper` (bullet list ↔ TEXT mỗi-dòng-một-mục),
+>   `entity/{Plan, PlanFeature, PlanFeatureValue}` — nội dung SONG NGỮ (…Vi/…En), `Plan.CORE_CODES`
+>   FREE/PLUS/PRO bất biến (không sửa code/không xóa — mã 1983), giá trị ô = tick boolean HOẶC text.
+>   Seed idempotent `config/PlanDataInitializer` (@Order(4)). ErrorCodes 1980–1988. `MeResponse.plan`
+>   trả gói của user cho FE (header/sidebar upgrade card).
 
 ---
 

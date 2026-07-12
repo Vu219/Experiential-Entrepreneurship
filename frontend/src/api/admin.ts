@@ -4,7 +4,8 @@ import client, { type ApiError, type ApiResponse, type PageResponse } from './ap
 
 // 2026-07-12: Quản lý người dùng (FR-80) nối BE thật hoàn toàn — list/stats/detail/create/update/
 // đổi gói/khoá-mở/đặt lại mật khẩu. Lọc/tìm/phân trang server-side. Các module khác (bài lỗi,
-// system status, logs) đã nối BE từ trước. Còn MOCK: platform versions & Revenue (chưa có billing BE).
+// system status, logs) đã nối BE từ trước. Gói dịch vụ nối BE thật ở api/plans.ts.
+// Còn MOCK: platform versions & Revenue (chưa có billing BE).
 
 // Giả lập độ trễ mạng cho các module còn mock (Revenue / platform versions).
 const delay = <T>(value: T, ms = 450): Promise<T> => new Promise((r) => setTimeout(() => r(value), ms));
@@ -424,23 +425,4 @@ export async function getRevenue(period: RevenuePeriod, lang: Lang): Promise<Rev
   return delay({ total, orders, growth, series: series[period], transactions });
 }
 
-// GET/PUT/POST /admin/plans — cấu hình giá gói
-export interface PricingPlan {
-  id: string;
-  name: string;
-  price: number; // đ/tháng
-  active: boolean;
-}
-
-export async function getPlans(): Promise<PricingPlan[]> {
-  return delay([
-    { id: 'free', name: 'Free', price: 0, active: true },
-    { id: 'plus', name: 'Plus', price: 499_000, active: true },
-    { id: 'pro', name: 'Pro', price: 1_990_000, active: true },
-  ]);
-}
-
-// TODO(backend): PUT /admin/plans/{id} & POST /admin/plans — hiện chỉ trả lại payload.
-export async function savePlan(plan: PricingPlan): Promise<PricingPlan> {
-  return delay(plan);
-}
+// Gói dịch vụ: đã chuyển sang API thật /admin/plans — xem api/plans.ts (mock cũ đã gỡ).

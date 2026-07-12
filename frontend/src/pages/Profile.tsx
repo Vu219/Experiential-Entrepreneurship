@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, Eye, Lock, Trash2 } from 'lucide-react';
+import DatePicker from '../components/DatePicker';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
@@ -203,7 +204,10 @@ export default function Profile() {
             <div style={{ fontSize: 13, color: '#8a85a0', marginTop: 2 }}>{email}</div>
             {avatarUploading && <div style={{ fontSize: 12, color: '#7c3aed', marginTop: 6 }}>{t.avUploading}</div>}
             {avatarError && <div style={{ fontSize: 12, color: '#e23d6e', marginTop: 6 }}>{avatarError}</div>}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, fontWeight: 700, color: '#7c3aed', background: '#f3edff', borderRadius: 999, padding: '5px 13px' }}>★ {t.userPlan}</div>
+            {/* Gói thật của user (từ /users/me) — không hardcode "Gói Premium" */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, fontWeight: 700, color: '#7c3aed', background: '#f3edff', borderRadius: 999, padding: '5px 13px' }}>
+              ★ {user?.plan === 'PRO' ? t.planPro : user?.plan === 'PLUS' ? t.planPlus : t.planFree}
+            </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
               {[['142', t.stPosts], ['248K', t.stTotalReach]].map(([v, l], i) => (
                 <div key={i} style={{ flex: 1, border: '1px solid #efeaf8', borderRadius: 13, padding: 13 }}>
@@ -269,7 +273,13 @@ export default function Profile() {
               </div>
               <div>
                 <label style={fieldLabel}>{t.prDob}</label>
-                <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} max={new Date().toISOString().split('T')[0]} style={fieldInput} />
+                <DatePicker
+                  value={dateOfBirth}
+                  onChange={(v) => setDateOfBirth(v)}
+                  max={new Date().toISOString().split('T')[0]}
+                  style={{ border: '1.5px solid #e7e2f2', borderRadius: 11, padding: '0 14px', background: '#fbfaff' }}
+                  inputStyle={{ fontSize: 14, padding: '12px 0' }}
+                />
               </div>
             </div>
             <button onClick={save} disabled={saving} style={{ marginTop: 18, border: 'none', borderRadius: 12, padding: '12px 24px', fontWeight: 700, fontSize: 14, color: '#fff', background: brandGradient, boxShadow: '0 14px 28px -12px rgba(139,92,246,.6)', cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.75 : 1 }}>{saving ? t.processing : saved ? t.saved : t.save}</button>

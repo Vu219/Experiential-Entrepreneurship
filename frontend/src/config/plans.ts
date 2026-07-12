@@ -1,13 +1,15 @@
 import type { Lang } from '../types';
 
-// ===== Nguồn dữ liệu gói giá DUY NHẤT =====
-// Landing (pricing teaser) và trang /pricing cùng render từ file này để không lệch dữ liệu.
-// Ba tầng tài khoản Free / Plus / Pro (khớp UserPlan ở api/admin.ts). Giá: Free 0đ, Plus 499k, Pro 1.99M.
+// ===== Dữ liệu gói giá FALLBACK =====
+// 2026-07-12: nguồn thật là bảng `plans` trong DB (GET /plans/public — xem api/plans.ts,
+// hooks/usePublicPlans.ts). File này chỉ còn là fallback khi API lỗi/đang tải (nội dung
+// trùng dữ liệu seed của backend PlanDataInitializer) + nơi khai báo type dùng chung.
 
 const P = (lang: Lang, vi: string, en: string) => (lang === 'en' ? en : vi);
 
 export interface PricingPlan {
-  id: 'free' | 'plus' | 'pro';
+  /** Mã gói viết thường ('free'/'plus'/'pro' + gói admin thêm sau qua DB). */
+  id: string;
   name: string;
   /** Giá dạng số (đ/tháng) — dùng cho hiệu ứng đếm StatNumber. 0 = miễn phí. */
   priceValue: number;
@@ -95,7 +97,8 @@ export type ComparisonValue = string | boolean;
 
 export interface ComparisonRow {
   label: string;
-  values: [ComparisonValue, ComparisonValue, ComparisonValue];
+  /** Một giá trị / gói, theo đúng thứ tự danh sách gói. */
+  values: ComparisonValue[];
 }
 
 export interface ComparisonGroup {

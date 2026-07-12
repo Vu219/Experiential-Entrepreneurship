@@ -1,4 +1,4 @@
-package com.aima.config;
+package com.aima.config.init;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

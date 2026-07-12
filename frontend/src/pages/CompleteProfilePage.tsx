@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type CSSProperties } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { User, Phone, Cake, Lock, Eye, EyeOff, Check } from "lucide-react";
+import DatePicker from "../components/DatePicker";
 import { completeProfile } from "../api/auth";
 import { useAuth } from "../auth/AuthContext";
 import { useApp } from "../context/AppContext";
@@ -50,11 +51,10 @@ export default function CompleteProfilePage() {
   const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [showPw2, setShowPw2] = useState(false);
-
-  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
-  const [formError, setFormError] = useState("");
+  const [errors, setErrors] = useState<{ fullName?: string; phone?: string; dob?: string; password?: string; confirm?: string; submit?: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(false);
+  const [pwFocused, setPwFocused] = useState(false);
 
   const fullNameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
@@ -88,13 +88,11 @@ export default function CompleteProfilePage() {
       focusFirst(e);
       return;
     }
-    setFormError("");
     setStep(2);
   };
 
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
-    setFormError("");
     // Re-check cổng Bước 1 (phòng trường hợp lách) trước khi xử lý Bước 2.
     const e1 = validateStep1(fullName, phone, dob);
     if (Object.keys(e1).length > 0) {
@@ -126,10 +124,8 @@ export default function CompleteProfilePage() {
         navigate("/dashboard", { replace: true });
       } else if (/khớp/i.test(msg)) {
         setErrors((p) => ({ ...p, confirm: msg }));
-      } else if (/yếu|mật khẩu/i.test(msg)) {
-        setErrors((p) => ({ ...p, password: msg }));
       } else {
-        setFormError(msg);
+        setErrors((p) => ({ ...p, password: msg }));
       }
       setSubmitting(false);
     }
@@ -183,16 +179,14 @@ export default function CompleteProfilePage() {
           })}
         </div>
 
-        {formError && (
-          <div style={{ fontSize: 13, color: "#e23d6e", background: "#fdecf1", border: "1px solid #f6cdd9", borderRadius: 11, padding: "10px 13px", marginBottom: 16 }}>{formError}</div>
-        )}
+
 
         {step === 1 && (
           <div>
             <label style={labelStyle}>HỌ VÀ TÊN</label>
             <div style={inputWrap(errors.fullName)}>
               <UserIcon />
-              <input ref={fullNameRef} value={fullName} onChange={(e) => { setFullName(e.target.value); setErrors((p) => ({ ...p, fullName: undefined })); }}
+              <input ref={fullNameRef} value={fullName} onChange={(e) => { setFullName(e.target.value); setErrors((p) => ({ ...p, fullName: validateStep1(e.target.value, phone, dob).fullName })); }}
                 onBlur={() => setErrors((p) => ({ ...p, fullName: validateStep1(fullName, phone, dob).fullName }))}
                 placeholder="Nguyễn Văn A" style={inputStyle} />
             </div>
@@ -201,20 +195,20 @@ export default function CompleteProfilePage() {
             <label style={labelStyle}>SỐ ĐIỆN THOẠI</label>
             <div style={inputWrap(errors.phone)}>
               <PhoneIcon />
-              <input ref={phoneRef} value={phone} onChange={(e) => { setPhone(e.target.value); setErrors((p) => ({ ...p, phone: undefined })); }}
+              <input ref={phoneRef} value={phone} onChange={(e) => { setPhone(e.target.value); setErrors((p) => ({ ...p, phone: validateStep1(fullName, e.target.value, dob).phone })); }}
                 onBlur={() => setErrors((p) => ({ ...p, phone: validateStep1(fullName, phone, dob).phone }))}
                 inputMode="numeric" placeholder="0901234567" style={inputStyle} />
             </div>
             <div style={errStyle}>{errors.phone}</div>
 
             <label style={labelStyle}>NGÀY SINH</label>
-            <div style={inputWrap(errors.dob)}>
-              <CakeIcon />
-              <input ref={dobRef} type="date" max={new Date().toISOString().split("T")[0]}
-                value={dob} onChange={(e) => { setDob(e.target.value); setErrors((p) => ({ ...p, dob: undefined })); }}
-                onBlur={() => setErrors((p) => ({ ...p, dob: validateStep1(fullName, phone, dob).dob }))}
-                style={inputStyle} />
-            </div>
+            <DatePicker
+              value={dob}
+              onChange={(v) => { setDob(v); setErrors((p) => ({ ...p, dob: undefined })); }}
+              max={new Date().toISOString().split("T")[0]}
+              icon={<CakeIcon />}
+              error={errors.dob}
+            />
             <div style={errStyle}>{errors.dob}</div>
 
             <button type="button" onClick={goStep2} disabled={!step1Valid} style={{ ...btnPrimary(step1Valid), marginTop: 8 }}>Tiếp tục</button>
@@ -227,19 +221,20 @@ export default function CompleteProfilePage() {
             <div style={inputWrap(errors.password)}>
               <LockIcon />
               <input ref={pwRef} type={showPw ? "text" : "password"} value={password}
-                onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
+                onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: e.target.value ? (passwordValid(e.target.value) ? undefined : "Mật khẩu yếu") : "Vui lòng nhập mật khẩu", confirm: confirm && !passwordsMatch(e.target.value, confirm) ? "Mật khẩu xác nhận không khớp" : undefined })); }}
+                onFocus={() => setPwFocused(true)} onBlur={() => setPwFocused(false)}
                 placeholder="Tối thiểu 8 ký tự" style={inputStyle} />
               <EyeBtn on={showPw} onClick={() => setShowPw((v) => !v)} />
             </div>
             {/* Thanh đo độ mạnh mật khẩu — realtime */}
-            <PasswordStrengthBar password={password} />
+            <PasswordStrengthBar password={password} focused={pwFocused} onGenerate={(pw) => { setPassword(pw); setConfirm(pw); setErrors(er => ({ ...er, password: undefined, confirm: undefined })); }} />
             <div style={errStyle}>{errors.password}</div>
 
             <label style={labelStyle}>XÁC NHẬN MẬT KHẨU</label>
             <div style={inputWrap(errors.confirm)}>
               <LockIcon />
               <input ref={confirmRef} type={showPw2 ? "text" : "password"} value={confirm}
-                onChange={(e) => { setConfirm(e.target.value); setErrors((p) => ({ ...p, confirm: undefined })); }}
+                onChange={(e) => { setConfirm(e.target.value); setErrors((p) => ({ ...p, confirm: e.target.value ? (passwordsMatch(password, e.target.value) ? undefined : "Mật khẩu xác nhận không khớp") : "Vui lòng xác nhận mật khẩu" })); }}
                 onBlur={() => setErrors((p) => ({ ...p, confirm: confirm && !passwordsMatch(password, confirm) ? "Mật khẩu xác nhận không khớp" : undefined }))}
                 placeholder="Nhập lại mật khẩu" style={inputStyle} />
               <EyeBtn on={showPw2} onClick={() => setShowPw2((v) => !v)} />
@@ -247,7 +242,7 @@ export default function CompleteProfilePage() {
             <div style={errStyle}>{errors.confirm}</div>
 
             <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-              <button type="button" onClick={() => { setStep(1); setFormError(""); }}
+              <button type="button" onClick={() => { setStep(1); }}
                 style={{ flex: "none", width: 120, border: "1.5px solid #e8e4f1", borderRadius: 13, padding: 15, background: "#fff", fontWeight: 600, fontSize: 14, color: "#3f3a55", cursor: "pointer" }}>
                 Quay lại
               </button>

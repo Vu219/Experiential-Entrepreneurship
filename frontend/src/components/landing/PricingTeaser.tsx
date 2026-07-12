@@ -2,17 +2,24 @@ import { ArrowRight, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { BRAND_GLOW } from '../../theme';
-import { pricingPlans } from '../../config/plans';
+import { usePublicPlans } from '../../hooks/usePublicPlans';
 import StatNumber from '../motion/StatNumber';
 import { Reveal, RevealGroup, RevealItem } from '../motion/Reveal';
 
-// Pricing teaser ở Landing — 3 card rút gọn (tên + giá + 2–3 dòng nổi bật) từ
-// config/plans.ts (một nguồn với trang /pricing) + nút xem chi tiết → /pricing.
+// Pricing teaser ở Landing — card rút gọn (tên + giá + 2–3 dòng nổi bật) đọc từ
+// API public /plans/public (bảng Plan trong DB, một nguồn với trang /pricing);
+// admin sửa gói là landing đổi theo. Nút xem chi tiết → /pricing.
 export default function PricingTeaser() {
   const { t, lang, go, brandGradient } = useApp();
   const { isMobile, isTablet } = useBreakpoint();
-  const stacked = isMobile || isTablet;
-  const plans = pricingPlans(lang);
+  const { plans } = usePublicPlans(lang);
+
+  // Desktop: ≤3 gói giữ kích cỡ card như cũ (3 cột), ≥4 gói chuyển 4 cột (tối đa 4 card/hàng);
+  // tablet 2, mobile 1. Flex-wrap + justify center thay grid 1fr: hàng cuối thiếu card tự
+  // căn giữa, bề rộng card cố định theo cột (không bị giãn to khi ít gói).
+  const cols = isMobile ? 1 : isTablet ? 2 : plans.length <= 3 ? 3 : 4;
+  const gap = 20;
+  const cardWidth = `calc((100% - ${(cols - 1) * gap}px) / ${cols})`;
 
   return (
     <section id="pricing" className="scroll-anchor cv-auto" style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '10px 18px 56px' : '10px 28px 80px' }}>
@@ -22,11 +29,11 @@ export default function PricingTeaser() {
           <p style={{ fontSize: 17, color: '#5b5670', margin: '12px 0 0' }}>{t.prSub}</p>
         </div>
       </Reveal>
-      <RevealGroup style={{ display: 'grid', gridTemplateColumns: stacked ? '1fr' : 'repeat(3,1fr)', gap: 20, alignItems: 'stretch', maxWidth: stacked ? 520 : undefined, margin: '0 auto' }}>
+      <RevealGroup style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap, alignItems: 'stretch', maxWidth: isMobile ? 520 : undefined, margin: '0 auto' }}>
         {plans.map((p) => {
           const featured = !!p.featured;
           return (
-            <RevealItem key={p.id} style={{ display: 'flex' }}>
+            <RevealItem key={p.id} style={{ display: 'flex', flex: '0 0 auto', width: cardWidth }}>
               <div
                 className="lift-card"
                 style={{

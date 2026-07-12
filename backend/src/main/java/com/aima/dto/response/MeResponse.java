@@ -42,6 +42,10 @@ public class MeResponse {
     @Schema(description = "Account status (ACTIVE, LOCKED, PENDING_DELETE).", example = "ACTIVE")
     String status;
 
+    @Schema(description = "Service plan of the user (FREE, PLUS, PRO). Drives the plan label in the "
+            + "app header and the sidebar upgrade card.", example = "FREE")
+    String plan;
+
     @Schema(description = "When the account will be permanently purged. Set only while status is PENDING_DELETE.",
             example = "2026-07-21T00:00:00")
     LocalDateTime deletionDate;

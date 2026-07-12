@@ -27,7 +27,8 @@ export type Route =
   | 'adminSystem'
   | 'adminLogs'
   | 'adminApiVersions'
-  | 'adminRevenue';
+  | 'adminRevenue'
+  | 'adminPlans';
 
 /** A social platform short descriptor (background + 2-letter tag). */
 export interface Platform {

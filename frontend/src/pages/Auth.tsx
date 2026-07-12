@@ -7,11 +7,11 @@ import {
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
-import { GradIcon, Loader } from '../components/ui';
+import { GradIcon } from '../components/ui';
 import AimaScene from '../components/AimaScene';
 import { register as apiRegister, GOOGLE_LOGIN_URL, type User } from '../api/auth';
 import PasswordStrengthBar from '../components/PasswordStrengthBar';
-import { passwordValid } from '../validations/password';
+import { passwordValid, generateStrongPassword } from '../validations/password';
 import { validEmail, passwordsMatch } from '../validations/authValidation';
 import type { AuthForm, AuthErrors } from '../types';
 
@@ -32,9 +32,13 @@ const errStyle: CSSProperties = { minHeight: 18, fontSize: 12.5, color: '#e23d6e
 const MailIcon = () => <Mail size={18} color="#a39bbf" strokeWidth={1.7} />;
 const LockIcon = () => <Lock size={18} color="#a39bbf" strokeWidth={1.7} />;
 const UserIcon = () => <UserGlyph size={17} color="#a39bbf" strokeWidth={1.7} />;
-const EyeBtn = ({ onClick }: { onClick: () => void }) => (
-  <button type="button" onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a39bbf', display: 'flex' }}>
-    <Eye size={19} strokeWidth={1.7} />
+const EyeBtn = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
+  <button type="button" aria-label={on ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a39bbf', display: 'flex', position: 'relative' }}>
+    <Eye size={19} strokeWidth={1.7} aria-hidden="true" />
+    <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
+      <line x1="3" y1="3" x2="21" y2="21" stroke="#fbfaff" strokeWidth="4" strokeLinecap="round" style={{ strokeDasharray: 26, strokeDashoffset: on ? 26 : 0, transition: 'stroke-dashoffset 0.2s ease-out' }} />
+      <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ strokeDasharray: 26, strokeDashoffset: on ? 26 : 0, transition: 'stroke-dashoffset 0.2s ease-out' }} />
+    </svg>
   </button>
 );
 
@@ -51,7 +55,15 @@ export default function Auth() {
   const [remember, setRemember] = useState(false);
   const [agree, setAgree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [pwFocused, setPwFocused] = useState(false);
   const [notice, setNotice] = useState<string>((location.state as { notice?: string } | null)?.notice ?? '');
+
+  const switchRoute = (r: 'login' | 'register') => {
+    setErrors({});
+    setNotice('');
+    setF(s => ({ ...s, password: '', confirm: '' }));
+    go(r);
+  };
 
   // Chuyển lỗi OAuth thô (vd "[access_denied]" khi người dùng huỷ) thành thông báo thân thiện.
   const oauthErrorMessage = (raw: string) =>
@@ -70,12 +82,24 @@ export default function Auth() {
       });
     } else if (params.get('error') || stateError) {
       const raw = (params.get('error') ?? stateError) as string;
-      setErrors((er) => ({ ...er, submit: oauthErrorMessage(raw) }));
+      setNotice(oauthErrorMessage(raw));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onField = (e: React.ChangeEvent<HTMLInputElement>) => setF((s) => ({ ...s, [e.target.name]: e.target.value }));
+  const onField = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setF((s) => ({ ...s, [name]: value }));
+    if (route === 'login') {
+      if (name === 'email') setErrors((er) => ({ ...er, email: !value ? t.errEmailReq : !validEmail(value) ? t.errEmailBad : undefined }));
+      else if (name === 'password') setErrors((er) => ({ ...er, password: !value ? t.errPwReq : value.length < 6 ? t.errPwShort : undefined }));
+    } else {
+      if (name === 'name') setErrors((er) => ({ ...er, name: !value ? t.errNameReq : undefined }));
+      else if (name === 'email') setErrors((er) => ({ ...er, email: !value ? t.errEmailReq : !validEmail(value) ? t.errEmailBad : undefined }));
+      else if (name === 'password') setErrors((er) => ({ ...er, password: !value ? t.errPwReq : !passwordValid(value) ? t.errPwWeak : undefined, confirm: f.confirm && !passwordsMatch(value, f.confirm) ? t.errConfirmBad : undefined }));
+      else if (name === 'confirm') setErrors((er) => ({ ...er, confirm: !value ? t.errConfirmReq : !passwordsMatch(f.password, value) ? t.errConfirmBad : undefined }));
+    }
+  };
 
   const afterAuth = (me: User) => navigate(me.profileCompleted ? '/dashboard' : '/complete-profile', { replace: true });
 
@@ -94,7 +118,10 @@ export default function Auth() {
       const me = await authLogin(f.email, f.password);
       afterAuth(me);
     } catch (err) {
-      setErrors({ submit: (err as Error).message });
+      const msg = (err as Error).message;
+      if (/mật khẩu|password|sai/i.test(msg)) setErrors({ password: msg });
+      else if (/tài khoản|không|tồn tại|user/i.test(msg)) setErrors({ email: msg });
+      else setErrors({ email: msg });
     } finally {
       setSubmitting(false);
     }
@@ -119,7 +146,12 @@ export default function Auth() {
       const me = await authLogin(f.email, f.password);
       afterAuth(me);
     } catch (err) {
-      setErrors({ submit: (err as Error).message });
+      const msg = (err as Error).message;
+      if (/tồn tại|taken|exist|already|sử dụng/i.test(msg)) {
+        setErrors({ email: 'taken' });
+      } else {
+        setErrors({ email: msg });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -133,22 +165,7 @@ export default function Auth() {
 
   return (
     <>
-      {submitting && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: '#faf8ff',
-          zIndex: 99999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <Loader label="Đang truy cập vào hệ thống..." />
-        </div>
-      )}
+
       <div className="view-pop" style={{ minHeight: '100vh', display: 'flex', flexDirection: isMobile ? 'column' : 'row', background: '#fff' }}>
         {/* Illustration panel — hidden on mobile */}
         {!isMobile && (
@@ -199,7 +216,7 @@ export default function Auth() {
                 <label style={labelStyle}>EMAIL</label>
                 <div style={inputWrap(errors.email)}>
                   <MailIcon />
-                  <input name="email" value={f.email} onChange={onField} type="email" placeholder={t.phEmail} style={inputStyle} />
+                  <input autoFocus name="email" value={f.email} onChange={onField} type="email" placeholder={t.phEmail} style={inputStyle} />
                 </div>
                 <div style={errStyle}>{errors.email}</div>
 
@@ -207,7 +224,7 @@ export default function Auth() {
                 <div style={inputWrap(errors.password)}>
                   <LockIcon />
                   <input name="password" value={f.password} onChange={onField} type={showPw ? 'text' : 'password'} placeholder={t.phPassword} style={inputStyle} />
-                  <EyeBtn onClick={() => setShowPw((v) => !v)} />
+                  <EyeBtn on={showPw} onClick={() => setShowPw((v) => !v)} />
                 </div>
                 <div style={errStyle}>{errors.password}</div>
 
@@ -218,8 +235,15 @@ export default function Auth() {
                   </label>
                   <span onClick={() => navigate('/forgot-password')} style={{ fontSize: 13.5, color: '#8b5cf6', fontWeight: 600, cursor: 'pointer' }}>{t.forgot}</span>
                 </div>
-                {errors.submit && <div style={{ ...errStyle, marginTop: 0, marginBottom: 12 }}>{errors.submit}</div>}
-                <button type="submit" disabled={submitting} style={btnPrimary}>{submitting ? t.processing : t.signIn}</button>
+                <button type="submit" disabled={submitting} style={btnPrimary}>
+                  {submitting ? (
+                    <div className="dots-container">
+                      <div className="dot"></div>
+                      <div className="dot"></div>
+                      <div className="dot"></div>
+                    </div>
+                  ) : t.signIn}
+                </button>
               </form>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '36px 0 24px' }}>
                 <div style={{ flex: 1, height: 1, background: '#ece8f5' }} />
@@ -228,7 +252,7 @@ export default function Auth() {
               </div>
               <SocialBtn onClick={googleLogin} label={t.googleSignIn} icon={<GoogleIcon />} />
               <div style={{ textAlign: 'center', fontSize: 14, color: '#6b6680', marginTop: 26 }}>
-                {t.noAccount} <span onClick={() => go('register')} style={{ color: '#8b5cf6', fontWeight: 700, cursor: 'pointer' }}>{t.signUpNow}</span>
+                {t.noAccount} <span onClick={() => switchRoute('register')} style={{ color: '#8b5cf6', fontWeight: 700, cursor: 'pointer' }}>{t.signUpNow}</span>
               </div>
             </div>
           )}
@@ -248,39 +272,60 @@ export default function Auth() {
                 <label style={labelStyle}>EMAIL</label>
                 <div style={inputWrap(errors.email)}>
                   <MailIcon />
-                  <input name="email" value={f.email} onChange={onField} type="email" placeholder={t.phEmail} style={inputStyle} />
+                  <input autoFocus name="email" value={f.email} onChange={onField} type="email" placeholder={t.phEmail} style={inputStyle} />
                 </div>
-                <div style={errStyle}>{errors.email}</div>
+                <div style={errStyle}>
+                  {errors.email === 'taken' ? (
+                    <span style={{ color: '#e23d6e' }}>
+                      {lang === 'vi' ? 'Email này đã được sử dụng — ' : "That email's taken — "}
+                      <span onClick={() => switchRoute('login')} style={{ color: '#8b5cf6', textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }}>
+                        {lang === 'vi' ? 'bạn muốn đăng nhập?' : 'want to log in?'}
+                      </span>
+                    </span>
+                  ) : errors.email}
+                </div>
 
                 <label style={labelStyle}>{t.lPassword}</label>
                 <div style={inputWrap(errors.password)}>
                   <LockIcon />
-                  <input name="password" value={f.password} onChange={onField} type={showPw ? 'text' : 'password'} placeholder={t.phPassword} style={inputStyle} />
-                  <EyeBtn onClick={() => setShowPw((v) => !v)} />
+                  <input name="password" value={f.password} onChange={onField} onFocus={() => setPwFocused(true)} onBlur={() => setPwFocused(false)} type={showPw ? 'text' : 'password'} placeholder={t.phPassword} style={inputStyle} />
+                  {f.password && (
+                    <button type="button" aria-label="Tạo mật khẩu ngẫu nhiên" onClick={() => { const pw = generateStrongPassword(); setF(s => ({ ...s, password: pw, confirm: pw })); setErrors(er => ({ ...er, password: undefined, confirm: undefined })); }} style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', display: 'flex', color: '#a39bbf' }}>
+                      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    </button>
+                  )}
+                  <EyeBtn on={showPw} onClick={() => setShowPw((v) => !v)} />
                 </div>
-                <PasswordStrengthBar password={f.password} />
+                <PasswordStrengthBar password={f.password} focused={pwFocused} onGenerate={(pw) => { setF((s) => ({ ...s, password: pw, confirm: pw })); setErrors(er => ({ ...er, password: undefined, confirm: undefined })); }} />
                 <div style={errStyle}>{errors.password}</div>
 
                 <label style={labelStyle}>{t.lConfirm}</label>
                 <div style={inputWrap(errors.confirm)}>
                   <LockIcon />
                   <input name="confirm" value={f.confirm} onChange={onField} type={showPw2 ? 'text' : 'password'} placeholder={t.phConfirm} style={inputStyle} />
-                  <EyeBtn onClick={() => setShowPw2((v) => !v)} />
+                  <EyeBtn on={showPw2} onClick={() => setShowPw2((v) => !v)} />
                 </div>
                 <div style={errStyle}>{errors.confirm}</div>
 
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 13, color: '#574f6e', cursor: 'pointer', margin: '4px 0 16px', lineHeight: 1.4 }}>
-                  <input type="checkbox" checked={agree} onChange={() => setAgree((v) => !v)} style={{ width: 16, height: 16, marginTop: 1, accentColor: '#8b5cf6', flex: 'none' }} />
+                  <input type="checkbox" checked={agree} onChange={() => { setAgree((v) => !v); setErrors(er => ({ ...er, agree: agree ? t.errAgree : undefined })); }} style={{ width: 16, height: 16, marginTop: 1, accentColor: '#8b5cf6', flex: 'none' }} />
                   <span>
                     {t.agreePre} <span style={{ color: '#8b5cf6', fontWeight: 600 }}>"{t.terms}"</span> {t.and} <span style={{ color: '#8b5cf6', fontWeight: 600 }}>"{t.privacy}"</span>
                   </span>
                 </label>
                 {errors.agree && <div style={{ ...errStyle, margin: '-12px 0 4px' }}>{errors.agree}</div>}
-                {errors.submit && <div style={{ ...errStyle, marginTop: 0, marginBottom: 12 }}>{errors.submit}</div>}
-                <button type="submit" disabled={submitting} style={btnPrimary}>{submitting ? t.processing : t.signUp}</button>
+                <button type="submit" disabled={submitting} style={btnPrimary}>
+                  {submitting ? (
+                    <div className="dots-container">
+                      <div className="dot"></div>
+                      <div className="dot"></div>
+                      <div className="dot"></div>
+                    </div>
+                  ) : t.signUp}
+                </button>
               </form>
               <div style={{ textAlign: 'center', fontSize: 14, color: '#6b6680', marginTop: 20 }}>
-                {t.haveAccount} <span onClick={() => go('login')} style={{ color: '#8b5cf6', fontWeight: 700, cursor: 'pointer' }}>{t.signInNow}</span>
+                {t.haveAccount} <span onClick={() => switchRoute('login')} style={{ color: '#8b5cf6', fontWeight: 700, cursor: 'pointer' }}>{t.signInNow}</span>
               </div>
             </div>
           )}

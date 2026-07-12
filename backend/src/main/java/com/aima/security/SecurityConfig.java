@@ -44,6 +44,9 @@ public class SecurityConfig {
             "/users/reset-password",
             "/actuator/health",
 
+            // Gói dịch vụ cho landing page (card giá + bảng so sánh) — không cần đăng nhập.
+            "/plans/public",
+
             // Meta OAuth callback: nền tảng redirect về (không có cookie auth) — userId lấy qua state.
             "/connections/*/callback",
 

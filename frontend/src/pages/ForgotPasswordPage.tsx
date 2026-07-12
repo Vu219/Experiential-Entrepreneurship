@@ -36,9 +36,13 @@ const errStyle: CSSProperties = { minHeight: 18, fontSize: 12.5, color: "#e23d6e
 const MailIcon = () => <Mail size={18} color="#a39bbf" strokeWidth={1.7} />;
 const LockIcon = () => <Lock size={18} color="#a39bbf" strokeWidth={1.7} />;
 const KeyIcon = () => <KeyRound size={18} color="#a39bbf" strokeWidth={1.7} />;
-const EyeBtn = ({ onClick }: { onClick: () => void }) => (
-  <button type="button" onClick={onClick} style={{ background: "none", border: "none", cursor: "pointer", color: "#a39bbf", display: "flex" }}>
+const EyeBtn = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
+  <button type="button" onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a39bbf', display: 'flex', position: 'relative' }}>
     <Eye size={19} strokeWidth={1.7} />
+    <svg width="19" height="19" viewBox="0 0 24 24" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
+      <line x1="3" y1="3" x2="21" y2="21" stroke="#fbfaff" strokeWidth="4" strokeLinecap="round" style={{ strokeDasharray: 26, strokeDashoffset: on ? 26 : 0, transition: 'stroke-dashoffset 0.2s ease-out' }} />
+      <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ strokeDasharray: 26, strokeDashoffset: on ? 26 : 0, transition: 'stroke-dashoffset 0.2s ease-out' }} />
+    </svg>
   </button>
 );
 
@@ -54,9 +58,10 @@ export default function ForgotPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [showPw2, setShowPw2] = useState(false);
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; otp?: string; password?: string; confirm?: string }>({});
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [pwFocused, setPwFocused] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(0);
 
   // Đếm ngược hiệu lực OTP.
@@ -67,7 +72,7 @@ export default function ForgotPasswordPage() {
   }, [secondsLeft]);
 
   const sendOtp = async () => {
-    setError("");
+    setFieldErrors({});
     setMessage("");
     setSubmitting(true);
     try {
@@ -77,7 +82,7 @@ export default function ForgotPasswordPage() {
       setSecondsLeft(OTP_TTL);
       setMessage(t.fpOtpSent);
     } catch (err) {
-      setError((err as Error).message);
+      setFieldErrors({ email: (err as Error).message });
     } finally {
       setSubmitting(false);
     }
@@ -85,31 +90,27 @@ export default function ForgotPasswordPage() {
 
   const handleEmail = (e: FormEvent) => {
     e.preventDefault();
-    setError("");
-    if (!email) return setError(t.errEmailReq);
-    if (!validEmail(email)) return setError(t.errEmailBad);
+    if (!email) return setFieldErrors({ email: t.errEmailReq });
+    if (!validEmail(email)) return setFieldErrors({ email: t.errEmailBad });
     sendOtp();
   };
 
   const handleOtp = async (e: FormEvent) => {
     e.preventDefault();
-    setError("");
-    setMessage("");
-    if (!otpCode) return setError(t.errOtpReq);
-    if (!otpValid(otpCode)) return setError(t.errOtpBad);
+    setFieldErrors({});
+    if (!otpCode) return setFieldErrors({ otp: t.errOtpReq });
+    if (!otpValid(otpCode)) return setFieldErrors({ otp: t.errOtpBad });
     setSubmitting(true);
     try {
       await verifyOtp(email, otpCode);
       setStep("reset");
-      setError("");
     } catch (err) {
       const code = (err as ApiError).code;
-      // OTP bị đốt (sai quá số lần) hoặc đã hết hạn → buộc người dùng xin mã mới.
       if (code === OTP_ATTEMPTS_EXCEEDED || code === OTP_NOT_FOUND) {
         setSecondsLeft(0);
         setOtpCode("");
       }
-      setError((err as Error).message);
+      setFieldErrors({ otp: (err as Error).message });
     } finally {
       setSubmitting(false);
     }
@@ -117,23 +118,25 @@ export default function ForgotPasswordPage() {
 
   const handleReset = async (e: FormEvent) => {
     e.preventDefault();
-    setError("");
-    if (!newPassword) return setError(t.errPwReq);
-    if (!passwordValid(newPassword)) return setError(t.errPwWeak);
-    if (!passwordsMatch(newPassword, confirmPassword)) return setError(t.errConfirmBad);
+    const er: { password?: string; confirm?: string } = {};
+    if (!newPassword) er.password = t.errPwReq;
+    else if (!passwordValid(newPassword)) er.password = t.errPwWeak;
+    if (!passwordsMatch(newPassword, confirmPassword)) er.confirm = t.errConfirmBad;
+    setFieldErrors(er);
+    if (Object.keys(er).length > 0) return;
+    
     setSubmitting(true);
     try {
       await resetPassword({ email, otpCode, newPassword, confirmPassword });
       navigate("/login", { replace: true, state: { notice: t.fpSuccess } });
     } catch (err) {
       const code = (err as ApiError).code;
-      // OTP hết hạn / chưa xác thực lại → quay về bước nhập OTP.
       if (code === OTP_NOT_FOUND) {
         setStep("otp");
         setSecondsLeft(0);
         setOtpCode("");
       }
-      setError((err as Error).message);
+      setFieldErrors({ password: (err as Error).message });
     } finally {
       setSubmitting(false);
     }
@@ -200,16 +203,15 @@ export default function ForgotPasswordPage() {
           </div>
 
           {message && <div style={{ fontSize: 13, color: "#16a34a", background: "#e8f8ee", border: "1px solid #cdeed8", borderRadius: 10, padding: "10px 13px", marginBottom: 16 }}>{message}</div>}
-          {error && <div style={{ fontSize: 13, color: "#e23d6e", background: "#fdecf1", border: "1px solid #f6cdd9", borderRadius: 10, padding: "10px 13px", marginBottom: 16 }}>{error}</div>}
 
           {step === "email" && (
             <form onSubmit={handleEmail}>
               <label style={labelStyle}>EMAIL</label>
-              <div style={inputWrap()}>
+              <div style={inputWrap(fieldErrors.email)}>
                 <MailIcon />
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t.phEmail} style={inputStyle} />
+                <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setFieldErrors(p => ({ ...p, email: !e.target.value ? t.errEmailReq : !validEmail(e.target.value) ? t.errEmailBad : undefined })); }} placeholder={t.phEmail} style={inputStyle} />
               </div>
-              <div style={errStyle} />
+              <div style={errStyle}>{fieldErrors.email}</div>
               <button type="submit" disabled={submitting} style={btnPrimary}>{submitting ? t.processing : t.fpSendOtp}</button>
             </form>
           )}
@@ -217,20 +219,20 @@ export default function ForgotPasswordPage() {
           {step === "otp" && (
             <form onSubmit={handleOtp}>
               <label style={labelStyle}>{t.fpOtpLabel}</label>
-              <div style={inputWrap()}>
+              <div style={inputWrap(fieldErrors.otp)}>
                 <KeyIcon />
                 <input
                   type="text"
                   inputMode="numeric"
                   maxLength={6}
                   value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); setOtpCode(v); setFieldErrors(p => ({ ...p, otp: v.length !== 6 ? t.errOtpBad : undefined })); }}
                   placeholder="••••••"
                   style={{ ...inputStyle, letterSpacing: ".5em", fontWeight: 700 }}
                 />
               </div>
-              <div style={{ ...errStyle, color: secondsLeft > 0 ? "#8a85a0" : "#e23d6e" }}>
-                {secondsLeft > 0 ? `${t.fpExpiresIn} ${secondsLeft}s` : t.fpExpired}
+              <div style={{ ...errStyle, color: secondsLeft > 0 && !fieldErrors.otp ? "#8a85a0" : "#e23d6e" }}>
+                {fieldErrors.otp || (secondsLeft > 0 ? `${t.fpExpiresIn} ${secondsLeft}s` : t.fpExpired)}
               </div>
               <button type="submit" disabled={submitting || secondsLeft <= 0} style={{ ...btnPrimary, opacity: submitting || secondsLeft <= 0 ? 0.6 : 1, cursor: secondsLeft <= 0 ? "not-allowed" : btnPrimary.cursor }}>
                 {submitting ? t.processing : t.fpVerify}
@@ -244,21 +246,21 @@ export default function ForgotPasswordPage() {
           {step === "reset" && (
             <form onSubmit={handleReset}>
               <label style={labelStyle}>{t.fpNewPw}</label>
-              <div style={inputWrap()}>
+              <div style={inputWrap(fieldErrors.password)}>
                 <LockIcon />
-                <input type={showPw ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={t.phPassword} style={inputStyle} />
-                <EyeBtn onClick={() => setShowPw((v) => !v)} />
+                <input type={showPw ? "text" : "password"} value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setFieldErrors(p => ({ ...p, password: !passwordValid(e.target.value) ? t.errPwWeak : undefined })); }} onFocus={() => setPwFocused(true)} onBlur={() => setPwFocused(false)} placeholder={t.phPassword} style={inputStyle} />
+                <EyeBtn on={showPw} onClick={() => setShowPw((v) => !v)} />
               </div>
-              <PasswordStrengthBar password={newPassword} />
-              <div style={errStyle} />
+              <PasswordStrengthBar password={newPassword} focused={pwFocused} onGenerate={(pw) => { setNewPassword(pw); setConfirmPassword(pw); setFieldErrors(er => ({ ...er, password: undefined, confirm: undefined })); }} />
+              <div style={errStyle}>{fieldErrors.password}</div>
 
               <label style={labelStyle}>{t.fpConfirmPw}</label>
-              <div style={inputWrap()}>
+              <div style={inputWrap(fieldErrors.confirm)}>
                 <LockIcon />
-                <input type={showPw2 ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t.phConfirm} style={inputStyle} />
-                <EyeBtn onClick={() => setShowPw2((v) => !v)} />
+                <input type={showPw2 ? "text" : "password"} value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setFieldErrors(p => ({ ...p, confirm: !passwordsMatch(newPassword, e.target.value) ? t.errConfirmBad : undefined })); }} placeholder={t.phConfirm} style={inputStyle} />
+                <EyeBtn on={showPw2} onClick={() => setShowPw2((v) => !v)} />
               </div>
-              <div style={errStyle} />
+              <div style={errStyle}>{fieldErrors.confirm}</div>
               <button type="submit" disabled={submitting} style={btnPrimary}>{submitting ? t.processing : t.fpResetBtn}</button>
             </form>
           )}

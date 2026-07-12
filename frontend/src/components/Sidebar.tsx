@@ -1,8 +1,8 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Users, AlertTriangle, Server, FileText, Code, DollarSign,
-  ChevronRight, ChevronLeft, type LucideIcon,
+  Users, AlertTriangle, Server, FileText, Code, DollarSign, Package,
+  ChevronRight, ChevronLeft, X, type LucideIcon,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
@@ -19,13 +19,24 @@ interface Item {
   badge?: string;
 }
 
+/** Key sessionStorage: user tắt card "Nâng cấp Pro" CHỈ trong phiên hiện tại — phiên sau card hiện lại. */
+const UPGRADE_CARD_HIDDEN_KEY = 'aima.upgradeCardHidden';
+
 export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpen }: { mode?: 'app' | 'admin', mobileMenuOpen?: boolean, setMobileMenuOpen?: (v: boolean) => void }) {
-  const { t, route, go, brandGradient, logout } = useApp();
+  const { t, route, go, brandGradient } = useApp();
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
   const { isMobile } = useBreakpoint();
   const { sidebarCollapsed, toggleSidebar, autoCollapse, toggleAutoCollapse, setSidebarCollapsed, profileOrigin } = useUiStore();
   const [hover, setHover] = useState(false);
+  // Card "Nâng cấp Pro": chỉ user gói FREE thấy; tắt bằng sessionStorage (không dùng localStorage)
+  // để phiên sau (mở lại tab/trình duyệt) card hiện lại bình thường. Xử lý hoàn toàn phía FE.
+  const [upgradeHidden, setUpgradeHidden] = useState(() => sessionStorage.getItem(UPGRADE_CARD_HIDDEN_KEY) === '1');
+  const dismissUpgrade = () => {
+    sessionStorage.setItem(UPGRADE_CARD_HIDDEN_KEY, '1');
+    setUpgradeHidden(true);
+  };
+  const showUpgradeCard = (user?.plan ?? 'FREE') === 'FREE' && !upgradeHidden;
 
   // Hồ sơ/Cài đặt là route khu "app", nhưng nếu mở từ khu Quản trị thì vẫn giữ
   // sidebar admin và highlight ở mục gốc (vd Trạng thái hệ thống / Bảng điều khiển)
@@ -65,12 +76,10 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
     { key: 'adminLogs', label: t.navAdminLogs, icon: FileText },
     { key: 'adminApiVersions', label: t.navAdminApi, icon: Code },
     { key: 'adminRevenue', label: t.navAdminRevenue, icon: DollarSign },
+    { key: 'adminPlans', label: t.navAdminPlans, icon: Package },
   ];
-  const bottomItems: Item[] = [
-    { key: 'profile', label: t.navProfile, icon: ICON.profile },
-    { key: 'settings', label: t.navSettings, icon: ICON.settings },
-  ];
-
+  // Hồ sơ / Cài đặt / Đăng xuất / Trang chủ đã chuyển lên dropdown avatar ở topbar (UserMenu
+  // variant "app") — sidebar không còn khối mục đáy.
   const navItems = isAdminArea ? adminItems : mainItems;
   const sectionLabel = isAdminArea ? t.secAdmin : t.secMain;
 
@@ -176,30 +185,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
     </motion.button>
   );
 
-  const logoutBtn = (
-    <motion.button
-      onClick={() => {
-        logout();
-        if (isMobile && setMobileMenuOpen) setMobileMenuOpen(false);
-      }}
-      title={collapsed ? t.signOut : undefined}
-      style={{ ...itemBase(false), color: '#d6336c' }}
-      whileHover={{
-        y: isMobile ? 0 : -2,
-        x: isMobile ? 0 : (collapsed ? 0 : 3),
-        scale: isMobile ? 1 : 1.03,
-        boxShadow: '0 8px 16px -8px rgba(226,92,132,.2)',
-        background: '#fff5f7',
-      }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: 'spring', ...springConfig }}
-    >
-      <Icon icon={ICON.logout} stroke="#e25c84" />
-      {(!collapsed || isMobile) && <span style={{ flex: 1, textAlign: 'left' }}>{t.signOut}</span>}
-    </motion.button>
-  );
-
-  const sectionLabelStyle: CSSProperties = { fontSize: 11, fontWeight: 700, letterSpacing: '.08em', color: '#a59fbb', padding: '6px 12px', flex: 'none' };
+  const sectionLabelStyle: CSSProperties ={ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', color: '#a59fbb', padding: '6px 12px', flex: 'none' };
 
   const floatBtn: CSSProperties = {
     position: 'absolute',
@@ -233,17 +219,21 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
       {!isAdminArea && isAdmin && <div style={{ marginTop: 14 }}>{adminPortalBtn}</div>}
 
       <div style={{ marginTop: 'auto', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 10, flex: 'none' }}>
-        {!isAdminArea && !collapsed && (
-          <div style={{ background: 'linear-gradient(150deg,#f6f2ff,#fcf1fc)', border: '1px solid #efe6fb', borderRadius: 16, padding: 16 }}>
+        {!isAdminArea && !collapsed && showUpgradeCard && (
+          <div style={{ position: 'relative', background: 'linear-gradient(150deg,#f6f2ff,#fcf1fc)', border: '1px solid #efe6fb', borderRadius: 16, padding: 16 }}>
+            <button
+              onClick={dismissUpgrade}
+              title={t.close}
+              aria-label={t.close}
+              style={{ position: 'absolute', top: 8, right: 8, border: 'none', background: 'none', cursor: 'pointer', padding: 2, display: 'flex', color: '#a58fd0' }}
+            >
+              <X size={14} strokeWidth={2.2} />
+            </button>
             <div style={{ fontWeight: 700, fontSize: 14, color: '#5b2b9e' }}>{t.upgradeTitle}</div>
             <div style={{ fontSize: 12, color: '#7d6aa3', margin: '4px 0 12px', lineHeight: 1.45 }}>{t.upgradeMsg}</div>
-            <button style={{ width: '100%', border: 'none', borderRadius: 10, padding: 9, fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.upgradeBtn}</button>
+            <button onClick={() => go('pricing')} style={{ width: '100%', border: 'none', borderRadius: 10, padding: 9, fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.upgradeBtn}</button>
           </div>
         )}
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {bottomItems.map(renderItem)}
-          {logoutBtn}
-        </nav>
       </div>
     </div>
   );
@@ -267,9 +257,6 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
       {isAdminArea && backBtn}
       {navItems.map(renderItem)}
       {!isAdminArea && isAdmin && adminPortalBtn}
-      <div style={{ height: 1, background: '#eee9f6', margin: '8px 0' }} />
-      {bottomItems.map(renderItem)}
-      {logoutBtn}
     </nav>
   );
 

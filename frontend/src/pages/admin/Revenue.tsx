@@ -3,13 +3,11 @@ import { DollarSign, ShoppingBag, BarChart3, Download } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Card, Loader, Icon } from '../../components/ui';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
-import Modal from '../../components/Modal';
 import StatusBadge from '../../components/admin/StatusBadge';
 import { DataTable } from '../../components/admin/AdminListPage';
-import {
-  getRevenue, getPlans, savePlan, formatVND,
-  type RevenueData, type RevenuePeriod, type PricingPlan,
-} from '../../api/admin';
+import { getRevenue, formatVND, type RevenueData, type RevenuePeriod } from '../../api/admin';
+import { getAdminPlans, type PlanDto } from '../../api/plans';
+import { PLANS_INTENT_KEY, type PlansIntent } from './Plans';
 
 const PERIODS: RevenuePeriod[] = ['1m', '3m', '12m'];
 
@@ -25,21 +23,31 @@ function downloadBlob(content: string, filename: string, mime: string) {
 }
 
 export default function Revenue() {
-  const { t, lang, brandGradient } = useApp();
+  const { t, lang, go, brandGradient } = useApp();
   const { isMobile } = useBreakpoint();
   const [load, setLoad] = useState<'loading' | 'error' | 'ok'>('loading');
   const [period, setPeriod] = useState<RevenuePeriod>('1m');
   const [data, setData] = useState<RevenueData | null>(null);
-  const [plans, setPlans] = useState<PricingPlan[]>([]);
-  const [editing, setEditing] = useState<PricingPlan | null>(null);
+  const [plans, setPlans] = useState<PlanDto[]>([]);
 
   const fetchAll = (p: RevenuePeriod) => {
     setLoad('loading');
-    Promise.all([getRevenue(p, lang), getPlans()])
-      .then(([rev, pl]) => { setData(rev); setPlans(pl); setLoad('ok'); })
+    // Gói đọc từ API thật (/admin/plans) — chỉ hiển thị; chỉnh sửa ở trang Quản lý gói.
+    Promise.all([getRevenue(p, lang), getAdminPlans()])
+      .then(([rev, pl]) => {
+        setData(rev);
+        setPlans([...pl.plans].sort((a, b) => a.displayOrder - b.displayOrder));
+        setLoad('ok');
+      })
       .catch(() => setLoad('error'));
   };
   useEffect(() => fetchAll(period), [period, lang]);
+
+  // Điều hướng sang trang Quản lý gói và mở sẵn đúng modal (sửa gói / tạo mới).
+  const openPlans = (intent: PlansIntent) => {
+    sessionStorage.setItem(PLANS_INTENT_KEY, JSON.stringify(intent));
+    go('adminPlans');
+  };
 
   const periodLabel = (p: RevenuePeriod) => (p === '1m' ? t.rev1m : p === '3m' ? t.rev3m : t.rev12m);
 
@@ -159,70 +167,29 @@ export default function Revenue() {
           </DataTable>
         </Card>
 
-        {/* Plan pricing config */}
+        {/* Cấu hình giá gói — READ-ONLY: nơi sửa duy nhất là trang Quản lý gói (adminPlans) */}
         <Card>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
             <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.revPlans}</div>
-            <button onClick={() => setEditing({ id: '', name: '', price: 0, active: true })} style={{ border: 'none', borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer' }}>+ {t.revAddPlan}</button>
+            <button onClick={() => openPlans({ action: 'create' })} style={{ border: 'none', borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer' }}>+ {t.revAddPlan}</button>
           </div>
+          <div style={{ fontSize: 12, color: '#8a85a0', marginBottom: 12 }}>{t.revPlansReadOnly}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {plans.map((p) => (
-              <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1px solid #f1eef8', borderRadius: 12 }}>
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1px solid #f1eef8', borderRadius: 12, opacity: p.isActive ? 1 : 0.65 }}>
                 <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: '#2b2543' }}>{p.name}</div>
-                  <div style={{ fontSize: 13, color: '#8a85a0' }}>{p.price === 0 ? 'Free' : formatVND(p.price) + '/mo'}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 700, color: '#2b2543' }}>{lang === 'en' ? p.nameEn : p.nameVi}</span>
+                    {!p.isActive && <StatusBadge tone="neutral" label={t.plActiveOff} />}
+                  </div>
+                  <div style={{ fontSize: 13, color: '#8a85a0' }}>{p.price === 0 ? 'Free' : formatVND(p.price) + (lang === 'en' ? (p.billingCycleEn ?? '') : (p.billingCycleVi ?? ''))}</div>
                 </div>
-                <button onClick={() => setEditing(p)} style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>{t.revEditPlan}</button>
+                <button onClick={() => openPlans({ action: 'edit', id: p.id })} style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>{t.revEditPlan}</button>
               </div>
             ))}
           </div>
         </Card>
       </div>
-
-      {editing && (
-        <PlanModal
-          plan={editing}
-          onClose={() => setEditing(null)}
-          onSave={(p) => {
-            savePlan(p).then((saved) => {
-              setPlans((prev) => (prev.some((x) => x.id === saved.id) ? prev.map((x) => (x.id === saved.id ? saved : x)) : [...prev, saved]));
-              setEditing(null);
-            });
-          }}
-        />
-      )}
     </div>
-  );
-}
-
-function PlanModal({ plan, onClose, onSave }: { plan: PricingPlan; onClose: () => void; onSave: (p: PricingPlan) => void }) {
-  const { t, brandGradient } = useApp();
-  const isNew = !plan.id;
-  const [name, setName] = useState(plan.name);
-  const [price, setPrice] = useState(String(plan.price));
-
-  const field = { width: '100%', border: '1px solid #ece8f6', borderRadius: 10, padding: '10px 12px', fontSize: 14, color: '#241f3a', outline: 'none' } as const;
-  const label = { fontSize: 11.5, fontWeight: 700, letterSpacing: '.04em', color: '#a59fbb', marginBottom: 6, display: 'block' } as const;
-
-  const submit = () => {
-    const id = plan.id || name.trim().toLowerCase().replace(/\s+/g, '-');
-    onSave({ id, name: name.trim(), price: Number(price) || 0, active: plan.active });
-  };
-
-  return (
-    <Modal title={isNew ? t.revNewPlan : t.revEditPlan} onClose={onClose}>
-      <div style={{ marginBottom: 14 }}>
-        <label style={label}>{t.revPlanName}</label>
-        <input value={name} onChange={(e) => setName(e.target.value)} style={field} placeholder="Pro" />
-      </div>
-      <div style={{ marginBottom: 18 }}>
-        <label style={label}>{t.revPlanPrice}</label>
-        <input value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" style={field} placeholder="499000" />
-      </div>
-      <div style={{ display: 'flex', gap: 10 }}>
-        <button onClick={onClose} style={{ flex: 1, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '10px 0', fontSize: 14, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>{t.cancel}</button>
-        <button onClick={submit} disabled={!name.trim()} style={{ flex: 1, border: 'none', borderRadius: 10, padding: '10px 0', fontSize: 14, fontWeight: 700, color: '#fff', background: brandGradient, cursor: name.trim() ? 'pointer' : 'default', opacity: name.trim() ? 1 : 0.6 }}>{t.save}</button>
-      </div>
-    </Modal>
   );
 }

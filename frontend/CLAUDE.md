@@ -37,6 +37,9 @@ src/
 │   │                       updateProfile nhận thêm avatarUrl (tuỳ chọn); uploadAvatar(file) → POST /files/avatar trả URL công khai.
 │   │                       User có thêm status + deletionDate (banner chờ xóa) + avatarUrl. Nút Đăng xuất trong Hồ sơ chỉ hiện ở mobile/tablet.
 │   ├── brandProfile.ts   — list/create/update/delete brand profile
+│   ├── plans.ts          — gói dịch vụ từ DB: GET /plans/public (landing/pricing) + CRUD /admin/plans;
+│   │                       map payload BE → shape UI (PricingPlan/ComparisonGroup). hooks/usePublicPlans
+│   │                       cache 1 lần gọi/phiên, fallback config/plans.ts (hardcode cũ) khi API lỗi.
 │   └── trendResearch.ts  — start/poll/list phiên Trend Research (async job, NFR-04);
 │                           map sang shape UI ở src/trendsLive.ts — trang Trends dùng dữ liệu thật
 │                           khi có phiên COMPLETED, mock trendsData.ts chỉ là fallback demo.

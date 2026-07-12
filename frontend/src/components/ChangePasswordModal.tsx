@@ -22,9 +22,13 @@ const inputStyle: CSSProperties = { flex: 1, border: 'none', outline: 'none', ba
 
 const LockIcon = () => <Lock size={18} color="#a39bbf" strokeWidth={1.7} />;
 const KeyIcon = () => <KeyRound size={18} color="#a39bbf" strokeWidth={1.7} />;
-const EyeBtn = ({ onClick }: { onClick: () => void }) => (
-  <button type="button" onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a39bbf', display: 'flex' }}>
+const EyeBtn = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
+  <button type="button" onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a39bbf', display: 'flex', position: 'relative' }}>
     <Eye size={19} strokeWidth={1.7} />
+    <svg width="19" height="19" viewBox="0 0 24 24" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
+      <line x1="3" y1="3" x2="21" y2="21" stroke="#fbfaff" strokeWidth="4" strokeLinecap="round" style={{ strokeDasharray: 26, strokeDashoffset: on ? 26 : 0, transition: 'stroke-dashoffset 0.2s ease-out' }} />
+      <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ strokeDasharray: 26, strokeDashoffset: on ? 26 : 0, transition: 'stroke-dashoffset 0.2s ease-out' }} />
+    </svg>
   </button>
 );
 
@@ -42,6 +46,7 @@ export default function ChangePasswordModal({ onClose, onSuccess }: { onClose: (
   const [showPw2, setShowPw2] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [pwFocused, setPwFocused] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(0);
 
   useEffect(() => {
@@ -150,8 +155,8 @@ export default function ChangePasswordModal({ onClose, onSuccess }: { onClose: (
           <label style={labelStyle}>{t.cpCurrentLabel}</label>
           <div style={inputWrap}>
             <LockIcon />
-            <input type={showCur ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder={t.cpCurrentPh} style={inputStyle} autoFocus />
-            <EyeBtn onClick={() => setShowCur((v) => !v)} />
+            <input type={showCur ? 'text' : 'password'} value={currentPassword} onChange={(e) => { setCurrentPassword(e.target.value); setError(''); }} placeholder={t.cpCurrentPh} style={inputStyle} autoFocus />
+            <EyeBtn on={showCur} onClick={() => setShowCur((v) => !v)} />
           </div>
           <button type="submit" disabled={submitting} style={{ ...btnPrimary, marginTop: 18 }}>{submitting ? t.processing : t.cpContinue}</button>
         </form>
@@ -162,7 +167,7 @@ export default function ChangePasswordModal({ onClose, onSuccess }: { onClose: (
           <label style={labelStyle}>{t.fpOtpLabel}</label>
           <div style={inputWrap}>
             <KeyIcon />
-            <input type="text" inputMode="numeric" maxLength={6} value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} placeholder="••••••" style={{ ...inputStyle, letterSpacing: '.5em', fontWeight: 700 }} autoFocus />
+            <input type="text" inputMode="numeric" maxLength={6} value={otpCode} onChange={(e) => { setOtpCode(e.target.value.replace(/\D/g, '')); setError(''); }} placeholder="••••••" style={{ ...inputStyle, letterSpacing: '.5em', fontWeight: 700 }} autoFocus />
           </div>
           <div style={{ minHeight: 18, fontSize: 12.5, marginTop: 6, color: secondsLeft > 0 ? '#8a85a0' : '#e23d6e' }}>
             {secondsLeft > 0 ? `${t.fpExpiresIn} ${secondsLeft}s` : t.fpExpired}
@@ -181,16 +186,16 @@ export default function ChangePasswordModal({ onClose, onSuccess }: { onClose: (
           <label style={labelStyle}>{t.fpNewPw}</label>
           <div style={inputWrap}>
             <LockIcon />
-            <input type={showPw ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={t.phPassword} style={inputStyle} autoFocus />
-            <EyeBtn onClick={() => setShowPw((v) => !v)} />
+            <input type={showPw ? 'text' : 'password'} value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setError(''); }} onFocus={() => setPwFocused(true)} onBlur={() => setPwFocused(false)} placeholder={t.phPassword} style={inputStyle} autoFocus />
+            <EyeBtn on={showPw} onClick={() => setShowPw((v) => !v)} />
           </div>
-          <PasswordStrengthBar password={newPassword} />
+          <PasswordStrengthBar password={newPassword} focused={pwFocused} onGenerate={(pw) => { setNewPassword(pw); setConfirmPassword(pw); setError(''); }} />
           <div style={{ height: 12 }} />
           <label style={labelStyle}>{t.fpConfirmPw}</label>
           <div style={inputWrap}>
             <LockIcon />
-            <input type={showPw2 ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t.phConfirm} style={inputStyle} />
-            <EyeBtn onClick={() => setShowPw2((v) => !v)} />
+            <input type={showPw2 ? 'text' : 'password'} value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }} placeholder={t.phConfirm} style={inputStyle} />
+            <EyeBtn on={showPw2} onClick={() => setShowPw2((v) => !v)} />
           </div>
           <button type="submit" disabled={submitting} style={{ ...btnPrimary, marginTop: 18 }}>{submitting ? t.processing : t.cpConfirm}</button>
         </form>
