@@ -15,16 +15,18 @@ import { tagOfPlatform } from './PlatformTabs';
 const EDITABLE_STATUSES: ContentLifecycle[] = ['DRAFT', 'GENERATED', 'NEED_REVIEW', 'APPROVED'];
 
 /**
- * Bước hiện tại của bài trên hành trình 5 mốc (cột "Tiến trình"):
- * - Bản nháp wizard → đúng mốc đang dừng (auto-save).
- * - GENERATED (kể cả bị "Trả về sửa") → mốc 3 Chỉnh sửa; NEED_REVIEW/APPROVED/FORMATTED →
- *   mốc 4 Duyệt & Lưu; từ SCHEDULED trở đi → mốc 5 Lên lịch/đăng.
+ * Bước hiện tại của bài trên hành trình 4 mốc (cột "Tiến trình") — khớp STEP_KEYS của wizard
+ * (Chọn nguồn → Tạo nội dung → Hoàn thiện → Lên lịch đăng bài):
+ * - Bản nháp wizard → đúng mốc đang dừng (auto-save, chỉ 1–3).
+ * - GENERATED/FORMATTED/NEED_REVIEW/APPROVED → mốc 3 Hoàn thiện (định dạng + sửa + duyệt đã gộp
+ *   vào một mốc, nên cả bốn trạng thái này đều đang ở đó).
+ * - Từ SCHEDULED trở đi → mốc 4 Lên lịch/đăng.
  */
 function progressStep(item: ContentListItem): number {
   if (item.isDraft) return item.draftStep ?? 1;
-  if (item.status === 'GENERATED') return 3;
-  if (item.status === 'NEED_REVIEW' || item.status === 'APPROVED' || item.status === 'FORMATTED') return 4;
-  return 5;
+  if (item.status === 'GENERATED' || item.status === 'FORMATTED') return 3;
+  if (item.status === 'NEED_REVIEW' || item.status === 'APPROVED') return 3;
+  return 4;
 }
 
 const iconBtn = {
@@ -32,20 +34,22 @@ const iconBtn = {
   border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, cursor: 'pointer',
 } as const;
 
-/** Stepper mini 5 chấm + nhãn "n/5 · Tên mốc"; hover (title) liệt kê đủ 5 mốc. */
+/** Stepper mini + nhãn "n/N · Tên mốc"; tổng số mốc N lấy từ STEP_KEYS (một nguồn với wizard). */
 function ProgressCell({ item }: { item: ContentListItem }) {
   const { t, brandGradient } = useApp();
+  const total = STEP_KEYS.length;
   const step = progressStep(item);
   const tooltip = STEP_KEYS.map((k, i) => `${i + 1}. ${t[k]}`).join('\n');
   return (
     <div title={tooltip} style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 96 }}>
       <div style={{ display: 'flex', gap: 3 }} aria-hidden>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <span key={n} style={{ width: 14, height: 5, borderRadius: 99, background: n <= step ? brandGradient : '#e7e2f2' }} />
-        ))}
+        {STEP_KEYS.map((_, i) => {
+          const n = i + 1;
+          return <span key={n} style={{ width: 14, height: 5, borderRadius: 99, background: n <= step ? brandGradient : '#e7e2f2' }} />;
+        })}
       </div>
       <span style={{ fontSize: 11.5, color: '#8a85a0', whiteSpace: 'nowrap' }}>
-        {step}/5 · <span style={{ fontWeight: 700, color: '#574f6e' }}>{t[STEP_KEYS[step - 1]]}</span>
+        {step}/{total} · <span style={{ fontWeight: 700, color: '#574f6e' }}>{t[STEP_KEYS[step - 1]]}</span>
       </span>
     </div>
   );

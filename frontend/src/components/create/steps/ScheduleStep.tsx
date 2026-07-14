@@ -6,10 +6,9 @@ import StepLayout from '../StepLayout';
 import PostImagePreview from '../PostImagePreview';
 
 /**
- * Mốc 5 — Lên lịch đăng bài: hiển thị trong timeline nhưng ở trạng thái "sắp có".
- * Nút disabled + tooltip; handler đã chừa sẵn để sau nối sang tab Lịch đăng bài
- * (go('calendar') — bỏ disabled khi tính năng sẵn sàng). Giữ khung 2 cột StepLayout
- * cho đồng nhất — cột phải là preview bản vừa duyệt (nếu có).
+ * Mốc 6 — Lên lịch đăng bài: nội dung đã được định dạng (bản FORMATTED) nên có thể lên lịch.
+ * Việc chọn tài khoản đích + khung giờ (kèm gợi ý giờ vàng) nằm ở tab Lịch đăng bài (UI-07) —
+ * mốc này mở sang đó. Giữ khung 2 cột StepLayout — cột phải preview bản đã định dạng (nếu có).
  */
 export default function ScheduleStep({
   version,
@@ -20,10 +19,7 @@ export default function ScheduleStep({
 }) {
   const { t, go, brandGradient } = useApp();
 
-  // TODO(schedule): khi tính năng lên lịch sẵn sàng — bỏ disabled và điều hướng kèm
-  // id nội dung vừa lưu sang tab Lịch đăng bài.
   const goSchedule = () => go('calendar');
-  void goSchedule;
 
   const mainCard = (
     <Card style={{ textAlign: 'center', padding: 36 }}>
@@ -33,9 +29,9 @@ export default function ScheduleStep({
       <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: '#211c38' }}>{t.cwScheduleTitle}</div>
       <div style={{ fontSize: 13, color: '#8a85a0', margin: '8px auto 20px', maxWidth: 380, lineHeight: 1.55 }}>{t.cwScheduleSoon}</div>
       <button
-        disabled
-        title={t.cwStepSoon}
-        style={{ border: 'none', borderRadius: 12, padding: '13px 26px', fontWeight: 700, fontSize: 14, color: '#fff', background: brandGradient, cursor: 'not-allowed', opacity: 0.5 }}
+        onClick={goSchedule}
+        className="btn-grad"
+        style={{ border: 'none', borderRadius: 12, padding: '13px 26px', fontWeight: 700, fontSize: 14, color: '#fff', background: brandGradient, boxShadow: '0 14px 28px -12px rgba(139,92,246,.6)', cursor: 'pointer' }}
       >
         {t.cwScheduleBtn}
       </button>

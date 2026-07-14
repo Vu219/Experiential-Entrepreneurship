@@ -181,6 +181,8 @@ export function mockGeneration(lang: Lang, platforms: Platform[], versionIndex: 
   const versions: ContentVersion[] = platforms.map((platform) => ({
     id: `mock-version-${++mockVersionSeq}`,
     platform,
+    // Bản mock là nội dung vừa tạo, chưa qua job định dạng.
+    status: 'GENERATED',
     script: mockScript(lang, platform, versionIndex % 2),
     caption: mockCaption(lang, platform, versionIndex % 2),
     hashtags: MOCK_HASHTAGS[platform],

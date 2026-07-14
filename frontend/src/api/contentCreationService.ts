@@ -9,6 +9,8 @@ import {
   createContentItem as apiCreateContentItem,
   startContentGeneration,
   getContentGenerationJob,
+  startFormatting,
+  getFormattingJob,
   updateContentVersion,
   updateContentItemStatus,
   updateWizardState,
@@ -81,6 +83,12 @@ export interface BrandVoiceCheck {
 export interface ContentVersion {
   id: string;
   platform: Platform;
+  /**
+   * Trạng thái của BẢN nền tảng này (khác trạng thái BÀI). `FORMATTED` = đã chuyển thể xong
+   * theo đặc thù nền tảng — nguồn sự thật duy nhất để biết nền tảng nào đã định dạng
+   * (không suy từ việc "đã từng chạy job format" nữa).
+   */
+  status: ContentLifecycle;
   script: VideoScript;
   caption: string;
   hashtags: string[];
@@ -113,7 +121,7 @@ export interface ContentListItem {
   /** Bản nháp dở dang trong wizard → hiện nút "Tiếp tục". */
   isDraft: boolean;
   /** Bước wizard đang dừng (chỉ có ở bản nháp) — card hiện "Dừng ở: …". */
-  draftStep?: 1 | 2 | 3 | 4;
+  draftStep?: 1 | 2 | 3;
 }
 
 /** Sắp xếp danh sách: mới nhất / brand voice cao nhất / theo thứ tự trạng thái. */
@@ -187,7 +195,7 @@ export interface SaveContentInput {
 export interface WizardDraft {
   /** = id bài (ContentItem) DRAFT đang dở. */
   draftId: string;
-  step: 1 | 2 | 3 | 4;
+  step: 1 | 2 | 3;
   brandId?: string;
   brandName?: string;
   /** Không lưu trên bài — SourceStep tự nạp chiến lược ACTIVE của hồ sơ. */
@@ -210,11 +218,13 @@ const lang = () => useAppStore.getState().lang;
 // Thứ tự nền tảng cố định trên card (FB → IG → TH), không phụ thuộc thứ tự backend trả version.
 const PLATFORM_ORDER: Platform[] = ["FACEBOOK", "INSTAGRAM", "THREADS"];
 
-// Bước wizard hợp lệ từ backend; bài DRAFT cũ chưa có wizard_step → suy từ dữ liệu:
-// đã có bản nền tảng → bước 3 (Chỉnh sửa); chưa có → bước 1 (Chọn nguồn).
-function resumeStep(r: ContentItemResponse): 1 | 2 | 3 | 4 {
+// Bước wizard resume được: 1 Chọn nguồn / 2 Tạo nội dung / 3 Hoàn thiện. KHÔNG bao giờ resume
+// thẳng vào mốc 4 (Lên lịch) — mốc đó cần nội dung đã lưu, nên bước lưu ở DB luôn bị kẹp về 3.
+// Bài DRAFT chưa có wizard_step → suy từ dữ liệu: đã có bản nền tảng → 3, chưa có → 1.
+function resumeStep(r: ContentItemResponse): 1 | 2 | 3 {
   const s = r.wizardStep;
-  if (s === 1 || s === 2 || s === 3 || s === 4) return s;
+  if (s === 1 || s === 2) return s;
+  if (s != null && s >= 3) return 3;
   return (r.versions ?? []).length > 0 ? 3 : 1;
 }
 
@@ -386,6 +396,7 @@ function toContentVersion(v: ContentVersionResponse): ContentVersion {
   return {
     id: v.id,
     platform: v.platformName,
+    status: v.status,
     script: toScript(v.script),
     caption: v.formattedCaption ?? "",
     hashtags: (v.formattedHashtags ?? []).map((h) => (h.startsWith("#") ? h : `#${h}`)),
@@ -434,6 +445,30 @@ export async function generateVersion(input: GenerateVersionInput): Promise<Cont
     throw new Error(job.errorMessage ?? "AI_SERVICE_ERROR");
   }
   return toContentVersion(job.contentVersion);
+}
+
+/**
+ * FR-40..FR-46 — Định dạng bài theo nền tảng ("Định dạng tổng" / "Định dạng theo nền tảng" ở mốc
+ * Hoàn thiện + nút "Format lại" ở thư viện). PA2-a: backend lặp từng nền tảng, format từ CHÍNH bản
+ * active của nó (giữ chỉnh sửa tay làm đầu vào), trả về các bản FORMATTED. start + poll tới
+ * SUCCESS/FAILED. Thành công một phần (một số nền tảng lỗi) vẫn trả SUCCESS kèm các bản làm được —
+ * caller so với `platforms` để biết nền tảng nào còn thiếu.
+ *
+ * Job trả về MỌI bản còn hiệu lực của bài, nên ta LỌC về đúng các nền tảng vừa yêu cầu: định dạng
+ * riêng một nền tảng không được kéo theo bản cũ (đọc từ DB) của các nền tảng khác — sẽ đè mất
+ * chỉnh sửa tay chưa lưu của chúng ở FE.
+ */
+export async function formatContent(itemId: string, platforms: Platform[]): Promise<ContentVersion[]> {
+  let job = await startFormatting(itemId, platforms);
+  while (job.status === "PENDING" || job.status === "RUNNING") {
+    await delay(2000);
+    job = await getFormattingJob(job.id);
+  }
+  if (job.status !== "SUCCESS") {
+    throw new Error(job.errorMessage ?? "AI_SERVICE_ERROR");
+  }
+  const wanted = new Set(platforms);
+  return (job.versions ?? []).map(toContentVersion).filter((v) => wanted.has(v.platform));
 }
 
 // ---- Tạo lại từng phần kịch bản (async job; patch in-place đúng nhánh, poll rồi merge) ----
@@ -547,15 +582,13 @@ export async function checkBrandVoice(input: CheckBrandVoiceInput): Promise<Bran
 }
 
 /**
- * Lưu bài ở mốc 4 (B2, API THẬT): PUT nội dung cuối vào TỪNG bản nền tảng đang active
- * (đẩy cả sửa tay lẫn "chọn bản khác"), rồi PATCH trạng thái bài.
- * - DRAFT: bài đã ở DRAFT → không PATCH.
- * - NEED_REVIEW: PATCH một bước (DRAFT→NEED_REVIEW).
- * - APPROVED: PATCH hai bước (DRAFT→NEED_REVIEW→APPROVED) vì backend chỉ duyệt từ NEED_REVIEW.
+ * PUT nội dung hiện tại vào TỪNG bản nền tảng đang active — KHÔNG đụng trạng thái bài.
+ * Dùng cho "lưu ngầm trước khi định dạng" (để chỉnh sửa tay là đầu vào thật của job format,
+ * vì backend đọc bản nguồn từ DB chứ không nhận nội dung từ FE).
  */
-export async function saveContent(input: SaveContentInput): Promise<void> {
-  for (const v of input.versions) {
-    await updateContentVersion(input.itemId, v.versionId, {
+export async function saveVersions(itemId: string, versions: SaveVersionInput[]): Promise<void> {
+  for (const v of versions) {
+    await updateContentVersion(itemId, v.versionId, {
       script: toScriptPayload(v.script),
       caption: v.caption,
       // Backend lưu hashtag không '#' (Python trả không '#') → cắt '#' trước khi gửi, tránh nhân đôi.
@@ -564,6 +597,17 @@ export async function saveContent(input: SaveContentInput): Promise<void> {
       mediaPrompt: v.mediaPrompt,
     });
   }
+}
+
+/**
+ * Lưu bài ở mốc Hoàn thiện (B2, API THẬT): PUT nội dung cuối vào từng bản nền tảng rồi PATCH
+ * trạng thái bài.
+ * - DRAFT: bài đã ở DRAFT → không PATCH (giữ nháp, KHÔNG tự gắn trạng thái duyệt).
+ * - NEED_REVIEW: PATCH một bước (DRAFT→NEED_REVIEW).
+ * - APPROVED: PATCH hai bước (DRAFT→NEED_REVIEW→APPROVED) vì backend chỉ duyệt từ NEED_REVIEW.
+ */
+export async function saveContent(input: SaveContentInput): Promise<void> {
+  await saveVersions(input.itemId, input.versions);
   if (input.status === "NEED_REVIEW") {
     await updateContentItemStatus(input.itemId, "NEED_REVIEW");
   } else if (input.status === "APPROVED") {

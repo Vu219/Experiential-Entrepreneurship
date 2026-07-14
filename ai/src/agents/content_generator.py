@@ -34,7 +34,19 @@ words/action on camera; scene_suggestion = a concrete filming direction for that
 (framing, b-roll, transition, on-screen text). Never merge scene directions into content.
 - caption is the SHORT POSTED TEXT readers see next to the post (FR-26): 1-3 sentences, \
 inviting and curiosity-driven. It is NOT the script and NOT a restatement of it — do NOT reuse \
-the script's opening line or its CTA verbatim. On Threads keep it even shorter and conversational.
+the script's opening line or its CTA verbatim.
+
+PRESENTATION — you are writing the NEUTRAL BASELINE, not a platform-tuned post:
+- Present the caption CLEANLY and READABLY: break it into paragraphs where the thought changes, \
+keep the reading rhythm obvious, put the CTA where it naturally belongs (at the end), and use \
+emoji sparingly — only where one genuinely helps scanning.
+- Keep the presentation PLATFORM-NEUTRAL. Do NOT apply the norms of any specific platform \
+(no Threads-style clipped one-liners, no Instagram-style hashtag stacking, no Facebook-style \
+long-form padding). A later Format step adapts this baseline per platform — that is its job, \
+not yours.
+- Readability must come from PRESENTATION only: line breaks, spacing, emoji, and the order of \
+blocks. Do NOT pad the copy with filler, hype adjectives or extra sentences to make it read \
+"nicer" — a clean short caption beats a dressed-up long one.
 
 HASHTAGS:
 - Put hashtags ONLY in the separate hashtags field (FR-27). The caption must contain NO \
@@ -56,6 +68,8 @@ follow it (unless it conflicts with brand_donts).
 (FR-32)."""
 
 USER_PROMPT = """Target platform: {platform}
+(Context only — the copy and its presentation must stay platform-neutral. Adapting to this
+platform's norms is the Format step's job, not yours.)
 
 BRAND PROFILE:
 {brand_profile}

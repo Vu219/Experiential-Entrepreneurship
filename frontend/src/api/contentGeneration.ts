@@ -139,6 +139,33 @@ export async function getContentGenerationJob(jobId: string): Promise<ContentGen
   return data.result;
 }
 
+// ---- FR-40..FR-46: định dạng theo nền tảng (async job, NFR-04) ----
+// PA2-a: mỗi nền tảng format từ CHÍNH bản active của nó (giữ chỉnh sửa tay làm đầu vào),
+// job trả về các bản FORMATTED khi SUCCESS. Item phải GENERATED/APPROVED/FORMATTED.
+
+export const ERR_CONTENT_ITEM_NOT_FORMATTABLE = 1925; // item không ở trạng thái cho phép format
+export const ERR_TOKEN_QUOTA_EXCEEDED = 1990; // hết hạn mức token tháng
+
+export interface ContentFormattingJob {
+  id: string;
+  status: GenerationJobStatus;
+  errorMessage: string | null;
+  /** Các bản định dạng hiện hành của bài (điền khi SUCCESS). */
+  versions: ContentVersionResponse[] | null;
+}
+
+// POST /content-items/{itemId}/format
+export async function startFormatting(itemId: string, platforms: Platform[]): Promise<ContentFormattingJob> {
+  const { data } = await client.post<ApiResponse<ContentFormattingJob>>(`/content-items/${itemId}/format`, { platforms });
+  return data.result;
+}
+
+// GET /content-items/format-jobs/{jobId}
+export async function getFormattingJob(jobId: string): Promise<ContentFormattingJob> {
+  const { data } = await client.get<ApiResponse<ContentFormattingJob>>(`/content-items/format-jobs/${jobId}`);
+  return data.result;
+}
+
 // ---- Tạo lại từng phần kịch bản (async job; patch in-place đúng nhánh, FE poll về merge) ----
 
 export type RegenSectionName = "HOOK" | "BODY" | "CTA";

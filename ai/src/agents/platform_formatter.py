@@ -12,41 +12,75 @@ from langchain_core.prompts import ChatPromptTemplate
 from ..llm import invoke_structured
 from ..schemas import ContentVersion, FormatRequest, FormatResponse, FormatResult
 
-# Platform-specific formatting guidance (REQUIREMENTS.md §8).
+# Platform-specific ADAPTATION guidance (REQUIREMENTS.md §8). These describe HOW to
+# re-present the SAME approved content — not what new content to invent. Each rule covers both
+# WORDING (length, tone, phrasing) and LAYOUT (line breaks, spacing, rhythm), because the source
+# baseline from the Content Generator is deliberately platform-neutral on both counts.
 PLATFORM_RULES = {
     "facebook": (
-        "Longer, richer caption with a clear CTA. Shareable framing. Can combine "
-        "image/video/link. media_format is typically 'image', 'video', or 'link post'."
+        "Wording: caption may be somewhat longer and more descriptive; shareable framing; keep a "
+        "clear, explicit CTA. "
+        "Layout: airy line spacing — blank lines BETWEEN paragraphs, paragraphs may run a few "
+        "sentences long. Reads like a short post, not a list of fragments. "
+        "A few relevant hashtags are fine. media_format is typically 'image', 'video', or 'link post'."
     ),
     "instagram": (
-        "Highly visual. Emotive, concise caption. Vertical video or square/vertical "
-        "image. Use brand hashtags. media_format is 'vertical video' or 'square image'."
+        "Wording: emotive, concise, visual-first — the caption supports the image rather than "
+        "carrying all the information. CTA phrased for IG (e.g. 'Lưu lại', 'Nhắn tin đặt hàng'). "
+        "Layout: open and scannable — short paragraphs separated by blank lines, the hook on its "
+        "own opening line. "
+        "Use a richer set of relevant hashtags (they render after the caption — see the hashtag "
+        "rule below). media_format is 'vertical video' or 'square image'."
     ),
     "threads": (
-        "Short and conversational, optimised for replies/discussion. Minimal hashtags. "
-        "media_format is usually 'text' or a single 'image'."
+        "Wording: short, natural, conversational sentences with a fast rhythm that invites replies. "
+        "CTA phrased as a light conversational nudge. "
+        "Layout: tight — single line breaks, lines sitting close together, NO blank-line padding. "
+        "If the message is genuinely too long for one post, it may be split into a short thread "
+        "(separate the parts with a blank line). "
+        "Few or NO hashtags. media_format is usually 'text' or a single 'image'."
     ),
 }
 
-SYSTEM_PROMPT = """You are the Platform Formatter for AIMA. You adapt one original \
-content item into platform-native versions — one version per requested platform.
+SYSTEM_PROMPT = """You are the Platform Formatter for AIMA. You ADAPT one already-approved \
+content item into platform-native versions — one version per requested platform. You RE-EXPRESS \
+the same message in each platform's own voice and shape: same meaning, new words. This is NOT \
+content invention — you never start from a blank page and never add ideas that are not in the \
+source.
 
-For each platform:
-- Rewrite the caption to fit that platform's norms and length conventions.
-- Adapt the hashtag set (count and style) to the platform.
-- Choose the appropriate media_format string.
-- Keep the brand voice and the core message intact; only the presentation changes.
-- Preserve the source language of the original content."""
+THE BOUNDARY — keep the MEANING, change the WORDING:
+- KEEP: the core message, the product/offer and every concrete fact (names, numbers, prices, \
+promos, dates, links) from the ORIGINAL CONTENT ITEM. Do NOT invent, add or drop facts, and do \
+NOT introduce a new selling point or a new topic.
+- KEEP: the CTA INTENT — what the reader is asked to DO. Output the `cta` field as the source CTA \
+rewritten to suit the platform: it MUST be present and non-empty. Never leave the CTA blank and \
+never change the action being requested (only how it is phrased).
+- KEEP: the brand voice and the source LANGUAGE of the original content.
+- CHANGE FREELY (this is the point of the task): the actual sentences — wording, length, tone, \
+phrasing, sentence and paragraph structure, the hashtag set, and the LAYOUT (line breaks, blank \
+lines, spacing, emoji, the order of blocks). The source is a deliberately platform-neutral \
+baseline, so real rewriting is expected here — a version that is merely the original text with \
+different line breaks has NOT been adapted.
 
-USER_PROMPT = """BRAND PROFILE:
+Also:
+- The caption carries NO hashtags and no '#' character — hashtags go in `formatted_hashtags` only \
+(they are rendered after the caption).
+- Use emoji at the density the platform's norms call for, never as filler.
+
+Stay faithful and proportionate: rewrite as much as the platform genuinely calls for, but do not \
+balloon a short caption into a long essay to fill space, and do not pad with hype adjectives."""
+
+USER_PROMPT = """BRAND PROFILE (voice/context only — do NOT pull new facts from here):
 {brand_profile}
 
-ORIGINAL CONTENT ITEM:
+ORIGINAL CONTENT ITEM (the single source of truth to adapt — caption, hashtags and CTA):
 {content}
 
-Produce exactly one formatted version for EACH of these platforms: {platforms}
+Produce exactly one ADAPTED version for EACH of these platforms: {platforms}
+For each: adapt the caption, adapt the hashtags, rewrite the CTA to fit the platform (never empty),
+and set media_format.
 
-Per-platform rules:
+Per-platform presentation rules:
 {rules}"""
 
 

@@ -10,12 +10,15 @@ import {
   ERR_CONTENT_ITEM_NOT_DRAFT,
   ERR_CONTENT_ITEM_NOT_FOUND,
   ERR_CONTENT_ITEM_ID_REQUIRED,
+  ERR_TOKEN_QUOTA_EXCEEDED,
 } from '../../api/contentGeneration.ts';
 import type { Platform } from '../../api/brandProfile.ts';
 import {
   createContentItem,
   generateVersion,
   saveContent,
+  saveVersions,
+  formatContent,
   deleteContent,
   getWizardResume,
   saveWizardState,
@@ -29,15 +32,17 @@ import WizardStepper, { type WizardStep } from '../../components/create/WizardSt
 import { WizardStepSkeleton } from '../../components/create/CreateSkeleton.tsx';
 import SourceStep, { type SourceSelection, type WizardLiveSelection } from '../../components/create/steps/SourceStep.tsx';
 import GenerateStep from '../../components/create/steps/GenerateStep.tsx';
-import EditStep from '../../components/create/steps/EditStep.tsx';
-import ReviewStep from '../../components/create/steps/ReviewStep.tsx';
+import FinalizeStep, { type FormatScope } from '../../components/create/steps/FinalizeStep.tsx';
 import ScheduleStep from '../../components/create/steps/ScheduleStep.tsx';
 
 /**
- * /create/new — lớp 2: wizard timeline 5 mốc (trang riêng, không modal).
- * 1 Chọn nguồn → 2 AI tạo nội dung → 3 Chỉnh sửa thủ công → 4 Duyệt & Lưu →
- * 5 Lên lịch (sắp có — disabled trong stepper, component đã chừa sẵn để nối
- * sang tab Lịch đăng bài).
+ * /create/new — lớp 2: wizard timeline 4 mốc (trang riêng, không modal):
+ * 1 Chọn nguồn → 2 AI tạo nội dung → 3 Chỉnh sửa & Hoàn Thiện → 4 Lên lịch (mở tab Lịch đăng bài).
+ *
+ * Mốc 3 gộp ba mốc cũ (Định dạng · Chỉnh sửa · Duyệt & Lưu): định dạng giờ là NÚT trong không gian
+ * chỉnh sửa, còn duyệt/lưu là toggle "Xem tổng thể" + chọn trạng thái tại chỗ — không phải quay lui
+ * giữa các bước. "Thứ được duyệt = thứ được đăng" vẫn giữ: bản đem lên lịch là bản FORMATTED đang
+ * hiển thị, và trạng thái duyệt chỉ gắn khi người dùng tự chọn.
  */
 export default function CreateWizard() {
   const { t, go } = useApp();
@@ -128,9 +133,16 @@ export default function CreateWizard() {
   // Điểm brand voice lúc AI sinh từng version (versionId → %) — mốc 3/4 so sánh để
   // cảnh báo nhẹ khi người dùng sửa tay làm điểm tụt.
   const [baselines, setBaselines] = useState<Record<string, number>>({});
-  const [status, setStatus] = useState<ContentLifecycle>('NEED_REVIEW');
+  // Trạng thái khi lưu — mặc định NHÁP: "đã duyệt" phải là hành động CÓ CHỦ ĐÍCH của người dùng
+  // ở mốc Hoàn thiện, không được tự gắn khi họ chỉ lưu nháp.
+  const [status, setStatus] = useState<ContentLifecycle>('DRAFT');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Định dạng theo nền tảng (job format thật, PA2-a) — giờ là THAO TÁC ở mốc Hoàn thiện, không còn
+  // là mốc riêng. Giữ phạm vi lượt đang chạy ('all' | một nền tảng) để nút bấm hiện spinner đúng chỗ.
+  // Kết quả được merge thẳng vào versions của lượt tạo hiện tại (status FORMATTED nằm trên version).
+  const [formatting, setFormatting] = useState<FormatScope | null>(null);
+  const [formatError, setFormatError] = useState<string | null>(null);
 
   const goStep = (s: WizardStep) => {
     setStep(s);
@@ -146,6 +158,7 @@ export default function CreateWizard() {
     setRunsByGen({});
     setBaselines({});
     setStartError(null);
+    setFormatError(null);
     setMaxReached(1);
     resumeStepRef.current = null;
   };
@@ -228,6 +241,10 @@ export default function CreateWizard() {
     startingRef.current = true;
     setStarting(true);
     setStartError(null);
+    // (Tái) tạo nội dung làm bản format cũ hết hiệu lực — lượt tạo mới sinh version GENERATED,
+    // nên mốc Hoàn thiện sẽ tự hiện "Chưa định dạng" trở lại.
+    setFormatError(null);
+    setMaxReached((m) => (m > 2 ? 2 : m));
     try {
       // Tạo bài shell (DRAFT) một lần (dùng chung với auto-save); "Tạo lại" tái dùng bài cũ.
       const targetItemId = await ensureItem(
@@ -264,7 +281,9 @@ export default function CreateWizard() {
     void runPlatform(itemId, gen.id, platform, regenerateFrom, gen.note);
   };
 
-  // Chỉnh sửa (mốc 3) / sinh ảnh / kiểm tra brand voice cập nhật version trong bản hiện tại.
+  // Chỉnh sửa (mốc 3) / sinh ảnh / kiểm tra brand voice — MỘT đường duy nhất: các bản đã định dạng
+  // được merge thẳng vào versions của lượt tạo hiện tại (thay bản cùng nền tảng), nên không còn
+  // "bộ nội dung song song" để phải chọn nhánh patch.
   const patchVersion = (versionId: string, patch: Partial<ContentVersion>) => {
     setGens((prev) =>
       prev.map((g, i) =>
@@ -273,36 +292,105 @@ export default function CreateWizard() {
     );
   };
 
+  // Bộ nội dung đang làm việc = các bản của lượt tạo hiện tại (đã gồm bản FORMATTED nếu đã định dạng).
+  const workingVersions = (): ContentVersion[] => gens[genIndex]?.versions ?? [];
+
+  // Nội dung hiện tại của các nền tảng chỉ định → payload PUT (bỏ nền tảng chưa có bản nào).
+  const versionInputs = (platforms: Platform[]): SaveVersionInput[] => {
+    const working = workingVersions();
+    return platforms
+      .map((p): SaveVersionInput | null => {
+        const v = working.find((x) => x.platform === p);
+        if (!v) return null;
+        return {
+          versionId: v.id,
+          script: v.script,
+          caption: v.caption,
+          hashtags: v.hashtags,
+          cta: v.cta,
+          mediaPrompt: v.mediaPrompt,
+        };
+      })
+      .filter((v): v is SaveVersionInput => v !== null);
+  };
+
+  // Lưu nội dung cuối vào backend: PUT từng bản nền tảng đang active + PATCH trạng thái bài.
+  const persistContent = async (saveStatus: 'DRAFT' | 'NEED_REVIEW' | 'APPROVED') => {
+    if (!source || !itemId) return;
+    await saveContent({ itemId, status: saveStatus, versions: versionInputs(source.platforms) });
+  };
+
+  // Lưu ở mốc Hoàn thiện: PUT nội dung + gắn trạng thái người dùng đã chọn, rồi về danh sách.
   const handleSave = async () => {
-    if (!source || !itemId || !gens[genIndex] || saving) return;
-    const selected = gens[genIndex];
-    // Bản đang active trên backend = bản mới nhất mỗi nền tảng (gen cuối). Nếu user chọn
-    // BẢN CŨ để lưu, đẩy NỘI DUNG bản cũ vào version active đó (điểm treo (c) đã duyệt).
-    const latest = gens[gens.length - 1] ?? selected;
+    if (!source || !itemId || saving) return;
     setSaving(true);
     setSaveError(null);
     try {
-      const versions = source.platforms
-        .map((p): SaveVersionInput | null => {
-          const content = selected.versions.find((v) => v.platform === p);
-          const target = latest.versions.find((v) => v.platform === p) ?? content;
-          if (!content || !target) return null;
-          return {
-            versionId: target.id,
-            script: content.script,
-            caption: content.caption,
-            hashtags: content.hashtags,
-            cta: content.cta,
-            mediaPrompt: content.mediaPrompt,
-          };
-        })
-        .filter((v): v is SaveVersionInput => v !== null);
-      await saveContent({ itemId, status: status as 'DRAFT' | 'NEED_REVIEW' | 'APPROVED', versions });
+      await persistContent(status as 'DRAFT' | 'NEED_REVIEW' | 'APPROVED');
       savedRef.current = true; // đã lưu (kể cả giữ Nháp có chủ đích) → KHÔNG dọn như orphan khi unmount
       go('create');
     } catch (e) {
       setSaveError((e as ApiError).message);
       setSaving(false);
+    }
+  };
+
+  // "Tiếp theo: Lên lịch" (mốc 3 → 4) — lưu bản đang hiển thị (đã định dạng + chỉnh sửa tay) kèm
+  // trạng thái, rồi sang mốc Lịch. Bản FORMATTED là điều kiện lên lịch (nút đã chặn nếu còn thiếu).
+  const handleGoSchedule = async () => {
+    if (!source || !itemId || saving) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await persistContent(status as 'DRAFT' | 'NEED_REVIEW' | 'APPROVED');
+      savedRef.current = true;
+      setSaving(false);
+      goStep(4);
+    } catch (e) {
+      setSaveError((e as ApiError).message);
+      setSaving(false);
+    }
+  };
+
+  /**
+   * Nút "Định dạng tổng" / "Định dạng theo nền tảng" ở mốc Hoàn thiện (FR-40..FR-46).
+   * ADAPT: backend chuyển thể bản gốc sang đặc thù từng nền tảng (giữ thông điệp + ý định CTA).
+   *
+   * LƯU NGẦM TRƯỚC KHI FORMAT: job format đọc bản nguồn từ DB chứ không nhận nội dung từ FE. Vì
+   * chỉnh sửa tay giờ diễn ra CÙNG bước với nút định dạng, không PUT trước thì AI sẽ chuyển thể
+   * bản cũ và chỉnh sửa của người dùng bị bỏ qua trong im lặng.
+   * Kết quả merge theo nền tảng — các nền tảng không nằm trong lượt này giữ nguyên bản ở FE.
+   * Hết hạn mức token → báo riêng.
+   */
+  const handleFormat = async (scope: FormatScope) => {
+    if (!source || !itemId || formatting) return;
+    const targets = scope === 'all' ? source.platforms : [scope];
+    setFormatting(scope);
+    setFormatError(null);
+    try {
+      await saveVersions(itemId, versionInputs(targets));
+      const versions = await formatContent(itemId, targets);
+      setGens((prev) =>
+        prev.map((g, i) => {
+          if (i !== genIndex) return g;
+          // Thay TẠI CHỖ theo nền tảng để giữ nguyên thứ tự versions (filter+append sẽ đảo thứ tự,
+          // làm các chỗ lấy versions[0] nhảy sang nền tảng khác). Nền tảng chưa từng có bản nào
+          // (format vừa sinh ra) thì nối thêm vào cuối.
+          const byPlatform = new Map(versions.map((v) => [v.platform, v]));
+          const merged = g.versions.map((v) => byPlatform.get(v.platform) ?? v);
+          const added = versions.filter((v) => !g.versions.some((x) => x.platform === v.platform));
+          return { ...g, versions: [...merged, ...added] };
+        }),
+      );
+      setBaselines((prev) => ({
+        ...prev,
+        ...Object.fromEntries(versions.map((v) => [v.id, v.brandVoice.score])),
+      }));
+    } catch (e) {
+      const err = e as ApiError;
+      setFormatError(err.code === ERR_TOKEN_QUOTA_EXCEEDED ? t.cwFormatQuota : err.message || t.cwFormatError);
+    } finally {
+      setFormatting(null);
     }
   };
 
@@ -319,7 +407,8 @@ export default function CreateWizard() {
       strategyId,
       ideaId,
       state: {
-        step: Math.min(step, 4) as 1 | 2 | 3 | 4,
+        // Kẹp về 3: không bao giờ resume thẳng vào mốc 4 (Lên lịch) — mốc đó cần nội dung đã lưu.
+        step: Math.min(step, 3) as 1 | 2 | 3,
         platforms: source?.platforms ?? liveSel?.platforms,
         trendId,
         ideaId,
@@ -361,7 +450,7 @@ export default function CreateWizard() {
   useEffect(() => () => { void persistRef.current(); }, []);
 
   const gen = gens[genIndex] ?? null;
-  // Mốc 3/4 cần đã có nội dung — thiếu thì quay về mốc tương ứng.
+  // Mốc 3+ cần đã có nội dung — thiếu thì quay về mốc tương ứng.
   const effectiveStep: WizardStep = step >= 3 && !gen ? 2 : step >= 2 && !source ? 1 : step;
 
   return (
@@ -415,24 +504,32 @@ export default function CreateWizard() {
         />
       )}
       {effectiveStep === 3 && source && gen && (
-        <EditStep source={source} gen={gen} itemId={itemId} baselines={baselines} onPatchVersion={patchVersion} onBack={() => goStep(2)} onNext={() => goStep(4)} />
-      )}
-      {effectiveStep === 4 && source && gen && (
-        <ReviewStep
+        <FinalizeStep
           source={source}
           gen={gen}
+          itemId={itemId}
           baselines={baselines}
           status={status}
           setStatus={setStatus}
+          formatting={formatting}
+          formatError={formatError}
+          onFormat={handleFormat}
           saving={saving}
           saveError={saveError}
           onSave={handleSave}
           onPatchVersion={patchVersion}
-          onBack={() => goStep(3)}
-          onGoSchedule={() => goStep(5)}
+          onBack={() => goStep(2)}
+          onGoSchedule={handleGoSchedule}
         />
       )}
-      {effectiveStep === 5 && <ScheduleStep version={gen?.versions[0] ?? null} brandName={source?.brand.brandName ?? ''} />}
+      {effectiveStep === 4 && (
+        // Preview lấy theo nền tảng ĐẦU TIÊN người dùng chọn — không phụ thuộc thứ tự version
+        // trong lượt tạo (thứ tự đó đổi theo lượt "Tạo lại"/định dạng từng nền tảng).
+        <ScheduleStep
+          version={gen?.versions.find((v) => v.platform === source?.platforms[0]) ?? gen?.versions[0] ?? null}
+          brandName={source?.brand.brandName ?? ''}
+        />
+      )}
     </div>
   );
 }

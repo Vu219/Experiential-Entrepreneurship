@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Pencil, Save, Send, Undo2, X } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Layers, Pencil, Save, Send, Undo2, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Card, Icon, cardStyle } from '../ui';
 import type { ApiError } from '../../api/apiClient';
-import type { ContentLifecycle } from '../../api/contentGeneration';
+import { type ContentLifecycle, ERR_TOKEN_QUOTA_EXCEEDED } from '../../api/contentGeneration';
 import {
   getContentDetail,
   saveVersionEdit,
   changeContentStatus,
+  formatContent,
   emptyScript,
   type ContentListItem,
   type ContentVersion,
@@ -30,6 +31,9 @@ import { TONE_COLORS } from '../../statusTokens';
 
 // FR-33: chỉ sửa được trước khi vào pipeline đăng (khớp EDITABLE_STATUSES backend).
 const EDITABLE_STATUSES: ContentLifecycle[] = ['DRAFT', 'GENERATED', 'NEED_REVIEW', 'APPROVED'];
+
+// FR-40..FR-46: "Định dạng lại theo nền tảng" — khớp FORMATTABLE_STATUSES backend.
+const FORMATTABLE_STATUSES: ContentLifecycle[] = ['GENERATED', 'APPROVED', 'FORMATTED'];
 
 // FR-34: action đổi trạng thái theo review flow — chỉ đưa ra bước hợp lệ kế tiếp của
 // state machine (REVIEW_TRANSITIONS backend): Gửi duyệt / Duyệt / Trả về sửa.
@@ -84,6 +88,9 @@ export default function ContentViewPanel({
   const [editError, setEditError] = useState<string | null>(null);
   const [statusBusy, setStatusBusy] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
+  // FR-40..FR-46: "Định dạng lại theo nền tảng" — mở lại job format cho bài đã có (PA2-a).
+  const [formatBusy, setFormatBusy] = useState(false);
+  const [formatMsg, setFormatMsg] = useState<{ ok: boolean; text: string } | null>(null);
   // Thông tin nguồn (rút gọn) cho màn xem: brand + nền tảng có sẵn từ item; ngành hàng/logo
   // enrich best-effort từ hồ sơ thương hiệu (chi tiết này không mang strategy/trend nên các
   // dòng đó bị ẩn — SourceInfoCard tự ẩn dòng thiếu dữ liệu).
@@ -152,6 +159,26 @@ export default function ContentViewPanel({
       setEditError((e as ApiError).message);
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  // FR-40..FR-46: định dạng lại theo nền tảng (job format thật). Xong thì nạp lại versions + status.
+  const doFormat = async () => {
+    if (formatBusy) return;
+    setFormatBusy(true);
+    setFormatMsg(null);
+    try {
+      await formatContent(item.id, item.platforms);
+      const { item: it, versions: vs } = await getContentDetail(item.id);
+      setVersions(vs);
+      setStatus(it.status);
+      setFormatMsg({ ok: true, text: t.cvReformatDone });
+      onChanged?.();
+    } catch (e) {
+      const err = e as ApiError;
+      setFormatMsg({ ok: false, text: err.code === ERR_TOKEN_QUOTA_EXCEEDED ? t.cwFormatQuota : err.message || t.cvReformatError });
+    } finally {
+      setFormatBusy(false);
     }
   };
 
@@ -251,6 +278,17 @@ export default function ContentViewPanel({
           </button>
         )
       )}
+      {/* FR-40..FR-46: định dạng lại theo nền tảng — ẩn khi đang sửa; chỉ khi bài ở trạng thái format được */}
+      {!draft && FORMATTABLE_STATUSES.includes(status) && (
+        <button
+          onClick={doFormat}
+          disabled={formatBusy}
+          className="btn-soft"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, color: '#7c3aed', cursor: formatBusy ? 'not-allowed' : 'pointer', opacity: formatBusy ? 0.6 : 1 }}
+        >
+          <Icon icon={Layers} size={13} stroke="#7c3aed" />{formatBusy ? t.cvReformatting : t.cvReformat}
+        </button>
+      )}
       {/* FR-34: bước hợp lệ kế tiếp của review flow — ẩn khi đang sửa để tránh đổi trạng thái giữa chừng */}
       {!draft && statusActions(status).map(({ target, labelKey, icon, primary }) => (
         <button
@@ -300,6 +338,9 @@ export default function ContentViewPanel({
       </div>
       {statusError && (
         <div style={{ fontSize: 12.5, color: '#d1435b', background: '#fdf1f3', borderRadius: 10, padding: '10px 12px' }}>{statusError}</div>
+      )}
+      {formatMsg && (
+        <div style={{ fontSize: 12.5, color: formatMsg.ok ? '#0e7490' : '#d1435b', background: formatMsg.ok ? '#e0f7fb' : '#fdf1f3', borderRadius: 10, padding: '10px 12px' }}>{formatMsg.text}</div>
       )}
 
       {load === 'loading' ? (

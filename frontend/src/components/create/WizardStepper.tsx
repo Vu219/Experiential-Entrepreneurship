@@ -4,16 +4,19 @@ import { Icon } from '../ui';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import type { Dict } from '../../i18n';
 
-export type WizardStep = 1 | 2 | 3 | 4 | 5;
+export type WizardStep = 1 | 2 | 3 | 4;
 
-/** Key i18n tên 5 mốc — dùng chung với card nháp ("Dừng ở: …") ở list view. */
-export const STEP_KEYS: (keyof Dict)[] = ['cwStep1', 'cwStep2', 'cwStep3', 'cwStep4', 'cwStep5'];
+/** Key i18n tên 4 mốc — dùng chung với card nháp ("Dừng ở: …") ở list view. */
+export const STEP_KEYS: (keyof Dict)[] = ['cwStep1', 'cwStep2', 'cwStep3', 'cwStep4'];
+
+/** Mốc cuối = số phần tử STEP_KEYS — mọi chỗ đếm mốc lấy từ đây, không hardcode. */
+const LAST_STEP = STEP_KEYS.length;
 
 /**
- * Stepper 5 mốc trên đầu wizard. Mốc 5 (Lên lịch) luôn disabled — trạng thái
- * "sắp có" (tooltip qua title). Chỉ cho nhảy lùi về mốc đã đi qua.
+ * Stepper trên đầu wizard (Chọn nguồn → Tạo nội dung → Hoàn thiện → Lên lịch đăng bài).
+ * Chỉ cho nhảy lùi về mốc đã đi qua.
  * - Tablet/desktop: timeline ngang đầy đủ.
- * - Mobile: dạng gọn "Bước n/5 · Tên bước" + thanh progress (không tràn ngang),
+ * - Mobile: dạng gọn "Bước n/N · Tên bước" + thanh progress (không tràn ngang),
  *   kèm nút lùi một bước.
  */
 export default function WizardStepper({
@@ -43,14 +46,14 @@ export default function WizardStepper({
             <Icon icon={ChevronLeft} size={17} stroke="#574f6e" />
           </button>
           <span style={{ flex: 'none', background: brandGradient, color: '#fff', borderRadius: 9, padding: '4px 10px', fontSize: 12, fontWeight: 800 }}>
-            {t.cwStepWord} {current}/5
+            {t.cwStepWord} {current}/{LAST_STEP}
           </span>
           <span style={{ fontSize: 14, fontWeight: 800, color: '#211c38', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {t[STEP_KEYS[current - 1]]}
           </span>
         </div>
         <div style={{ height: 4, borderRadius: 99, background: '#e7e2f2', overflow: 'hidden' }} aria-hidden>
-          <div style={{ width: `${(current / 5) * 100}%`, height: '100%', borderRadius: 99, background: brandGradient, transition: 'width .2s' }} />
+          <div style={{ width: `${(current / LAST_STEP) * 100}%`, height: '100%', borderRadius: 99, background: brandGradient, transition: 'width .2s' }} />
         </div>
       </div>
     );
@@ -60,19 +63,17 @@ export default function WizardStepper({
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0, overflowX: 'auto', padding: '2px 0' }}>
       {STEP_KEYS.map((key, i) => {
         const n = (i + 1) as WizardStep;
-        const comingSoon = n === 5;
         const done = n < current;
         const active = n === current;
-        const reachable = !comingSoon && n <= maxReached;
+        const reachable = n <= maxReached;
         return (
-          <div key={key} style={{ display: 'flex', alignItems: 'flex-start', flex: i < 4 ? 1 : 'none', minWidth: 0 }}>
+          <div key={key} style={{ display: 'flex', alignItems: 'flex-start', flex: i < LAST_STEP - 1 ? 1 : 'none', minWidth: 0 }}>
             <button
               type="button"
               onClick={() => reachable && onGo(n)}
               disabled={!reachable}
-              title={comingSoon ? t.cwStepSoon : undefined}
               aria-current={active ? 'step' : undefined}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, border: 'none', background: 'transparent', cursor: reachable ? 'pointer' : comingSoon ? 'not-allowed' : 'default', padding: 0, minWidth: 78, opacity: comingSoon ? 0.55 : 1 }}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, border: 'none', background: 'transparent', cursor: reachable ? 'pointer' : 'default', padding: 0, minWidth: 78, opacity: 1 }}
             >
               <span
                 style={{
@@ -90,7 +91,7 @@ export default function WizardStepper({
                 {t[key]}
               </span>
             </button>
-            {i < 4 && (
+            {i < LAST_STEP - 1 && (
               <div style={{ flex: 1, height: 2, borderRadius: 2, background: n < current ? 'var(--brand)' : '#e7e2f2', margin: '16px 8px 0', minWidth: 12 }} />
             )}
           </div>

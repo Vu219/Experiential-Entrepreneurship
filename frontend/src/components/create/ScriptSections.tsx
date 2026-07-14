@@ -4,6 +4,7 @@ import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Icon } from '../ui';
 import type { ScriptSection, ScriptStep, VideoScript } from '../../api/contentCreationService';
 import type { Dict } from '../../i18n';
+import AutoGrowTextarea from './AutoGrowTextarea';
 
 /** Ba SECTION cố định của kịch bản video. */
 export type SectionKind = 'hook' | 'body' | 'cta';
@@ -162,7 +163,7 @@ export default function ScriptSections({
     const content = (
       <div style={{ ...card, opacity: busy ? 0.55 : 1, transition: 'opacity .15s' }}>
         {editable ? (
-          <textarea value={sec.content} onChange={(e) => patchSection(kind)({ content: e.target.value })} aria-label={t[SECTION_META[kind].labelKey]} style={{ ...inputBase, resize: 'vertical', minHeight: 70 }} />
+          <AutoGrowTextarea value={sec.content} onChange={(v) => patchSection(kind)({ content: v })} aria-label={t[SECTION_META[kind].labelKey]} minHeight={70} style={inputBase} />
         ) : (
           <div style={{ fontSize: 13.5, lineHeight: 1.55, color: '#3f3a55', whiteSpace: 'pre-line' }}>{sec.content}</div>
         )}
@@ -171,7 +172,7 @@ export default function ScriptSections({
     const scene = sceneBlock(
       kind,
       editable
-        ? <textarea value={sec.sceneSuggestion} onChange={(e) => patchSection(kind)({ sceneSuggestion: e.target.value })} aria-label={t.cwScene} style={{ ...inputBase, resize: 'vertical', minHeight: 70, fontSize: 12.5 }} />
+        ? <AutoGrowTextarea value={sec.sceneSuggestion} onChange={(v) => patchSection(kind)({ sceneSuggestion: v })} aria-label={t.cwScene} minHeight={70} style={{ ...inputBase, fontSize: 12.5 }} />
         : sceneText(sec.sceneSuggestion),
     );
     return columns(content, scene);
@@ -200,7 +201,7 @@ export default function ScriptSections({
                 )}
               </div>
               {editable ? (
-                <textarea value={step.content} onChange={(e) => patchStep(i)({ content: e.target.value })} aria-label={`${t.cwStepWord} ${step.index}`} style={{ ...inputBase, resize: 'vertical', minHeight: 54 }} />
+                <AutoGrowTextarea value={step.content} onChange={(v) => patchStep(i)({ content: v })} aria-label={`${t.cwStepWord} ${step.index}`} minHeight={54} style={inputBase} />
               ) : (
                 <div style={{ fontSize: 13.5, lineHeight: 1.55, color: '#3f3a55', whiteSpace: 'pre-line' }}>{step.content}</div>
               )}
@@ -222,7 +223,7 @@ export default function ScriptSections({
           {script.steps.map((step, i) => (
             <div key={i}>
               <div style={{ fontSize: 10.5, fontWeight: 700, color: '#a59fbb', marginBottom: 3 }}>{t.cwStepWord} {step.index}</div>
-              <textarea value={step.sceneSuggestion} onChange={(e) => patchStep(i)({ sceneSuggestion: e.target.value })} aria-label={`${t.cwScene} — ${t.cwStepWord} ${step.index}`} style={{ ...inputBase, resize: 'vertical', minHeight: 48, fontSize: 12 }} />
+              <AutoGrowTextarea value={step.sceneSuggestion} onChange={(v) => patchStep(i)({ sceneSuggestion: v })} aria-label={`${t.cwScene} — ${t.cwStepWord} ${step.index}`} minHeight={48} style={{ ...inputBase, fontSize: 12 }} />
             </div>
           ))}
           {script.steps.length === 0 && sceneText('')}

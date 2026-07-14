@@ -72,7 +72,7 @@ export const STRINGS = {
     dashLoading: 'Đang tải bảng điều khiển…', dashErrTitle: 'Không tải được dữ liệu', dashErrMsg: 'Đã xảy ra lỗi khi tải bảng điều khiển. Vui lòng thử lại.',
     dashEmptyTitle: 'Chưa có gì ở đây', dashEmptyMsg: 'Kết nối một nền tảng và tạo bài đăng đầu tiên để xem hiệu suất tại đây.', dashEmptyCta: 'Tạo bài đầu tiên', recentEmpty: 'Chưa có bài đăng nào',
     needsReviewTitle: 'Cần bạn duyệt', upNextTitle: 'Sắp đăng', reviewCta: 'Duyệt', allCaughtUp: 'Bạn đã duyệt hết rồi!', nothingScheduled: 'Chưa có bài nào được lên lịch.',
-    navDashboard: 'Bảng điều khiển', navCreate: 'Quản lý nội dung', navCalendar: 'Lịch đăng bài', navAnalytics: 'Phân tích',
+    navDashboard: 'Bảng điều khiển', navCreate: 'Quản lý nội dung', navCalendar: 'Lịch đăng bài', navFailedPosts: 'Bài lỗi & cần xử lý', navAnalytics: 'Phân tích',
     navTrends: 'Xu hướng', navBrand: 'Hồ sơ thương hiệu', navProfile: 'Hồ sơ', navSettings: 'Cài đặt', navAdmin: 'Quản trị hệ thống',
     stTotalReach: 'Tổng tiếp cận', stEngagement: 'Tỷ lệ tương tác', stPosts: 'Bài đã đăng', stScheduled: 'Đang lên lịch',
     stPublished: 'Đã đăng', stScheduledS: 'Lên lịch', stDraft: 'Nháp', stReview: 'Chờ duyệt',
@@ -146,10 +146,12 @@ export const STRINGS = {
     clBulkDelMsg: 'Các nội dung đã chọn và phiên bản theo nền tảng của chúng sẽ bị xóa. Hành động này không thể hoàn tác.',
     clBulkPartial: 'Một số mục không xử lý được do trạng thái không cho phép.',
     clBulkReviewDone: 'Đã gửi duyệt các mục đã chọn.',
-    // ===== Tạo nội dung — lớp 2: wizard 5 mốc =====
+    // ===== Tạo nội dung — lớp 2: wizard 4 mốc =====
     cwTitle: 'Tạo nội dung mới', cwSub: 'AI tạo nội dung phù hợp với thương hiệu, chiến lược và xu hướng',
-    cwStep1: 'Chọn nguồn', cwStep2: 'Tạo nội dung', cwStep3: 'Chỉnh sửa', cwStep4: 'Duyệt & Lưu', cwStep5: 'Lên lịch đăng bài',
-    cwStepSoon: 'Tính năng đang phát triển',
+    cwStep1: 'Chọn nguồn', cwStep2: 'Tạo nội dung', cwStep3: 'Hoàn thiện', cwStep4: 'Lên lịch đăng bài',
+    cwFormatting: 'Đang định dạng…',
+    cwFormatError: 'Định dạng thất bại', cwFormatQuota: 'Bạn đã dùng hết hạn mức token tháng này. Nâng cấp gói hoặc chờ sang tháng sau.',
+    cwFormatDone: 'Đã định dạng', cwNotFormatted: 'Chưa định dạng', cwFormatMissing: 'Một số nền tảng chưa định dạng được — hãy thử định dạng lại.',
     cwBack: 'Quay lại', cwNext: 'Tiếp tục', cwBackToList: 'Về danh sách',
     // mốc 1 — chọn nguồn
     cwSrcTitle: 'Thông tin nguồn', cwSrcSub: 'AI sẽ tạo nội dung dựa trên hồ sơ thương hiệu, chiến lược và trend bạn chọn.',
@@ -209,6 +211,8 @@ export const STRINGS = {
     cvEditError: 'Lưu thay đổi thất bại',
     cvSubmitReview: 'Gửi duyệt', cvApprove: 'Duyệt', cvReturnEdit: 'Trả về sửa',
     cvStatusError: 'Đổi trạng thái thất bại',
+    cvReformat: 'Định dạng lại theo nền tảng', cvReformatting: 'Đang định dạng…',
+    cvReformatDone: 'Đã định dạng lại theo nền tảng — bản mới đã sẵn sàng lên lịch.', cvReformatError: 'Định dạng lại thất bại',
     // panel brand voice + preview ảnh
     cwVoiceTitle: 'Kiểm tra brand voice', cwVoiceMatch: 'Phù hợp', cwVoiceTone: 'Giọng điệu', cwVoiceWording: 'Ngôn từ', cwVoiceMessage: 'Thông điệp',
     cwVoiceChecking: 'Đang kiểm tra...', cwVoiceRecheck: 'Kiểm tra lại', cwVoiceError: 'Kiểm tra brand voice thất bại',
@@ -218,17 +222,35 @@ export const STRINGS = {
     cwNoImage: 'Chưa có ảnh — dùng media prompt và bấm "Sinh ảnh" để xem trước.',
     cwPreviewEmpty: 'Nội dung sau khi tạo sẽ hiển thị ở đây.',
     cwActLike: 'Thích', cwActComment: 'Bình luận', cwActShare: 'Chia sẻ', cwActReply: 'Trả lời',
-    // mốc 3 — chỉnh sửa thủ công
-    cwEditTitle: 'Chỉnh sửa thủ công', cwEditSub: 'Sửa trực tiếp từng phần trước khi duyệt. Muốn AI viết lại? Quay về mốc "Tạo nội dung" và dùng "Tạo lại".',
+    // mốc 3 — Hoàn thiện (gộp Định dạng + Chỉnh sửa + Duyệt & Lưu)
+    cwFinalizeTitle: 'Chỉnh sửa & Hoàn Thiện', cwFinalizeSub: 'Sửa trực tiếp từng phần, định dạng theo nền tảng, rồi chọn trạng thái và lưu — tất cả tại đây.',
+    cwFormatAll: 'Định dạng tổng', cwFormatOne: 'Định dạng theo nền tảng',
+    cwFormatAllHint: 'Chuyển thể nội dung cho TẤT CẢ nền tảng đang chọn cùng lúc.',
+    cwFormatOneHint: 'Chỉ chuyển thể cho nền tảng đang xem — các nền tảng khác giữ nguyên.',
+    cwFormatHint: 'Định dạng là CHUYỂN THỂ từ bản gốc: giữ nguyên thông điệp cốt lõi, thông tin sản phẩm và ý định CTA; chỉ đổi độ dài, giọng văn, hashtag và cách trình bày cho hợp nền tảng.',
+    cwFormatRedoNote: 'Nền tảng này đã định dạng — định dạng lại sẽ chuyển thể lại TỪ BẢN GỐC, nên chỉnh sửa tay trên bản đã định dạng sẽ mất.',
+    cwViewAll: 'Xem tổng thể', cwViewEdit: 'Chế độ chỉnh sửa',
     cwHashtagHint: 'Phân tách hashtag bằng dấu cách hoặc dấu phẩy',
-    // mốc 4 — duyệt & lưu
-    cwReviewTitle: 'Duyệt & Lưu', cwReviewSub: 'Xem lại bản cuối của từng nền tảng — mỗi nền tảng là một phiên bản nội dung riêng.',
     cwReviewStatus: 'Trạng thái khi lưu',
+    cwStatusHint: 'Giữ "Nháp" nếu chưa muốn duyệt — trạng thái duyệt chỉ gắn khi bạn tự chọn.',
     cwSave: 'Lưu & về danh sách', cwSaving: 'Đang lưu...', cwSaveError: 'Lưu nội dung thất bại',
     cwNextSchedule: 'Tiếp theo: Lên lịch đăng bài',
-    // mốc 5 — lên lịch (sắp có)
-    cwScheduleTitle: 'Lên lịch đăng bài', cwScheduleSoon: 'Tính năng đang phát triển — sẽ nối sang tab Lịch đăng bài.',
-    cwScheduleBtn: 'Lên lịch đăng bài',
+    // mốc 4 — lên lịch: nội dung đã định dạng, mở tab Lịch đăng bài để chọn tài khoản + giờ
+    cwScheduleTitle: 'Lên lịch đăng bài', cwScheduleSoon: 'Nội dung đã được định dạng theo nền tảng. Mở Lịch đăng bài để chọn tài khoản đích và thời gian đăng.',
+    cwScheduleBtn: 'Mở Lịch đăng bài',
+    // Bài lỗi & cần xử lý (FR-35..FR-39)
+    fpHeading: 'Bài lỗi & cần xử lý', fpSub: 'Theo dõi và xử lý các bài đăng bị nền tảng từ chối hoặc lỗi khi đăng.',
+    fpTabAll: 'Tất cả', fpTabPolicy: 'Vi phạm chính sách', fpTabTechnical: 'Lỗi kỹ thuật',
+    fpTotal: 'Tổng lỗi', fpPolicy: 'Vi phạm chính sách', fpTechnical: 'Lỗi kỹ thuật',
+    fpEmpty: 'Không có bài lỗi nào. 🎉', fpMore: 'Xem thêm',
+    fpDemo: 'Đang hiển thị dữ liệu demo — bạn chưa có bài lỗi nào hoặc chưa kết nối được máy chủ.',
+    fpErrorCode: 'Mã lỗi', fpNoCaption: '(chưa có caption)', fpDetail: 'Chi tiết lỗi', fpHide: 'Ẩn',
+    fpNext: 'Bạn muốn làm gì tiếp theo?',
+    fpPolicyWhat: 'Vi phạm chính sách là gì?',
+    fpPolicyExplain: 'Nền tảng từ chối bài do nội dung vi phạm quy định. Hệ thống KHÔNG tự đăng lại — bạn cần chỉnh sửa nội dung rồi tạo lại và đăng lại.',
+    fpTechExplain: 'Lỗi kỹ thuật (timeout, kết nối, token hết hạn…). Có thể đặt lại và đăng lại, kết nối lại tài khoản hoặc dời giờ đăng.',
+    fpEditContent: 'Chỉnh sửa nội dung', fpReschedule: 'Đặt lại & mở Lịch', fpReconnect: 'Kết nối lại tài khoản', fpDismiss: 'Bỏ bài lỗi này',
+    fpBadgePolicy: 'Vi phạm CS', fpBadgeTech: 'Lỗi kỹ thuật', fpNavFailed: 'Bài lỗi & cần xử lý',
     // calendar
     calMonth: 'Tháng 6, 2026', calUpcoming: 'Sắp đăng', calAuto: 'Tự động đăng', calNew: '+ Lên lịch bài mới',
     // lịch đăng bài (UI-07, FR-47..FR-51, FR-58)
@@ -600,7 +622,7 @@ export const STRINGS = {
     dashLoading: 'Loading your dashboard…', dashErrTitle: 'Couldn’t load your dashboard', dashErrMsg: 'Something went wrong while loading your dashboard. Please try again.',
     dashEmptyTitle: 'Nothing here yet', dashEmptyMsg: 'Connect a platform and create your first post to see your performance here.', dashEmptyCta: 'Create your first post', recentEmpty: 'No posts yet',
     needsReviewTitle: 'Needs your review', upNextTitle: 'Up next', reviewCta: 'Review', allCaughtUp: 'You’re all caught up!', nothingScheduled: 'Nothing scheduled yet.',
-    navDashboard: 'Dashboard', navCreate: 'Content', navCalendar: 'Calendar', navAnalytics: 'Analytics',
+    navDashboard: 'Dashboard', navCreate: 'Content', navCalendar: 'Calendar', navFailedPosts: 'Failed posts', navAnalytics: 'Analytics',
     navTrends: 'Trends', navBrand: 'Brand profile', navProfile: 'Profile', navSettings: 'Settings', navAdmin: 'Administration',
     stTotalReach: 'Total reach', stEngagement: 'Engagement rate', stPosts: 'Posts published', stScheduled: 'Scheduled',
     stPublished: 'Published', stScheduledS: 'Scheduled', stDraft: 'Draft', stReview: 'In review',
@@ -671,10 +693,12 @@ export const STRINGS = {
     clBulkDelMsg: 'The selected items and their platform versions will be deleted. This cannot be undone.',
     clBulkPartial: 'Some items could not be processed because their status does not allow it.',
     clBulkReviewDone: 'Selected items were submitted for review.',
-    // ===== Create content — layer 2: 5-step wizard =====
+    // ===== Create content — layer 2: 4-step wizard =====
     cwTitle: 'Create new content', cwSub: 'AI creates content that fits your brand, strategy and trends',
-    cwStep1: 'Select source', cwStep2: 'Generate', cwStep3: 'Edit', cwStep4: 'Review & Save', cwStep5: 'Schedule',
-    cwStepSoon: 'Feature in development',
+    cwStep1: 'Select source', cwStep2: 'Generate', cwStep3: 'Finalize', cwStep4: 'Schedule',
+    cwFormatting: 'Formatting…',
+    cwFormatError: 'Formatting failed', cwFormatQuota: 'You have used up this month’s token quota. Upgrade your plan or wait until next month.',
+    cwFormatDone: 'Formatted', cwNotFormatted: 'Not formatted', cwFormatMissing: 'Some platforms could not be formatted — please try formatting again.',
     cwBack: 'Back', cwNext: 'Continue', cwBackToList: 'Back to list',
     // step 1 — choose source
     cwSrcTitle: 'Source info', cwSrcSub: 'The AI generates content from the brand profile, strategy and trend you pick.',
@@ -734,6 +758,8 @@ export const STRINGS = {
     cvEditError: 'Failed to save changes',
     cvSubmitReview: 'Submit for review', cvApprove: 'Approve', cvReturnEdit: 'Return for edits',
     cvStatusError: 'Failed to update status',
+    cvReformat: 'Re-format per platform', cvReformatting: 'Formatting…',
+    cvReformatDone: 'Re-formatted per platform — the new versions are ready to schedule.', cvReformatError: 'Re-format failed',
     // brand voice panel + image preview
     cwVoiceTitle: 'Brand voice check', cwVoiceMatch: 'Match', cwVoiceTone: 'Tone', cwVoiceWording: 'Wording', cwVoiceMessage: 'Message',
     cwVoiceChecking: 'Checking...', cwVoiceRecheck: 'Re-check', cwVoiceError: 'Brand voice check failed',
@@ -743,17 +769,35 @@ export const STRINGS = {
     cwNoImage: 'No image yet — use the media prompt and click "Generate image" to preview.',
     cwPreviewEmpty: 'Generated content will appear here.',
     cwActLike: 'Like', cwActComment: 'Comment', cwActShare: 'Share', cwActReply: 'Reply',
-    // step 3 — manual edit
-    cwEditTitle: 'Manual edit', cwEditSub: 'Edit each part directly before review. Want the AI to rewrite? Go back to "Generate" and use "Regenerate".',
+    // step 3 — Finalize (Format + Edit + Review & Save merged)
+    cwFinalizeTitle: 'Edit & Finalize', cwFinalizeSub: 'Edit each part, format per platform, then pick a status and save — all in one place.',
+    cwFormatAll: 'Format all', cwFormatOne: 'Format this platform',
+    cwFormatAllHint: 'Adapt the content for ALL selected platforms at once.',
+    cwFormatOneHint: 'Adapt only the platform you are viewing — the others stay as they are.',
+    cwFormatHint: 'Formatting ADAPTS the original: the core message, product facts and CTA intent are kept; only length, tone, hashtags and presentation change to fit the platform.',
+    cwFormatRedoNote: 'This platform is already formatted — formatting again re-adapts FROM THE ORIGINAL, so manual edits made on the formatted copy will be lost.',
+    cwViewAll: 'Overview', cwViewEdit: 'Edit mode',
     cwHashtagHint: 'Separate hashtags with spaces or commas',
-    // step 4 — review & save
-    cwReviewTitle: 'Review & Save', cwReviewSub: 'Review the final copy per platform — each platform has its own content version.',
     cwReviewStatus: 'Status on save',
+    cwStatusHint: 'Keep "Draft" if you are not ready to review — a review status is only set when you pick it.',
     cwSave: 'Save & back to list', cwSaving: 'Saving...', cwSaveError: 'Saving content failed',
     cwNextSchedule: 'Next: Schedule posts',
-    // step 5 — schedule (coming soon)
-    cwScheduleTitle: 'Schedule posts', cwScheduleSoon: 'Feature in development — will connect to the Calendar tab.',
-    cwScheduleBtn: 'Schedule posts',
+    // step 4 — schedule: content is formatted, open the Calendar tab to pick account + time
+    cwScheduleTitle: 'Schedule posts', cwScheduleSoon: 'Your content is formatted per platform. Open the Calendar to pick a target account and publish time.',
+    cwScheduleBtn: 'Open Calendar',
+    // Failed posts & recovery (FR-35..FR-39)
+    fpHeading: 'Failed posts & recovery', fpSub: 'Track and resolve posts the platform rejected or that failed to publish.',
+    fpTabAll: 'All', fpTabPolicy: 'Policy violation', fpTabTechnical: 'Technical error',
+    fpTotal: 'Total errors', fpPolicy: 'Policy violations', fpTechnical: 'Technical errors',
+    fpEmpty: 'No failed posts. 🎉', fpMore: 'Show more',
+    fpDemo: 'Showing demo data — you have no failed posts yet, or the server is unreachable.',
+    fpErrorCode: 'Error code', fpNoCaption: '(no caption)', fpDetail: 'Error details', fpHide: 'Hide',
+    fpNext: 'What would you like to do next?',
+    fpPolicyWhat: 'What is a policy violation?',
+    fpPolicyExplain: 'The platform rejected the post because its content breaks their rules. The system will NOT auto-repost — you need to edit the content, then regenerate and repost.',
+    fpTechExplain: 'A technical error (timeout, connection, expired token…). You can reset and repost, reconnect the account, or reschedule.',
+    fpEditContent: 'Edit content', fpReschedule: 'Reset & open Calendar', fpReconnect: 'Reconnect account', fpDismiss: 'Dismiss this failure',
+    fpBadgePolicy: 'Policy', fpBadgeTech: 'Technical', fpNavFailed: 'Failed posts & recovery',
     calMonth: 'June 2026', calUpcoming: 'Upcoming', calAuto: 'Auto-publish', calNew: '+ Schedule new post',
     // schedule page (UI-07, FR-47..FR-51, FR-58)
     schNew: 'Schedule a post', schNewSub: 'Pick a formatted content version, a target account and a publish time.',
