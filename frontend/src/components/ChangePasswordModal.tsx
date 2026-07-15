@@ -8,6 +8,7 @@ import Modal from './Modal';
 import PasswordStrengthBar from './PasswordStrengthBar';
 import { passwordValid } from '../validations/password';
 import { otpValid, passwordsMatch } from '../validations/authValidation';
+import { useToast } from './toast/ToastProvider';
 
 type Step = 'current' | 'otp' | 'new';
 
@@ -34,6 +35,7 @@ const EyeBtn = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
 
 export default function ChangePasswordModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const { t, brandGradient } = useApp();
+  const toast = useToast();
   const { user } = useAuth();
 
   const [step, setStep] = useState<Step>('current');
@@ -64,7 +66,7 @@ export default function ChangePasswordModal({ onClose, onSuccess }: { onClose: (
       setOtpCode('');
       setSecondsLeft(OTP_TTL);
     } catch (err) {
-      setError((err as Error).message);
+      toast.error((err as Error).message);
     } finally {
       setSubmitting(false);
     }
@@ -93,7 +95,7 @@ export default function ChangePasswordModal({ onClose, onSuccess }: { onClose: (
         setSecondsLeft(0);
         setOtpCode('');
       }
-      setError((err as Error).message);
+      toast.error((err as Error).message);
     } finally {
       setSubmitting(false);
     }
@@ -117,7 +119,7 @@ export default function ChangePasswordModal({ onClose, onSuccess }: { onClose: (
         setSecondsLeft(0);
         setOtpCode('');
       }
-      setError((err as Error).message);
+      toast.error((err as Error).message);
     } finally {
       setSubmitting(false);
     }

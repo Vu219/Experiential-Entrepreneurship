@@ -18,6 +18,7 @@ import VersionContent from '../VersionContent';
 import BrandVoicePanel from '../BrandVoicePanel';
 import PostImagePreview from '../PostImagePreview';
 import { useBrandVoiceCheck } from '../useBrandVoiceCheck';
+import { useToast } from '../../toast/ToastProvider';
 
 /** Trạng thái job của MỘT nền tảng trong một lượt tạo (PA1 — job độc lập). */
 export interface PlatformRun {
@@ -38,7 +39,6 @@ export default function GenerateStep({
   setGenIndex,
   runs,
   starting,
-  startError,
   onGenerate,
   onRegenerate,
   onRetryPlatform,
@@ -54,8 +54,6 @@ export default function GenerateStep({
   runs: Partial<Record<Platform, PlatformRun>>;
   /** Đang tạo bài / khởi động lượt generate — khoá nút "Tạo nội dung với AI" (chống double-click). */
   starting: boolean;
-  /** Lỗi khi tạo bài (trước khi có job nào) — hiển thị cạnh nút tạo. */
-  startError: string | null;
   onGenerate: () => void;
   onRegenerate: (note: string) => void;
   onRetryPlatform: (platform: Platform) => void;
@@ -64,12 +62,12 @@ export default function GenerateStep({
   onNext: () => void;
 }) {
   const { t, brandGradient } = useApp();
+  const toast = useToast();
   const gen = gens[genIndex] ?? null;
   const [platform, setPlatform] = useState(source.platforms[0]);
   const [regenOpen, setRegenOpen] = useState(false);
   const [regenNote, setRegenNote] = useState('');
   const [imageBusy, setImageBusy] = useState(false);
-  const [imageError, setImageError] = useState<string | null>(null);
   const voice = useBrandVoiceCheck(source.brand.id, onPatchVersion);
 
   const version = gen?.versions.find((v) => v.platform === platform) ?? null;
@@ -87,12 +85,11 @@ export default function GenerateStep({
   const runGenerateImage = async () => {
     if (!version || imageBusy) return;
     setImageBusy(true);
-    setImageError(null);
     try {
       const { imageUrl } = await generateImage({ platform: version.platform, mediaPrompt: version.mediaPrompt });
       onPatchVersion(version.id, { imageUrl });
     } catch (e) {
-      setImageError(`${t.cwGenImageError}: ${(e as ApiError).message}`);
+      toast.error(`${t.cwGenImageError}: ${(e as ApiError).message}`);
     } finally {
       setImageBusy(false);
     }
@@ -112,9 +109,6 @@ export default function GenerateStep({
             </div>
             <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: '#211c38' }}>{t.cwStep2}</div>
             <div style={{ fontSize: 13, color: '#8a85a0', margin: '8px auto 20px', maxWidth: 380, lineHeight: 1.55 }}>{t.cwGenIntro}</div>
-            {startError && (
-              <div style={{ margin: '0 auto 14px', maxWidth: 380, fontSize: 12.5, color: '#d1435b', background: '#fdf1f3', borderRadius: 10, padding: '10px 12px' }}>{startError}</div>
-            )}
             <button onClick={onGenerate} disabled={starting} className="btn-grad" style={{ border: 'none', borderRadius: 12, padding: '13px 26px', fontWeight: 700, fontSize: 14, color: '#fff', background: brandGradient, boxShadow: '0 14px 28px -12px rgba(139,92,246,.6)', cursor: starting ? 'not-allowed' : 'pointer', opacity: starting ? 0.6 : 1 }}>
               {t.cwGenBtn}
             </button>
@@ -228,14 +222,12 @@ export default function GenerateStep({
       <BrandVoicePanel
         check={version?.brandVoice ?? null}
         busy={voice.busy}
-        error={voice.error}
         onRecheck={version ? () => voice.run(version) : undefined}
       />
       <PostImagePreview
         version={version}
         brandName={source.brand.brandName}
         imageBusy={imageBusy}
-        imageError={imageError}
         onGenerateImage={version ? runGenerateImage : undefined}
       />
     </>

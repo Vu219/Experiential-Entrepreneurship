@@ -17,6 +17,7 @@ import {
 } from '../../api/plans';
 import type { ApiError } from '../../api/apiClient';
 import type { Lang } from '../../types';
+import { useToast } from '../../components/toast/ToastProvider';
 
 // Trang admin "Quản lý gói" (3 tab): Gói dịch vụ / Bảng so sánh / Xem trước.
 // Nguồn dữ liệu là bảng Plan trong DB (một nguồn với landing — sửa ở đây là landing đổi).
@@ -50,8 +51,7 @@ export default function Plans() {
   const [load, setLoad] = useState<'loading' | 'error' | 'ok'>('loading');
   const [payload, setPayload] = useState<PlansPayload | null>(null);
   const [tab, setTab] = useState<Tab>('plans');
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
-  const showToast = useCallback((type: 'success' | 'error', msg: string) => setToast({ type, msg }), []);
+  const toast = useToast();
 
   // Modal state
   const [editingPlan, setEditingPlan] = useState<PlanDto | 'new' | null>(null);
@@ -60,12 +60,6 @@ export default function Plans() {
   const [editingFeature, setEditingFeature] = useState<PlanFeatureDto | 'new' | null>(null);
   const [deletingFeature, setDeletingFeature] = useState<PlanFeatureDto | null>(null);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(timer);
-  }, [toast]);
 
   const fetchAll = useCallback(() => {
     setLoad('loading');
@@ -109,8 +103,8 @@ export default function Plans() {
   const toggleActive = (p: PlanDto) => {
     setBusy(true);
     updatePlan(p.id, { ...toSaveInput(p), isActive: !p.isActive })
-      .then((saved) => { replacePlan(saved, false); showToast('success', t.plSaved); })
-      .catch(() => showToast('error', t.plSaveFail))
+      .then((saved) => { replacePlan(saved, false); toast.success(t.plSaved); })
+      .catch(() => toast.error(t.plSaveFail))
       .finally(() => { setBusy(false); setHidingPlan(null); });
   };
 
@@ -120,9 +114,9 @@ export default function Plans() {
     deletePlan(deletingPlan.id)
       .then(() => {
         setPayload((prev) => prev && ({ ...prev, plans: prev.plans.filter((x) => x.id !== deletingPlan.id) }));
-        showToast('success', t.plDeleted);
+        toast.success(t.plDeleted);
       })
-      .catch(() => showToast('error', t.plDeleteFail))
+      .catch(() => toast.error(t.plDeleteFail))
       .finally(() => { setBusy(false); setDeletingPlan(null); });
   };
 
@@ -132,9 +126,9 @@ export default function Plans() {
     deleteFeature(deletingFeature.id)
       .then(() => {
         setPayload((prev) => prev && ({ ...prev, features: prev.features.filter((x) => x.id !== deletingFeature.id) }));
-        showToast('success', t.plDeleted);
+        toast.success(t.plDeleted);
       })
-      .catch(() => showToast('error', t.plDeleteFail))
+      .catch(() => toast.error(t.plDeleteFail))
       .finally(() => { setBusy(false); setDeletingFeature(null); });
   };
 
@@ -157,14 +151,6 @@ export default function Plans() {
 
   return (
     <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {toast && (
-        <div className="view-pop" style={{ padding: '10px 16px', borderRadius: 10, fontSize: 13.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, background: toast.type === 'success' ? '#dcfce7' : '#fee2e2', color: toast.type === 'success' ? '#16a34a' : '#dc2626', border: `1px solid ${toast.type === 'success' ? '#bbf7d0' : '#fecaca'}` }}>
-          <span style={{ fontSize: 15 }}>{toast.type === 'success' ? '✓' : '✕'}</span>
-          <span style={{ flex: 1 }}>{toast.msg}</span>
-          <button onClick={() => setToast(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: 'inherit', padding: 0 }}>×</button>
-        </div>
-      )}
-
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 8 }}>
           {tabBtn('plans', t.plTabPlans)}
@@ -285,8 +271,7 @@ export default function Plans() {
         <PlanFormModal
           plan={editingPlan === 'new' ? null : editingPlan}
           onClose={() => setEditingPlan(null)}
-          onSaved={(saved, isNew) => { replacePlan(saved, isNew); setEditingPlan(null); showToast('success', t.plSaved); }}
-          onToast={showToast}
+          onSaved={(saved, isNew) => { replacePlan(saved, isNew); setEditingPlan(null); toast.success(t.plSaved); }}
         />
       )}
       {editingFeature && (
@@ -294,8 +279,7 @@ export default function Plans() {
           feature={editingFeature === 'new' ? null : editingFeature}
           plans={sortedPlans}
           onClose={() => setEditingFeature(null)}
-          onSaved={(saved, isNew) => { replaceFeature(saved, isNew); setEditingFeature(null); showToast('success', t.plSaved); }}
-          onToast={showToast}
+          onSaved={(saved, isNew) => { replaceFeature(saved, isNew); setEditingFeature(null); toast.success(t.plSaved); }}
         />
       )}
       {deletingPlan && (
@@ -405,13 +389,13 @@ function PreviewTab({ payload }: { payload: PlansPayload }) {
 // ===== Modal Sửa/Tạo gói =====
 type PlanFormSection = 'basic' | 'content' | 'features' | 'display';
 
-function PlanFormModal({ plan, onClose, onSaved, onToast }: {
+function PlanFormModal({ plan, onClose, onSaved }: {
   plan: PlanDto | null;
   onClose: () => void;
   onSaved: (saved: PlanDto, isNew: boolean) => void;
-  onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
   const { t, brandGradient } = useApp();
+  const toast = useToast();
   const isNew = !plan;
   const [busy, setBusy] = useState(false);
   const [section, setSection] = useState<PlanFormSection>('basic');
@@ -458,7 +442,7 @@ function PlanFormModal({ plan, onClose, onSaved, onToast }: {
       ? createPlan({ ...input, code: code.trim().toUpperCase() }).then((saved) => onSaved(saved, true))
       : updatePlan(plan.id, input).then((saved) => onSaved(saved, false));
     req
-      .catch((e) => onToast('error', (e as ApiError).code === ERR_PLAN_CODE_EXISTED ? t.plCodeExists : t.plSaveFail))
+      .catch((e) => toast.error((e as ApiError).code === ERR_PLAN_CODE_EXISTED ? t.plCodeExists : t.plSaveFail))
       .finally(() => setBusy(false));
   };
 
@@ -585,14 +569,14 @@ function PlanFormModal({ plan, onClose, onSaved, onToast }: {
 // ===== Modal Sửa/Tạo dòng bảng so sánh =====
 type CellDraft = { type: 'tick' | 'text'; tick: boolean; textVi: string; textEn: string };
 
-function FeatureFormModal({ feature, plans, onClose, onSaved, onToast }: {
+function FeatureFormModal({ feature, plans, onClose, onSaved }: {
   feature: PlanFeatureDto | null;
   plans: PlanDto[];
   onClose: () => void;
   onSaved: (saved: PlanFeatureDto, isNew: boolean) => void;
-  onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
   const { t, brandGradient } = useApp();
+  const toast = useToast();
   const isNew = !feature;
   const [busy, setBusy] = useState(false);
 
@@ -635,7 +619,7 @@ function FeatureFormModal({ feature, plans, onClose, onSaved, onToast }: {
     const req = isNew
       ? createFeature(input).then((saved) => onSaved(saved, true))
       : updateFeature(feature.id, input).then((saved) => onSaved(saved, false));
-    req.catch(() => onToast('error', t.plSaveFail)).finally(() => setBusy(false));
+    req.catch(() => toast.error(t.plSaveFail)).finally(() => setBusy(false));
   };
 
   const two = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 } as const;

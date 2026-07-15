@@ -14,6 +14,7 @@ import {
   type ResearchSessionDetail,
   type ResearchSessionSummary,
 } from '../../api/trendResearch.ts';
+import { useToast } from '../../components/toast/ToastProvider';
 import TrendStatCards from '../../components/trends/TrendStatCards.tsx';
 import TrendTable from '../../components/trends/TrendTable.tsx';
 import IdeaCard from '../../components/trends/IdeaCard.tsx';
@@ -38,6 +39,7 @@ interface LiveData {
 
 export default function Trends() {
   const { t, lang, go } = useApp();
+  const toast = useToast();
   const { width, isMobile } = useBreakpoint();
 
   // Breakpoint trang: <760 mobile · 760–899 sidebar xuống dưới · ≥900 hai cột (sticky) · ≥1440 nới rộng
@@ -66,7 +68,6 @@ export default function Trends() {
   const [live, setLive] = useState<LiveData | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [researching, setResearching] = useState(false);
-  const [researchError, setResearchError] = useState<string | null>(null);
   const [startOpen, setStartOpen] = useState(false);
 
   // Tải dữ liệu thật từ backend (/trend-research); backend chưa chạy / lỗi → giữ mock demo.
@@ -94,7 +95,6 @@ export default function Trends() {
   const runResearch = async (brandProfileId: string, platform: Platform) => {
     if (researching) return;
     setResearching(true);
-    setResearchError(null);
     try {
       const started = await startTrendResearch({ brandProfileId, platform });
       for (let i = 0; i < POLL_MAX_TRIES; i++) {
@@ -108,7 +108,7 @@ export default function Trends() {
       }
       throw new Error(t.trResearchFailed);
     } catch (e) {
-      setResearchError((e as Error).message || t.trResearchFailed);
+      toast.error((e as Error).message || t.trResearchFailed);
     } finally {
       setResearching(false);
     }
@@ -208,7 +208,7 @@ export default function Trends() {
           <button
             type="button"
             className="btn-grad"
-            onClick={() => { setResearchError(null); setStartOpen(true); }}
+            onClick={() => setStartOpen(true)}
             disabled={researching}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: 'none', borderRadius: 12, padding: '10px 18px', fontWeight: 700, fontSize: 13.5, color: '#fff', background: 'var(--brand)', cursor: researching ? 'wait' : 'pointer', opacity: researching ? 0.7 : 1, boxShadow: '0 14px 26px -12px rgba(139,92,246,.6)' }}
           >
@@ -216,9 +216,6 @@ export default function Trends() {
             {researching ? t.trResearching : t.trResearchNow}
           </button>
         </div>
-        {researchError && (
-          <div role="alert" style={{ flexBasis: '100%', fontSize: 12.5, color: '#dc2626' }}>{researchError}</div>
-        )}
       </div>
 
       {/* 4 thẻ thống kê */}

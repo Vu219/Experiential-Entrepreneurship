@@ -11,13 +11,11 @@ import type { BrandVoiceCheck } from '../../api/contentCreationService';
 export default function BrandVoicePanel({
   check,
   busy = false,
-  error,
   baselineScore,
   onRecheck,
 }: {
   check: BrandVoiceCheck | null;
   busy?: boolean;
-  error?: string | null;
   baselineScore?: number;
   onRecheck?: () => void;
 }) {
@@ -49,8 +47,6 @@ export default function BrandVoicePanel({
 
       {busy ? (
         <div style={{ fontSize: 12.5, color: '#8a85a0', padding: '10px 0' }}>{t.cwVoiceChecking}</div>
-      ) : error ? (
-        <div style={{ fontSize: 12.5, color: '#d1435b', background: '#fdf1f3', borderRadius: 10, padding: '10px 12px' }}>{error}</div>
       ) : check ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import StatusBadge, { type Tone } from '../admin/StatusBadge';
 import type { ContentStrategy, StrategyStatus } from '../../api/contentStrategy';
 import { FREQUENCY_UNIT_OPTIONS } from '../../data';
+import { useToast } from '../toast/ToastProvider';
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
@@ -30,9 +31,9 @@ export default function StrategyCard({ s, selected, onSelect, onToggleStatus, on
   const meta = statusMeta(s.status, t);
   const unitLabel = FREQUENCY_UNIT_OPTIONS(lang).find((u) => u.value === (s.frequencyUnit ?? 'WEEK'))?.label ?? '';
   const runnable = s.status === 'ACTIVE';
-  // Đổi trạng thái là tác vụ async (PATCH) — disable menu khi đang xử lý + hiện lỗi (không fail âm thầm), rollback do parent refetch/cập nhật state.
+  // Đổi trạng thái là tác vụ async (PATCH) — disable menu khi đang xử lý + báo lỗi qua toast (không fail âm thầm), rollback do parent refetch/cập nhật state.
   const [pending, setPending] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -52,9 +53,9 @@ export default function StrategyCard({ s, selected, onSelect, onToggleStatus, on
     setOpen(false);
     if (pending) return;
     setPending(true);
-    setFailed(false);
     Promise.resolve(onToggleStatus(next))
-      .catch(() => setFailed(true))
+      .then(() => toast.success(t.csStatusUpdated))
+      .catch(() => toast.error(t.csToggleErr))
       .finally(() => setPending(false));
   };
 
@@ -135,7 +136,6 @@ export default function StrategyCard({ s, selected, onSelect, onToggleStatus, on
       </div>
 
       {!runnable && <div style={{ fontSize: 11.5, color: '#b08968', background: '#fdf6ec', borderRadius: 8, padding: '6px 9px' }}>{t.csPausedNote}</div>}
-      {failed && <div role="alert" style={{ fontSize: 11.5, fontWeight: 600, color: '#d6336c' }}>{t.csToggleErr}</div>}
     </div>
   );
 }

@@ -99,10 +99,12 @@ export interface AvatarUploadResult {
   url: string;
 }
 
-export async function uploadAvatar(file: File): Promise<string> {
+export async function uploadAvatar(file: File, onUploadProgress?: (progressEvent: any) => void): Promise<string> {
   const form = new FormData();
   form.append("file", file);
-  const { data } = await client.post<ApiResponse<AvatarUploadResult>>("/files/avatar", form);
+  const { data } = await client.post<ApiResponse<AvatarUploadResult>>("/files/avatar", form, {
+    onUploadProgress
+  });
   return data.result.url;
 }
 

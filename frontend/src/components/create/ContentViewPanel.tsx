@@ -28,6 +28,7 @@ import { ContentViewSkeleton } from './CreateSkeleton';
 import { CONTENT_STATUS_META, aiLabelKey } from './statusMeta';
 import StatusBadge from '../admin/StatusBadge';
 import { TONE_COLORS } from '../../statusTokens';
+import { useToast } from '../toast/ToastProvider';
 
 // FR-33: chỉ sửa được trước khi vào pipeline đăng (khớp EDITABLE_STATUSES backend).
 const EDITABLE_STATUSES: ContentLifecycle[] = ['DRAFT', 'GENERATED', 'NEED_REVIEW', 'APPROVED'];
@@ -74,6 +75,7 @@ export default function ContentViewPanel({
   startInEdit?: boolean;
 }) {
   const { t, brandGradient } = useApp();
+  const toast = useToast();
   const { isMobile, isTablet } = useBreakpoint();
   const stacked = isMobile || isTablet;
   const [load, setLoad] = useState<'loading' | 'error' | 'ok'>('loading');
@@ -85,12 +87,9 @@ export default function ContentViewPanel({
   const [draft, setDraft] = useState<ContentVersion | null>(null);
   const [hashtagText, setHashtagText] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
-  const [editError, setEditError] = useState<string | null>(null);
   const [statusBusy, setStatusBusy] = useState(false);
-  const [statusError, setStatusError] = useState<string | null>(null);
   // FR-40..FR-46: "Định dạng lại theo nền tảng" — mở lại job format cho bài đã có (PA2-a).
   const [formatBusy, setFormatBusy] = useState(false);
-  const [formatMsg, setFormatMsg] = useState<{ ok: boolean; text: string } | null>(null);
   // Thông tin nguồn (rút gọn) cho màn xem: brand + nền tảng có sẵn từ item; ngành hàng/logo
   // enrich best-effort từ hồ sơ thương hiệu (chi tiết này không mang strategy/trend nên các
   // dòng đó bị ẩn — SourceInfoCard tự ẩn dòng thiếu dữ liệu).
@@ -141,14 +140,12 @@ export default function ContentViewPanel({
     if (!version) return;
     setDraft(cloneVersion(version));
     setHashtagText(version.hashtags.join(' '));
-    setEditError(null);
   };
-  const cancelEdit = () => { setDraft(null); setEditError(null); };
+  const cancelEdit = () => setDraft(null);
 
   const saveEdit = async () => {
     if (!draft || savingEdit) return;
     setSavingEdit(true);
-    setEditError(null);
     try {
       const res = await saveVersionEdit(item.id, draft);
       setVersions(res.versions);
@@ -156,7 +153,7 @@ export default function ContentViewPanel({
       setDraft(null);
       onChanged?.();
     } catch (e) {
-      setEditError((e as ApiError).message);
+      toast.error(`${t.cvEditError}: ${(e as ApiError).message}`);
     } finally {
       setSavingEdit(false);
     }
@@ -166,17 +163,16 @@ export default function ContentViewPanel({
   const doFormat = async () => {
     if (formatBusy) return;
     setFormatBusy(true);
-    setFormatMsg(null);
     try {
       await formatContent(item.id, item.platforms);
       const { item: it, versions: vs } = await getContentDetail(item.id);
       setVersions(vs);
       setStatus(it.status);
-      setFormatMsg({ ok: true, text: t.cvReformatDone });
+      toast.success(t.cvReformatDone);
       onChanged?.();
     } catch (e) {
       const err = e as ApiError;
-      setFormatMsg({ ok: false, text: err.code === ERR_TOKEN_QUOTA_EXCEEDED ? t.cwFormatQuota : err.message || t.cvReformatError });
+      toast.error(err.code === ERR_TOKEN_QUOTA_EXCEEDED ? t.cwFormatQuota : err.message || t.cvReformatError);
     } finally {
       setFormatBusy(false);
     }
@@ -185,13 +181,12 @@ export default function ContentViewPanel({
   const applyStatus = async (target: ContentLifecycle) => {
     if (statusBusy) return;
     setStatusBusy(true);
-    setStatusError(null);
     try {
       const res = await changeContentStatus(item.id, target);
       setStatus(res.status);
       onChanged?.();
     } catch (e) {
-      setStatusError(`${t.cvStatusError}: ${(e as ApiError).message}`);
+      toast.error(`${t.cvStatusError}: ${(e as ApiError).message}`);
     } finally {
       setStatusBusy(false);
     }
@@ -210,9 +205,6 @@ export default function ContentViewPanel({
             onRegenerateStep={regen.onRegenerateStep}
             regenerating={regen.regenerating}
           />
-          {regen.error && (
-            <div style={{ fontSize: 12.5, color: '#d1435b', background: '#fdf1f3', borderRadius: 10, padding: '10px 12px' }}>{t.cvEditError}: {regen.error}</div>
-          )}
         </>
       )}
       {tab === 'content' && (
@@ -237,9 +229,6 @@ export default function ContentViewPanel({
           <label style={label}>{t.cwTabMedia}</label>
           <textarea value={draft.mediaPrompt} onChange={(e) => setDraft({ ...draft, mediaPrompt: e.target.value })} style={{ ...inputBase, resize: 'vertical', minHeight: 90 }} />
         </div>
-      )}
-      {editError && (
-        <div style={{ fontSize: 12.5, color: '#d1435b', background: '#fdf1f3', borderRadius: 10, padding: '10px 12px' }}>{t.cvEditError}: {editError}</div>
       )}
     </div>
   );
@@ -336,13 +325,6 @@ export default function ContentViewPanel({
           {actionButtons}
         </div>
       </div>
-      {statusError && (
-        <div style={{ fontSize: 12.5, color: '#d1435b', background: '#fdf1f3', borderRadius: 10, padding: '10px 12px' }}>{statusError}</div>
-      )}
-      {formatMsg && (
-        <div style={{ fontSize: 12.5, color: formatMsg.ok ? '#0e7490' : '#d1435b', background: formatMsg.ok ? '#e0f7fb' : '#fdf1f3', borderRadius: 10, padding: '10px 12px' }}>{formatMsg.text}</div>
-      )}
-
       {load === 'loading' ? (
         <ContentViewSkeleton />
       ) : load === 'error' ? (

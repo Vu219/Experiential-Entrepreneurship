@@ -45,6 +45,8 @@ export const STRINGS = {
     fpResend: 'Gửi lại mã', fpResendIn: 'Gửi lại mã sau', fpExpiresIn: 'Mã hết hạn sau', fpExpired: 'Mã đã hết hạn, vui lòng gửi lại.',
     fpOtpSent: 'Mã OTP đã được gửi tới email của bạn.', fpBackLogin: 'Quay lại đăng nhập',
     fpSuccess: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập.',
+    // hoàn tất hồ sơ (CompleteProfilePage)
+    cpSaved: 'Đã lưu thông tin, email xác nhận đã được gửi',
     // shell
     secMain: 'TỔNG QUAN', upgradeTitle: 'Nâng cấp Pro', upgradeMsg: 'Mở khoá AI không giới hạn & phân tích nâng cao.', upgradeBtn: 'Nâng cấp ngay',
     usageTitle: 'Token AI tháng này', usageUnlimited: 'Không giới hạn',
@@ -53,6 +55,9 @@ export const STRINGS = {
     ntfTitle: 'Thông báo', ntfEmpty: 'Chưa có thông báo nào', ntfMarkAll: 'Đọc tất cả',
     ntfMore: 'Xem thêm', ntfErr: 'Không tải được thông báo.', ntfRetry: 'Thử lại',
     ntfNow: 'Vừa xong', ntfMinAgo: '{n} phút trước', ntfHourAgo: '{n} giờ trước', ntfDayAgo: '{n} ngày trước',
+    // toast feedback thao tác (components/toast/ToastProvider.tsx)
+    toastClose: 'Đóng thông báo',
+    toastSuccess: 'Thành công', toastError: 'Lỗi', toastWarning: 'Cảnh báo', toastInfo: 'Thông báo',
     // dashboard dữ liệu thật (UI-02) + tiến độ thiết lập (FR-86)
     dbPosted: 'Bài đã đăng', dbScheduled: 'Lịch chờ đăng',
     dbHeroSub: '{review} bài đang chờ duyệt và {scheduled} bài đã lên lịch. Hãy bắt đầu sáng tạo!',
@@ -351,6 +356,13 @@ export const STRINGS = {
     seColPlatform: 'Nền tảng', seColAccount: 'Tài khoản', seColStatus: 'Trạng thái kết nối', seColDate: 'Ngày kết nối', seColToken: 'Trạng thái token', seColActions: 'Thao tác',
     seStatusActive: 'Đang hoạt động', seStatusExpired: 'Hết hạn', seStatusDisconnected: 'Chưa kết nối', seStatusError: 'Lỗi kết nối',
     seTokenValid: 'Còn hiệu lực', seTokenExpired: 'Hết hạn', seDaysLeft: 'Còn {n} ngày', seExpiredAgo: 'Hết hạn {n} ngày trước',
+    // toast kết nối MXH (tab Kết nối)
+    seConnOk: 'Kết nối tài khoản thành công!', seConnFail: 'Kết nối thất bại. Vui lòng thử lại.',
+    seConnStartFail: 'Không thể bắt đầu kết nối. Vui lòng thử lại.',
+    seVerified: 'Đã kiểm tra kết nối.', seVerifyFail: 'Kiểm tra thất bại.',
+    seRefreshed: 'Đã làm mới token.', seRefreshFail: 'Làm mới thất bại.',
+    seDisconnected: 'Đã ngắt kết nối.', seDisconnectFail: 'Ngắt kết nối thất bại.',
+    seCheckedAll: 'Đã kiểm tra tất cả kết nối.',
     sePage: 'Trang', seSubPage: 'Trang phụ', seTypePage: 'Trang', seTypeAccount: 'Tài khoản',
     seShowPerPage: 'Hiển thị', sePerPage: 'trên mỗi trang',
     seInfoTitle: 'Chú thích trạng thái',
@@ -506,7 +518,7 @@ export const STRINGS = {
     bpfLogo: 'Logo thương hiệu', bpRemoveLogo: 'Xóa logo', bpSaveDraft: 'Lưu nháp',
     bpLogoZoom: 'Xem logo phóng to',
     bpSecInfo: 'Thông tin thương hiệu', bpSecPosition: 'Định vị thương hiệu', bpSecChannels: 'Kênh đăng',
-    bpAddKeyword: 'Từ khóa',
+    bpAddKeyword: 'Từ khóa', bpSaved: 'Đã lưu hồ sơ thương hiệu thành công',
     freqDaily: 'Hàng ngày', freqWeekly: 'Hàng tuần', freqBiweekly: '2 tuần/lần', freqMonthly: 'Hàng tháng',
     bpNeedMore: 'Cần bổ sung', bpHealthGood: 'AI đã hiểu tốt thương hiệu của bạn',
     bpHealthTip: 'Cung cấp thông tin càng chi tiết, AI sẽ hiểu rõ và nội dung càng chính xác.',
@@ -526,7 +538,7 @@ export const STRINGS = {
     csDetailEmpty: 'Chọn một chiến lược để xem chi tiết',
     csCollapseList: 'Thu gọn danh sách', csExpandList: 'Mở rộng danh sách', csListTitle: 'Danh sách chiến lược',
     csNeedBrand: 'Hãy tạo một hồ sơ thương hiệu trước khi tạo chiến lược content.',
-    csCreatedAt: 'Tạo lúc', csUpdatedAt: 'Cập nhật',
+    csCreatedAt: 'Tạo lúc', csUpdatedAt: 'Cập nhật', csSaved: 'Đã lưu chiến lược content thành công',
     csPreview: 'Xem trước', csEditBtn: 'Chỉnh sửa', csDeleteBtn: 'Xóa chiến lược', csSave: 'Lưu thay đổi', csCancel: 'Hủy',
     csActivate: 'Kích hoạt', csPause: 'Tạm dừng', csResume: 'Tiếp tục', csToggleErr: 'Không đổi được trạng thái. Thử lại.',
     csMenu: 'Tùy chọn', csStatusUpdated: 'Đã cập nhật trạng thái chiến lược.',
@@ -596,6 +608,8 @@ export const STRINGS = {
     fpResend: 'Resend code', fpResendIn: 'Resend in', fpExpiresIn: 'Code expires in', fpExpired: 'Code expired, please resend.',
     fpOtpSent: 'An OTP has been sent to your email.', fpBackLogin: 'Back to sign in',
     fpSuccess: 'Password reset successfully. Please sign in.',
+    // complete profile (CompleteProfilePage)
+    cpSaved: 'Profile saved — a confirmation email has been sent',
     secMain: 'OVERVIEW', upgradeTitle: 'Upgrade to Pro', upgradeMsg: 'Unlock unlimited AI & advanced analytics.', upgradeBtn: 'Upgrade now',
     usageTitle: 'AI tokens this month', usageUnlimited: 'Unlimited',
     searchPh: 'Search content, campaigns...', greeting: 'Hi', dashHeadline: 'AIMA is ready for you today',
@@ -603,6 +617,9 @@ export const STRINGS = {
     ntfTitle: 'Notifications', ntfEmpty: 'No notifications yet', ntfMarkAll: 'Mark all read',
     ntfMore: 'Load more', ntfErr: "Couldn't load notifications.", ntfRetry: 'Retry',
     ntfNow: 'Just now', ntfMinAgo: '{n} min ago', ntfHourAgo: '{n}h ago', ntfDayAgo: '{n}d ago',
+    // action-feedback toast (components/toast/ToastProvider.tsx)
+    toastClose: 'Close notification',
+    toastSuccess: 'Success', toastError: 'Error', toastWarning: 'Warning', toastInfo: 'Info',
     // real-data dashboard (UI-02) + setup progress (FR-86)
     dbPosted: 'Posts published', dbScheduled: 'Scheduled',
     dbHeroSub: '{review} posts awaiting review and {scheduled} scheduled. Let’s start creating!',
@@ -888,6 +905,13 @@ export const STRINGS = {
     seColPlatform: 'Platform', seColAccount: 'Account', seColStatus: 'Connection status', seColDate: 'Connected', seColToken: 'Token status', seColActions: 'Actions',
     seStatusActive: 'Active', seStatusExpired: 'Expired', seStatusDisconnected: 'Not connected', seStatusError: 'Connection error',
     seTokenValid: 'Valid', seTokenExpired: 'Expired', seDaysLeft: '{n} days left', seExpiredAgo: 'Expired {n} days ago',
+    // social connection toasts (Connections tab)
+    seConnOk: 'Account connected successfully!', seConnFail: 'Connection failed. Please try again.',
+    seConnStartFail: 'Could not start connection. Please try again.',
+    seVerified: 'Connection verified.', seVerifyFail: 'Verification failed.',
+    seRefreshed: 'Token refreshed.', seRefreshFail: 'Refresh failed.',
+    seDisconnected: 'Account disconnected.', seDisconnectFail: 'Disconnect failed.',
+    seCheckedAll: 'All connections checked.',
     sePage: 'Page', seSubPage: 'Sub page', seTypePage: 'Page', seTypeAccount: 'Account',
     seShowPerPage: 'Show', sePerPage: 'per page',
     seInfoTitle: 'Status legend',

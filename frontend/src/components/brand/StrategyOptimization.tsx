@@ -8,6 +8,7 @@ import {
   type AppliedStatus, type StrategyAdjustment,
 } from '../../api/strategyOptimization';
 import type { ApiError } from '../../api/apiClient';
+import { useToast } from '../toast/ToastProvider';
 
 const POLL_MS = 3000;
 
@@ -19,10 +20,10 @@ const DECISION_TONE: Record<AppliedStatus, Tone> = { PENDING: 'warning', APPLIED
  */
 export default function StrategyOptimization({ strategyId }: { strategyId: string }) {
   const { t, brandGradient } = useApp();
+  const toast = useToast();
   const [adjustments, setAdjustments] = useState<StrategyAdjustment[]>([]);
   const [improvements, setImprovements] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -48,19 +49,18 @@ export default function StrategyOptimization({ strategyId }: { strategyId: strin
           reload();
         } else if (job.status === 'FAILED') {
           setRunning(false);
-          setError(job.errorMessage || t.soErrRun);
+          toast.error(job.errorMessage || t.soErrRun);
         } else {
           poll(jobId);
         }
       } catch {
         setRunning(false);
-        setError(t.soErrRun);
+        toast.error(t.soErrRun);
       }
     }, POLL_MS);
-  }, [reload, t.soErrRun]);
+  }, [reload, t.soErrRun, toast]);
 
   const run = async () => {
-    setError(null);
     setImprovements([]);
     setRunning(true);
     try {
@@ -69,7 +69,8 @@ export default function StrategyOptimization({ strategyId }: { strategyId: strin
     } catch (e) {
       setRunning(false);
       const err = e as ApiError;
-      setError(err.code === ERR_NO_ANALYZED_POSTS ? t.soNoData : err.message);
+      if (err.code === ERR_NO_ANALYZED_POSTS) toast.warning(t.soNoData);
+      else toast.error(err.message);
     }
   };
 
@@ -79,7 +80,7 @@ export default function StrategyOptimization({ strategyId }: { strategyId: strin
       const updated = await decideAdjustment(id, status);
       setAdjustments((prev) => prev.map((a) => (a.id === id ? updated : a)));
     } catch (e) {
-      setError((e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setBusyId(null);
     }
@@ -110,10 +111,6 @@ export default function StrategyOptimization({ strategyId }: { strategyId: strin
       </div>
       <div style={{ fontSize: 12.5, color: '#8a85a0', marginTop: 6, lineHeight: 1.5 }}>{t.soSub}</div>
 
-      {error && (
-        <div style={{ fontSize: 12.5, color: '#b45309', background: '#fdf6e7', borderRadius: 9, padding: '8px 11px', marginTop: 10, lineHeight: 1.5 }}>{error}</div>
-      )}
-
       {improvements.length > 0 && (
         <div style={{ marginTop: 12, background: '#f8f5ff', border: '1px solid #e9defb', borderRadius: 11, padding: '11px 13px' }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: '#6d28d9', marginBottom: 6 }}>{t.soImprovements}</div>
@@ -132,7 +129,7 @@ export default function StrategyOptimization({ strategyId }: { strategyId: strin
           ))}
         </div>
       )}
-      {!running && pending.length === 0 && adjustments.length === 0 && !error && (
+      {!running && pending.length === 0 && adjustments.length === 0 && (
         <div style={{ fontSize: 12.5, color: '#a39bbf', marginTop: 10 }}>{t.soEmpty}</div>
       )}
 

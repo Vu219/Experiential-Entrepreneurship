@@ -14,6 +14,7 @@ import {
   type GoldenHours, type PostSchedule, type ScheduleStatus,
 } from '../../api/schedules.ts';
 import type { Platform } from '../../api/brandProfile.ts';
+import { useToast } from '../../components/toast/ToastProvider';
 
 // UI-07 — Lịch đăng bài (FR-47..FR-51 + FR-58): lịch tháng (dot theo nền tảng) + hàng đợi
 // với hành động Dời giờ / Hủy / Kích hoạt lại; modal Lên lịch mới có gợi ý khung giờ vàng (FR-48).
@@ -39,6 +40,7 @@ const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July
 
 export default function Calendar() {
   const { t, lang, go, brandGradient } = useApp();
+  const toast = useToast();
   const { isMobile, isTablet } = useBreakpoint();
   const stacked = isMobile || isTablet;
 
@@ -103,7 +105,7 @@ export default function Calendar() {
       await cancelSchedule(s.id);
       await load();
     } catch (e) {
-      alert((e as Error).message);
+      toast.error((e as Error).message);
     } finally {
       setBusyId(null);
     }

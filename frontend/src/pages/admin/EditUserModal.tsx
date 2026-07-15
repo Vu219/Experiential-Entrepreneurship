@@ -8,12 +8,13 @@ import Avatar from '../../components/admin/Avatar';
 import { validEmail } from '../../validations/authValidation';
 import { phoneOk } from '../../validations/profileValidation';
 import { uploadAvatar } from '../../api/auth';
+import { useToast } from '../../components/toast/ToastProvider';
 import {
   updateAdminUser, adminResetPassword, userPlanMeta, ADMIN_ERR,
   type AdminUserRow, type UserRole, type UserPlan, type UserStatus,
 } from '../../api/admin';
+import { withToast } from '../../utils/toastFlow';
 
-type Toast = (type: 'success' | 'error', msg: string) => void;
 
 /**
  * Modal "Chi tiết người dùng" — 2 tab:
@@ -21,14 +22,14 @@ type Toast = (type: 'success' | 'error', msg: string) => void;
  *    (ngày tạo, đăng nhập gần nhất, số kênh). Guard: tự-vai-trò & Google-email bị khoá ở UI + BE.
  *  • Tài khoản: email đăng nhập + phương thức đăng nhập + đặt lại mật khẩu (ẩn với Google).
  */
-export default function EditUserModal({ user, currentAdminId, onClose, onSaved, onToast }: {
+export default function EditUserModal({ user, currentAdminId, onClose, onSaved }: {
   user: AdminUserRow;
   currentAdminId: string;
   onClose: () => void;
   onSaved: (row: AdminUserRow) => void;
-  onToast: Toast;
 }) {
   const { t, brandGradient } = useApp();
+  const toast = useToast();
   const [tab, setTab] = useState<'info' | 'account'>('info');
 
   const isGoogle = user.authProvider === 'GOOGLE';
@@ -50,10 +51,18 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved, 
 
   const pickAvatar = async (file: File) => {
     setUploading(true);
+    const id = toast.loading('Đang chuẩn bị tải ảnh...', { title: 'Đang tải lên' });
     try {
-      setAvatarUrl(await uploadAvatar(file)); // POST /files/avatar (Supabase) → URL công khai
+      const url = await uploadAvatar(file, (evt) => {
+        if (evt.total) {
+          const percent = Math.round((evt.loaded * 100) / evt.total);
+          toast.loading(`Đang tải ảnh lên (${percent}%)...`, { id, title: 'Đang tải lên' });
+        }
+      });
+      setAvatarUrl(url);
+      toast.success('Tải ảnh thành công. Hãy nhấn Lưu để cập nhật.', { id, title: 'Thành công' });
     } catch {
-      onToast('error', t.usrAvatarFail);
+      toast.error('Không thể tải ảnh lên. Vui lòng thử lại.', { id, title: 'Lỗi tải lên' });
     } finally {
       setUploading(false);
     }
@@ -69,29 +78,36 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved, 
     return Object.keys(er).length === 0;
   };
 
-  const persist = () => {
+  const persist = async () => {
     setBusy(true);
-    updateAdminUser(user.id, {
-      name: name.trim(),
-      // Không gửi email nếu là tài khoản Google (BE khoá) để tránh lỗi vô ích.
-      email: isGoogle ? undefined : email.trim(),
-      phone: phone.trim() || undefined,
-      role: isSelf ? undefined : role,   // không tự đổi vai trò
-      plan,
-      status: isSelf ? undefined : status, // không tự khoá/xoá
-      avatarUrl,
-    })
-      .then((row) => { onSaved(row); onToast('success', `${t.usrSaved}: ${row.name}`); })
-      .catch((e) => {
-        const code = (e as { code?: number }).code;
-        onToast('error',
-          code === ADMIN_ERR.CANNOT_DEMOTE_SELF ? t.usrCannotDemoteSelf
-          : code === ADMIN_ERR.EMAIL_LOCKED_GOOGLE ? t.usrEmailLockedGoogleErr
-          : code === ADMIN_ERR.EMAIL_EXISTED ? t.usrEmailExistedErr
-          : code === ADMIN_ERR.ADMIN_PROTECTED ? t.usrNoLockAdmin
-          : t.usrSaveFail);
-      })
-      .finally(() => { setBusy(false); setConfirmPlan(false); });
+    try {
+      const payload = {
+        name: name.trim(),
+        email: isGoogle ? undefined : email.trim(),
+        phone: phone.trim() || undefined,
+        role: isSelf ? undefined : role,
+        plan,
+        status: isSelf ? undefined : status,
+        avatarUrl,
+      };
+      const row = await withToast(updateAdminUser(user.id, payload), {
+        loading: 'Đang lưu thay đổi...',
+        success: (res) => `${t.usrSaved}: ${res.name}`,
+        title: 'Cập nhật người dùng'
+      });
+      onSaved(row);
+    } catch (e) {
+      const code = (e as { code?: number }).code;
+      const errorMsg = code === ADMIN_ERR.CANNOT_DEMOTE_SELF ? t.usrCannotDemoteSelf
+        : code === ADMIN_ERR.EMAIL_LOCKED_GOOGLE ? t.usrEmailLockedGoogleErr
+        : code === ADMIN_ERR.EMAIL_EXISTED ? t.usrEmailExistedErr
+        : code === ADMIN_ERR.ADMIN_PROTECTED ? t.usrNoLockAdmin
+        : t.usrSaveFail;
+      toast.error(errorMsg);
+    } finally {
+      setBusy(false);
+      setConfirmPlan(false);
+    }
   };
 
   const submit = () => {
@@ -103,12 +119,21 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved, 
   // ----- Tab Tài khoản: đặt lại mật khẩu -----
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetBusy, setResetBusy] = useState(false);
-  const doReset = () => {
+  const doReset = async () => {
     setResetBusy(true);
-    adminResetPassword(user.id)
-      .then(() => onToast('success', `${t.usrResetPwSent} ${user.email}`))
-      .catch(() => onToast('error', t.usrResetPwFail))
-      .finally(() => { setResetBusy(false); setConfirmReset(false); });
+    try {
+      await withToast(adminResetPassword(user.id), {
+        loading: 'Đang gửi email đặt lại mật khẩu...',
+        success: `${t.usrResetPwSent} ${user.email}`,
+        error: t.usrResetPwFail,
+        title: 'Đặt lại mật khẩu'
+      });
+    } catch {
+      // lỗi đã xử lý
+    } finally {
+      setResetBusy(false);
+      setConfirmReset(false);
+    }
   };
 
   const providerBadge: { tone: Tone; label: string } = isGoogle

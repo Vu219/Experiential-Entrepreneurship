@@ -3,6 +3,7 @@ import { Download, Plus, Send, SlidersHorizontal, Sparkles, Trash2, X } from 'lu
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Card, Icon } from '../ui';
+import { useToast } from '../toast/ToastProvider';
 import Pagination from '../admin/Pagination';
 import SearchSuggestInput from '../brand/SearchSuggestInput';
 import ConfirmDialog from '../brand/ConfirmDialog';
@@ -45,6 +46,7 @@ export default function ContentList({
   onContinue: (item: ContentListItem) => void;
 }) {
   const { t, brandGradient } = useApp();
+  const toast = useToast();
   const { isMobile } = useBreakpoint();
   const [load, setLoad] = useState<'loading' | 'error' | 'ok'>('loading');
   const [data, setData] = useState<PageResponse<ContentListItem> | null>(null);
@@ -60,10 +62,8 @@ export default function ContentList({
   // Xóa (đơn lẻ hoặc hàng loạt) dùng chung một ConfirmDialog — mảng các bài sẽ xóa.
   const [deleting, setDeleting] = useState<ContentListItem[] | null>(null);
   const [busy, setBusy] = useState(false);
-  const [delError, setDelError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
-  const [bulkNote, setBulkNote] = useState<string | null>(null); // kết quả gửi duyệt hàng loạt
 
   // Nguồn gợi ý tìm kiếm + option thương hiệu + số đếm tab: toàn bộ nội dung.
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function ContentList({
   // Đổi bộ lọc / tab / tìm kiếm → quay về trang 1.
   useEffect(() => { setPage(1); }, [submittedQ, statusTab, filters]);
   // Đổi trang/bộ lọc/dữ liệu → bỏ chọn hàng loạt (selection chỉ có nghĩa trong trang đang xem).
-  useEffect(() => { setSelected(new Set()); setBulkNote(null); }, [submittedQ, statusTab, filters, page, reloadKey]);
+  useEffect(() => { setSelected(new Set()); }, [submittedQ, statusTab, filters, page, reloadKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -124,30 +124,30 @@ export default function ContentList({
   const confirmDelete = async () => {
     if (!deleting?.length || busy) return;
     setBusy(true);
-    setDelError(null);
     let failed = 0;
     let notDeletable = false;
+    let lastError = '';
     for (const it of deleting) {
       try {
         await deleteContent(it.id);
       } catch (e) {
         failed += 1;
         if ((e as ApiError).code === ERR_CONTENT_ITEM_NOT_DELETABLE) notDeletable = true;
-        else setDelError((e as ApiError).message);
+        else lastError = (e as ApiError).message;
       }
     }
     setBusy(false);
     setSelected(new Set());
     if (failed > 0) {
       // FR-89: bài đã vào pipeline đăng không xóa được → báo rõ, giữ dialog; danh sách vẫn tươi.
-      if (notDeletable) setDelError(t.clDelNotAllowed);
+      toast.error(notDeletable ? t.clDelNotAllowed : lastError);
       refresh();
     } else {
       setDeleting(null);
       refresh();
     }
   };
-  const closeDelete = () => { setDeleting(null); setDelError(null); };
+  const closeDelete = () => setDeleting(null);
 
   // ===== Gửi duyệt hàng loạt (chỉ DRAFT/GENERATED hợp lệ theo review flow FR-34) =====
   const bulkReview = async () => {
@@ -161,7 +161,8 @@ export default function ContentList({
     }
     setBulkBusy(false);
     setSelected(new Set());
-    setBulkNote(failed > 0 || skipped > 0 ? t.clBulkPartial : t.clBulkReviewDone);
+    if (failed > 0 || skipped > 0) toast.warning(t.clBulkPartial);
+    else toast.success(t.clBulkReviewDone);
     refresh();
   };
 
@@ -298,7 +299,6 @@ export default function ContentList({
           </button>
         </div>
       )}
-      {bulkNote && <div style={{ fontSize: 12.5, color: '#92600a', background: '#fdf0dc', borderRadius: 10, padding: '9px 12px' }}>{bulkNote}</div>}
 
       {load === 'loading' ? (
         <ContentTableSkeleton rows={Math.min(PAGE_SIZE, Math.max(items.length, 4))} />
@@ -371,11 +371,7 @@ export default function ContentList({
           busy={busy}
           onConfirm={confirmDelete}
           onClose={closeDelete}
-        >
-          {delError && (
-            <div style={{ background: '#fee2e2', color: '#b91c1c', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, fontWeight: 600, marginBottom: 12 }}>{delError}</div>
-          )}
-        </ConfirmDialog>
+        />
       )}
     </div>
   );

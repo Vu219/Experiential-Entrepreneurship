@@ -8,6 +8,7 @@ import { DataTable } from '../../components/admin/AdminListPage';
 import { getRevenue, formatVND, type RevenueData, type RevenuePeriod } from '../../api/admin';
 import { getAdminPlans, type PlanDto } from '../../api/plans';
 import { PLANS_INTENT_KEY, type PlansIntent } from './Plans';
+import { useToast } from '../../components/toast/ToastProvider';
 
 const PERIODS: RevenuePeriod[] = ['1m', '3m', '12m'];
 
@@ -24,6 +25,7 @@ function downloadBlob(content: string, filename: string, mime: string) {
 
 export default function Revenue() {
   const { t, lang, go, brandGradient } = useApp();
+  const toast = useToast();
   const { isMobile } = useBreakpoint();
   const [load, setLoad] = useState<'loading' | 'error' | 'ok'>('loading');
   const [period, setPeriod] = useState<RevenuePeriod>('1m');
@@ -76,7 +78,7 @@ export default function Revenue() {
   };
 
   // TODO(export-pdf): cần thư viện (jsPDF) — hỏi người dùng trước khi thêm dependency.
-  const exportPdf = () => alert(t.revExportPdfTodo);
+  const exportPdf = () => toast.info(t.revExportPdfTodo);
 
   if (load === 'loading') return <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto' }}><Card><Loader label={t.listLoading} /></Card></div>;
   if (load === 'error' || !data) return (

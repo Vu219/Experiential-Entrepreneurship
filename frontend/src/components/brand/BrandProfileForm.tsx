@@ -10,6 +10,7 @@ import type { Dict } from '../../i18n';
 import AiBrandPanel from './AiBrandPanel';
 import { brandHealth } from './brandHealth';
 import { Field, ChipMultiSelect, ComboInput, TagInput, PlatformSelect, LogoUploader, fieldInput } from './chips';
+import { useToast } from '../toast/ToastProvider';
 
 const splitTags = (s: string | null): string[] => (s ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 
@@ -44,7 +45,7 @@ export default function BrandProfileForm({ profile, onClose, onSaved }: { profil
   const [platforms, setPlatforms] = useState<Platform[]>(profile?.platforms ?? []);
   const [errors, setErrors] = useState<BrandFormErrors>({});
   const [saving, setSaving] = useState<'full' | 'draft' | null>(null);
-  const [apiError, setApiError] = useState('');
+  const toast = useToast();
 
   const targetAudience = audiences.join(', ');
   const health = useMemo(
@@ -67,12 +68,12 @@ export default function BrandProfileForm({ profile, onClose, onSaved }: { profil
 
   const persist = async (payload: BrandProfileInput, kind: 'full' | 'draft') => {
     setSaving(kind);
-    setApiError('');
     try {
       const saved = profile ? await updateBrandProfile(profile.id, payload) : await createBrandProfile(payload);
+      toast.success(t.bpSaved);
       onSaved(saved, !profile);
     } catch (err) {
-      setApiError((err as Error).message);
+      toast.error((err as Error).message);
     } finally {
       setSaving(null);
     }
@@ -102,8 +103,6 @@ export default function BrandProfileForm({ profile, onClose, onSaved }: { profil
         <button onClick={onClose} className="btn-soft" style={backBtn}><Icon icon={ChevronLeft} size={18} stroke="#5b5670" />{t.bpBack}</button>
         <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 20, color: '#211c38' }}>{profile ? t.bpfEdit : t.bpfNew}</div>
       </div>
-
-      {apiError && <div style={{ fontSize: 12.5, color: '#d6336c', background: '#fdeef2', border: '1px solid #f3c9d6', borderRadius: 10, padding: '10px 13px' }}>{apiError}</div>}
 
       <div style={{ display: 'grid', gridTemplateColumns: stack ? '1fr' : 'minmax(0,1fr) 340px', gap: 18, alignItems: 'start' }}>
         {/* Cột chính — form chia 3 cụm có tiêu đề */}

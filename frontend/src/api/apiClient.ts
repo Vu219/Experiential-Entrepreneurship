@@ -1,4 +1,5 @@
 import axios from "axios";
+import { globalToast } from "../components/toast/ToastProvider";
 
 // Unified backend response format (API-01)
 export interface ApiResponse<T> {
@@ -37,7 +38,15 @@ client.interceptors.response.use(
   (response) => response,
   (error) => {
     const data = error.response?.data;
+    const status = error.response?.status;
     const message = data?.message ?? "Cannot reach the server. Please try again.";
+    
+    if (status === 401 && !error.config?.url?.includes("/auth/login")) {
+      globalToast?.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", { title: "Lỗi kết nối" });
+    } else if (status >= 500) {
+      globalToast?.error("Máy chủ hiện không phản hồi. Vui lòng thử lại sau.", { title: "Lỗi hệ thống" });
+    }
+
     const err: ApiError = new Error(message);
     if (typeof data?.code === "number") err.code = data.code;
     return Promise.reject(err);

@@ -13,6 +13,7 @@ import { register as apiRegister, GOOGLE_LOGIN_URL, type User } from '../api/aut
 import PasswordStrengthBar from '../components/PasswordStrengthBar';
 import { passwordValid, generateStrongPassword } from '../validations/password';
 import { validEmail, passwordsMatch } from '../validations/authValidation';
+import { useToast } from '../components/toast/ToastProvider';
 import type { AuthForm, AuthErrors } from '../types';
 
 const inputWrap = (error?: string): CSSProperties => ({
@@ -57,6 +58,7 @@ export default function Auth() {
   const [submitting, setSubmitting] = useState(false);
   const [pwFocused, setPwFocused] = useState(false);
   const [notice, setNotice] = useState<string>((location.state as { notice?: string } | null)?.notice ?? '');
+  const toast = useToast();
 
   const switchRoute = (r: 'login' | 'register') => {
     setErrors({});
@@ -113,11 +115,31 @@ export default function Auth() {
     if (Object.keys(er).length > 0) return;
     setSubmitting(true);
     setNotice('');
+    
+    let loadingId: number | undefined;
+    const loadingTimer = setTimeout(() => {
+      loadingId = toast.loading('Vui lòng chờ trong giây lát.', { title: 'Đang đăng nhập...' });
+    }, 1000);
+
     try {
       const me = await authLogin(f.email, f.password);
+      clearTimeout(loadingTimer);
+      toast.success('Chào mừng bạn quay trở lại.', { id: loadingId, title: 'Đăng nhập thành công' });
       afterAuth(me);
     } catch (err) {
+      clearTimeout(loadingTimer);
       const msg = (err as Error).message;
+      let title = 'Đăng nhập thất bại';
+      let desc = 'Email hoặc mật khẩu không chính xác.';
+      
+      if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('server') || msg.toLowerCase().includes('fetch')) {
+        title = 'Không thể đăng nhập';
+        desc = 'Máy chủ hiện không phản hồi.';
+      } else if (msg && !/401|invalid|incorrect|sai/i.test(msg)) {
+        desc = msg;
+      }
+      
+      toast.error(desc, { id: loadingId, title });
       setErrors({ submit: msg });
     } finally {
       setSubmitting(false);

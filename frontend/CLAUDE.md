@@ -54,7 +54,10 @@ src/
 │   └── useUiStore.ts     — trạng thái UI cục bộ
 ├── context/AppContext.tsx— useApp(): bọc store + điều hướng (go/route) + auth
 ├── components/           — AppShell, Sidebar, LandingHeader, UserMenu, ShareButton, ui.tsx,
-│                           Modal (overlay dùng chung), ChangePasswordModal (đổi mật khẩu 3 bước), …
+│                           Modal (overlay dùng chung), ChangePasswordModal (đổi mật khẩu 3 bước),
+│                           toast/ToastProvider (toast góc trên-phải: useToast().success/error/
+│                           warning/info cho MỌI feedback thao tác nhất thời — không tự chế banner;
+│                           KHÁC NotificationBell là hộp thư bền vững), …
 ├── hooks/                — useBreakpoint (responsive), useReveal (scroll reveal)
 ├── validations/          — logic kiểm tra dữ liệu dùng chung (1 nguồn, không lặp inline):
 │                           password.ts (PASSWORD_RULE + độ mạnh), authValidation.ts

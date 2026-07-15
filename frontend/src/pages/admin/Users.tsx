@@ -21,6 +21,7 @@ import {
   getAdminUsers, getUserStats, createAdminUser, setUserLocked, deleteAdminUser, userStatusMeta, userPlanMeta, timeAgo,
   type AdminUserRow, type UserRole, type UserPlan, type UserStatus, type UserStats,
 } from '../../api/admin';
+import { useToast } from '../../components/toast/ToastProvider';
 
 const PAGE_SIZE = 8;
 
@@ -50,20 +51,13 @@ export default function Users() {
   const [showCreate, setShowCreate] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
-  const showToast = useCallback((type: 'success' | 'error', msg: string) => setToast({ type, msg }), []);
+  const toast = useToast();
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQ(query), 350);
     return () => clearTimeout(id);
   }, [query]);
   useEffect(() => setPage(0), [debouncedQ, role, status, plan]);
-
-  useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(timer);
-  }, [toast]);
 
   const fetchUsers = useCallback(() => {
     setLoad('loading');
@@ -135,11 +129,11 @@ export default function Users() {
       deleteAdminUser(u.id)
         .then(() => {
           setSelected((s) => (s && s.id === u.id ? null : s));
-          showToast('success', `${t.usrHardDeleted}: ${u.name}`);
+          toast.success(`${t.usrHardDeleted}: ${u.name}`);
           fetchUsers();
           fetchStats();
         })
-        .catch(() => showToast('error', t.usrHardDeleteFail))
+        .catch(() => toast.error(t.usrHardDeleteFail))
         .finally(done);
       return;
     }
@@ -147,10 +141,10 @@ export default function Users() {
     setUserLocked(u.id, confirm.kind === 'lock')
       .then((res) => {
         setRows((prev) => prev.map((x) => (x.id === u.id ? { ...x, status: res.status } : x)));
-        showToast('success', `${confirm.kind === 'lock' ? t.usrLocked : t.usrUnlocked}: ${u.name}`);
+        toast.success(`${confirm.kind === 'lock' ? t.usrLocked : t.usrUnlocked}: ${u.name}`);
         fetchStats();
       })
-      .catch(() => showToast('error', t.usrNoLockAdmin))
+      .catch(() => toast.error(t.usrNoLockAdmin))
       .finally(done);
   };
 
@@ -175,14 +169,6 @@ export default function Users() {
 
   return (
     <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {toast && (
-        <div className="view-pop" style={{ padding: '10px 16px', borderRadius: 10, fontSize: 13.5, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, background: toast.type === 'success' ? '#dcfce7' : '#fee2e2', color: toast.type === 'success' ? '#16a34a' : '#dc2626', border: `1px solid ${toast.type === 'success' ? '#bbf7d0' : '#fecaca'}` }}>
-          <span style={{ fontSize: 15 }}>{toast.type === 'success' ? '✓' : '✕'}</span>
-          <span style={{ flex: 1 }}>{toast.msg}</span>
-          <button onClick={() => setToast(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: 'inherit', padding: 0 }}>×</button>
-        </div>
-      )}
-
       {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 18 }}>
         {statCards.map((s, i) => (
@@ -261,7 +247,6 @@ export default function Users() {
           currentAdminId={me.id}
           onClose={() => setSelected(null)}
           onSaved={() => { setSelected(null); fetchUsers(); fetchStats(); }}
-          onToast={showToast}
         />
       )}
 
@@ -286,8 +271,7 @@ export default function Users() {
       {showCreate && (
         <CreateUserModal
           onClose={() => setShowCreate(false)}
-          onCreated={(row) => { setShowCreate(false); showToast('success', `${t.usrCreated}: ${row.name}`); fetchUsers(); fetchStats(); }}
-          onToast={showToast}
+          onCreated={(row) => { setShowCreate(false); toast.success(`${t.usrCreated}: ${row.name}`); fetchUsers(); fetchStats(); }}
         />
       )}
     </div>
@@ -295,12 +279,12 @@ export default function Users() {
 }
 
 /** Tạo tài khoản thủ công (POST /users) — admin đặt mật khẩu, mặc định gói FREE. */
-function CreateUserModal({ onClose, onCreated, onToast }: {
+function CreateUserModal({ onClose, onCreated }: {
   onClose: () => void;
   onCreated: (row: AdminUserRow) => void;
-  onToast: (type: 'success' | 'error', msg: string) => void;
 }) {
   const { t } = useApp();
+  const toast = useToast();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -322,7 +306,7 @@ function CreateUserModal({ onClose, onCreated, onToast }: {
     setBusy(true);
     createAdminUser({ name: name.trim(), email: email.trim(), password, phone: phone.trim() || undefined, role, plan })
       .then(onCreated)
-      .catch((e) => onToast('error', (e as { code?: number }).code === 1003 ? t.usrEmailExistedErr : t.usrSaveFail))
+      .catch((e) => toast.error((e as { code?: number }).code === 1003 ? t.usrEmailExistedErr : t.usrSaveFail))
       .finally(() => setBusy(false));
   };
 

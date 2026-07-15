@@ -28,13 +28,11 @@ export default function PostImagePreview({
   version,
   brandName,
   imageBusy = false,
-  imageError,
   onGenerateImage,
 }: {
   version: ContentVersion | null;
   brandName: string;
   imageBusy?: boolean;
-  imageError?: string | null;
   onGenerateImage?: () => void;
 }) {
   const { t, brandGradient } = useApp();
@@ -55,10 +53,6 @@ export default function PostImagePreview({
           </button>
         )}
       </div>
-
-      {imageError && (
-        <div style={{ marginBottom: 10, fontSize: 12, color: '#d1435b', background: '#fdf1f3', borderRadius: 10, padding: '8px 11px' }}>{imageError}</div>
-      )}
 
       {version === null ? (
         // Placeholder mốc 2 lúc chưa tạo — khung giữ nguyên, nội dung "đổ vào" sau.

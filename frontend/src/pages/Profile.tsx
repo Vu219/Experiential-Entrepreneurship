@@ -10,12 +10,15 @@ import Modal from '../components/Modal';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import { updateProfile, uploadAvatar, requestDeleteAccount, restoreAccount } from '../api/auth';
 import { activity } from '../data';
+import { useToast } from '../components/toast/ToastProvider';
+import { withToast } from '../utils/toastFlow';
 
 const fieldLabel = { display: 'block', fontSize: 12, fontWeight: 700, color: '#574f6e', marginBottom: 7 } as const;
 const fieldInput = { width: '100%', border: '1.5px solid #e7e2f2', borderRadius: 11, padding: '12px 14px', fontSize: 14, color: '#241f3a', background: '#fbfaff', outline: 'none' } as const;
 
 export default function Profile() {
   const { t, lang, logout, brandGradient } = useApp();
+  const toast = useToast();
   const { user, setUser, refreshUser } = useAuth();
   const { isMobile, isTablet } = useBreakpoint();
   const acts = activity(lang);
@@ -24,15 +27,11 @@ export default function Profile() {
   const [fullName, setFullName] = useState(user?.fullName ?? '');
   const [phone, setPhone] = useState(user?.phone ?? '');
   const [dateOfBirth, setDateOfBirth] = useState(user?.dateOfBirth ?? '');
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const [showChangePw, setShowChangePw] = useState(false);
-  const [pwToast, setPwToast] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [accError, setAccError] = useState('');
 
   // Avatar: dropdown (xem / đổi ảnh), lightbox phóng to, và trạng thái tải ảnh.
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -40,7 +39,6 @@ export default function Profile() {
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
-  const [avatarError, setAvatarError] = useState('');
 
   const name = fullName || user?.fullName || 'AIMA User';
   const email = user?.email ?? '';
@@ -75,14 +73,20 @@ export default function Profile() {
     const file = e.target.files?.[0];
     e.target.value = ''; // reset để chọn lại cùng một file vẫn kích hoạt onChange
     if (!file) return;
-    setAvatarError('');
     setAvatarUploading(true);
+    const id = toast.loading('Đang chuẩn bị tải ảnh...', { title: 'Đang tải lên' });
     try {
-      const url = await uploadAvatar(file);
+      const url = await uploadAvatar(file, (evt) => {
+        if (evt.total) {
+          const percent = Math.round((evt.loaded * 100) / evt.total);
+          toast.loading(`Đang tải ảnh lên (${percent}%)...`, { id, title: 'Đang tải lên' });
+        }
+      });
       const updated = await updateProfile({ fullName, phone, dateOfBirth, avatarUrl: url });
       setUser(updated);
+      toast.success('Cập nhật ảnh đại diện thành công', { id, title: 'Thành công' });
     } catch (err) {
-      setAvatarError((err as Error).message);
+      toast.error('Không thể tải ảnh lên. Vui lòng thử lại.', { id, title: 'Lỗi tải lên' });
     } finally {
       setAvatarUploading(false);
     }
@@ -92,44 +96,49 @@ export default function Profile() {
     new Date(iso).toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-US', { day: '2-digit', month: 'long', year: 'numeric' });
 
   const save = async () => {
-    setError('');
     setSaving(true);
     try {
-      const updated = await updateProfile({ fullName, phone, dateOfBirth });
+      const updated = await withToast(updateProfile({ fullName, phone, dateOfBirth }), {
+        loading: 'Đang lưu thông tin...',
+        success: 'Thông tin cá nhân đã được lưu thành công',
+        title: 'Cập nhật hồ sơ'
+      });
       setUser(updated);
-      setSaved(true);
-      window.setTimeout(() => setSaved(false), 2200);
     } catch (err) {
-      setError((err as Error).message);
+      // lỗi đã được toast trong withToast
     } finally {
       setSaving(false);
     }
   };
 
   const doDelete = async () => {
-    setAccError('');
     setBusy(true);
     try {
-      await requestDeleteAccount();
+      await withToast(requestDeleteAccount(), {
+        loading: 'Đang xử lý yêu cầu xóa tài khoản...',
+        success: 'Yêu cầu xóa tài khoản đã được ghi nhận',
+        title: 'Xóa tài khoản'
+      });
       await refreshUser();
       setShowDeleteConfirm(false);
     } catch (err) {
-      setAccError((err as Error).message);
+      // toast đã tự hiện
     } finally {
       setBusy(false);
     }
   };
 
   const doRestore = async () => {
-    setAccError('');
     setBusy(true);
     try {
-      await restoreAccount();
+      await withToast(restoreAccount(), {
+        loading: 'Đang khôi phục tài khoản...',
+        success: 'Tài khoản của bạn đã được khôi phục',
+        title: 'Khôi phục tài khoản'
+      });
       await refreshUser();
-      setPwToast(t.pdRestored);
-      window.setTimeout(() => setPwToast(''), 2600);
     } catch (err) {
-      setAccError((err as Error).message);
+      // toast tự hiện
     } finally {
       setBusy(false);
     }
@@ -137,10 +146,6 @@ export default function Profile() {
 
   return (
     <div className="view-pop" style={{ maxWidth: 980, margin: '0 auto' }}>
-      {pwToast && (
-        <div style={{ fontSize: 13.5, color: '#16a34a', background: '#e8f8ee', border: '1px solid #cdeed8', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>✓ {pwToast}</div>
-      )}
-
       {/* Pending-deletion banner */}
       {pendingDelete && (
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, background: '#fdeef2', border: '1px solid #f3c9d6', borderRadius: 16, padding: '16px 20px', marginBottom: 16 }}>
@@ -149,7 +154,6 @@ export default function Profile() {
             <div style={{ fontSize: 13, color: '#8a5566', marginTop: 3 }}>
               {t.pdMsg} {user?.deletionDate ? <strong>{fmtDate(user.deletionDate)}</strong> : null}.
             </div>
-            {accError && <div style={{ fontSize: 12.5, color: '#e23d6e', marginTop: 6 }}>{accError}</div>}
           </div>
           <button onClick={doRestore} disabled={busy} style={{ border: 'none', borderRadius: 11, padding: '11px 20px', fontWeight: 700, fontSize: 13.5, color: '#fff', background: brandGradient, boxShadow: '0 12px 24px -12px rgba(139,92,246,.6)', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>
             {busy ? t.processing : t.pdRestore}
@@ -164,7 +168,7 @@ export default function Profile() {
             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={onAvatarChange} style={{ display: 'none' }} />
             <div ref={avatarMenuRef} style={{ position: 'relative', width: 90, height: 90, margin: '0 auto 14px' }}>
               <button
-                onClick={() => { setAvatarError(''); setAvatarMenuOpen((v) => !v); }}
+                onClick={() => setAvatarMenuOpen((v) => !v)}
                 disabled={avatarUploading}
                 aria-haspopup="menu"
                 aria-expanded={avatarMenuOpen}
@@ -203,7 +207,6 @@ export default function Profile() {
             <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 20, color: '#211c38' }}>{name}</div>
             <div style={{ fontSize: 13, color: '#8a85a0', marginTop: 2 }}>{email}</div>
             {avatarUploading && <div style={{ fontSize: 12, color: '#7c3aed', marginTop: 6 }}>{t.avUploading}</div>}
-            {avatarError && <div style={{ fontSize: 12, color: '#e23d6e', marginTop: 6 }}>{avatarError}</div>}
             {/* Gói thật của user (từ /users/me) — không hardcode "Gói Premium" */}
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, fontWeight: 700, color: '#7c3aed', background: '#f3edff', borderRadius: 999, padding: '5px 13px' }}>
               ★ {user?.plan === 'PRO' ? t.planPro : user?.plan === 'PLUS' ? t.planPlus : t.planFree}
@@ -248,7 +251,7 @@ export default function Profile() {
                   <div style={{ fontSize: 12, color: '#8a85a0', marginTop: 2 }}>{t.prDeleteAccSub}</div>
                 </div>
               </div>
-              <button onClick={() => { setAccError(''); setShowDeleteConfirm(true); }} style={{ width: '100%', marginTop: 14, border: '1.5px solid #f3c9d6', background: '#fff', borderRadius: 11, padding: 11, fontWeight: 700, fontSize: 13.5, color: '#e23d6e', cursor: 'pointer' }}>{t.prDeleteAcc}</button>
+              <button onClick={() => setShowDeleteConfirm(true)} style={{ width: '100%', marginTop: 14, border: '1.5px solid #f3c9d6', background: '#fff', borderRadius: 11, padding: 11, fontWeight: 700, fontSize: 13.5, color: '#e23d6e', cursor: 'pointer' }}>{t.prDeleteAcc}</button>
             </Card>
           )}
         </div>
@@ -257,7 +260,6 @@ export default function Profile() {
         <div style={{ display: stacked ? 'contents' : 'flex', flexDirection: 'column', gap: 20 }}>
           <Card style={{ padding: 26, order: stacked ? 2 : undefined }}>
             <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38', marginBottom: 18 }}>{t.prEdit}</div>
-            {error && <div style={{ fontSize: 12.5, color: '#e23d6e', background: '#fdeef2', border: '1px solid #f3c9d6', borderRadius: 10, padding: '10px 13px', marginBottom: 14 }}>{error}</div>}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
               <div>
                 <label style={fieldLabel}>{t.lName}</label>
@@ -282,7 +284,7 @@ export default function Profile() {
                 />
               </div>
             </div>
-            <button onClick={save} disabled={saving} style={{ marginTop: 18, border: 'none', borderRadius: 12, padding: '12px 24px', fontWeight: 700, fontSize: 14, color: '#fff', background: brandGradient, boxShadow: '0 14px 28px -12px rgba(139,92,246,.6)', cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.75 : 1 }}>{saving ? t.processing : saved ? t.saved : t.save}</button>
+            <button onClick={save} disabled={saving} style={{ marginTop: 18, border: 'none', borderRadius: 12, padding: '12px 24px', fontWeight: 700, fontSize: 14, color: '#fff', background: brandGradient, boxShadow: '0 14px 28px -12px rgba(139,92,246,.6)', cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.75 : 1 }}>{saving ? t.processing : t.save}</button>
           </Card>
 
           <Card style={{ padding: 26, order: stacked ? 3 : undefined }}>
@@ -319,14 +321,13 @@ export default function Profile() {
       {showChangePw && (
         <ChangePasswordModal
           onClose={() => setShowChangePw(false)}
-          onSuccess={() => { setPwToast(t.cpSuccess); window.setTimeout(() => setPwToast(''), 2600); }}
+          onSuccess={() => toast.success(t.cpSuccess)}
         />
       )}
 
       {showDeleteConfirm && (
         <Modal title={t.delTitle} onClose={() => !busy && setShowDeleteConfirm(false)}>
           <div style={{ fontSize: 14, lineHeight: 1.6, color: '#4b4660' }}>{t.delMsg}</div>
-          {accError && <div style={{ fontSize: 12.5, color: '#e23d6e', marginTop: 12 }}>{accError}</div>}
           <div style={{ display: 'flex', gap: 12, marginTop: 22 }}>
             <button onClick={() => setShowDeleteConfirm(false)} disabled={busy} style={{ flex: 1, border: '1.5px solid #e7e2f2', background: '#fff', borderRadius: 12, padding: 13, fontWeight: 700, fontSize: 14, color: '#4b4660', cursor: 'pointer' }}>{t.cancel}</button>
             <button onClick={doDelete} disabled={busy} style={{ flex: 1, border: 'none', borderRadius: 12, padding: 13, fontWeight: 700, fontSize: 14, color: '#fff', background: '#e23d6e', boxShadow: '0 12px 24px -12px rgba(226,61,110,.6)', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{busy ? t.processing : t.delConfirm}</button>

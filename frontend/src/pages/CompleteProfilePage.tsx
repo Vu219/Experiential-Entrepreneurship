@@ -9,6 +9,7 @@ import { Loader } from "../components/ui";
 import PasswordStrengthBar from "../components/PasswordStrengthBar";
 import { passwordValid } from "../validations/password";
 import { passwordsMatch } from "../validations/authValidation";
+import { withToast } from "../utils/toastFlow";
 import { validateStep1 } from "../validations/profileValidation";
 
 // ---- Design tokens (khớp với Auth.tsx để onboarding nhất quán với app) ----
@@ -39,8 +40,8 @@ const EyeBtn = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
 const STEPS = ["Thông tin cá nhân", "Thiết lập mật khẩu"];
 
 export default function CompleteProfilePage() {
+  const { t, brandGradient } = useApp();
   const { user, loading, refreshUser } = useAuth();
-  const { brandGradient } = useApp();
   const navigate = useNavigate();
 
   const [step, setStep] = useState<1 | 2>(1);
@@ -53,8 +54,10 @@ export default function CompleteProfilePage() {
   const [showPw2, setShowPw2] = useState(false);
   const [errors, setErrors] = useState<{ fullName?: string; phone?: string; dob?: string; password?: string; confirm?: string; submit?: string }>({});
   const [submitting, setSubmitting] = useState(false);
-  const [toast, setToast] = useState(false);
   const [pwFocused, setPwFocused] = useState(false);
+  // Ngăn guard <Navigate> redirect ngay khi refreshUser() set profileCompleted=true,
+  // cho toast đủ thời gian hiển thị trước khi chuyển trang.
+  const [completed, setCompleted] = useState(false);
 
   const fullNameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
@@ -72,7 +75,7 @@ export default function CompleteProfilePage() {
   }
   // Phải đăng nhập mới vào được; đã hoàn tất hồ sơ thì không cần trang này.
   if (!user) return <Navigate to="/login" replace />;
-  if (user.profileCompleted) return <Navigate to="/dashboard" replace />;
+  if (user.profileCompleted && !completed) return <Navigate to="/dashboard" replace />;
 
   const focusFirst = (e: Record<string, string | undefined>) => {
     if (e.fullName) fullNameRef.current?.focus();
@@ -112,13 +115,19 @@ export default function CompleteProfilePage() {
 
     setSubmitting(true);
     try {
-      await completeProfile({ fullName: fullName.trim(), phone: phone.trim(), dob, password, confirmPassword: confirm });
-      setToast(true);
+      await withToast(
+        completeProfile({ fullName: fullName.trim(), phone: phone.trim(), dob, password, confirmPassword: confirm }),
+        {
+          loading: "Đang lưu thông tin hồ sơ...",
+          success: t.cpSaved,
+          title: "Hoàn tất đăng ký"
+        }
+      );
+      setCompleted(true);
       await refreshUser();
       setTimeout(() => navigate("/dashboard", { replace: true }), 1200);
     } catch (err) {
       const msg = (err as Error).message;
-      // Map lỗi server về đúng ô khi nhận diện được; còn lại hiển thị mức form.
       if (/hoàn tất/i.test(msg)) {
         await refreshUser();
         navigate("/dashboard", { replace: true });
@@ -253,14 +262,6 @@ export default function CompleteProfilePage() {
           </form>
         )}
       </div>
-
-      {/* Toast thành công */}
-      {toast && (
-        <div style={{ position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: 10, background: "#16a34a", color: "#fff", padding: "13px 20px", borderRadius: 13, boxShadow: "0 18px 38px -16px rgba(22,163,74,.6)", fontSize: 14, fontWeight: 600, zIndex: 50 }}>
-          <Check size={18} color="#fff" strokeWidth={2.4} />
-          Đã lưu thông tin, email xác nhận đã được gửi
-        </div>
-      )}
     </div>
   );
 }

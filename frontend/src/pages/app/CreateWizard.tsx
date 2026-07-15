@@ -5,6 +5,7 @@ import { useApp } from '../../context/AppContext.tsx';
 import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
 import { Icon } from '../../components/ui.tsx';
 import type { ApiError } from '../../api/apiClient.ts';
+import { withToast } from '../../utils/toastFlow';
 import {
   type ContentLifecycle,
   ERR_CONTENT_ITEM_NOT_DRAFT,
@@ -34,6 +35,7 @@ import SourceStep, { type SourceSelection, type WizardLiveSelection } from '../.
 import GenerateStep from '../../components/create/steps/GenerateStep.tsx';
 import FinalizeStep, { type FormatScope } from '../../components/create/steps/FinalizeStep.tsx';
 import ScheduleStep from '../../components/create/steps/ScheduleStep.tsx';
+import { useToast } from '../../components/toast/ToastProvider';
 
 /**
  * /create/new — lớp 2: wizard timeline 4 mốc (trang riêng, không modal):
@@ -46,6 +48,7 @@ import ScheduleStep from '../../components/create/steps/ScheduleStep.tsx';
  */
 export default function CreateWizard() {
   const { t, go } = useApp();
+  const toast = useToast();
   const { width } = useBreakpoint();
   // Bài DRAFT dở từ danh sách ("Tiếp tục"): draftId = id bài. Nạp trạng thái wizard đã
   // auto-save (bước đang dừng + id nguồn) + các bản nền tảng đã sinh; SourceStep vẫn tự fetch
@@ -123,7 +126,6 @@ export default function CreateWizard() {
   }, [draftId]);
 
   const [starting, setStarting] = useState(false); // đang tạo bài / khởi động lượt generate
-  const [startError, setStartError] = useState<string | null>(null);
   const startingRef = useRef(false); // guard đồng bộ chống double-click "Tạo nội dung với AI"
   const [gens, setGens] = useState<GenerationResult[]>([]);
   const [genIndex, setGenIndex] = useState(0);
@@ -137,12 +139,10 @@ export default function CreateWizard() {
   // ở mốc Hoàn thiện, không được tự gắn khi họ chỉ lưu nháp.
   const [status, setStatus] = useState<ContentLifecycle>('DRAFT');
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   // Định dạng theo nền tảng (job format thật, PA2-a) — giờ là THAO TÁC ở mốc Hoàn thiện, không còn
   // là mốc riêng. Giữ phạm vi lượt đang chạy ('all' | một nền tảng) để nút bấm hiện spinner đúng chỗ.
   // Kết quả được merge thẳng vào versions của lượt tạo hiện tại (status FORMATTED nằm trên version).
   const [formatting, setFormatting] = useState<FormatScope | null>(null);
-  const [formatError, setFormatError] = useState<string | null>(null);
 
   const goStep = (s: WizardStep) => {
     setStep(s);
@@ -157,8 +157,6 @@ export default function CreateWizard() {
     setGenIndex(0);
     setRunsByGen({});
     setBaselines({});
-    setStartError(null);
-    setFormatError(null);
     setMaxReached(1);
     resumeStepRef.current = null;
   };
@@ -240,10 +238,8 @@ export default function CreateWizard() {
     if (!source || startingRef.current) return;
     startingRef.current = true;
     setStarting(true);
-    setStartError(null);
     // (Tái) tạo nội dung làm bản format cũ hết hiệu lực — lượt tạo mới sinh version GENERATED,
     // nên mốc Hoàn thiện sẽ tự hiện "Chưa định dạng" trở lại.
-    setFormatError(null);
     setMaxReached((m) => (m > 2 ? 2 : m));
     try {
       // Tạo bài shell (DRAFT) một lần (dùng chung với auto-save); "Tạo lại" tái dùng bài cũ.
@@ -264,7 +260,7 @@ export default function CreateWizard() {
       }
     } catch (e) {
       // Tạo bài thất bại (vd chiến lược hết ACTIVE) — báo lỗi rõ, không tạo gen, không đứng wizard.
-      setStartError((e as ApiError).message || t.cwCreateItemError);
+      toast.error((e as ApiError).message || t.cwCreateItemError);
     } finally {
       startingRef.current = false;
       setStarting(false);
@@ -324,13 +320,18 @@ export default function CreateWizard() {
   const handleSave = async () => {
     if (!source || !itemId || saving) return;
     setSaving(true);
-    setSaveError(null);
     try {
-      await persistContent(status as 'DRAFT' | 'NEED_REVIEW' | 'APPROVED');
+      await withToast(persistContent(status as 'DRAFT' | 'NEED_REVIEW' | 'APPROVED'), {
+        loading: 'Đang lưu nội dung...',
+        success: 'Nội dung đã được lưu thành công',
+        error: (e: any) => `${t.cwSaveError}: ${e.message}`,
+        title: 'Lưu nội dung'
+      });
       savedRef.current = true; // đã lưu (kể cả giữ Nháp có chủ đích) → KHÔNG dọn như orphan khi unmount
       go('create');
     } catch (e) {
-      setSaveError((e as ApiError).message);
+      // toast tự hiển thị
+    } finally {
       setSaving(false);
     }
   };
@@ -340,14 +341,18 @@ export default function CreateWizard() {
   const handleGoSchedule = async () => {
     if (!source || !itemId || saving) return;
     setSaving(true);
-    setSaveError(null);
     try {
-      await persistContent(status as 'DRAFT' | 'NEED_REVIEW' | 'APPROVED');
+      await withToast(persistContent(status as 'DRAFT' | 'NEED_REVIEW' | 'APPROVED'), {
+        loading: 'Đang lưu trạng thái bài viết...',
+        success: 'Trạng thái đã được cập nhật',
+        error: (e: any) => `${t.cwSaveError}: ${e.message}`,
+        title: 'Cập nhật trạng thái'
+      });
       savedRef.current = true;
-      setSaving(false);
       goStep(4);
     } catch (e) {
-      setSaveError((e as ApiError).message);
+      // toast xử lý
+    } finally {
       setSaving(false);
     }
   };
@@ -366,16 +371,19 @@ export default function CreateWizard() {
     if (!source || !itemId || formatting) return;
     const targets = scope === 'all' ? source.platforms : [scope];
     setFormatting(scope);
-    setFormatError(null);
     try {
       await saveVersions(itemId, versionInputs(targets));
-      const versions = await formatContent(itemId, targets);
+      
+      const versions = await withToast(formatContent(itemId, targets), {
+        loading: 'AI đang định dạng nội dung...',
+        success: 'Định dạng nội dung thành công',
+        error: (e: any) => e.code === ERR_TOKEN_QUOTA_EXCEEDED ? t.cwFormatQuota : e.message || t.cwFormatError,
+        title: 'Định dạng AI'
+      });
+      
       setGens((prev) =>
         prev.map((g, i) => {
           if (i !== genIndex) return g;
-          // Thay TẠI CHỖ theo nền tảng để giữ nguyên thứ tự versions (filter+append sẽ đảo thứ tự,
-          // làm các chỗ lấy versions[0] nhảy sang nền tảng khác). Nền tảng chưa từng có bản nào
-          // (format vừa sinh ra) thì nối thêm vào cuối.
           const byPlatform = new Map(versions.map((v) => [v.platform, v]));
           const merged = g.versions.map((v) => byPlatform.get(v.platform) ?? v);
           const added = versions.filter((v) => !g.versions.some((x) => x.platform === v.platform));
@@ -387,8 +395,7 @@ export default function CreateWizard() {
         ...Object.fromEntries(versions.map((v) => [v.id, v.brandVoice.score])),
       }));
     } catch (e) {
-      const err = e as ApiError;
-      setFormatError(err.code === ERR_TOKEN_QUOTA_EXCEEDED ? t.cwFormatQuota : err.message || t.cwFormatError);
+      // error handled by withToast
     } finally {
       setFormatting(null);
     }
@@ -494,7 +501,6 @@ export default function CreateWizard() {
           setGenIndex={setGenIndex}
           runs={gen ? runsByGen[gen.id] ?? {} : {}}
           starting={starting}
-          startError={startError}
           onGenerate={() => startGeneration()}
           onRegenerate={(note) => startGeneration(note)}
           onRetryPlatform={retryPlatform}
@@ -512,10 +518,8 @@ export default function CreateWizard() {
           status={status}
           setStatus={setStatus}
           formatting={formatting}
-          formatError={formatError}
           onFormat={handleFormat}
           saving={saving}
-          saveError={saveError}
           onSave={handleSave}
           onPatchVersion={patchVersion}
           onBack={() => goStep(2)}

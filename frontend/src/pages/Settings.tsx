@@ -23,6 +23,7 @@ import {
   type PlatformEnum,
   type ConnectionStatus,
 } from '../api/connections';
+import { useToast } from '../components/toast/ToastProvider';
 
 type SettingsTab = 'appearance' | 'notifications' | 'connections';
 
@@ -244,7 +245,7 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
   const [perPage, setPerPage] = useState(10);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const toast = useToast();
 
   // ——— Fetch data ———
   const fetchData = useCallback(async () => {
@@ -269,22 +270,15 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
     const status = searchParams.get('status');
     const error = searchParams.get('error');
     if (status === 'success') {
-      setToast({ type: 'success', msg: lang === 'en' ? 'Account connected successfully!' : 'Kết nối tài khoản thành công!' });
+      toast.success(t.seConnOk);
       // Clean URL
       setSearchParams({ tab: 'connections' }, { replace: true });
     } else if (error) {
-      setToast({ type: 'error', msg: lang === 'en' ? 'Connection failed. Please try again.' : 'Kết nối thất bại. Vui lòng thử lại.' });
+      toast.error(t.seConnFail);
       setSearchParams({ tab: 'connections' }, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Auto-dismiss toast
-  useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 5000);
-    return () => clearTimeout(timer);
-  }, [toast]);
 
   // ——— Actions ———
   const handleConnect = async (platform: PlatformEnum) => {
@@ -294,7 +288,7 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
       const { authorizationUrl } = await getAuthorizationUrl(platform);
       window.location.href = authorizationUrl;
     } catch {
-      setToast({ type: 'error', msg: lang === 'en' ? 'Could not start connection. Please try again.' : 'Không thể bắt đầu kết nối. Vui lòng thử lại.' });
+      toast.error(t.seConnStartFail);
       setConnectingPlatform(null);
     }
   };
@@ -304,9 +298,9 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
     try {
       const updated = await validateConnection(id);
       setConnections((prev) => prev.map((c) => (c.id === id ? updated : c)));
-      setToast({ type: 'success', msg: lang === 'en' ? 'Connection verified.' : 'Đã kiểm tra kết nối.' });
+      toast.success(t.seVerified);
     } catch {
-      setToast({ type: 'error', msg: lang === 'en' ? 'Verification failed.' : 'Kiểm tra thất bại.' });
+      toast.error(t.seVerifyFail);
     } finally {
       setActionLoading((p) => ({ ...p, [id]: false }));
     }
@@ -317,9 +311,9 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
     try {
       const updated = await refreshConnection(id);
       setConnections((prev) => prev.map((c) => (c.id === id ? updated : c)));
-      setToast({ type: 'success', msg: lang === 'en' ? 'Token refreshed.' : 'Đã làm mới token.' });
+      toast.success(t.seRefreshed);
     } catch {
-      setToast({ type: 'error', msg: lang === 'en' ? 'Refresh failed.' : 'Làm mới thất bại.' });
+      toast.error(t.seRefreshFail);
     } finally {
       setActionLoading((p) => ({ ...p, [id]: false }));
     }
@@ -332,9 +326,9 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
       setConnections((prev) => prev.filter((c) => c.id !== id));
       // Refresh stats
       try { const st = await getConnectionStats(); setStats(st); } catch { /* ignore */ }
-      setToast({ type: 'success', msg: lang === 'en' ? 'Account disconnected.' : 'Đã ngắt kết nối.' });
+      toast.success(t.seDisconnected);
     } catch {
-      setToast({ type: 'error', msg: lang === 'en' ? 'Disconnect failed.' : 'Ngắt kết nối thất bại.' });
+      toast.error(t.seDisconnectFail);
     } finally {
       setActionLoading((p) => ({ ...p, [id]: false }));
     }
@@ -352,7 +346,7 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
       }
       const st = await getConnectionStats();
       setStats(st);
-      setToast({ type: 'success', msg: lang === 'en' ? 'All connections checked.' : 'Đã kiểm tra tất cả kết nối.' });
+      toast.success(t.seCheckedAll);
     } catch { /* ignore */ } finally {
       setLoading(false);
     }
@@ -449,27 +443,6 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
   // ——— Render ———
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-      {/* ——— Toast banner ——— */}
-      {toast && (
-        <div
-          style={{
-            padding: '10px 16px', borderRadius: 10, fontSize: 13.5, fontWeight: 600,
-            display: 'flex', alignItems: 'center', gap: 8,
-            background: toast.type === 'success' ? '#dcfce7' : '#fee2e2',
-            color: toast.type === 'success' ? '#16a34a' : '#dc2626',
-            border: `1px solid ${toast.type === 'success' ? '#bbf7d0' : '#fecaca'}`,
-            animation: 'fadeIn .25s ease-out',
-          }}
-        >
-          <span style={{ fontSize: 16 }}>{toast.type === 'success' ? '✓' : '✕'}</span>
-          <span style={{ flex: 1 }}>{toast.msg}</span>
-          <button
-            onClick={() => setToast(null)}
-            style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: 'inherit', padding: 0 }}
-          >×</button>
-        </div>
-      )}
 
       {/* Header section — two side-by-side cards */}
       <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16, alignItems: 'stretch' }}>

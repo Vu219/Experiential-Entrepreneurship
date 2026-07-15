@@ -7,6 +7,7 @@ import { validateStrategy, type StrategyFormErrors } from '../../validations/bra
 import type { Dict } from '../../i18n';
 import StrategySummary from './StrategySummary';
 import { Field, ChipMultiSelect, TagInput, PlatformSelect, fieldInput } from './chips';
+import { useToast } from '../toast/ToastProvider';
 
 /** Form Tạo/Sửa chiến lược (panel phải) — 8 mục thuộc tính + tóm tắt sống + nút lưu/hủy/xóa. */
 export default function StrategyEditor({ strategy, brandId, brandName, onCancel, onSaved, onDelete }: {
@@ -33,7 +34,7 @@ export default function StrategyEditor({ strategy, brandId, brandName, onCancel,
   const [ctas, setCtas] = useState<string[]>(strategy?.ctas ?? []);
   const [errors, setErrors] = useState<StrategyFormErrors>({});
   const [saving, setSaving] = useState<'full' | 'draft' | null>(null);
-  const [apiError, setApiError] = useState('');
+  const toast = useToast();
 
   const summaryLike = { goals, frequencyCount, frequencyUnit, platforms, audiences, styles, ctas };
 
@@ -45,12 +46,12 @@ export default function StrategyEditor({ strategy, brandId, brandName, onCancel,
       goals, contentTypes, frequencyCount, frequencyUnit, platforms, timeSlots, audiences, styles, ctas,
     };
     setSaving(kind);
-    setApiError('');
     try {
       const saved = strategy ? await updateContentStrategy(strategy.id, payload) : await createContentStrategy(payload);
+      toast.success(t.csSaved);
       onSaved(saved, !strategy);
     } catch (err) {
-      setApiError((err as Error).message);
+      toast.error((err as Error).message);
     } finally {
       setSaving(null);
     }
@@ -81,8 +82,6 @@ export default function StrategyEditor({ strategy, brandId, brandName, onCancel,
         <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 18, color: '#211c38' }}>{strategy ? t.csEditBtn : t.csCreate}</div>
         <span style={{ fontSize: 12.5, color: '#8a85a0' }}>{t.csForBrand}: <strong style={{ color: '#5b4b86' }}>{brandName}</strong></span>
       </div>
-
-      {apiError && <div style={{ fontSize: 12.5, color: '#d6336c', background: '#fdeef2', border: '1px solid #f3c9d6', borderRadius: 10, padding: '10px 13px' }}>{apiError}</div>}
 
       <Field label={t.csName} required error={err('name')}>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t.csNamePh} style={fieldInput} />

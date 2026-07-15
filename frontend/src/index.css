@@ -914,6 +914,88 @@ html {
   }
 }
 
+/* ===== Toast góc trên-phải (components/toast/ToastProvider.tsx) =====
+   Vào: trượt từ phải + mờ dần (dùng token dropdown chung). Thanh tiến trình chạy
+   bằng transform: scaleX (origin trái) — không gây reflow; duration đặt inline
+   theo tuổi thọ toast, pause-on-hover qua animation-play-state ở component. */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+@keyframes toast-progress {
+  0% {
+    transform: scaleX(1);
+    opacity: 0.6;
+  }
+  80% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: scaleX(0);
+    opacity: 0.95;
+  }
+}
+@keyframes toast-icon-pop {
+  0% {
+    transform: scale(0.5);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes toast-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.toast-item {
+  animation: toast-in 220ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+}
+.toast-item--leaving {
+  animation: toast-out 220ms ease-in both;
+}
+.toast-progress {
+  transform-origin: left;
+  animation-name: toast-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast-item,
+  .toast-item--leaving {
+    animation: none !important;
+  }
+  .toast-progress {
+    animation: none !important;
+    visibility: hidden; /* thanh rút gọn là chuyển động — ẩn hẳn, toast vẫn tự đóng */
+  }
+}
+.toast-close {
+  transition: all 0.2s ease;
+}
+.toast-close:hover {
+  background: #f3f4f6 !important;
+}
+
 .dots-container {
   display: flex;
   align-items: center;

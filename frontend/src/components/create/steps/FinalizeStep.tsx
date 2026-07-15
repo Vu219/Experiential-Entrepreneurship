@@ -62,10 +62,8 @@ export default function FinalizeStep({
   status,
   setStatus,
   formatting,
-  formatError,
   onFormat,
   saving,
-  saveError,
   onSave,
   onPatchVersion,
   onBack,
@@ -81,10 +79,8 @@ export default function FinalizeStep({
   setStatus: (s: ContentLifecycle) => void;
   /** Lượt định dạng đang chạy (null = rảnh) — khoá nút + spinner đúng nút được bấm. */
   formatting: FormatScope | null;
-  formatError: string | null;
   onFormat: (scope: FormatScope) => void;
   saving: boolean;
-  saveError: string | null;
   onSave: () => void;
   onPatchVersion: (versionId: string, patch: Partial<ContentVersion>) => void;
   onBack: () => void;
@@ -160,9 +156,6 @@ export default function FinalizeStep({
         onRegenerateStep={regen.onRegenerateStep}
         regenerating={regen.regenerating}
       />
-      {regen.error && (
-        <div style={{ marginTop: 8, fontSize: 12.5, color: '#d1435b', background: '#fdf1f3', borderRadius: 10, padding: '10px 12px' }}>{regen.error}</div>
-      )}
 
       <GroupHeading text={t.cwTabContent} />
       <label style={fieldLabel}>{t.cwTabCaption}</label>
@@ -222,10 +215,11 @@ export default function FinalizeStep({
       {formatBar}
 
       {/* Cảnh báo thiếu chỉ có nghĩa khi ĐÃ format một phần (vài nền tảng xong, vài nền tảng chưa) —
-          lúc chưa format gì thì "chưa định dạng" là trạng thái bình thường, không phải lỗi. */}
-      {(formatError || (missing.length > 0 && missing.length < source.platforms.length)) && (
-        <div style={{ marginTop: 14, fontSize: 12.5, color: formatError ? '#d1435b' : '#b45309', background: formatError ? '#fdf1f3' : '#fdf6e7', borderRadius: 10, padding: '10px 12px', lineHeight: 1.5 }}>
-          {formatError ?? t.cwFormatMissing}
+          lúc chưa format gì thì "chưa định dạng" là trạng thái bình thường, không phải lỗi.
+          Đây là TRẠNG THÁI bền (khác lỗi thao tác đã chuyển qua toast) nên giữ inline. */}
+      {missing.length > 0 && missing.length < source.platforms.length && (
+        <div style={{ marginTop: 14, fontSize: 12.5, color: '#b45309', background: '#fdf6e7', borderRadius: 10, padding: '10px 12px', lineHeight: 1.5 }}>
+          {t.cwFormatMissing}
         </div>
       )}
 
@@ -239,7 +233,6 @@ export default function FinalizeStep({
       <BrandVoicePanel
         check={version.brandVoice}
         busy={voice.busy}
-        error={voice.error}
         baselineScore={baselines[version.id]}
         onRecheck={() => voice.run(version)}
       />
@@ -264,9 +257,6 @@ export default function FinalizeStep({
           })}
         </div>
         <div style={{ marginTop: 10, fontSize: 11.5, color: '#8a85a0', lineHeight: 1.5 }}>{t.cwStatusHint}</div>
-        {saveError && (
-          <div style={{ marginTop: 14, fontSize: 12.5, color: '#d1435b', background: '#fdf1f3', borderRadius: 10, padding: '10px 12px' }}>{t.cwSaveError}: {saveError}</div>
-        )}
       </Card>
     </>
   );
