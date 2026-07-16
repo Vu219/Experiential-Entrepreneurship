@@ -8,6 +8,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "ai-service")
 public record AiServiceProperties(
         String baseUrl,
-        long timeoutSeconds
+        long timeoutSeconds,
+        // Shared secret với AI service (header X-Internal-Token) — bắt buộc cho request
+        // mang llm_config / test-connection. KHÔNG log giá trị này.
+        String internalToken
 ) {
 }

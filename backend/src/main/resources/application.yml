@@ -133,6 +133,9 @@ meta:
 ai-service:
   base-url: ${AI_SERVICE_BASE_URL:http://localhost:8000}
   timeout-seconds: ${AI_SERVICE_TIMEOUT_SECONDS:60}
+  # Shared secret với AI service (header X-Internal-Token) — cùng giá trị AI_INTERNAL_TOKEN
+  # trong ai/.env. Cần cho test-connection + request mang llm_config (AI_CONFIG_FROM_DB=true).
+  internal-token: ${AI_INTERNAL_TOKEN:}
 
 # Cấu hình AI theo DB (admin quản lý provider/model/routing — trang "Cấu hình AI").
 # from-db=false (mặc định) → payload gửi AI service KHÔNG kèm llm_config, AI service

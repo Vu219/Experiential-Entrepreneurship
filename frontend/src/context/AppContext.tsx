@@ -35,6 +35,9 @@ const PATH_BY_ROUTE: Record<Route, string> = {
   adminApiVersions: '/admin/api-versions',
   adminRevenue: '/admin/revenue',
   adminPlans: '/admin/plans',
+  adminAiProviders: '/admin/ai/providers',
+  adminAiModels: '/admin/ai/models',
+  adminAiUsage: '/admin/ai/usage',
 };
 const ROUTE_BY_PATH = Object.fromEntries(
   Object.entries(PATH_BY_ROUTE).map(([r, p]) => [p, r as Route])

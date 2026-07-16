@@ -29,7 +29,10 @@ export type Route =
   | 'adminLogs'
   | 'adminApiVersions'
   | 'adminRevenue'
-  | 'adminPlans';
+  | 'adminPlans'
+  | 'adminAiProviders'
+  | 'adminAiModels'
+  | 'adminAiUsage';
 
 /** A social platform short descriptor (background + 2-letter tag). */
 export interface Platform {

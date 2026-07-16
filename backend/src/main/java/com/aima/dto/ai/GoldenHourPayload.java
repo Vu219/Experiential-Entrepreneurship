@@ -1,5 +1,6 @@
 package com.aima.dto.ai;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,7 +18,10 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class GoldenHourPayload {
+public class GoldenHourPayload implements LlmRoutedPayload {
 
     String platform;
+
+    @JsonProperty("llm_config")
+    LlmConfigPayload llmConfig;
 }

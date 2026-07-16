@@ -18,7 +18,10 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class FormatPayload {
+public class FormatPayload implements LlmRoutedPayload {
+
+    @JsonProperty("llm_config")
+    LlmConfigPayload llmConfig;
 
     @JsonProperty("brand_profile")
     BrandProfileInputPayload brandProfile;

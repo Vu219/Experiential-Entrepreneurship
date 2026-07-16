@@ -9,6 +9,7 @@ import com.aima.entity.ContentGenerationJob;
 import com.aima.entity.ContentItem;
 import com.aima.entity.ContentStrategy;
 import com.aima.entity.ContentVersion;
+import com.aima.enums.AiTaskCode;
 import com.aima.enums.GenerationJobStatus;
 import com.aima.enums.NotificationType;
 import com.aima.mapper.AiContentMapper;
@@ -20,6 +21,7 @@ import com.aima.repository.TrendRepository;
 import com.aima.service.AiServiceClient;
 import com.aima.service.ContentGenerationWorkerService;
 import com.aima.service.NotificationService;
+import com.aima.service.AiUsageService;
 import com.aima.service.TokenUsageService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +57,7 @@ public class ContentGenerationWorkerServiceImpl implements ContentGenerationWork
     TransactionTemplate transactionTemplate;
     NotificationService notificationService;
     TokenUsageService tokenUsageService;
+    AiUsageService aiUsageService;
 
     @Async("contentGenerationExecutor")
     @Override
@@ -166,6 +169,7 @@ public class ContentGenerationWorkerServiceImpl implements ContentGenerationWork
         BrandProfile brand = item.getBrandProfile();
         // Cộng token LLM thật của lần gọi vào hạn mức tháng của user (thanh usage ở sidebar).
         tokenUsageService.record(brand.getUser(), result.getTokensUsed());
+        aiUsageService.record(brand.getUser(), AiTaskCode.CONTENT_GENERATION, result.getTokensUsed());
         notificationService.notify(brand.getUser(), NotificationType.REVIEW_NEEDED,
                 "Nội dung mới cần xem xét",
                 "AI vừa tạo nội dung mới cho thương hiệu " + brand.getBrandName()

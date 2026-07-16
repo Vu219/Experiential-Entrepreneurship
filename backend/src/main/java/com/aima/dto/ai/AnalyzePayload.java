@@ -16,7 +16,10 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class AnalyzePayload {
+public class AnalyzePayload implements LlmRoutedPayload {
+
+    @JsonProperty("llm_config")
+    LlmConfigPayload llmConfig;
 
     @JsonProperty("brand_profile")
     BrandProfileInputPayload brandProfile;

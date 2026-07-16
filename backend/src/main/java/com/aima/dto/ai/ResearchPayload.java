@@ -18,7 +18,10 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ResearchPayload {
+public class ResearchPayload implements LlmRoutedPayload {
+
+    @JsonProperty("llm_config")
+    LlmConfigPayload llmConfig;
 
     @JsonProperty("brand_profile")
     BrandProfileInputPayload brandProfile;

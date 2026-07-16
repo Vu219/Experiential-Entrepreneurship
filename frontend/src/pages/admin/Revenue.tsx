@@ -4,6 +4,8 @@ import { useApp } from '../../context/AppContext';
 import { Card, Loader, Icon } from '../../components/ui';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import StatusBadge from '../../components/admin/StatusBadge';
+import StatCard from '../../components/admin/StatCard';
+import SectionCard from '../../components/admin/SectionCard';
 import { DataTable } from '../../components/admin/AdminListPage';
 import { getRevenue, formatVND, type RevenueData, type RevenuePeriod } from '../../api/admin';
 import { getAdminPlans, type PlanDto } from '../../api/plans';
@@ -122,25 +124,16 @@ export default function Revenue() {
         </div>
       </div>
 
-      {/* Overview cards */}
+      {/* Overview cards — component quản trị dùng chung */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: 18 }}>
         {cards.map((c, i) => (
-          <Card key={i} style={{ padding: 20, borderRadius: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ width: 40, height: 40, borderRadius: 11, background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon icon={c.icon} stroke={c.color} />
-              </div>
-              {i === 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: '#16a34a', background: '#e8f8ee', padding: '3px 9px', borderRadius: 999 }}>{data.growth}</span>}
-            </div>
-            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 24, color: '#211c38', margin: '14px 0 2px' }}>{c.value}</div>
-            <div style={{ fontSize: 13, color: '#8a85a0' }}>{c.label}</div>
-          </Card>
+          <StatCard key={i} icon={c.icon} iconBg={c.bg} iconColor={c.color} value={c.value} label={c.label}
+            pill={i === 0 ? data.growth : null} pillTone="success" valueFontSize={24} />
         ))}
       </div>
 
       {/* Revenue chart */}
-      <Card>
-        <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38', marginBottom: 18 }}>{t.revChart} · {periodLabel(period)}</div>
+      <SectionCard title={`${t.revChart} · ${periodLabel(period)}`}>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: data.series.length > 16 ? 3 : 6, height: 180 }}>
           {data.series.map((s, i) => (
             <div key={i} title={String(s.value)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
@@ -149,12 +142,11 @@ export default function Revenue() {
             </div>
           ))}
         </div>
-      </Card>
+      </SectionCard>
 
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr', gap: 20, alignItems: 'start' }}>
         {/* Transactions */}
-        <Card style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1eef8', fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.revTransactions}</div>
+        <SectionCard flush title={t.revTransactions}>
           <DataTable head={[t.colTxn, t.colCustomer, t.colPlan, t.colAmount, t.colStatus, t.colDate]} minWidth={620}>
             {data.transactions.map((x) => (
               <tr key={x.id} style={{ borderTop: '1px solid #f1eef8' }}>
@@ -167,15 +159,16 @@ export default function Revenue() {
               </tr>
             ))}
           </DataTable>
-        </Card>
+        </SectionCard>
 
         {/* Cấu hình giá gói — READ-ONLY: nơi sửa duy nhất là trang Quản lý gói (adminPlans) */}
-        <Card>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.revPlans}</div>
+        <SectionCard
+          title={t.revPlans}
+          action={
             <button onClick={() => openPlans({ action: 'create' })} style={{ border: 'none', borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer' }}>+ {t.revAddPlan}</button>
-          </div>
-          <div style={{ fontSize: 12, color: '#8a85a0', marginBottom: 12 }}>{t.revPlansReadOnly}</div>
+          }
+        >
+          <div style={{ fontSize: 12, color: '#8a85a0', margin: '-8px 0 12px' }}>{t.revPlansReadOnly}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {plans.map((p) => (
               <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1px solid #f1eef8', borderRadius: 12, opacity: p.isActive ? 1 : 0.65 }}>
@@ -190,7 +183,7 @@ export default function Revenue() {
               </div>
             ))}
           </div>
-        </Card>
+        </SectionCard>
       </div>
     </div>
   );

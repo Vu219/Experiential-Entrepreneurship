@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     ai_service_host: str = "0.0.0.0"
     ai_service_port: int = 8000
 
+    # Shared secret with the Spring backend (header X-Internal-Token). Requests carrying
+    # llm_config (API key inside) and /test-connection are REJECTED unless it matches.
+    # Unset => those requests are refused (fail-closed); env-based requests still work.
+    ai_internal_token: str | None = None
+
 
 @lru_cache
 def get_settings() -> Settings:

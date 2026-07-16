@@ -14,6 +14,8 @@ import com.aima.dto.ai.RegeneratePartPayload;
 import com.aima.dto.ai.RegeneratePartResultPayload;
 import com.aima.dto.ai.ResearchPayload;
 import com.aima.dto.ai.ResearchResultPayload;
+import com.aima.dto.ai.TestConnectionPayload;
+import com.aima.dto.ai.TestConnectionResultPayload;
 
 /**
  * Wrapper duy nhất để gọi AI service (Python/FastAPI, docs/Implementation_Strategy.md §1).
@@ -40,4 +42,10 @@ public interface AiServiceClient {
 
     /** POST /optimize — FR-65/FR-66: đề xuất điều chỉnh chiến lược + cải tiến bài tương lai. */
     OptimizeResultPayload optimize(OptimizePayload payload);
+
+    /**
+     * POST /test-connection — kiểm tra API key provider bằng 1 call model tối thiểu
+     * (trang admin "Cấu hình AI"). Payload chứa key plaintext: KHÔNG log payload.
+     */
+    TestConnectionResultPayload testConnection(TestConnectionPayload payload);
 }

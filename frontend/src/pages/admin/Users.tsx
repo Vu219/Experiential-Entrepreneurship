@@ -9,6 +9,7 @@ import { Card, Icon } from '../../components/ui';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/brand/ConfirmDialog';
 import StatusBadge, { type Tone } from '../../components/admin/StatusBadge';
+import StatCard from '../../components/admin/StatCard';
 import Avatar from '../../components/admin/Avatar';
 import Pagination from '../../components/admin/Pagination';
 import RowActionsMenu, { type RowAction } from '../../components/admin/RowActionsMenu';
@@ -169,19 +170,10 @@ export default function Users() {
 
   return (
     <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Stat cards */}
+      {/* Stat cards — component quản trị dùng chung */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 18 }}>
         {statCards.map((s, i) => (
-          <Card key={i} style={{ padding: 20, borderRadius: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ width: 40, height: 40, borderRadius: 11, background: s.tint, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon icon={s.icon} stroke={s.color} />
-              </div>
-              {s.pill && <span style={{ fontSize: 11.5, fontWeight: 700, color: '#7c3aed', background: '#f1e9ff', padding: '3px 9px', borderRadius: 999 }}>{s.pill}</span>}
-            </div>
-            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 26, color: '#211c38', margin: '14px 0 2px' }}>{s.value}</div>
-            <div style={{ fontSize: 13, color: '#8a85a0' }}>{s.label}</div>
-          </Card>
+          <StatCard key={i} icon={s.icon} iconBg={s.tint} iconColor={s.color} value={s.value} label={s.label} pill={s.pill} pillTone="purple" />
         ))}
       </div>
 

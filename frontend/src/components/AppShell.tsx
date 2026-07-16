@@ -108,6 +108,9 @@ const PAGE_KEYS = {
   adminApiVersions: ['navAdminApi', 'pageSubAdminApi'],
   adminRevenue: ['navAdminRevenue', 'pageSubAdminRevenue'],
   adminPlans: ['navAdminPlans', 'pageSubAdminPlans'],
+  adminAiProviders: ['navAdminAiProviders', 'pageSubAdminAiProviders'],
+  adminAiModels: ['navAdminAiModels', 'pageSubAdminAiModels'],
+  adminAiUsage: ['navAdminAiUsage', 'pageSubAdminAiUsage'],
 } as const;
 
 function PageHeading() {

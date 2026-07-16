@@ -9,6 +9,7 @@ import com.aima.entity.ContentFormattingJob;
 import com.aima.entity.ContentItem;
 import com.aima.entity.ContentVersion;
 import com.aima.entity.User;
+import com.aima.enums.AiTaskCode;
 import com.aima.enums.GenerationJobStatus;
 import com.aima.enums.Platform;
 import com.aima.exception.AppException;
@@ -19,6 +20,7 @@ import com.aima.repository.ContentVersionRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.AiServiceClient;
 import com.aima.service.ContentFormattingWorkerService;
+import com.aima.service.AiUsageService;
 import com.aima.service.TokenUsageService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +61,7 @@ public class ContentFormattingWorkerServiceImpl implements ContentFormattingWork
     AiContentMapper aiContentMapper;
     TransactionTemplate transactionTemplate;
     TokenUsageService tokenUsageService;
+    AiUsageService aiUsageService;
 
     /** Nguồn format của MỘT nền tảng: id bản GỐC (để adapt từ bản gốc + gắn source_version_id) + payload gửi AI. */
     private record PlatformSource(UUID sourceVersionId, FormatContentPayload payload) {
@@ -203,6 +206,7 @@ public class ContentFormattingWorkerServiceImpl implements ContentFormattingWork
 
         // Cộng token LLM thật của lần gọi vào hạn mức tháng của user (thanh usage ở sidebar).
         tokenUsageService.record(item.getBrandProfile().getUser(), result.getTokensUsed());
+        aiUsageService.record(item.getBrandProfile().getUser(), AiTaskCode.PLATFORM_FORMATTING, result.getTokensUsed());
     }
 
     // Chốt trạng thái job sau khi lặp hết nền tảng: ≥1 nền tảng xong → SUCCESS; không nền tảng nào

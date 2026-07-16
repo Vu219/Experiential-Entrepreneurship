@@ -15,6 +15,12 @@ public class AiServiceWebClientConfig {
 
     @Bean(name = "aiServiceWebClient")
     public WebClient aiServiceWebClient(AiServiceProperties properties) {
-        return WebClient.builder().baseUrl(properties.baseUrl()).build();
+        WebClient.Builder builder = WebClient.builder().baseUrl(properties.baseUrl());
+        // Auth nội bộ backend→AI: AI service từ chối request mang llm_config/test-connection
+        // nếu thiếu header này (fail-closed phía AI). Không log token.
+        if (properties.internalToken() != null && !properties.internalToken().isBlank()) {
+            builder.defaultHeader("X-Internal-Token", properties.internalToken());
+        }
+        return builder.build();
     }
 }

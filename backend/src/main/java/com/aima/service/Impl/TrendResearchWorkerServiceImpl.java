@@ -9,6 +9,7 @@ import com.aima.entity.ContentIdea;
 import com.aima.entity.ContentStrategy;
 import com.aima.entity.Trend;
 import com.aima.entity.TrendResearchSession;
+import com.aima.enums.AiTaskCode;
 import com.aima.enums.ResearchStatus;
 import com.aima.enums.StrategyStatus;
 import com.aima.mapper.AiContentMapper;
@@ -16,6 +17,7 @@ import com.aima.mapper.TrendResearchMapper;
 import com.aima.repository.ContentStrategyRepository;
 import com.aima.repository.TrendResearchSessionRepository;
 import com.aima.service.AiServiceClient;
+import com.aima.service.AiUsageService;
 import com.aima.service.TokenUsageService;
 import com.aima.service.TrendResearchWorkerService;
 import lombok.AccessLevel;
@@ -52,6 +54,7 @@ public class TrendResearchWorkerServiceImpl implements TrendResearchWorkerServic
     AiContentMapper aiContentMapper;
     TransactionTemplate transactionTemplate;
     TokenUsageService tokenUsageService;
+    AiUsageService aiUsageService;
 
     @Async("trendResearchExecutor")
     @Override
@@ -141,6 +144,7 @@ public class TrendResearchWorkerServiceImpl implements TrendResearchWorkerServic
 
         // Cộng token LLM thật của lần gọi vào hạn mức tháng của user (thanh usage ở sidebar).
         tokenUsageService.record(session.getBrandProfile().getUser(), result.getTokensUsed());
+        aiUsageService.record(session.getBrandProfile().getUser(), AiTaskCode.TREND_RESEARCH, result.getTokensUsed());
     }
 
     private void saveFailure(UUID sessionId, String message) {

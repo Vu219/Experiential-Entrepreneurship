@@ -8,9 +8,9 @@ Field names use snake_case; map to the DB columns on the backend side.
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional
+from typing import List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
 # ============================================================
 # Shared enums
@@ -21,6 +21,37 @@ class Relevance(str, Enum):
     HIGH = "High"
     MEDIUM = "Medium"
     LOW = "Low"
+
+
+# ============================================================
+# LLM runtime config (DB-managed, injected per request by the backend)
+# ============================================================
+
+
+class LlmSpec(BaseModel):
+    """One concrete model choice.
+
+    ``api_key`` is a SecretStr: pydantic masks it in repr/str/exceptions, so the key
+    can never leak through logging. Use ``.get_secret_value()`` only at client-build time.
+    """
+
+    provider: Literal["anthropic", "google"]
+    model: str
+    api_key: SecretStr
+    temperature: Optional[float] = None
+    max_tokens: Optional[int] = None
+
+
+class LlmConfig(BaseModel):
+    """Per-request model routing from the backend's ai_task_routing table.
+
+    Present only when the backend runs with AI_CONFIG_FROM_DB=true; absent = use the
+    env-based default (rollback path). Requests carrying this MUST be authenticated
+    with the internal token (X-Internal-Token) — enforced in routes.
+    """
+
+    primary: LlmSpec
+    fallback: Optional[LlmSpec] = None
 
 
 # ============================================================
@@ -80,6 +111,7 @@ class ResearchRequest(BaseModel):
     sources: TrendSource = Field(default_factory=TrendSource)
     max_trends: int = Field(default=8, ge=1, le=20)
     max_ideas: int = Field(default=5, ge=1, le=20)
+    llm_config: Optional[LlmConfig] = None
 
 
 class ContentIdea(BaseModel):
@@ -181,6 +213,7 @@ class GenerateRequest(BaseModel):
     note: Optional[str] = None
     # FR-32: when regenerating, prior text the user wants improved/varied.
     regenerate_from: Optional[str] = None
+    llm_config: Optional[LlmConfig] = None
 
 
 class ContentItem(BaseModel):
@@ -242,6 +275,7 @@ class RegeneratePartRequest(BaseModel):
     field: str = Field(..., description='"content" | "scene"')
     step_index: Optional[int] = Field(default=None, ge=1)
     current_script: VideoScript
+    llm_config: Optional[LlmConfig] = None
 
 
 class RegeneratedSection(BaseModel):
@@ -287,6 +321,7 @@ class FormatRequest(BaseModel):
     brand_profile: BrandProfileInput
     content: FormatContentInput
     platforms: List[str] = Field(..., description="One ContentVersion produced per platform")
+    llm_config: Optional[LlmConfig] = None
 
 
 class ContentVersion(BaseModel):
@@ -352,6 +387,7 @@ class AnalyzedPost(BaseModel):
 class AnalyzeRequest(BaseModel):
     brand_profile: BrandProfileInput
     posts: List[AnalyzedPost]
+    llm_config: Optional[LlmConfig] = None
 
 
 class SuccessFactor(BaseModel):
@@ -378,6 +414,7 @@ class OptimizeRequest(BaseModel):
     brand_profile: BrandProfileInput
     strategy: ContentStrategyInput
     insights: List[OptimizationInsight]
+    llm_config: Optional[LlmConfig] = None
 
 
 class StrategyAdjustment(BaseModel):
@@ -401,6 +438,7 @@ class GoldenHourRequest(BaseModel):
     platform: str
     # Backend passes analytics once available; <10 entries => platform defaults used.
     posts: List[AnalyzedPost] = Field(default_factory=list)
+    llm_config: Optional[LlmConfig] = None
 
 
 class GoldenHourResponse(BaseModel):
@@ -408,3 +446,24 @@ class GoldenHourResponse(BaseModel):
     data_driven: bool = Field(..., description="False = platform defaults, True = derived from >=10 posts")
     suggested_hours: List[str]
     rationale: str
+
+
+# ============================================================
+# Provider connection test (admin "Cấu hình AI" page)
+# ============================================================
+
+
+class TestConnectionRequest(BaseModel):
+    """Mirrors backend dto/ai/TestConnectionPayload. Always requires the internal token."""
+
+    provider: Literal["anthropic", "google"]
+    model: str
+    api_key: SecretStr
+
+
+class TestConnectionResult(BaseModel):
+    """A wrong/expired key is a RESULT (success=False + redacted message), not an HTTP error."""
+
+    success: bool
+    message: Optional[str] = None
+    latency_ms: Optional[int] = None

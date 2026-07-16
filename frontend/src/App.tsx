@@ -30,6 +30,9 @@ const AdminLogs = lazy(() => import("./pages/admin/Logs"));
 const AdminApiVersions = lazy(() => import("./pages/admin/ApiVersions"));
 const AdminRevenue = lazy(() => import("./pages/admin/Revenue"));
 const AdminPlans = lazy(() => import("./pages/admin/Plans"));
+const AdminAiProviders = lazy(() => import("./pages/admin/AiProviders"));
+const AdminAiModels = lazy(() => import("./pages/admin/AiModels"));
+const AdminAiUsage = lazy(() => import("./pages/admin/AiUsage"));
 
 // Backend-driven flows kept from the original app (real URLs the server redirects to).
 const GoogleCallbackPage = lazy(() => import("./pages/GoogleCallbackPage"));
@@ -80,6 +83,9 @@ const ADMIN_PAGE_IMPORTS = [
   () => import("./pages/admin/ApiVersions"),
   () => import("./pages/admin/Revenue"),
   () => import("./pages/admin/Plans"),
+  () => import("./pages/admin/AiProviders"),
+  () => import("./pages/admin/AiModels"),
+  () => import("./pages/admin/AiUsage"),
 ] as const;
 
 // Authenticated app shell — sidebar + topbar wrap every signed-in page.
@@ -161,6 +167,9 @@ export default function App() {
           <Route path="/admin/api-versions" element={<AdminApiVersions />} />
           <Route path="/admin/revenue" element={<AdminRevenue />} />
           <Route path="/admin/plans" element={<AdminPlans />} />
+          <Route path="/admin/ai/providers" element={<AdminAiProviders />} />
+          <Route path="/admin/ai/models" element={<AdminAiModels />} />
+          <Route path="/admin/ai/usage" element={<AdminAiUsage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -15,8 +15,13 @@ import com.aima.dto.ai.RegeneratePartPayload;
 import com.aima.dto.ai.RegeneratePartResultPayload;
 import com.aima.dto.ai.ResearchPayload;
 import com.aima.dto.ai.ResearchResultPayload;
+import com.aima.dto.ai.TestConnectionPayload;
+import com.aima.dto.ai.TestConnectionResultPayload;
+import com.aima.dto.ai.LlmRoutedPayload;
+import com.aima.enums.AiTaskCode;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
+import com.aima.service.AiRuntimeConfigService;
 import com.aima.service.AiServiceClient;
 import com.aima.service.SystemLogService;
 import lombok.AccessLevel;
@@ -37,47 +42,72 @@ public class AiServiceClientImpl implements AiServiceClient {
     WebClient webClient;
     AiServiceProperties properties;
     SystemLogService systemLogService;
+    AiRuntimeConfigService runtimeConfigService;
 
     public AiServiceClientImpl(@Qualifier("aiServiceWebClient") WebClient webClient, AiServiceProperties properties,
-                               SystemLogService systemLogService) {
+                               SystemLogService systemLogService, AiRuntimeConfigService runtimeConfigService) {
         this.webClient = webClient;
         this.properties = properties;
         this.systemLogService = systemLogService;
+        this.runtimeConfigService = runtimeConfigService;
     }
 
     @Override
     public GeneratedContentResult generateContent(GenerateContentPayload payload) {
+        applyRouting(payload, AiTaskCode.CONTENT_GENERATION);
         return post("/generate", payload, GeneratedContentResult.class);
     }
 
     @Override
     public ResearchResultPayload research(ResearchPayload payload) {
+        applyRouting(payload, AiTaskCode.TREND_RESEARCH);
         return post("/research", payload, ResearchResultPayload.class);
     }
 
     @Override
     public FormatResultPayload format(FormatPayload payload) {
+        applyRouting(payload, AiTaskCode.PLATFORM_FORMATTING);
         return post("/format", payload, FormatResultPayload.class);
     }
 
     @Override
     public GoldenHourResultPayload goldenHours(GoldenHourPayload payload) {
+        applyRouting(payload, AiTaskCode.GOLDEN_HOURS);
         return post("/golden-hours", payload, GoldenHourResultPayload.class);
     }
 
     @Override
     public RegeneratePartResultPayload regeneratePart(RegeneratePartPayload payload) {
+        applyRouting(payload, AiTaskCode.CONTENT_REGENERATION);
         return post("/regenerate-part", payload, RegeneratePartResultPayload.class);
     }
 
     @Override
     public AnalyzeResultPayload analyze(AnalyzePayload payload) {
+        applyRouting(payload, AiTaskCode.STRATEGY_OPTIMIZATION);
         return post("/analyze", payload, AnalyzeResultPayload.class);
     }
 
     @Override
     public OptimizeResultPayload optimize(OptimizePayload payload) {
+        applyRouting(payload, AiTaskCode.STRATEGY_OPTIMIZATION);
         return post("/optimize", payload, OptimizeResultPayload.class);
+    }
+
+    /**
+     * Gắn llm_config theo bảng định tuyến (AI_CONFIG_FROM_DB) ngay trước khi gửi —
+     * một điểm duy nhất, worker không phải biết. null = AI service dùng env (rollback).
+     */
+    private void applyRouting(LlmRoutedPayload payload, AiTaskCode taskCode) {
+        if (payload.getLlmConfig() == null) {
+            payload.setLlmConfig(runtimeConfigService.getLlmConfig(taskCode));
+        }
+    }
+
+    // Payload chứa API key plaintext — post() không log request body nên key không lọt vào log/APM.
+    @Override
+    public TestConnectionResultPayload testConnection(TestConnectionPayload payload) {
+        return post("/test-connection", payload, TestConnectionResultPayload.class);
     }
 
     private <T> T post(String uri, Object payload, Class<T> resultType) {

@@ -215,6 +215,21 @@ public enum ErrorCode {
 
     // TOKEN USAGE (hạn mức token LLM theo tháng — Plan.monthlyTokenLimit)
     TOKEN_QUOTA_EXCEEDED(1990, "Bạn đã dùng hết hạn mức token của tháng này. Nâng cấp gói hoặc chờ sang tháng sau.", HttpStatus.TOO_MANY_REQUESTS),
+
+    // AI CONFIG (cấu hình AI theo DB — admin quản lý provider/model/routing)
+    AI_PROVIDER_NOT_FOUND(2010, "Không tìm thấy nhà cung cấp AI", HttpStatus.NOT_FOUND),
+    AI_MODEL_NOT_FOUND(2011, "Không tìm thấy model AI", HttpStatus.NOT_FOUND),
+    AI_ROUTING_NOT_FOUND(2012, "Không tìm thấy định tuyến AI cho nghiệp vụ này", HttpStatus.NOT_FOUND),
+    AI_MODEL_CODE_REQUIRED(2013, "Thiếu mã model", HttpStatus.BAD_REQUEST),
+    AI_MODEL_EXISTED(2014, "Model này đã tồn tại cho nhà cung cấp", HttpStatus.CONFLICT),
+    AI_MODEL_IN_USE(2015, "Model đang được dùng trong định tuyến — đổi định tuyến trước khi xóa", HttpStatus.BAD_REQUEST),
+    AI_MODEL_PROVIDER_REQUIRED(2016, "Thiếu nhà cung cấp của model", HttpStatus.BAD_REQUEST),
+    AI_PROVIDER_KEY_MISSING(2017, "Nhà cung cấp chưa có API key", HttpStatus.BAD_REQUEST),
+    AI_ROUTING_PRIMARY_MODEL_REQUIRED(2018, "Thiếu model chính cho định tuyến", HttpStatus.BAD_REQUEST),
+    AI_TEMPERATURE_INVALID(2019, "Temperature phải trong khoảng 0–2", HttpStatus.BAD_REQUEST),
+    AI_MAX_TOKENS_INVALID(2020, "Max tokens phải là số dương", HttpStatus.BAD_REQUEST),
+    AI_ROUTING_ENABLED_REQUIRED(2021, "Thiếu trạng thái bật/tắt của định tuyến", HttpStatus.BAD_REQUEST),
+    AI_USAGE_MONTH_INVALID(2022, "Tháng không hợp lệ — dùng định dạng YYYY-MM", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import {
   Users, AlertTriangle, Server, FileText, Code, DollarSign, Package,
+  KeyRound, Route as RouteIcon, Coins,
   ChevronRight, ChevronLeft, X, type LucideIcon,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -94,20 +95,39 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
     { key: 'trends', label: t.navTrends, icon: ICON.trends },
     { key: 'brand', label: t.navBrand, icon: ICON.brand },
   ];
-  const adminItems: Item[] = [
-    { key: 'admin', label: t.navAdminOverview, icon: ICON.dashboard },
-    { key: 'adminUsers', label: t.navAdminUsers, icon: Users },
-    { key: 'adminPosts', label: t.navAdminPosts, icon: AlertTriangle },
-    { key: 'adminSystem', label: t.navAdminSystem, icon: Server },
-    { key: 'adminLogs', label: t.navAdminLogs, icon: FileText },
-    { key: 'adminApiVersions', label: t.navAdminApi, icon: Code },
-    { key: 'adminRevenue', label: t.navAdminRevenue, icon: DollarSign },
-    { key: 'adminPlans', label: t.navAdminPlans, icon: Package },
+  // Sidebar admin chia NHÓM (đồng bộ UI khu quản trị). Nhóm đầu (Bảng điều khiển)
+  // không cần nhãn — mục Tổng quan tự đứng đầu như các admin UI thông dụng.
+  const adminGroups: { label?: string; items: Item[] }[] = [
+    { items: [{ key: 'admin', label: t.navAdminOverview, icon: ICON.dashboard }] },
+    { label: t.admGrpContent, items: [{ key: 'adminPosts', label: t.navAdminPosts, icon: AlertTriangle }] },
+    {
+      label: t.admGrpBusiness,
+      items: [
+        { key: 'adminUsers', label: t.navAdminUsers, icon: Users },
+        { key: 'adminRevenue', label: t.navAdminRevenue, icon: DollarSign },
+        { key: 'adminPlans', label: t.navAdminPlans, icon: Package },
+      ],
+    },
+    {
+      label: t.admGrpAi,
+      items: [
+        { key: 'adminAiProviders', label: t.navAdminAiProviders, icon: KeyRound },
+        { key: 'adminAiModels', label: t.navAdminAiModels, icon: RouteIcon },
+        { key: 'adminAiUsage', label: t.navAdminAiUsage, icon: Coins },
+      ],
+    },
+    {
+      label: t.admGrpSystem,
+      items: [
+        { key: 'adminSystem', label: t.navAdminSystem, icon: Server },
+        { key: 'adminLogs', label: t.navAdminLogs, icon: FileText },
+        { key: 'adminApiVersions', label: t.navAdminApi, icon: Code },
+      ],
+    },
   ];
   // Hồ sơ / Cài đặt / Đăng xuất / Trang chủ đã chuyển lên dropdown avatar ở topbar (UserMenu
   // variant "app") — sidebar không còn khối mục đáy.
-  const navItems = isAdminArea ? adminItems : mainItems;
-  const sectionLabel = isAdminArea ? t.secAdmin : t.secMain;
+  const navGroups = isAdminArea ? adminGroups : [{ label: t.secMain, items: mainItems }];
 
   const itemBase = (active: boolean): CSSProperties => ({
     display: 'flex',
@@ -237,10 +257,12 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
   const desktopBody: ReactNode = (
     <div className="sb-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 3 }}>
       {isAdminArea && <div style={{ marginBottom: 8 }}>{backBtn}</div>}
-      {!collapsed && <div style={sectionLabelStyle}>{sectionLabel}</div>}
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 'none' }}>
-        {navItems.map(renderItem)}
-      </nav>
+      {navGroups.map((g, gi) => (
+        <nav key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 'none', marginTop: gi === 0 ? 0 : 12 }}>
+          {!collapsed && g.label && <div style={sectionLabelStyle}>{g.label}</div>}
+          {g.items.map(renderItem)}
+        </nav>
+      ))}
 
       {!isAdminArea && isAdmin && <div style={{ marginTop: 14 }}>{adminPortalBtn}</div>}
 
@@ -298,7 +320,12 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
       overflowY: 'auto'
     }}>
       {isAdminArea && backBtn}
-      {navItems.map(renderItem)}
+      {navGroups.map((g, gi) => (
+        <div key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {isAdminArea && g.label && <div style={sectionLabelStyle}>{g.label}</div>}
+          {g.items.map(renderItem)}
+        </div>
+      ))}
       {!isAdminArea && isAdmin && adminPortalBtn}
     </nav>
   );
