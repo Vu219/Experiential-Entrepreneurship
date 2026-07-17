@@ -19,6 +19,11 @@ public interface SystemLogService {
     /** Cảnh báo không có exception đi kèm. */
     void warn(String module, String message);
 
-    /** FR-84: admin xem log, lọc level + ngày (null = bỏ qua), mới nhất trước. */
-    ApiResponse<PageResponse<SystemLogResponse>> list(LogLevel level, LocalDate date, int page, int size);
+    /**
+     * FR-84: admin xem log — lọc level + ngày + tìm kiếm (message/module), phân trang server-side.
+     * grouped = true: gom các dòng trùng (level+module+message) thành 1 dòng kèm số đếm (×N) và
+     * thời điểm mới nhất. Mọi tham số lọc null = bỏ qua.
+     */
+    ApiResponse<PageResponse<SystemLogResponse>> list(LogLevel level, LocalDate date, String q,
+                                                      boolean grouped, int page, int size);
 }

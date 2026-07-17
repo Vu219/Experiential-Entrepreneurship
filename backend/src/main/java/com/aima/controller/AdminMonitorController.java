@@ -4,6 +4,7 @@ import com.aima.dto.response.AdminFailedPostResponse;
 import com.aima.dto.response.AdminSystemStatusResponse;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.PageResponse;
+import com.aima.dto.response.SystemActivityResponse;
 import com.aima.dto.response.SystemLogResponse;
 import com.aima.enums.LogLevel;
 import com.aima.service.AdminMonitorService;
@@ -35,9 +36,18 @@ public class AdminMonitorController {
 
     @GetMapping("/system")
     @Operation(summary = "System status overview (FR-81)",
-            description = "Health of database/redis/AI service, operating counters and the latest ERROR alerts.")
+            description = "Health + chỉ số thật của database/redis/AI service, tài nguyên container, counters và ERROR alerts.")
     public ApiResponse<AdminSystemStatusResponse> systemStatus() {
         return adminMonitorService.systemStatus();
+    }
+
+    @GetMapping("/system/activity")
+    @Operation(summary = "System activity chart (khối lượng nghiệp vụ theo thời gian)",
+            description = "Suy từ dữ liệu có timestamp (bài POSTED, posting jobs, log ERROR) gộp theo bucket. "
+                    + "range: 1h | 24h | 7d | 30d | 1y (mặc định 24h). Không phải %CPU.")
+    public ApiResponse<SystemActivityResponse> systemActivity(
+            @RequestParam(defaultValue = "24h") String range) {
+        return adminMonitorService.systemActivity(range);
     }
 
     @GetMapping("/posts/failed")
@@ -52,12 +62,15 @@ public class AdminMonitorController {
 
     @GetMapping("/logs")
     @Operation(summary = "System logs (FR-84)",
-            description = "Paged, newest first; filter by level and/or a specific day (yyyy-MM-dd).")
+            description = "Paged, newest first; lọc level + ngày (yyyy-MM-dd) + tìm kiếm q (message/module); "
+                    + "grouped=true gom dòng trùng thành 1 dòng kèm số đếm (×N) + thời điểm mới nhất.")
     public ApiResponse<PageResponse<SystemLogResponse>> listLogs(
             @RequestParam(required = false) LogLevel level,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "false") boolean grouped,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return systemLogService.list(level, date, page, size);
+        return systemLogService.list(level, date, q, grouped, page, size);
     }
 }

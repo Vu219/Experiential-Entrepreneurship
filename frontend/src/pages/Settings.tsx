@@ -837,11 +837,11 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
 // Ô số liệu "Tổng quan kết nối": icon trạng thái + số + nhãn. Màu icon/số dùng chung token với badge bảng.
 function StatMini({ icon: IconCmp, label, value, color, bg }: { icon: LucideIcon; label: string; value: number; color: string; bg: string }) {
   return (
-    <div style={{ background: bg, borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
-      <IconCmp size={20} color={color} strokeWidth={2.2} style={{ flex: 'none' }} />
-      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-        <span style={{ fontSize: 20, fontWeight: 800, color }}>{value}</span>
-        <span style={{ fontSize: 11, fontWeight: 600, color: '#3f3a55', marginTop: 2 }}>{label}</span>
+    <div style={{ background: bg, borderRadius: 10, padding: 16, display: 'flex', alignItems: 'center', gap: 14, overflow: 'hidden' }}>
+      <IconCmp size={24} color={color} strokeWidth={2.2} style={{ flex: 'none' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2, minWidth: 0 }}>
+        <span style={{ fontSize: 24, fontWeight: 800, color }}>{value}</span>
+        <span style={{ fontSize: 12.5, fontWeight: 600, color: '#3f3a55', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
       </div>
     </div>
   );

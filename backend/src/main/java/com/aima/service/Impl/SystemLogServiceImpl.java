@@ -21,9 +21,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * FR-74: lưu log lỗi hệ thống xuống bảng system_logs. REQUIRES_NEW để dòng log sống sót
@@ -53,27 +56,53 @@ public class SystemLogServiceImpl implements SystemLogService {
         save(LogLevel.WARN, module, message);
     }
 
-    // FR-84: trang Logs của admin — lọc level và/hoặc một ngày cụ thể.
+    // FR-84: trang Logs của admin — lọc level + ngày + tìm kiếm; grouped = gom dòng trùng (×N).
     @Override
     @Transactional(readOnly = true)
-    public ApiResponse<PageResponse<SystemLogResponse>> list(LogLevel level, LocalDate date, int page, int size) {
+    public ApiResponse<PageResponse<SystemLogResponse>> list(LogLevel level, LocalDate date, String q,
+                                                             boolean grouped, int page, int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100));
-        Page<SystemLog> logs;
-        if (level != null && date != null) {
-            logs = systemLogRepository.findByLevelAndCreatedAtBetweenAndDeletedAtIsNullOrderByCreatedAtDesc(
-                    level, date.atStartOfDay(), date.atTime(LocalTime.MAX), pageable);
-        } else if (level != null) {
-            logs = systemLogRepository.findByLevelAndDeletedAtIsNullOrderByCreatedAtDesc(level, pageable);
-        } else if (date != null) {
-            logs = systemLogRepository.findByCreatedAtBetweenAndDeletedAtIsNullOrderByCreatedAtDesc(
-                    date.atStartOfDay(), date.atTime(LocalTime.MAX), pageable);
-        } else {
-            logs = systemLogRepository.findByDeletedAtIsNullOrderByCreatedAtDesc(pageable);
-        }
+        LocalDateTime from = date != null ? date.atStartOfDay() : null;
+        LocalDateTime to = date != null ? date.atTime(LocalTime.MAX) : null;
+        String search = (q == null || q.isBlank()) ? null : q.trim();
 
-        List<SystemLogResponse> content = systemLogMapper.toResponseList(logs.getContent());
-        PageResponse<SystemLogResponse> response = PageResponse.from(logs, content);
+        PageResponse<SystemLogResponse> response = grouped
+                ? listGrouped(level, from, to, search, pageable)
+                : listFlat(level, from, to, search, pageable);
         return ApiResponse.success("Lấy log hệ thống thành công", response);
+    }
+
+    private PageResponse<SystemLogResponse> listFlat(LogLevel level, LocalDateTime from, LocalDateTime to,
+                                                     String q, Pageable pageable) {
+        Page<SystemLog> logs = systemLogRepository.search(
+                level != null ? level.name() : null, from, to, q, pageable);
+        List<SystemLogResponse> content = systemLogMapper.toResponseList(logs.getContent());
+        return PageResponse.from(logs, content);
+    }
+
+    // Native trả level dạng String → bind level.name(); cột: [0]id [1]level [2]module [3]message [4]count [5]lastAt.
+    private PageResponse<SystemLogResponse> listGrouped(LogLevel level, LocalDateTime from, LocalDateTime to,
+                                                        String q, Pageable pageable) {
+        Page<Object[]> groups = systemLogRepository.searchGrouped(
+                level != null ? level.name() : null, from, to, q, pageable);
+        List<SystemLogResponse> content = groups.getContent().stream()
+                .map(r -> systemLogMapper.toGroupResponse(
+                        UUID.fromString((String) r[0]),
+                        LogLevel.valueOf((String) r[1]),
+                        (String) r[2],
+                        (String) r[3],
+                        toLocalDateTime(r[5]),
+                        ((Number) r[4]).longValue()))
+                .toList();
+        return PageResponse.from(groups, content);
+    }
+
+    // MAX(created_at) native có thể trả LocalDateTime (Hibernate) hoặc java.sql.Timestamp tuỳ driver.
+    private static LocalDateTime toLocalDateTime(Object value) {
+        if (value instanceof Timestamp ts) {
+            return ts.toLocalDateTime();
+        }
+        return (LocalDateTime) value;
     }
 
     private void save(LogLevel level, String module, String message, String detail) {

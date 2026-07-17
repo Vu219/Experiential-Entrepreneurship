@@ -38,12 +38,15 @@ public class AdminSystemStatusResponse {
     @Schema(description = "Latest ERROR log lines (quick alerts).")
     List<SystemLogResponse> alerts;
 
+    @Schema(description = "Tài nguyên tiến trình/container (JMX). null nếu không lấy được → FE ẩn.")
+    HostMetricsResponse host;
+
     @Data
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
     @FieldDefaults(level = AccessLevel.PRIVATE)
-    @Schema(name = "ServiceHealthResponse", description = "Health of one dependency.")
+    @Schema(name = "ServiceHealthResponse", description = "Health + chỉ số thật của một dependency.")
     public static class ServiceHealthResponse {
 
         @Schema(description = "database | redis | aiService.")
@@ -54,5 +57,41 @@ public class AdminSystemStatusResponse {
 
         @Schema(description = "Error detail when DOWN.")
         String detail;
+
+        @Schema(description = "Độ trễ đo được (ms) khi UP: DB = SELECT 1, Redis = PING, AI = probe.")
+        Long latencyMs;
+
+        @Schema(description = "PostgreSQL: số kết nối đang hoạt động của HikariCP. null với service khác.")
+        Integer activeConnections;
+
+        @Schema(description = "Redis: bộ nhớ đang dùng (human, vd \"1.2M\"). null nếu không lấy được.")
+        String memoryUsed;
+
+        @Schema(description = "Redis: tỉ lệ hit (%) = hits/(hits+misses). null nếu không lấy được.")
+        Double hitRate;
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    @Schema(name = "HostMetricsResponse", description = "Tài nguyên tiến trình JVM/container (không phải máy chủ vật lý).")
+    public static class HostMetricsResponse {
+
+        @Schema(description = "CPU tiến trình (%) 0..100. null nếu JMX không hỗ trợ.")
+        Double cpuLoad;
+
+        @Schema(description = "Heap đang dùng (MB).")
+        Long memUsedMb;
+
+        @Schema(description = "Heap tối đa (MB).")
+        Long memMaxMb;
+
+        @Schema(description = "Dung lượng đĩa còn trống (GB) tại thư mục làm việc.")
+        Long diskFreeGb;
+
+        @Schema(description = "Tổng dung lượng đĩa (GB) tại thư mục làm việc.")
+        Long diskTotalGb;
     }
 }

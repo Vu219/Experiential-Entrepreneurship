@@ -33,6 +33,9 @@ public class SystemLogResponse {
     @Schema(description = "Technical detail (abbreviated stack trace), if any.")
     String detail;
 
-    @Schema(description = "When it was recorded.")
+    @Schema(description = "When it was recorded (latest occurrence when grouped).")
     LocalDateTime createdAt;
+
+    @Schema(description = "Số lần trùng khi gom nhóm (×N). null ở chế độ danh sách thường.")
+    Long count;
 }

@@ -279,23 +279,54 @@ export async function getPostProblems(lang: Lang): Promise<AdminPostProblem[]> {
   }));
 }
 
-// ===== Trạng thái hệ thống (FR-81) — GET /admin/system/status =====
+// ===== Trạng thái hệ thống (FR-81) — GET /admin/system =====
 export type ServiceStatus = 'operational' | 'degraded' | 'down';
-export interface SystemStatus {
-  services: { name: string; status: ServiceStatus; uptime: string }[];
-  load: number[]; // % tải 24 mốc (mỗi giờ)
-  alerts: { id: string; tone: Tone; level: string; message: string; time: string }[];
+export type ServiceKey = 'database' | 'redis' | 'aiService';
+
+// Sức khỏe + chỉ số thật của một dependency (chỉ số không lấy được là null → FE ẩn).
+export interface SvcHealth {
+  key: ServiceKey | string;
+  name: string;
+  status: ServiceStatus;
+  detail: string | null;
+  latencyMs: number | null;
+  activeConnections: number | null; // PostgreSQL (HikariCP)
+  memoryUsed: string | null;        // Redis (human)
+  hitRate: number | null;           // Redis (%)
 }
 
-// BE thật: shape AdminSystemStatusResponse (GET /admin/system).
-interface BeSystemStatus {
-  services: { name: string; status: 'UP' | 'DOWN'; detail: string | null }[];
+export interface HostMetrics {
+  cpuLoad: number | null; // % tiến trình
+  memUsedMb: number;
+  memMaxMb: number;
+  diskFreeGb: number;
+  diskTotalGb: number;
+}
+
+export interface SystemCounters {
   totalUsers: number;
   activeConnections: number;
   postedLast24h: number;
   failedLast24h: number;
   pendingSchedules: number;
+}
+
+export interface SystemStatus {
+  services: SvcHealth[];
+  counters: SystemCounters;
+  alerts: { id: string; tone: Tone; level: LogLevel; message: string; time: string }[];
+  host: HostMetrics | null;
+}
+
+interface BeSvc {
+  name: string; status: 'UP' | 'DOWN'; detail: string | null;
+  latencyMs: number | null; activeConnections: number | null; memoryUsed: string | null; hitRate: number | null;
+}
+interface BeSystemStatus {
+  services: BeSvc[];
+  totalUsers: number; activeConnections: number; postedLast24h: number; failedLast24h: number; pendingSchedules: number;
   alerts: { id: string; level: LogLevel; module: string; message: string; createdAt: string }[];
+  host: HostMetrics | null;
 }
 
 const SERVICE_LABEL = (lang: Lang): Record<string, string> => ({
@@ -304,57 +335,100 @@ const SERVICE_LABEL = (lang: Lang): Record<string, string> => ({
   aiService: P(lang, 'Bộ máy AI (AI service)', 'AI engine (AI service)'),
 });
 
-// GET /admin/system (ADMIN, FR-81). BE không đo % tải theo giờ → `load` trả rỗng
-// (trang System ẩn chart khi không có dữ liệu); các counter vận hành đưa vào alerts dạng INFO.
+// GET /admin/system (ADMIN, FR-81) — health + chỉ số thật + tài nguyên container + ERROR alerts.
 export async function getSystemStatus(lang: Lang): Promise<SystemStatus> {
   const { data } = await client.get<ApiResponse<BeSystemStatus>>('/admin/system');
   const s = data.result;
-  const counters = P(lang,
-    `${s.totalUsers} người dùng · ${s.activeConnections} kết nối ACTIVE · 24h qua: ${s.postedLast24h} bài đăng thành công, ${s.failedLast24h} thất bại · ${s.pendingSchedules} lịch đang chờ`,
-    `${s.totalUsers} users · ${s.activeConnections} ACTIVE connections · last 24h: ${s.postedLast24h} posts published, ${s.failedLast24h} failed · ${s.pendingSchedules} schedules pending`);
   return {
     services: s.services.map((sv) => ({
+      key: sv.name,
       name: SERVICE_LABEL(lang)[sv.name] ?? sv.name,
       status: sv.status === 'UP' ? 'operational' : 'down',
-      uptime: sv.status === 'UP' ? P(lang, 'Hoạt động', 'Operational') : (sv.detail ?? 'DOWN'),
+      detail: sv.detail,
+      latencyMs: sv.latencyMs,
+      activeConnections: sv.activeConnections,
+      memoryUsed: sv.memoryUsed,
+      hitRate: sv.hitRate,
     })),
-    load: [],
-    alerts: [
-      { id: 'counters', tone: 'info', level: 'INFO', message: counters, time: '' },
-      ...s.alerts.map((a) => ({
-        id: a.id, tone: logLevelTone(a.level), level: a.level,
-        message: `[${a.module}] ${a.message}`, time: beDateTime(a.createdAt) ?? '',
-      })),
-    ],
+    counters: {
+      totalUsers: s.totalUsers, activeConnections: s.activeConnections,
+      postedLast24h: s.postedLast24h, failedLast24h: s.failedLast24h, pendingSchedules: s.pendingSchedules,
+    },
+    alerts: s.alerts.map((a) => ({
+      id: a.id, tone: logLevelTone(a.level), level: a.level,
+      message: `[${a.module}] ${a.message}`, time: beDateTime(a.createdAt) ?? '',
+    })),
+    host: s.host,
   };
 }
 
-// ===== Log hệ thống (FR-84) — GET /admin/logs =====
+// ===== Hoạt động hệ thống (biểu đồ theo khoảng) — GET /admin/system/activity =====
+export type ActivityRange = '1h' | '24h' | '7d' | '30d' | '1y';
+export interface ActivityBucket { time: string; posts: number; jobs: number; errors: number; total: number; }
+export interface SystemActivity { range: string; granularity: string; buckets: ActivityBucket[]; }
+
+export async function getSystemActivity(range: ActivityRange): Promise<SystemActivity> {
+  const { data } = await client.get<ApiResponse<SystemActivity>>('/admin/system/activity', { params: { range } });
+  return data.result;
+}
+
+// ===== Log hệ thống (FR-84) — GET /admin/logs (server-side) =====
 export type LogLevel = 'ERROR' | 'WARN' | 'INFO' | 'DEBUG';
 export interface SystemLog {
   id: string;
-  time: string; // ISO-ish, dùng cho lọc theo ngày (lấy 10 ký tự đầu)
+  time: string; // 'YYYY-MM-DD HH:mm:ss'
   level: LogLevel;
   module: string;
   message: string;
+  detail: string | null;
+  count: number | null; // ×N khi gom nhóm; null ở chế độ thường
 }
+
+export interface SystemLogQuery {
+  level?: LogLevel;
+  date?: string;   // 'YYYY-MM-DD'
+  q?: string;
+  grouped?: boolean;
+  page: number;    // 0-based
+  size: number;
+}
+export interface SystemLogPage { rows: SystemLog[]; total: number; pageCount: number; page: number; }
 
 export const logLevelTone = (level: LogLevel): Tone =>
   level === 'ERROR' ? 'danger' : level === 'WARN' ? 'warning' : level === 'INFO' ? 'info' : 'neutral';
 
-// GET /admin/logs (ADMIN, FR-84) — nguồn: bảng system_logs (FR-74); trang Logs lọc
-// level/ngày client-side trên trang mới nhất.
-export async function getSystemLogs(): Promise<SystemLog[]> {
-  const { data } = await client.get<ApiResponse<PageResponse<{
-    id: string; level: LogLevel; module: string; message: string; detail: string | null; createdAt: string;
-  }>>>('/admin/logs', { params: { size: 100 } });
-  return data.result.content.map((l) => ({
-    id: l.id,
-    time: (l.createdAt ?? '').slice(0, 19).replace('T', ' '),
-    level: l.level,
-    module: l.module,
-    message: l.message,
-  }));
+interface BeLog {
+  id: string; level: LogLevel; module: string; message: string;
+  detail: string | null; createdAt: string; count: number | null;
+}
+
+// GET /admin/logs (ADMIN, FR-84) — lọc/tìm/gom nhóm/phân trang server-side (bảng system_logs).
+export async function getSystemLogs(query: SystemLogQuery): Promise<SystemLogPage> {
+  const { data } = await client.get<ApiResponse<PageResponse<BeLog>>>('/admin/logs', {
+    params: {
+      level: query.level,
+      date: query.date || undefined,
+      q: query.q?.trim() || undefined,
+      grouped: query.grouped || undefined,
+      page: query.page,
+      size: query.size,
+    },
+  });
+  const p = data.result;
+  return {
+    rows: p.content.map((l) => ({
+      id: l.id,
+      time: (l.createdAt ?? '').slice(0, 19).replace('T', ' '),
+      level: l.level,
+      module: l.module,
+      message: l.message,
+      detail: l.detail,
+      count: l.count ?? null,
+    })),
+    total: p.totalElements,
+    pageCount: p.totalPages,
+    page: p.page,
+  };
 }
 
 // ===== Version API nền tảng — GET /admin/platform-versions =====

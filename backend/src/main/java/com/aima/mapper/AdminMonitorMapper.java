@@ -2,6 +2,7 @@ package com.aima.mapper;
 
 import com.aima.dto.response.AdminFailedPostResponse;
 import com.aima.dto.response.AdminSystemStatusResponse;
+import com.aima.dto.response.SystemActivityResponse;
 import com.aima.dto.response.SystemLogResponse;
 import com.aima.entity.Post;
 import com.aima.entity.PostingJob;
@@ -9,6 +10,7 @@ import com.aima.entity.PublishResult;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -29,10 +31,22 @@ public interface AdminMonitorMapper {
     @Mapping(target = "failedAt", source = "job.endTime")
     AdminFailedPostResponse toFailedPost(Post post, PostingJob job, PublishResult error);
 
-    AdminSystemStatusResponse.ServiceHealthResponse toServiceHealth(String name, String status, String detail);
+    AdminSystemStatusResponse.ServiceHealthResponse toServiceHealth(String name, String status, String detail,
+                                                                    Long latencyMs, Integer activeConnections,
+                                                                    String memoryUsed, Double hitRate);
+
+    AdminSystemStatusResponse.HostMetricsResponse toHostMetrics(Double cpuLoad, Long memUsedMb, Long memMaxMb,
+                                                                Long diskFreeGb, Long diskTotalGb);
 
     AdminSystemStatusResponse toStatusResponse(List<AdminSystemStatusResponse.ServiceHealthResponse> services,
                                                long totalUsers, long activeConnections, long postedLast24h,
                                                long failedLast24h, long pendingSchedules,
-                                               List<SystemLogResponse> alerts);
+                                               List<SystemLogResponse> alerts,
+                                               AdminSystemStatusResponse.HostMetricsResponse host);
+
+    SystemActivityResponse.ActivityBucket toActivityBucket(LocalDateTime time, long posts, long jobs,
+                                                           long errors, long total);
+
+    SystemActivityResponse toActivityResponse(String range, String granularity,
+                                              List<SystemActivityResponse.ActivityBucket> buckets);
 }
