@@ -13,7 +13,7 @@ from typing import List
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
-from ..llm import get_llm
+from ..llm import invoke_structured
 from ..schemas import (
     RegeneratedSection,
     RegeneratedStep,
@@ -55,16 +55,17 @@ class _BodyStepsOut(BaseModel):
 
 
 def _prompt(req: RegeneratePartRequest, task: str, schema):
-    llm = get_llm().with_structured_output(schema)
+    """Returns (typed result, TokenUsage) — routed model with fallback + token accounting."""
     prompt = ChatPromptTemplate.from_messages([("system", SYSTEM_PROMPT), ("user", USER_PROMPT)])
-    chain = prompt | llm
-    return chain.invoke(
+    return invoke_structured(
+        schema,
+        prompt,
         {
             "platform": req.platform,
             "brand_profile": req.brand_profile.model_dump_json(indent=2),
             "current_script": req.current_script.model_dump_json(indent=2),
             "task": task,
-        }
+        },
     )
 
 
@@ -80,14 +81,20 @@ def regenerate_part(req: RegeneratePartRequest) -> RegeneratePartResult:
                 f"Regenerate ONLY the scene_suggestion (filming direction) of the {label}. "
                 "Keep the spoken content unchanged; return only scene_suggestion."
             )
-            out: RegeneratedSection = _prompt(req, task, RegeneratedSection)
-            return RegeneratePartResult(section=RegeneratedSection(scene_suggestion=out.scene_suggestion or ""))
+            out, usage = _prompt(req, task, RegeneratedSection)
+            return RegeneratePartResult(
+                section=RegeneratedSection(scene_suggestion=out.scene_suggestion or ""),
+                **usage.response_fields(),
+            )
         task = (
             f"Regenerate ONLY the {label}: its spoken content and an appropriate timing range. "
             "Do not change its scene suggestion; return content and timing only."
         )
-        out = _prompt(req, task, RegeneratedSection)
-        return RegeneratePartResult(section=RegeneratedSection(content=out.content or "", timing=out.timing))
+        out, usage = _prompt(req, task, RegeneratedSection)
+        return RegeneratePartResult(
+            section=RegeneratedSection(content=out.content or "", timing=out.timing),
+            **usage.response_fields(),
+        )
 
     # section == "body"
     if req.step_index is not None:
@@ -107,5 +114,5 @@ def regenerate_part(req: RegeneratePartRequest) -> RegeneratePartResult:
             f"Regenerate the spoken content of {scope}. Return {indices}; "
             "each entry must set index and content only (leave scene_suggestion null)."
         )
-    out = _prompt(req, task, _BodyStepsOut)
-    return RegeneratePartResult(steps=list(out.steps))
+    out, usage = _prompt(req, task, _BodyStepsOut)
+    return RegeneratePartResult(steps=list(out.steps), **usage.response_fields())

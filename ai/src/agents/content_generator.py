@@ -114,5 +114,5 @@ def generate_content(req: GenerateRequest) -> GenerateResult:
     prompt = ChatPromptTemplate.from_messages(
         [("system", SYSTEM_PROMPT), ("user", USER_PROMPT)]
     )
-    item, tokens = invoke_structured(ContentItem, prompt, build_prompt_vars(req))
-    return GenerateResult(**item.model_dump(), tokens_used=tokens)
+    item, usage = invoke_structured(ContentItem, prompt, build_prompt_vars(req))
+    return GenerateResult(**item.model_dump(), **usage.response_fields())

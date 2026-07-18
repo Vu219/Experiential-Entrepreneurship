@@ -55,6 +55,47 @@ class LlmConfig(BaseModel):
 
 
 # ============================================================
+# Token accounting (real LLM usage returned to the backend)
+# ============================================================
+
+
+class TokenUsage(BaseModel):
+    """Real token usage of ONE LLM call, read from LangChain ``usage_metadata``.
+
+    Internal helper (never a request/response schema by itself). ``cached_tokens``
+    is the prompt-cache read portion of ``input_tokens`` (0 when the provider
+    reports none).
+    """
+
+    total_tokens: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cached_tokens: int = 0
+
+    def response_fields(self) -> dict:
+        """Kwargs for building a ``TokenAccounting`` response (tokens_used = total)."""
+        return {
+            "tokens_used": self.total_tokens,
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "cached_tokens": self.cached_tokens,
+        }
+
+
+class TokenAccounting(BaseModel):
+    """Accounting fields appended to HTTP responses for backend quota/usage logging.
+
+    Kept OUT of the structured-output schemas sent to the model, so the model is
+    never asked to fill an accounting field (same rationale as ResearchResult).
+    """
+
+    tokens_used: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cached_tokens: int = 0
+
+
+# ============================================================
 # Context inputs (provided by the backend on each request)
 # ============================================================
 
@@ -145,12 +186,9 @@ class ResearchResponse(BaseModel):
     summary: str
 
 
-class ResearchResult(ResearchResponse):
-    """HTTP response of /research — adds real LLM token usage for backend quota
-    accounting. Kept OUT of ResearchResponse so the structured-output schema sent
-    to the model never asks it to fill an accounting field."""
-
-    tokens_used: int = 0
+class ResearchResult(ResearchResponse, TokenAccounting):
+    """HTTP response of /research — ResearchResponse plus real LLM token usage
+    (fields from TokenAccounting) for backend quota accounting."""
 
 
 # ============================================================
@@ -248,11 +286,9 @@ class ContentItem(BaseModel):
     brand_voice_check: BrandVoiceCheck
 
 
-class GenerateResult(ContentItem):
+class GenerateResult(ContentItem, TokenAccounting):
     """HTTP response of /generate — ContentItem plus real LLM token usage
     (same subclass pattern as ResearchResult)."""
-
-    tokens_used: int = 0
 
 
 # ============================================================
@@ -294,8 +330,9 @@ class RegeneratedStep(BaseModel):
     scene_suggestion: Optional[str] = None
 
 
-class RegeneratePartResult(BaseModel):
-    """Response contains ONLY the regenerated part: `section` for hook/cta, `steps` for body."""
+class RegeneratePartResult(TokenAccounting):
+    """Response contains ONLY the regenerated part: `section` for hook/cta, `steps` for body
+    (+ real LLM token usage from TokenAccounting)."""
 
     section: Optional[RegeneratedSection] = None
     steps: List[RegeneratedStep] = Field(default_factory=list)
@@ -347,11 +384,9 @@ class FormatResponse(BaseModel):
     versions: List[ContentVersion]
 
 
-class FormatResult(FormatResponse):
+class FormatResult(FormatResponse, TokenAccounting):
     """HTTP response of /format — adds real LLM token usage
-    (same subclass pattern as ResearchResult)."""
-
-    tokens_used: int = 0
+    (fields from TokenAccounting, same subclass pattern as ResearchResult)."""
 
 
 # ============================================================
@@ -410,6 +445,11 @@ class AnalyzeResponse(BaseModel):
     insights: List[OptimizationInsight]
 
 
+class AnalyzeResult(AnalyzeResponse, TokenAccounting):
+    """HTTP response of /analyze — AnalyzeResponse plus real LLM token usage
+    (same subclass pattern as ResearchResult)."""
+
+
 class OptimizeRequest(BaseModel):
     brand_profile: BrandProfileInput
     strategy: ContentStrategyInput
@@ -427,6 +467,11 @@ class StrategyAdjustment(BaseModel):
 class OptimizeResponse(BaseModel):
     strategy_adjustments: List[StrategyAdjustment]
     future_improvements: List[str] = Field(default_factory=list)  # FR-66
+
+
+class OptimizeResult(OptimizeResponse, TokenAccounting):
+    """HTTP response of /optimize — OptimizeResponse plus real LLM token usage
+    (same subclass pattern as ResearchResult)."""
 
 
 # ============================================================

@@ -34,7 +34,7 @@ from ..llm import build_llm, use_llm_config
 from ..model_catalog import list_models
 from ..schemas import (
     AnalyzeRequest,
-    AnalyzeResponse,
+    AnalyzeResult,
     FormatRequest,
     FormatResult,
     GenerateRequest,
@@ -46,7 +46,7 @@ from ..schemas import (
     LlmConfig,
     LlmSpec,
     OptimizeRequest,
-    OptimizeResponse,
+    OptimizeResult,
     RegeneratePartRequest,
     RegeneratePartResult,
     ResearchRequest,
@@ -141,22 +141,22 @@ def regenerate_part(
     return _run("partial regeneration", content_regenerator.regenerate_part, req)
 
 
-@router.post("/analyze", response_model=AnalyzeResponse)
+@router.post("/analyze", response_model=AnalyzeResult)
 def analyze(
     req: AnalyzeRequest,
     x_internal_token: Optional[str] = Header(default=None, alias=INTERNAL_TOKEN_HEADER),
-) -> AnalyzeResponse:
-    """FR-63, FR-64 — success factors + insights."""
+) -> AnalyzeResult:
+    """FR-63, FR-64 — success factors + insights (+ tokens_used)."""
     _apply_llm_config(req.llm_config, x_internal_token)
     return _run("performance analysis", optimizer.analyze_performance, req)
 
 
-@router.post("/optimize", response_model=OptimizeResponse)
+@router.post("/optimize", response_model=OptimizeResult)
 def optimize(
     req: OptimizeRequest,
     x_internal_token: Optional[str] = Header(default=None, alias=INTERNAL_TOKEN_HEADER),
-) -> OptimizeResponse:
-    """FR-65, FR-66 — strategy adjustment + future-post proposals."""
+) -> OptimizeResult:
+    """FR-65, FR-66 — strategy adjustment + future-post proposals (+ tokens_used)."""
     _apply_llm_config(req.llm_config, x_internal_token)
     return _run("optimization", optimizer.propose_optimizations, req)
 

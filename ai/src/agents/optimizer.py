@@ -14,14 +14,16 @@ from collections import defaultdict
 
 from langchain_core.prompts import ChatPromptTemplate
 
-from ..llm import get_llm
+from ..llm import invoke_structured
 from ..schemas import (
     AnalyzeRequest,
     AnalyzeResponse,
+    AnalyzeResult,
     GoldenHourRequest,
     GoldenHourResponse,
     OptimizeRequest,
     OptimizeResponse,
+    OptimizeResult,
 )
 
 # Platform default golden hours (REQUIREMENTS.md FR-48).
@@ -58,19 +60,20 @@ PUBLISHED POSTS WITH METRICS:
 Analyze what worked and why."""
 
 
-def analyze_performance(req: AnalyzeRequest) -> AnalyzeResponse:
-    llm = get_llm().with_structured_output(AnalyzeResponse)
+def analyze_performance(req: AnalyzeRequest) -> AnalyzeResult:
     prompt = ChatPromptTemplate.from_messages(
         [("system", _ANALYZE_SYSTEM), ("user", _ANALYZE_USER)]
     )
-    chain = prompt | llm
     posts_json = "[\n" + ",\n".join(p.model_dump_json() for p in req.posts) + "\n]"
-    return chain.invoke(
+    result, usage = invoke_structured(
+        AnalyzeResponse,
+        prompt,
         {
             "brand_profile": req.brand_profile.model_dump_json(indent=2),
             "posts": posts_json,
-        }
+        },
     )
+    return AnalyzeResult(**result.model_dump(), **usage.response_fields())
 
 
 # ------------------------------------------------------------
@@ -98,20 +101,21 @@ INSIGHTS:
 Propose strategy adjustments and future improvements."""
 
 
-def propose_optimizations(req: OptimizeRequest) -> OptimizeResponse:
-    llm = get_llm().with_structured_output(OptimizeResponse)
+def propose_optimizations(req: OptimizeRequest) -> OptimizeResult:
     prompt = ChatPromptTemplate.from_messages(
         [("system", _OPTIMIZE_SYSTEM), ("user", _OPTIMIZE_USER)]
     )
-    chain = prompt | llm
     insights_json = "[\n" + ",\n".join(i.model_dump_json() for i in req.insights) + "\n]"
-    return chain.invoke(
+    result, usage = invoke_structured(
+        OptimizeResponse,
+        prompt,
         {
             "brand_profile": req.brand_profile.model_dump_json(indent=2),
             "strategy": req.strategy.model_dump_json(indent=2),
             "insights": insights_json,
-        }
+        },
     )
+    return OptimizeResult(**result.model_dump(), **usage.response_fields())
 
 
 # ------------------------------------------------------------

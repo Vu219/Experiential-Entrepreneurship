@@ -95,7 +95,7 @@ def format_content(req: FormatRequest) -> FormatResult:
     prompt = ChatPromptTemplate.from_messages(
         [("system", SYSTEM_PROMPT), ("user", USER_PROMPT)]
     )
-    result, tokens = invoke_structured(
+    result, usage = invoke_structured(
         FormatResponse,
         prompt,
         {
@@ -115,4 +115,4 @@ def format_content(req: FormatRequest) -> FormatResult:
         if key in wanted and key not in seen:
             versions.append(v)
             seen.add(key)
-    return FormatResult(versions=versions, tokens_used=tokens)
+    return FormatResult(versions=versions, **usage.response_fields())

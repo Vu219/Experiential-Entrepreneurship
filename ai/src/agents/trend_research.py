@@ -159,7 +159,7 @@ def research_trends(req: ResearchRequest) -> ResearchResult:
     prompt = ChatPromptTemplate.from_messages(
         [("system", SYSTEM_PROMPT), ("user", USER_PROMPT)]
     )
-    result, tokens = invoke_structured(
+    result, usage = invoke_structured(
         ResearchResponse,
         prompt,
         {
@@ -174,7 +174,7 @@ def research_trends(req: ResearchRequest) -> ResearchResult:
     result.industry = req.brand_profile.industry
     result.trends = result.trends[: req.max_trends]
     result.content_ideas = result.content_ideas[: req.max_ideas]
-    return ResearchResult(**result.model_dump(), tokens_used=tokens)
+    return ResearchResult(**result.model_dump(), **usage.response_fields())
 
 
 def _format_signal(signal: dict) -> str:

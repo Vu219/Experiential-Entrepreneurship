@@ -20,6 +20,7 @@ const FailedPosts = lazy(() => import("./pages/app/FailedPosts.tsx"));
 const Analytics = lazy(() => import("./pages/app/Analytics.tsx"));
 const Trends = lazy(() => import("./pages/app/Trends.tsx"));
 const Brand = lazy(() => import("./pages/app/Brand.tsx"));
+const Usage = lazy(() => import("./pages/app/Usage.tsx"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
 const AdminOverview = lazy(() => import("./pages/admin/Overview"));
@@ -30,6 +31,8 @@ const AdminLogs = lazy(() => import("./pages/admin/Logs"));
 const AdminApiVersions = lazy(() => import("./pages/admin/ApiVersions"));
 const AdminRevenue = lazy(() => import("./pages/admin/Revenue"));
 const AdminPlans = lazy(() => import("./pages/admin/Plans"));
+const AdminUsage = lazy(() => import("./pages/admin/UsageOverview"));
+const AdminUserUsageDetail = lazy(() => import("./pages/admin/UserUsageDetail"));
 const AdminAiProviders = lazy(() => import("./pages/admin/AiProviders"));
 const AdminAiModels = lazy(() => import("./pages/admin/AiModels"));
 const AdminAiUsage = lazy(() => import("./pages/admin/AiUsage"));
@@ -70,6 +73,7 @@ const APP_PAGE_IMPORTS = [
   () => import("./pages/app/Analytics.tsx"),
   () => import("./pages/app/Trends.tsx"),
   () => import("./pages/app/Brand.tsx"),
+  () => import("./pages/app/Usage.tsx"),
   () => import("./pages/Profile"),
   () => import("./pages/Settings"),
 ] as const;
@@ -83,6 +87,7 @@ const ADMIN_PAGE_IMPORTS = [
   () => import("./pages/admin/ApiVersions"),
   () => import("./pages/admin/Revenue"),
   () => import("./pages/admin/Plans"),
+  () => import("./pages/admin/UsageOverview"),
   () => import("./pages/admin/AiProviders"),
   () => import("./pages/admin/AiModels"),
   () => import("./pages/admin/AiUsage"),
@@ -153,6 +158,7 @@ export default function App() {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/trends" element={<Trends />} />
           <Route path="/brand" element={<Brand />} />
+          <Route path="/usage" element={<Usage />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
@@ -167,6 +173,8 @@ export default function App() {
           <Route path="/admin/api-versions" element={<AdminApiVersions />} />
           <Route path="/admin/revenue" element={<AdminRevenue />} />
           <Route path="/admin/plans" element={<AdminPlans />} />
+          <Route path="/admin/usage" element={<AdminUsage />} />
+          <Route path="/admin/usage/users/:id" element={<AdminUserUsageDetail />} />
           <Route path="/admin/ai/providers" element={<AdminAiProviders />} />
           <Route path="/admin/ai/models" element={<AdminAiModels />} />
           <Route path="/admin/ai/usage" element={<AdminAiUsage />} />

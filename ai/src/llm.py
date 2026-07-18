@@ -26,7 +26,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 
 from .config import get_settings
-from .schemas import LlmConfig, LlmSpec
+from .schemas import LlmConfig, LlmSpec, TokenUsage
 
 logger = logging.getLogger(__name__)
 
@@ -134,8 +134,8 @@ def get_llm() -> BaseChatModel:
 
 def invoke_structured(
     schema: type[T], prompt: ChatPromptTemplate, variables: dict[str, Any]
-) -> tuple[T, int]:
-    """Run ``prompt`` through the routed model and return (typed result, tokens used).
+) -> tuple[T, TokenUsage]:
+    """Run ``prompt`` through the routed model and return (typed result, token usage).
 
     With a per-request config: try the primary spec; on failure retry ONCE with the
     fallback spec (if any). Without config: env default, previous behavior.
@@ -166,9 +166,9 @@ def _invoke_with(
     schema: type[T],
     prompt: ChatPromptTemplate,
     variables: dict[str, Any],
-) -> tuple[T, int]:
+) -> tuple[T, TokenUsage]:
     """Uses ``include_raw=True`` so the raw message stays reachable for token accounting;
-    providers that report no usage metadata yield 0."""
+    providers that report no usage metadata yield all-zero usage."""
     chain = prompt | llm.with_structured_output(schema, include_raw=True)
     out = chain.invoke(variables)
 
@@ -179,4 +179,10 @@ def _invoke_with(
         )
 
     usage = getattr(out["raw"], "usage_metadata", None) or {}
-    return parsed, usage.get("total_tokens", 0)
+    input_details = usage.get("input_token_details") or {}
+    return parsed, TokenUsage(
+        total_tokens=usage.get("total_tokens", 0),
+        input_tokens=usage.get("input_tokens", 0),
+        output_tokens=usage.get("output_tokens", 0),
+        cached_tokens=input_details.get("cache_read", 0),
+    )
