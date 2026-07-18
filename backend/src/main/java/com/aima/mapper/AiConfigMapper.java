@@ -3,6 +3,7 @@ package com.aima.mapper;
 import com.aima.dto.ai.CatalogModelPayload;
 import com.aima.dto.ai.LlmConfigPayload;
 import com.aima.dto.ai.LlmSpecPayload;
+import com.aima.dto.ai.TokenAccountedPayload;
 import com.aima.dto.request.AiModelCreateRequest;
 import com.aima.dto.request.AiModelUpdateRequest;
 import com.aima.dto.request.AiProviderUpdateRequest;
@@ -27,7 +28,9 @@ import com.aima.entity.User;
 import com.aima.enums.AiConfigAction;
 import com.aima.enums.AiProviderCode;
 import com.aima.enums.AiTaskCode;
+import com.aima.enums.AiUsageStatus;
 import com.aima.repository.AiUsageRepository;
+import com.aima.service.AiUsageService;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -136,9 +139,24 @@ public interface AiConfigMapper {
 
     // ===== Usage (ai_usage) =====
 
-    /** input/output tokens để trống — AI service hiện chỉ trả tổng (xem AiUsage). */
-    AiUsage toUsage(User user, AiTaskCode taskCode, AiProviderCode providerCode, String modelCode,
-                    Long totalTokens, BigDecimal estimatedCost);
+    /**
+     * Một event ai_usage từ ngữ cảnh cuộc gọi + payload kết quả. {@code result} null (event
+     * ERROR/TIMEOUT) → input/output/cached giữ NULL ("không biết", khác 0).
+     */
+    @Mapping(target = "taskCode", source = "context.taskCode")
+    @Mapping(target = "status", source = "status") // tường minh: tránh MapStruct nhầm sang user.status
+    @Mapping(target = "planAtTime", source = "context.planCode")
+    @Mapping(target = "requestId", source = "context.requestId")
+    @Mapping(target = "clientIp", source = "context.clientIp")
+    @Mapping(target = "userAgent", source = "context.userAgent")
+    @Mapping(target = "inputTokens", source = "result.inputTokens")
+    @Mapping(target = "outputTokens", source = "result.outputTokens")
+    @Mapping(target = "cachedTokens", source = "result.cachedTokens")
+    AiUsage toUsage(User user, AiUsageService.AiCallContext context, TokenAccountedPayload result,
+                    AiProviderCode providerCode, String modelCode, Long totalTokens,
+                    AiUsageStatus status, Long latencyMs, Long billableUnits,
+                    Long creditUnits, Long creditShortfall,
+                    BigDecimal estimatedCost, String billingPeriod, String idempotencyKey);
 
     @Mapping(target = "userEmail", source = "user.email")
     AiUsageResponse toUsageResponse(AiUsage usage);
