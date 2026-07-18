@@ -152,6 +152,12 @@ ai-config:
     google-model: ${AI_SEED_GOOGLE_MODEL:}
 
 aima:
+  # true trên môi trường THẬT (Render): chặn cứng mọi dev-tool (dev-seed credit…) bất kể cờ
+  # dev — biến độc lập, không kéo side effect của Spring profile. Dev để mặc định false.
+  production-mode: ${AIMA_PRODUCTION_MODE:false}
+  # DEV-ONLY: bật endpoint seed token_credits (POST /admin/usage/users/{id}/dev-credits).
+  dev:
+    credit-seed-enabled: ${AIMA_DEV_CREDIT_SEED:false}
   encryption:
     # 32 byte base64 (openssl rand -base64 32). Bắt buộc — app fail khi startup nếu thiếu.
     key: ${AIMA_ENCRYPTION_KEY}
