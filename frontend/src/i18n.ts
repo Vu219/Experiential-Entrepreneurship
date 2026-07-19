@@ -377,6 +377,11 @@ export const STRINGS = {
     schOnHoldHint: 'Lịch đang tạm giữ do tài khoản hết hạn/bị hạn chế. Kết nối lại tài khoản trong Cài đặt rồi bấm Kích hoạt lại.',
     schFailedHint: 'Đăng thất bại. Sửa nội dung nếu cần, hủy lịch để bản quay về Đã định dạng rồi lên lịch lại.',
     schStSCHEDULED: 'Đã lên lịch', schStON_HOLD: 'Tạm giữ', schStPOSTING: 'Đang đăng', schStPOSTED: 'Đã đăng', schStFAILED: 'Thất bại', schStCANCELLED: 'Đã hủy',
+    calViewMonth: 'Tháng', calViewAgenda: 'Agenda', calToday: 'Hôm nay', calTomorrow: 'Ngày mai', calPrevMonth: 'Tháng trước', calNextMonth: 'Tháng sau',
+    calLoading: 'Đang tải lịch đăng…', calErrMsg: 'Kiểm tra kết nối mạng rồi thử lại.', calEmptyMsg: 'Lên lịch bài đăng đầu tiên từ bản nội dung đã định dạng.', calDayPosts: '{n} bài đăng',
+    calVsLastWeek: 'so với tuần trước', calConnectAccount: 'Kết nối tài khoản', calTimezoneVN: 'Múi giờ Việt Nam (GMT+7)',
+    calSummary: 'Sẽ đăng lên {platform} · {account} · {time}', calFilterVersions: 'Lọc nhanh theo nội dung…', calNoVersionMatch: 'Không có bản nào khớp bộ lọc.',
+    calPreview: 'Xem trước nội dung', calSeeMore: 'Xem thêm', calSeeLess: 'Thu gọn',
     // analytics
     anReach: 'Lượt tiếp cận theo tháng', anTop: 'Nội dung hiệu quả nhất', anAudience: 'Phân bổ khán giả', anExport: 'Xuất báo cáo',
     // phân tích hiệu quả (UI-08, FR-60..FR-62)
@@ -1140,6 +1145,11 @@ export const STRINGS = {
     schOnHoldHint: 'On hold because the account expired or is restricted. Reconnect the account in Settings, then hit Reactivate.',
     schFailedHint: 'Publishing failed. Edit the content if needed, cancel the schedule so the version returns to Formatted, then reschedule.',
     schStSCHEDULED: 'Scheduled', schStON_HOLD: 'On hold', schStPOSTING: 'Posting', schStPOSTED: 'Posted', schStFAILED: 'Failed', schStCANCELLED: 'Cancelled',
+    calViewMonth: 'Month', calViewAgenda: 'Agenda', calToday: 'Today', calTomorrow: 'Tomorrow', calPrevMonth: 'Previous month', calNextMonth: 'Next month',
+    calLoading: 'Loading schedules…', calErrMsg: 'Check your connection and try again.', calEmptyMsg: 'Schedule your first post from a formatted content version.', calDayPosts: '{n} posts',
+    calVsLastWeek: 'vs last week', calConnectAccount: 'Connect account', calTimezoneVN: 'Vietnam time (GMT+7)',
+    calSummary: 'Will publish to {platform} · {account} · {time}', calFilterVersions: 'Quick filter by caption…', calNoVersionMatch: 'No versions match the filter.',
+    calPreview: 'Content preview', calSeeMore: 'See more', calSeeLess: 'Collapse',
     anReach: 'Monthly reach', anTop: 'Top performing content', anAudience: 'Audience breakdown', anExport: 'Export report',
     // analytics page (UI-08, FR-60..FR-62)
     anaViews: 'Views', anaLikes: 'Likes', anaComments: 'Comments', anaShares: 'Shares',

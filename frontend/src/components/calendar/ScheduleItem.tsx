@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Clock, PencilLine, RotateCcw, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { PlatformTag } from '../ui.tsx';
@@ -10,13 +11,14 @@ import { STATUS_TONE } from './statusMeta.ts';
 
 // Một dòng lịch đăng trong hàng đợi (UI-07) — tách từ pages/app/Calendar.tsx:
 // giờ + ngày | nền tảng | caption + tài khoản | badge trạng thái; hint và hành động theo state machine.
+// Callback nhận schedule để danh sách dùng chung 1 handler (không tạo closure mỗi item — rule hiệu năng FE).
 
-export default function ScheduleItem({ schedule: s, busy, confirmingCancel, onReschedule, onCancel, onEditContent }: {
+function ScheduleItemBase({ schedule: s, busy, confirmingCancel, onReschedule, onCancel, onEditContent }: {
   schedule: PostSchedule;
   busy: boolean;
   confirmingCancel: boolean;
-  onReschedule: () => void;
-  onCancel: () => void;
+  onReschedule: (s: PostSchedule) => void;
+  onCancel: (s: PostSchedule) => void;
   onEditContent: () => void;
 }) {
   const { t } = useApp();
@@ -55,7 +57,7 @@ export default function ScheduleItem({ schedule: s, busy, confirmingCancel, onRe
       {(canReschedule || canCancel) && (
         <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
           {canReschedule && (
-            <ActionBtn icon={<Clock size={13} />} label={s.status === 'ON_HOLD' ? t.schReactivate : t.schReschedule} onClick={onReschedule} disabled={busy} />
+            <ActionBtn icon={<Clock size={13} />} label={s.status === 'ON_HOLD' ? t.schReactivate : t.schReschedule} onClick={() => onReschedule(s)} disabled={busy} />
           )}
           {s.status === 'FAILED' && (
             <ActionBtn icon={<PencilLine size={13} />} label={t.schEditContent} onClick={onEditContent} disabled={busy} />
@@ -64,7 +66,7 @@ export default function ScheduleItem({ schedule: s, busy, confirmingCancel, onRe
             <ActionBtn
               icon={s.status === 'FAILED' ? <RotateCcw size={13} /> : <Trash2 size={13} />}
               label={confirmingCancel ? t.schConfirmCancel : s.status === 'FAILED' ? t.schResetFailed : t.schCancel}
-              onClick={onCancel}
+              onClick={() => onCancel(s)}
               disabled={busy}
               danger={!confirmingCancel}
               emphasized={confirmingCancel}
@@ -75,6 +77,8 @@ export default function ScheduleItem({ schedule: s, busy, confirmingCancel, onRe
     </div>
   );
 }
+
+export default memo(ScheduleItemBase);
 
 function ActionBtn({ icon, label, onClick, disabled, danger = false, emphasized = false }: {
   icon: React.ReactNode; label: string; onClick: () => void; disabled?: boolean; danger?: boolean; emphasized?: boolean;

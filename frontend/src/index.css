@@ -916,6 +916,21 @@ html {
   }
 }
 
+/* Icon xoay trong nút đang submit (vd nút "Lên lịch" của modal lịch đăng). */
+@keyframes icon-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.icon-spin {
+  animation: icon-spin 0.9s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .icon-spin {
+    animation: none;
+  }
+}
+
 /* ===== Toast góc trên-phải (components/toast/ToastProvider.tsx) =====
    Vào: trượt từ phải + mờ dần (dùng token dropdown chung). Thanh tiến trình chạy
    bằng transform: scaleX (origin trái) — không gây reflow; duration đặt inline

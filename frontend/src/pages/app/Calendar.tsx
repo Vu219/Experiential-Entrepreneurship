@@ -1,54 +1,81 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CalendarClock } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { AlertTriangle, CalendarClock, RefreshCw, type LucideIcon } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
-import { Card } from '../../components/ui.tsx';
-import { weekdays } from '../../data.ts';
+import { Card, Icon } from '../../components/ui.tsx';
 import { PLATFORM_BG } from '../../theme.ts';
-import { TONE_COLORS } from '../../statusTokens.ts';
-import { PLATFORM_TO_TAG } from '../../api/connections.ts';
 import { cancelSchedule, listSchedules, type PostSchedule, type ScheduleStatus } from '../../api/schedules.ts';
+import type { Platform } from '../../api/brandProfile.ts';
 import { useToast } from '../../components/toast/ToastProvider';
 import ScheduleItem from '../../components/calendar/ScheduleItem.tsx';
 import { CreateScheduleModal, RescheduleModal } from '../../components/calendar/ScheduleModals.tsx';
-import { dateKey } from '../../components/calendar/dateUtils.ts';
-import { FILTERS, STATUS_TONE } from '../../components/calendar/statusMeta.ts';
+import { MONTHS_EN, absDayLabel } from '../../components/calendar/dateUtils.ts';
+import MonthGrid, { buildMonth } from '../../components/calendar/MonthGrid.tsx';
+import AgendaView from '../../components/calendar/AgendaView.tsx';
+import UpcomingPanel, { AutoPill, FailedBanner, StatusChips } from '../../components/calendar/UpcomingPanel.tsx';
+import StatCards from '../../components/calendar/StatCards.tsx';
+import CalendarSkeleton from '../../components/calendar/CalendarSkeleton.tsx';
+import DaySheet from '../../components/calendar/DaySheet.tsx';
 
-// UI-07 — Lịch đăng bài (FR-47..FR-51 + FR-58): lịch tháng (dot theo nền tảng) + hàng đợi
-// với hành động Dời giờ / Hủy / Kích hoạt lại; modal Lên lịch mới có gợi ý khung giờ vàng (FR-48).
+// UI-07 — Lịch đăng bài (FR-47..FR-51 + FR-58), redesign 2026-07:
+// hàng KPI (đếm client-side, thẻ Thất bại → trang Bài lỗi) + cột trái view Tháng (chip giờ +
+// màu nền tảng, "+N") / Agenda (nhóm theo ngày) với chip lọc nền tảng + cột phải hàng đợi
+// (chip trạng thái, banner lỗi có điều kiện, pill tự động đăng). Mobile: Agenda mặc định,
+// lưới tháng dot + bottom sheet ngày, bỏ panel phải. Hành động giữ nguyên state machine:
+// Dời giờ / Hủy 2 bước / Kích hoạt lại (ON_HOLD) / Sửa nội dung (FAILED); khung giờ vàng FR-48.
 
-const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+type LoadStatus = 'loading' | 'error' | 'ready';
+type ViewMode = 'month' | 'agenda';
+
+const PLATFORM_CHIPS: { key: Platform; name: string; bg: string }[] = [
+  { key: 'FACEBOOK', name: 'Facebook', bg: PLATFORM_BG.FB },
+  { key: 'INSTAGRAM', name: 'Instagram', bg: PLATFORM_BG.IG },
+  { key: 'THREADS', name: 'Threads', bg: PLATFORM_BG.TH },
+];
 
 export default function Calendar() {
   const { t, lang, go, brandGradient } = useApp();
   const toast = useToast();
-  const { isMobile, isTablet } = useBreakpoint();
+  const { width, isMobile, isTablet } = useBreakpoint();
   const stacked = isMobile || isTablet;
 
+  const [status, setStatus] = useState<LoadStatus>('loading');
   const [schedules, setSchedules] = useState<PostSchedule[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [view, setView] = useState<ViewMode>(isMobile ? 'agenda' : 'month');
   const [monthOffset, setMonthOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [filter, setFilter] = useState<ScheduleStatus | 'ALL'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<ScheduleStatus | 'ALL'>('ALL');
+  const [platformFilter, setPlatformFilter] = useState<Platform | 'ALL'>('ALL');
   const [createOpen, setCreateOpen] = useState(false);
   const [rescheduling, setRescheduling] = useState<PostSchedule | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(false);
+  useEffect(() => {
+    let alive = true;
+    setStatus('loading');
+    (async () => {
+      try {
+        const rows = await listSchedules();
+        if (!alive) return;
+        setSchedules(rows);
+        setStatus('ready');
+      } catch {
+        if (alive) setStatus('error');
+      }
+    })();
+    return () => { alive = false; };
+  }, [reloadKey]);
+
+  const retry = useCallback(() => setReloadKey((k) => k + 1), []);
+
+  // Nạp lại sau hành động (hủy/dời/tạo) mà không nháy skeleton; lỗi thì giữ dữ liệu cũ.
+  const refresh = useCallback(async () => {
     try {
       setSchedules(await listSchedules());
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* giữ dữ liệu hiện có */ }
   }, []);
-
-  useEffect(() => { load(); }, [load]);
 
   // Hai lần bấm mới hủy thật; tự reset sau 4s để tránh hủy nhầm.
   useEffect(() => {
@@ -57,25 +84,70 @@ export default function Calendar() {
     return () => clearTimeout(timer);
   }, [confirmCancelId]);
 
-  const shown = useMemo(() => {
-    let rows = schedules;
-    if (filter !== 'ALL') rows = rows.filter((s) => s.status === filter);
+  const counts = useMemo(() => {
+    const c = { scheduled: 0, onHold: 0, failed: 0, posted: 0 };
+    for (const s of schedules) {
+      if (s.status === 'SCHEDULED') c.scheduled++;
+      else if (s.status === 'ON_HOLD') c.onHold++;
+      else if (s.status === 'FAILED') c.failed++;
+      else if (s.status === 'POSTED') c.posted++;
+    }
+    return c;
+  }, [schedules]);
+
+  // So kỳ cho thẻ "Đã đăng": bài POSTED trong 7 ngày gần nhất vs 7 ngày liền trước
+  // (cửa sổ trượt tính từ hiện tại, mốc theo scheduledTime ≈ giờ đăng thật — dispatch mỗi 60s).
+  const postedDelta = useMemo(() => {
+    const now = Date.now();
+    const week = 7 * 86400000;
+    let current = 0;
+    let previous = 0;
+    for (const s of schedules) {
+      if (s.status !== 'POSTED') continue;
+      const ts = new Date(s.scheduledTime).getTime();
+      if (ts >= now - week && ts < now) current++;
+      else if (ts >= now - 2 * week && ts < now - week) previous++;
+    }
+    return { current, previous };
+  }, [schedules]);
+
+  const platformFiltered = useMemo(
+    () => (platformFilter === 'ALL' ? schedules : schedules.filter((s) => s.platformName === platformFilter)),
+    [schedules, platformFilter],
+  );
+
+  // Danh sách cho Agenda + panel: chip trạng thái + chip nền tảng + ngày đang chọn.
+  const listShown = useMemo(() => {
+    let rows = platformFiltered;
+    if (statusFilter !== 'ALL') rows = rows.filter((s) => s.status === statusFilter);
     if (selectedDay) rows = rows.filter((s) => s.scheduledTime.slice(0, 10) === selectedDay);
     return rows;
-  }, [schedules, filter, selectedDay]);
+  }, [platformFiltered, statusFilter, selectedDay]);
 
   const viewDate = useMemo(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth() + monthOffset, 1);
   }, [monthOffset]);
 
-  const cells = useMemo(() => buildMonth(viewDate, schedules), [viewDate, schedules]);
+  const cells = useMemo(() => buildMonth(viewDate, platformFiltered), [viewDate, platformFiltered]);
 
   const monthLabel = lang === 'en'
     ? `${MONTHS_EN[viewDate.getMonth()]} ${viewDate.getFullYear()}`
     : `Tháng ${viewDate.getMonth() + 1}, ${viewDate.getFullYear()}`;
 
-  const onCancel = async (s: PostSchedule) => {
+  // Sheet ngày (mobile) khớp với chip/dot trên lưới: loại CANCELLED như buildMonth.
+  const sheetItems = useMemo(
+    () => (selectedDay ? platformFiltered.filter((s) => s.status !== 'CANCELLED' && s.scheduledTime.slice(0, 10) === selectedDay) : []),
+    [platformFiltered, selectedDay],
+  );
+
+  const onReschedule = useCallback((s: PostSchedule) => setRescheduling(s), []);
+  const onEditContent = useCallback(() => go('create'), [go]);
+  const onGoFailed = useCallback(() => go('failedPosts'), [go]);
+  const onSelectDay = useCallback((key: string | null) => setSelectedDay(key), []);
+  const onClearDay = useCallback(() => setSelectedDay(null), []);
+
+  const onCancel = useCallback(async (s: PostSchedule) => {
     if (confirmCancelId !== s.id) {
       setConfirmCancelId(s.id);
       return;
@@ -84,190 +156,255 @@ export default function Calendar() {
     setBusyId(s.id);
     try {
       await cancelSchedule(s.id);
-      await load();
+      await refresh();
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
       setBusyId(null);
     }
+  }, [confirmCancelId, refresh, toast]);
+
+  const outer: CSSProperties = {
+    maxWidth: width >= 1440 ? 1320 : 1180, margin: '0 auto',
+    display: 'flex', flexDirection: 'column', gap: isMobile ? 16 : 20,
   };
 
-  return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'grid', gridTemplateColumns: stacked ? '1fr' : '1.5fr 1fr', gap: 20, alignItems: 'start' }}>
-      <Card>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, flexWrap: 'wrap', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: '#211c38' }}>{monthLabel}</span>
-            <div style={{ display: 'flex', gap: 4 }}>
-              <button style={navBtn} onClick={() => setMonthOffset((v) => v - 1)} aria-label="prev">‹</button>
-              <button style={navBtn} onClick={() => setMonthOffset((v) => v + 1)} aria-label="next">›</button>
-            </div>
-          </div>
-          <button onClick={() => setCreateOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 10, padding: '9px 16px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>
-            <CalendarClock size={15} />
-            {t.schNew}
-          </button>
-        </div>
+  if (status === 'loading') {
+    return (
+      <div className="view-pop" style={outer} role="status" aria-busy="true">
+        <span style={srOnly}>{t.calLoading}</span>
+        <CalendarSkeleton stacked={stacked} isMobile={isMobile} />
+      </div>
+    );
+  }
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 6, marginBottom: 8 }}>
-          {weekdays(lang).map((w, i) => (
-            <div key={i} style={{ textAlign: 'center', fontSize: 11.5, fontWeight: 700, color: '#a59fbb' }}>{w}</div>
-          ))}
+  if (status === 'error') {
+    return (
+      <div className="view-pop" style={outer}>
+        <StatePanel
+          role="alert"
+          tone="error"
+          icon={AlertTriangle}
+          title={t.schErr}
+          message={t.calErrMsg}
+          action={
+            <button onClick={retry} className="btn-grad" style={primaryBtn(brandGradient)}>
+              <Icon icon={RefreshCw} size={16} stroke="#fff" />
+              {t.ntfRetry}
+            </button>
+          }
+        />
+      </div>
+    );
+  }
+
+  const empty = schedules.length === 0;
+
+  return (
+    <div className="view-pop" style={outer}>
+      <StatCards counts={counts} postedDelta={postedDelta} onFailedClick={onGoFailed} />
+
+      {isMobile && !empty && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {counts.failed > 0 && <FailedBanner count={counts.failed} onClick={onGoFailed} />}
+          <AutoPill count={counts.scheduled} />
+          {/* Chip trạng thái chỉ lọc danh sách — view Tháng (mobile) không dùng nên ẩn đi. */}
+          {view === 'agenda' && <StatusChips value={statusFilter} onChange={setStatusFilter} />}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 6 }}>
-          {cells.map((d, i) => {
-            const selected = selectedDay === d.key;
-            return (
-              <div
-                key={i}
-                onClick={() => setSelectedDay(selected ? null : d.key)}
-                style={{
-                  minHeight: isMobile ? 48 : 62,
-                  borderRadius: 11,
-                  padding: isMobile ? '5px 6px' : '7px 8px',
-                  border: `1px solid ${selected ? '#8b5cf6' : d.today ? '#c4b5fd' : '#f1eef8'}`,
-                  background: selected ? '#f1e9ff' : d.today ? '#f6f1ff' : '#fcfbfe',
-                  opacity: d.muted ? 0.38 : 1,
-                  cursor: 'pointer',
-                }}
-              >
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: d.today || selected ? '#7c3aed' : '#3f3a55' }}>{d.day}</span>
-                <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 5 }}>
-                  {d.dots.map((bg, j) => (
-                    <span key={j} style={{ width: 7, height: 7, borderRadius: '50%', background: bg }} />
+      )}
+
+      {empty ? (
+        <StatePanel
+          tone="empty"
+          icon={CalendarClock}
+          title={t.schEmpty}
+          message={t.calEmptyMsg}
+          action={
+            <button onClick={() => setCreateOpen(true)} className="btn-grad" style={primaryBtn(brandGradient)}>
+              <Icon icon={CalendarClock} size={16} stroke="#fff" />
+              {t.schNew}
+            </button>
+          }
+        />
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: stacked ? '1fr' : width >= 1440 ? '1.6fr 1fr' : '1.5fr 1fr', gap: 20, alignItems: 'start' }}>
+          <Card>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+              {view === 'month' ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: '#211c38' }}>{monthLabel}</span>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button style={navBtn} onClick={() => setMonthOffset((v) => v - 1)} aria-label={t.calPrevMonth}>‹</button>
+                    <button style={navBtn} onClick={() => setMonthOffset((v) => v + 1)} aria-label={t.calNextMonth}>›</button>
+                  </div>
+                </div>
+              ) : (
+                <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: '#211c38' }}>{t.calViewAgenda}</span>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', background: '#f6f4fb', borderRadius: 10, padding: 3, gap: 2 }}>
+                  {(['month', 'agenda'] as const).map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setView(v)}
+                      aria-pressed={view === v}
+                      style={{
+                        border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+                        background: view === v ? '#fff' : 'transparent',
+                        color: view === v ? '#7c3aed' : '#6b6680',
+                        boxShadow: view === v ? '0 2px 8px -3px rgba(80,60,140,.25)' : 'none',
+                      }}
+                    >
+                      {v === 'month' ? t.calViewMonth : t.calViewAgenda}
+                    </button>
                   ))}
                 </div>
+                <button onClick={() => setCreateOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 10, padding: '9px 16px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>
+                  <CalendarClock size={15} />
+                  {t.schNew}
+                </button>
               </div>
-            );
-          })}
-        </div>
-        {selectedDay && (
-          <button onClick={() => setSelectedDay(null)} style={{ marginTop: 12, background: 'none', border: 'none', color: '#7c3aed', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
-            {t.schShowAll}
-          </button>
-        )}
-      </Card>
+            </div>
 
-      <Card>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.schQueue}</div>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: '#16a34a', background: '#e8f8ee', borderRadius: 999, padding: '4px 10px' }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a' }} />
-            {t.calAuto}
-          </span>
-        </div>
-
-        {/* Lối vào trung tâm hồi phục bài lỗi (FR-35..FR-39) — xử lý vi phạm chính sách / lỗi kỹ thuật */}
-        <button
-          onClick={() => go('failedPosts')}
-          style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', marginBottom: 14, border: '1px solid #f2d9df', background: '#fdf5f7', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontWeight: 700, color: '#c0356a', cursor: 'pointer' }}
-        >
-          <AlertTriangle size={14} />
-          {t.fpNavFailed}
-          <span style={{ marginLeft: 'auto' }}>›</span>
-        </button>
-
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
-          {FILTERS.map((f) => {
-            const active = filter === f;
-            const tone = f === 'ALL' ? null : TONE_COLORS[STATUS_TONE[f]];
-            return (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                style={{
-                  border: `1px solid ${active ? '#c4b5fd' : '#ece8f6'}`, borderRadius: 999, padding: '5px 11px',
-                  fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-                  background: active ? '#f1e9ff' : '#fff',
-                  color: active ? '#7c3aed' : tone ? tone.color : '#6b6680',
-                }}
-              >
-                {f === 'ALL' ? t.schAll : t[`schSt${f}` as keyof typeof t] as string}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+              <button onClick={() => setPlatformFilter('ALL')} aria-pressed={platformFilter === 'ALL'} style={platformChip(platformFilter === 'ALL')}>
+                {t.schAll}
               </button>
-            );
-          })}
-        </div>
+              {PLATFORM_CHIPS.map((p) => (
+                <button key={p.key} onClick={() => setPlatformFilter(p.key)} aria-pressed={platformFilter === p.key} style={platformChip(platformFilter === p.key)}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: p.bg, flex: 'none' }} />
+                  {p.name}
+                </button>
+              ))}
+            </div>
 
-        {loading && <div style={{ padding: '26px 0', textAlign: 'center', fontSize: 13, color: '#a39bbf' }}>…</div>}
-        {error && (
-          <div style={{ padding: '20px 0', textAlign: 'center', fontSize: 13, color: '#8a85a0' }}>
-            {t.schErr}{' '}
-            <button onClick={load} style={{ background: 'none', border: 'none', color: '#7c3aed', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>{t.ntfRetry}</button>
-          </div>
-        )}
-        {!loading && !error && shown.length === 0 && (
-          <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 13, color: '#8a85a0' }}>
-            {selectedDay ? t.schEmptyDay : t.schEmpty}
-          </div>
-        )}
+            {view === 'month' ? (
+              <>
+                <MonthGrid cells={cells} selectedDay={selectedDay} onSelectDay={onSelectDay} compact={isMobile} />
+                {selectedDay && !isMobile && (
+                  <button onClick={onClearDay} style={{ marginTop: 12, background: 'none', border: 'none', color: '#7c3aed', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
+                    {t.schShowAll}
+                  </button>
+                )}
+              </>
+            ) : (
+              <AgendaView
+                schedules={listShown}
+                busyId={busyId}
+                confirmCancelId={confirmCancelId}
+                onReschedule={onReschedule}
+                onCancel={onCancel}
+                onEditContent={onEditContent}
+                selectedDay={selectedDay}
+                onClearDay={onClearDay}
+              />
+            )}
+          </Card>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {shown.map((s) => (
-            <ScheduleItem
-              key={s.id}
-              schedule={s}
-              busy={busyId === s.id}
-              confirmingCancel={confirmCancelId === s.id}
-              onReschedule={() => setRescheduling(s)}
-              onCancel={() => onCancel(s)}
-              onEditContent={() => go('create')}
-            />
-          ))}
+          {!isMobile && (
+            <Card>
+              <UpcomingPanel
+                schedules={listShown}
+                statusFilter={statusFilter}
+                onStatusFilter={setStatusFilter}
+                failedCount={counts.failed}
+                onGoFailed={onGoFailed}
+                autoCount={counts.scheduled}
+                selectedDay={selectedDay}
+                onClearDay={onClearDay}
+                busyId={busyId}
+                confirmCancelId={confirmCancelId}
+                onReschedule={onReschedule}
+                onCancel={onCancel}
+                onEditContent={onEditContent}
+              />
+            </Card>
+          )}
         </div>
-      </Card>
+      )}
+
+      {isMobile && view === 'month' && selectedDay && (
+        <DaySheet title={absDayLabel(selectedDay, lang)} onClose={onClearDay}>
+          {sheetItems.length === 0 ? (
+            <div style={{ padding: '18px 0', textAlign: 'center', fontSize: 13, color: '#8a85a0' }}>{t.schEmptyDay}</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {sheetItems.map((s) => (
+                <ScheduleItem
+                  key={s.id}
+                  schedule={s}
+                  busy={busyId === s.id}
+                  confirmingCancel={confirmCancelId === s.id}
+                  onReschedule={onReschedule}
+                  onCancel={onCancel}
+                  onEditContent={onEditContent}
+                />
+              ))}
+            </div>
+          )}
+        </DaySheet>
+      )}
 
       {createOpen && (
         <CreateScheduleModal
           onClose={() => setCreateOpen(false)}
-          onCreated={() => { setCreateOpen(false); load(); }}
+          onCreated={() => { setCreateOpen(false); refresh(); }}
         />
       )}
       {rescheduling && (
         <RescheduleModal
           schedule={rescheduling}
           onClose={() => setRescheduling(null)}
-          onSaved={() => { setRescheduling(null); load(); }}
+          onSaved={() => { setRescheduling(null); refresh(); }}
         />
       )}
     </div>
   );
 }
 
-interface MonthCell { key: string; day: number; muted: boolean; today: boolean; dots: string[] }
-
-// Lưới tháng thứ Hai-đầu-tuần: cell nào cũng là ngày thật (kể cả muted) để click lọc được.
-function buildMonth(viewDate: Date, schedules: PostSchedule[]): MonthCell[] {
-  const year = viewDate.getFullYear();
-  const month = viewDate.getMonth();
-  const first = new Date(year, month, 1);
-  const lead = (first.getDay() + 6) % 7; // Chủ nhật (0) → cột 7
-  const start = new Date(year, month, 1 - lead);
-  const todayKey = dateKey(new Date());
-
-  const dotsByDay = new Map<string, string[]>();
-  for (const s of schedules) {
-    if (s.status === 'CANCELLED') continue;
-    const key = s.scheduledTime.slice(0, 10);
-    const tag = PLATFORM_TO_TAG[s.platformName] ?? '';
-    const list = dotsByDay.get(key) ?? [];
-    if (list.length < 4) list.push(PLATFORM_BG[tag] ?? '#6b7280');
-    dotsByDay.set(key, list);
-  }
-
-  const cells: MonthCell[] = [];
-  for (let i = 0; i < 42; i++) {
-    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
-    const key = dateKey(d);
-    cells.push({
-      key,
-      day: d.getDate(),
-      muted: d.getMonth() !== month,
-      today: key === todayKey,
-      dots: dotsByDay.get(key) ?? [],
-    });
-  }
-  return cells;
+/** Panel lỗi / trống căn giữa — cùng pattern StatePanel của Dashboard. */
+function StatePanel({ tone, icon, title, message, action, role }: {
+  tone: 'error' | 'empty';
+  icon: LucideIcon;
+  title: string;
+  message: string;
+  action: React.ReactNode;
+  role?: 'alert';
+}) {
+  const accent = tone === 'error' ? '#e23d6e' : '#7c3aed';
+  const tintBg = tone === 'error' ? '#fdeef2' : '#f4ecff';
+  return (
+    <Card style={{ padding: '48px 28px' }}>
+      <div role={role} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 14, maxWidth: 420, margin: '0 auto' }}>
+        <div style={{ width: 56, height: 56, borderRadius: 16, background: tintBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon icon={icon} size={26} stroke={accent} />
+        </div>
+        <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 19, color: '#211c38' }}>{title}</div>
+        <div style={{ fontSize: 14, lineHeight: 1.55, color: '#5b5670' }}>{message}</div>
+        <div style={{ marginTop: 6 }}>{action}</div>
+      </div>
+    </Card>
+  );
 }
+
+const primaryBtn = (brandGradient: string): CSSProperties => ({
+  display: 'inline-flex', alignItems: 'center', gap: 8, border: 'none', borderRadius: 12,
+  padding: '11px 20px', fontWeight: 700, fontSize: 14, color: '#fff',
+  background: brandGradient, cursor: 'pointer',
+});
+
+const platformChip = (active: boolean): CSSProperties => ({
+  display: 'inline-flex', alignItems: 'center', gap: 6,
+  border: `1px solid ${active ? '#c4b5fd' : '#ece8f6'}`, borderRadius: 999, padding: '5px 11px',
+  fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
+  background: active ? '#f1e9ff' : '#fff',
+  color: active ? '#7c3aed' : '#6b6680',
+});
+
+const srOnly: CSSProperties = {
+  position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
+  overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0,
+};
 
 const navBtn = {
   width: 30, height: 30, borderRadius: 8, border: '1px solid #ece8f6', background: '#fff',

@@ -49,6 +49,7 @@ interface DatePickerProps {
   error?: string;
   style?: CSSProperties;       // override trigger wrapper
   inputStyle?: CSSProperties;  // override input element
+  ariaLabel?: string;          // a11y: nhãn cho input readOnly bên trong (không đổi hành vi)
 }
 
 export default function DatePicker({
@@ -61,6 +62,7 @@ export default function DatePicker({
   error,
   style,
   inputStyle: inputStyleOverride,
+  ariaLabel,
 }: DatePickerProps) {
   const { t } = useApp();
   const [open, setOpen] = useState(false);
@@ -219,6 +221,7 @@ export default function DatePicker({
           readOnly
           value={displayValue}
           placeholder={placeholder}
+          aria-label={ariaLabel}
           style={{
             flex: 1,
             border: 'none',
