@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import {
+useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Plus } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Loader, Card } from '../../components/ui';
@@ -30,6 +31,7 @@ import {
   type AiProviderInfo,
   type AiRoutingInfo,
 } from '../../api/adminAi';
+import PageContainer from '../../components/PageContainer';
 
 const btnOutline: CSSProperties = {
   border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '6px 12px',
@@ -344,16 +346,16 @@ export default function AiModels() {
   };
 
   if (load === 'loading') {
-    return <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto' }}><Card><Loader label={t.listLoading} /></Card></div>;
+    return <PageContainer><Card><Loader label={t.listLoading} /></Card></PageContainer>;
   }
   if (load === 'error') {
     return (
-      <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto' }}>
+      <PageContainer>
         <Card style={{ textAlign: 'center', padding: '54px 16px' }}>
           <div style={{ fontSize: 14.5, fontWeight: 600, color: '#5b5670', marginBottom: 14 }}>{t.listError}</div>
           <button onClick={fetchAll} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
         </Card>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -410,7 +412,7 @@ export default function AiModels() {
   };
 
   return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <PageContainer>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: 12.5, color: '#8a85a0' }}>{t.aiModelsHint}</div>
         <AiServiceStatusBadge />
@@ -773,7 +775,7 @@ export default function AiModels() {
           <InUseNote taskCodes={disablingModel.usedByTaskCodes ?? []} />
         </ConfirmModal>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

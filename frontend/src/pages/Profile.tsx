@@ -12,6 +12,8 @@ import { updateProfile, uploadAvatar, requestDeleteAccount, restoreAccount } fro
 import { activity } from '../data';
 import { useToast } from '../components/toast/ToastProvider';
 import { withToast } from '../utils/toastFlow';
+import PageContainer from '../components/PageContainer';
+
 
 const fieldLabel = { display: 'block', fontSize: 12, fontWeight: 700, color: '#574f6e', marginBottom: 7 } as const;
 const fieldInput = { width: '100%', border: '1.5px solid #e7e2f2', borderRadius: 11, padding: '12px 14px', fontSize: 14, color: '#241f3a', background: '#fbfaff', outline: 'none' } as const;
@@ -145,7 +147,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="view-pop" style={{ maxWidth: 980, margin: '0 auto' }}>
+    <PageContainer>
       {/* Pending-deletion banner */}
       {pendingDelete && (
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, background: '#fdeef2', border: '1px solid #f3c9d6', borderRadius: 16, padding: '16px 20px', marginBottom: 16 }}>
@@ -334,6 +336,6 @@ export default function Profile() {
           </div>
         </Modal>
       )}
-    </div>
+    </PageContainer>
   );
 }

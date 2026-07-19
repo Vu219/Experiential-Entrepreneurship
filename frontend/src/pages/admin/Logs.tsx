@@ -5,6 +5,8 @@ import StatusBadge from '../../components/admin/StatusBadge';
 import Pagination from '../../components/admin/Pagination';
 import AdminListPage, { SearchInput, FilterSelect, DataTable, DetailRow, type ListState } from '../../components/admin/AdminListPage';
 import { getSystemLogs, logLevelTone, type SystemLog, type LogLevel } from '../../api/admin';
+import PageContainer from '../../components/PageContainer';
+
 
 const PAGE_SIZE = 12;
 const LEVELS: LogLevel[] = ['ERROR', 'WARN', 'INFO', 'DEBUG'];
@@ -65,7 +67,7 @@ export default function Logs() {
   );
 
   return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto' }}>
+    <PageContainer>
       <AdminListPage state={state} toolbar={toolbar} onRetry={() => setReload((r) => r + 1)}>
         <DataTable head={[t.colTime, t.colLevel, t.colModule, t.colMessage]} minWidth={820}>
           {rows.map((l) => (
@@ -112,6 +114,6 @@ export default function Logs() {
           </div>
         </Modal>
       )}
-    </div>
+    </PageContainer>
   );
 }

@@ -28,6 +28,40 @@ body {
   background: #f7f6fd;
   -webkit-font-smoothing: antialiased;
 }
+
+/* ===== Khung layout nội dung chuẩn (UI refactor mục 1) =====
+   Token lề ngang ĐỐI XỨNG (trái = phải) cho vùng nội dung — Topbar (AppShell) và
+   .page-shell cùng đọc --page-pad-x + --page-max nên tiêu đề trang LUÔN thẳng hàng
+   trái với card đầu tiên, ở mọi độ rộng màn hình. */
+:root {
+  --page-pad-x: 14px;
+  --page-pad-t: 18px;
+  --page-max: 1600px;
+}
+@media (min-width: 760px) {
+  :root {
+    --page-pad-x: 24px;
+    --page-pad-t: 24px;
+  }
+}
+@media (min-width: 1536px) {
+  :root {
+    --page-pad-x: 32px;
+  }
+}
+/* Vùng nội dung mọi trang (app + admin): chiếm trọn chiều rộng còn lại sau sidebar,
+   giới hạn 1600px CĂN GIỮA (margin auto — phần dư chia đều hai bên), padding hai bên
+   đối xứng, khoảng cách dọc giữa các section/card = 24px (một token duy nhất).
+   Card/bảng/grid bên trong giãn theo container — không đặt max-width riêng lẻ. */
+.page-shell {
+  width: 100%;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: var(--page-pad-t) var(--page-pad-x) 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
 input,
 textarea,
 button {
@@ -1081,6 +1115,19 @@ html {
 /* Hàng bảng/card chọn được — hover nhạt (hàng đang chọn set background inline nên vẫn thắng). */
 .row-hover:hover {
   background: #faf9fe;
+}
+
+/* Chấm "đang live" nhấp nháy — trang Trạng thái hệ thống (auto-refresh, mục 6). */
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  animation: live-blink 1.6s ease infinite;
+}
+@keyframes live-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
 }
 
 @media (prefers-reduced-motion: reduce) {

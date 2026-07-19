@@ -3,6 +3,7 @@ import { BarChart3, ChevronDown, ChevronLeft, ChevronRight, Eye, Heart, MessageC
 import { useApp } from '../../context/AppContext.tsx';
 import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
 import { Card, PlatformTag } from '../../components/ui.tsx';
+import PageContainer from '../../components/PageContainer.tsx';
 import { PLATFORM_BG } from '../../theme.ts';
 import { PLATFORM_TO_TAG } from '../../api/connections.ts';
 import { listAnalyzedPosts, type AnalyzedPost, type AnalyticsSnapshot } from '../../api/analytics.ts';
@@ -65,7 +66,7 @@ export default function Analytics() {
   ];
 
   return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <PageContainer>
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 18 }}>
         {statCards.map((s, i) => (
           <Card key={i} style={{ padding: 20, borderRadius: 18 }}>
@@ -141,7 +142,7 @@ export default function Analytics() {
           </div>
         )}
       </Card>
-    </div>
+    </PageContainer>
   );
 }
 

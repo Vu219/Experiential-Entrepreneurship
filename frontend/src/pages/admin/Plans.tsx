@@ -18,6 +18,8 @@ import {
 import type { ApiError } from '../../api/apiClient';
 import type { Lang } from '../../types';
 import { useToast } from '../../components/toast/ToastProvider';
+import PageContainer from '../../components/PageContainer';
+
 
 // Trang admin "Quản lý gói" (3 tab): Gói dịch vụ / Bảng so sánh / Xem trước.
 // Nguồn dữ liệu là bảng Plan trong DB (một nguồn với landing — sửa ở đây là landing đổi).
@@ -132,14 +134,14 @@ export default function Plans() {
       .finally(() => { setBusy(false); setDeletingFeature(null); });
   };
 
-  if (load === 'loading') return <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto' }}><Card><Loader label={t.listLoading} /></Card></div>;
+  if (load === 'loading') return <PageContainer><Card><Loader label={t.listLoading} /></Card></PageContainer>;
   if (load === 'error' || !payload) return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto' }}>
+    <PageContainer>
       <Card style={{ textAlign: 'center', padding: '54px 16px' }}>
         <div style={{ fontSize: 14.5, fontWeight: 600, color: '#5b5670', marginBottom: 14 }}>{t.listError}</div>
         <button onClick={fetchAll} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
       </Card>
-    </div>
+    </PageContainer>
   );
 
   const tabBtn = (key: Tab, label: string) => {
@@ -150,7 +152,7 @@ export default function Plans() {
   };
 
   return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <PageContainer>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 8 }}>
           {tabBtn('plans', t.plTabPlans)}
@@ -291,7 +293,7 @@ export default function Plans() {
       {deletingFeature && (
         <ConfirmDialog title={deletingFeature.nameVi} message={t.plDeleteFeatureMsg} confirmLabel={t.plDeleted} busy={busy} onConfirm={confirmDeleteFeature} onClose={() => setDeletingFeature(null)} />
       )}
-    </div>
+    </PageContainer>
   );
 }
 

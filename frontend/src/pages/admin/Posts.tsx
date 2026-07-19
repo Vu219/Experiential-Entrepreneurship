@@ -6,6 +6,8 @@ import Modal from '../../components/Modal';
 import StatusBadge from '../../components/admin/StatusBadge';
 import AdminListPage, { DataTable, DetailRow, type ListState } from '../../components/admin/AdminListPage';
 import { getPostProblems, type AdminPostProblem, type PostProblemKind } from '../../api/admin';
+import PageContainer from '../../components/PageContainer';
+
 
 export default function Posts() {
   const { t, lang } = useApp();
@@ -44,7 +46,7 @@ export default function Posts() {
   };
 
   return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto' }}>
+    <PageContainer>
       <AdminListPage
         state={state}
         onRetry={fetchProblems}
@@ -88,6 +90,6 @@ export default function Posts() {
           </div>
         </Modal>
       )}
-    </div>
+    </PageContainer>
   );
 }

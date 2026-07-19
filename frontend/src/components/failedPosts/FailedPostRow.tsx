@@ -15,6 +15,9 @@ import { fmtDate, fmtTime, toneOf, typeLabel } from './shared.ts';
 
 const tdStyle: CSSProperties = { padding: '12px 16px', fontSize: 13, color: '#4b4660', verticalAlign: 'top' };
 
+/** Shadow mép trái của cột "Trạng thái" ghim sticky-right (dùng chung cho th ở FailedPostList). */
+export const STICKY_TH_SHADOW = '-8px 0 8px -8px rgba(40,20,90,.18)';
+
 /** Thumbnail placeholder — MVP không sinh ảnh (FR-29) nên dùng ô icon trung tính. */
 function Thumb() {
   return (
@@ -28,8 +31,9 @@ function TypeBadges({ post }: { post: FailedPost }) {
   const { t } = useApp();
   const tone = toneOf(post);
   const failed = TONE_COLORS.danger;
+  // Xếp NGANG một hàng (không wrap chồng lên nhau gây cao dòng — mục 8).
   return (
-    <span style={{ display: 'inline-flex', gap: 5, flexWrap: 'wrap' }}>
+    <span style={{ display: 'inline-flex', gap: 5, whiteSpace: 'nowrap' }}>
       <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 999, color: failed.color, background: failed.bg, whiteSpace: 'nowrap' }}>
         {t.fpStatusFailed}
       </span>
@@ -100,6 +104,11 @@ export default function FailedPostRow({
     );
   }
 
+  // Bảng dùng table-layout fixed + borderCollapse separate (FailedPostList): border kẻ
+  // hàng đặt trên từng td; cột "Trạng thái" sticky right cần NỀN đặc trên td (theo trạng
+  // thái chọn) + shadow trái để nội dung cuộn phía dưới không xuyên qua (mục 8).
+  const rowBg = selected ? '#f7f3ff' : '#fff';
+  const td: CSSProperties = { ...tdStyle, borderTop: '1px solid #f1eef8' };
   return (
     <tr
       onClick={onSelect}
@@ -107,34 +116,38 @@ export default function FailedPostRow({
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
       className="row-hover"
       style={{
-        borderTop: '1px solid #f1eef8', cursor: 'pointer',
+        cursor: 'pointer',
         background: selected ? '#f7f3ff' : undefined,
         boxShadow: `inset 3px 0 0 ${tone.color}`,
       }}
     >
-      <td style={tdStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 180 }}>
+      <td style={td}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <Thumb />
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#2b2543', maxWidth: 210, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{caption}</div>
-            <div style={{ fontSize: 11, color: '#a59fbb', marginTop: 2 }}>{t.fpTypePost} · {post.accountName ?? '—'}</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            {/* Ellipsis theo bề rộng cột (fixed layout) + tooltip full text */}
+            <div title={caption} style={{ fontSize: 13, fontWeight: 700, color: '#2b2543', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{caption}</div>
+            <div style={{ fontSize: 11, color: '#a59fbb', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.fpTypePost} · {post.accountName ?? '—'}</div>
           </div>
         </div>
       </td>
-      <td style={tdStyle}>
+      <td style={td}>
         <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={26} radius={8} />
       </td>
-      <td style={tdStyle}>
-        <div style={{ maxWidth: 220, fontSize: 12, lineHeight: 1.5, color: '#6b6680', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+      <td style={td}>
+        {/* Rút gọn 2 dòng bằng ellipsis + tooltip full text — không cắt cứng giữa chừng */}
+        <div title={post.errorMessage ?? undefined} style={{ fontSize: 12, lineHeight: 1.5, color: '#6b6680', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
           {post.errorMessage ?? '—'}
         </div>
       </td>
-      <td style={tdStyle}><CodeBadge code={post.errorCode} /></td>
-      <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
+      <td style={td}><CodeBadge code={post.errorCode} /></td>
+      <td style={{ ...td, whiteSpace: 'nowrap' }}>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: '#4b4660' }}>{fmtDate(post.failedAt)}</div>
         <div style={{ fontSize: 11, color: '#a59fbb', marginTop: 2 }}>{fmtTime(post.failedAt)}</div>
       </td>
-      <td style={tdStyle}><TypeBadges post={post} /></td>
+      <td style={{ ...td, position: 'sticky', right: 0, background: rowBg, boxShadow: STICKY_TH_SHADOW }}>
+        <TypeBadges post={post} />
+      </td>
     </tr>
   );
 }

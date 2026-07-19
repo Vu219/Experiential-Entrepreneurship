@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { RefreshCw, ShieldCheck, ShieldUser, Link, PlugZap, Activity, ShieldAlert, Users, type LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
@@ -24,8 +24,10 @@ import {
   type ConnectionStatus,
 } from '../api/connections';
 import { useToast } from '../components/toast/ToastProvider';
+import PageContainer from '../components/PageContainer';
+import UsageTab from '../components/settings/UsageTab';
 
-type SettingsTab = 'appearance' | 'notifications' | 'connections';
+type SettingsTab = 'appearance' | 'usage' | 'notifications' | 'connections';
 
 // ——— Status badge color map ———
 // Dùng chung design token (statusTokens.ts) với phần "Chú thích trạng thái" bên dưới
@@ -60,16 +62,23 @@ export default function Settings() {
   const notifs = notifLabels(lang);
   const themes = themeOptions(lang);
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Auto-select tab from query param (OAuth callback redirect)
+  // Tab hiện hành đọc từ URL (một nguồn duy nhất): /settings/usage → tab "Token & mức
+  // dùng" (mục 7 — route cũ /usage redirect về đây); các tab khác qua ?tab= (OAuth
+  // callback redirect vẫn dùng ?tab=connections).
   const tabParam = searchParams.get('tab');
-  const [tab, setTab] = useState<SettingsTab>(
-    tabParam === 'connections' ? 'connections' : 'appearance',
-  );
+  const tab: SettingsTab = location.pathname.endsWith('/usage')
+    ? 'usage'
+    : tabParam === 'connections' || tabParam === 'notifications' ? tabParam : 'appearance';
+  const setTab = (k: SettingsTab) =>
+    navigate(k === 'usage' ? '/settings/usage' : k === 'appearance' ? '/settings' : `/settings?tab=${k}`, { replace: true });
 
   // ——— Helpers ———
   const tabs: { key: SettingsTab; label: string }[] = [
     { key: 'appearance', label: t.seTabAppearance },
+    { key: 'usage', label: t.navUsage },
     { key: 'notifications', label: t.seTabNotif },
     { key: 'connections', label: t.seTabConnect },
   ];
@@ -104,7 +113,7 @@ export default function Settings() {
 
   // ——————————————————————————————————————————————
   return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <PageContainer>
 
       {/* ——— Tab bar ——— */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1.5px solid #efeaf8' }}>
@@ -187,6 +196,9 @@ export default function Settings() {
         </div>
       )}
 
+      {/* ——— Tab: Token & mức dùng (mục 7 — chuyển từ trang /usage cũ) ——— */}
+      {tab === 'usage' && <UsageTab />}
+
       {/* ——— Tab: Notifications ——— */}
       {tab === 'notifications' && (
         <Card style={{ padding: 26 }}>
@@ -218,7 +230,7 @@ export default function Settings() {
           setSearchParams={setSearchParams}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }
 

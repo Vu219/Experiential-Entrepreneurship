@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
-import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
+
 import { Icon } from '../../components/ui.tsx';
+import PageContainer from '../../components/PageContainer.tsx';
 import type { ApiError } from '../../api/apiClient.ts';
 import { withToast } from '../../utils/toastFlow';
 import {
@@ -49,7 +50,7 @@ import { useToast } from '../../components/toast/ToastProvider';
 export default function CreateWizard() {
   const { t, go } = useApp();
   const toast = useToast();
-  const { width } = useBreakpoint();
+
   // Bài DRAFT dở từ danh sách ("Tiếp tục"): draftId = id bài. Nạp trạng thái wizard đã
   // auto-save (bước đang dừng + id nguồn) + các bản nền tảng đã sinh; SourceStep vẫn tự fetch
   // dữ liệu MỚI NHẤT (không dùng bản chụp cũ — hồ sơ/chiến lược vừa sửa hiện đúng).
@@ -461,7 +462,7 @@ export default function CreateWizard() {
   const effectiveStep: WizardStep = step >= 3 && !gen ? 2 : step >= 2 && !source ? 1 : step;
 
   return (
-    <div className="view-pop" style={{ maxWidth: width >= 1440 ? 1320 : 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <PageContainer>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
         <button onClick={() => go('create')} className="btn-soft" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: '#574f6e', cursor: 'pointer' }}>
           <Icon icon={ArrowLeft} size={15} stroke="#574f6e" />{t.cwBackToList}
@@ -534,6 +535,6 @@ export default function CreateWizard() {
           brandName={source?.brand.brandName ?? ''}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

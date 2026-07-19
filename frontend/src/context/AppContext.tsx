@@ -25,7 +25,8 @@ const PATH_BY_ROUTE: Record<Route, string> = {
   analytics: '/analytics',
   trends: '/trends',
   brand: '/brand',
-  usage: '/usage',
+  // "Token & mức dùng" là tab trong Cài đặt (mục 7); /usage cũ redirect về đây.
+  usage: '/settings/usage',
   profile: '/profile',
   settings: '/settings',
   admin: '/admin',
@@ -78,7 +79,11 @@ export function useApp() {
   const activeBrandId = useAppStore((s) => s.activeBrandId);
   const setActiveBrand = useAppStore((s) => s.setActiveBrand);
 
-  const route = ROUTE_BY_PATH[location.pathname] ?? 'dashboard';
+  // Route con động (vd /admin/usage/users/:id) không có trong map — quy về route cha
+  // để sidebar highlight + heading mặc định đúng khu vực, không rơi về 'dashboard'.
+  const route =
+    ROUTE_BY_PATH[location.pathname] ??
+    (location.pathname.startsWith('/admin/usage/') ? 'adminUsage' : 'dashboard');
 
   const go = useCallback(
     (r: Route) => {

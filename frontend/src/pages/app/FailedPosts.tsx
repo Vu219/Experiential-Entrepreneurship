@@ -13,6 +13,8 @@ import FailedPostList from '../../components/failedPosts/FailedPostList.tsx';
 import ErrorDetailModal from '../../components/failedPosts/ErrorDetailModal.tsx';
 import ErrorOverviewPanel from '../../components/failedPosts/ErrorOverviewPanel.tsx';
 import { EMPTY_FILTERS, isPolicy, type FpFilters } from '../../components/failedPosts/shared.ts';
+import PageContainer from '../../components/PageContainer';
+
 
 // Trang "Bài lỗi & cần xử lý" (FR-35..FR-39) — dashboard master–detail:
 // header full-width, dưới là grid 2 cột (desktop): TRÁI = tab + bộ lọc + bảng bài lỗi;
@@ -28,7 +30,7 @@ const isMock = (p: FailedPost) => p.id.startsWith('mock-');
 
 export default function FailedPosts() {
   const { t, go, brandGradient } = useApp();
-  const { width, isMobile, isDesktop } = useBreakpoint();
+  const { width, isDesktop } = useBreakpoint();
   const toast = useToast();
 
   // Mobile / tablet / laptop: 5 dòng/trang; PC lớn (>1440px): 8.
@@ -177,6 +179,7 @@ export default function FailedPosts() {
           {t.fpDemo}
         </div>
       )}
+      {/* Dưới lg (tablet/mobile): danh sách card thay vì bảng cuộn ngang (mục 8). */}
       <FailedPostList
         items={pageItems}
         loading={loading}
@@ -185,30 +188,25 @@ export default function FailedPosts() {
         page={safePage}
         pageCount={pageCount}
         onPageChange={setPage}
-        variant={isMobile ? 'cards' : 'table'}
+        variant={isDesktop ? 'table' : 'cards'}
       />
     </div>
   );
 
   return (
-    <div className="view-pop" style={{ maxWidth: 1240, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Header full-width: tiêu đề + tìm kiếm + xuất báo cáo */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 260px', minWidth: 220 }}>
-          <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 22, color: '#211c38' }}>{t.fpHeading}</div>
-          <div style={{ fontSize: 13, color: '#8a85a0', marginTop: 4, lineHeight: 1.5 }}>{t.fpSub}</div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flex: '1 1 320px', justifyContent: 'flex-end' }}>
-          <SearchInput value={search} onChange={changeSearch} placeholder={t.fpSearchPh} />
-          <button
-            onClick={exportReport}
-            className="btn-grad"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer', whiteSpace: 'nowrap' }}
-          >
-            <Download size={14} strokeWidth={2} />
-            {t.fpExport}
-          </button>
-        </div>
+    <PageContainer>
+      {/* Thanh công cụ: tìm kiếm + xuất báo cáo. Tiêu đề + mô tả trang giờ do header
+          dùng chung ở Topbar lo (PAGE_KEYS.failedPosts) — không lặp lại trong trang. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        <SearchInput value={search} onChange={changeSearch} placeholder={t.fpSearchPh} />
+        <button
+          onClick={exportReport}
+          className="btn-grad"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer', whiteSpace: 'nowrap' }}
+        >
+          <Download size={14} strokeWidth={2} />
+          {t.fpExport}
+        </button>
       </div>
 
       {isDesktop ? (
@@ -241,6 +239,6 @@ export default function FailedPosts() {
           onDelete={deletePost}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

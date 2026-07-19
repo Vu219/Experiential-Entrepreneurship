@@ -48,7 +48,8 @@ export const STRINGS = {
     // hoàn tất hồ sơ (CompleteProfilePage)
     cpSaved: 'Đã lưu thông tin, email xác nhận đã được gửi',
     // shell
-    secMain: 'TỔNG QUAN', upgradeTitle: 'Nâng cấp Pro', upgradeMsg: 'Mở khoá AI không giới hạn & phân tích nâng cao.', upgradeBtn: 'Nâng cấp ngay',
+    secMain: 'TỔNG QUAN', secContent: 'NỘI DUNG', secBrand: 'THƯƠNG HIỆU',
+    upgradeTitle: 'Nâng cấp Pro', upgradeMsg: 'Mở khoá AI không giới hạn & phân tích nâng cao.', upgradeBtn: 'Nâng cấp ngay',
     usageTitle: 'Token AI tháng này', usageUnlimited: 'Không giới hạn',
     // trang "Token & mức dùng" (pages/app/Usage.tsx — nguồn: event log ai_usage)
     navUsage: 'Token & mức dùng',
@@ -63,6 +64,16 @@ export const STRINGS = {
     tuEmpty: 'Chưa có hoạt động AI trong kỳ này.',
     tuFreeHint: 'Bạn đang ở gói Free — nâng cấp để có hạn mức token lớn hơn.',
     tuViewPlans: 'Xem các gói',
+    // tab "Token & mức dùng" trong Cài đặt (mục 7): dự báo + cảnh báo + giải thích quy đổi + CSV
+    tuForecast: 'Dự báo hạn mức',
+    tuForecastDate: 'Với tốc độ hiện tại, hết hạn mức vào khoảng {d}',
+    tuForecastPct: 'Dự kiến dùng ~{p}% hạn mức kỳ này',
+    tuForecastNoData: 'Chưa đủ dữ liệu để dự báo',
+    tuWarnBanner: 'Bạn đã dùng {p}% hạn mức kỳ này — cân nhắc nâng gói hoặc mua thêm token.',
+    tuWarnUpgrade: 'Nâng gói', tuWarnBuy: 'Mua thêm token',
+    tuRawWhat: 'Token thô khác token quy đổi thế nào?',
+    tuRawExplain: 'Token thô là tổng token mô hình AI xử lý (đầu vào + đầu ra). Hạn mức gói được trừ theo token QUY ĐỔI: token thô nhân hệ số quy đổi cấu hình theo tính năng/model (có thể khác 1). Biểu đồ và breakdown ở trang này hiển thị token thô; thanh hạn mức và số "đã dùng" tính theo token quy đổi.',
+    tuExportCsv: 'Xuất CSV',
     // trang admin "Token & hạn mức" (pages/admin/UsageOverview.tsx)
     navAdminUsage: 'Token & hạn mức',
     auTabOverview: 'Tổng quan', auTabByPlan: 'Theo gói', auTabByUser: 'Theo người dùng',
@@ -79,6 +90,18 @@ export const STRINGS = {
     auManagePlans: 'Quản lý gói',
     auColPlan: 'Gói', auPlanUsers: 'Số user', auPlanTokens: 'Token kỳ này',
     auPlanLimitPerUser: 'Hạn mức/user', auPlanCap: 'So tổng trần',
+    // legend heatmap (mục 5a) + bảng giám sát tiêu thụ theo gói (mục 5b)
+    hmLow: 'Ít', hmHigh: 'Nhiều',
+    hmPeak: 'Giờ cao điểm', hmQuiet: 'Giờ thấp điểm', hmTotal: 'Tổng kỳ', hmAvgHour: 'TB/giờ',
+    hmNightWarn: 'Hoạt động bất thường 0h–5h: {p}% tổng kỳ',
+    auPlanAllocated: 'Tổng hạn mức cấp phát', auPlanUsed: 'Token đã dùng',
+    auPlanCost: 'Chi phí', auPlanAttention: 'User cần chú ý',
+    auPlanWarnShort: '{n} user ≥ 80%', auPlanOverShort: '{n} user chạm trần',
+    auPlanTotal: 'Tổng cộng', auPlanAvgUser: 'TB/user',
+    auEditPlanLimits: 'Sửa hạn mức gói →',
+    auPeriodThis: 'Kỳ này', auPeriodPrev: 'Kỳ trước', auPeriod30: '30 ngày',
+    auPeriodNeedApi: 'Cần API backend bổ sung (chọn kỳ tuỳ ý)',
+    auDrillEmpty: 'Không có user nào thuộc gói này (trong 500 user đầu).',
     auFilterAll: 'Tất cả', auFilterWarn: 'Sắp chạm hạn mức', auFilterOver: 'Đã vượt',
     auSearchPh: 'Tìm theo tên hoặc email…',
     auColUser: 'Người dùng', auColUsage: 'Mức dùng kỳ này', auDetail: 'Chi tiết',
@@ -527,6 +550,7 @@ export const STRINGS = {
     pageSubAdminSystem: 'Tình trạng dịch vụ thời gian thực', pageSubAdminLogs: 'Nhật ký lỗi hệ thống',
     pageSubAdminApi: 'Phiên bản API các nền tảng', pageSubAdminRevenue: 'Doanh thu & gói dịch vụ',
     pageSubAdminPlans: 'Gói dịch vụ & bảng so sánh hiển thị trên landing',
+    pageSubAdminUsage: 'Giám sát token tiêu thụ đối chiếu hạn mức gói',
 
     // ===== Cấu hình AI (admin) =====
     admGrpAi: 'CẤU HÌNH AI',
@@ -657,6 +681,15 @@ export const STRINGS = {
     sysActivityEmpty: 'Chưa có dữ liệu hoạt động trong khoảng này',
     sysViewAll: 'Xem tất cả', sysPosts: 'Bài đăng', sysJobs: 'Job', sysErrors: 'Lỗi',
     sysActLegendOk: 'Bình thường', sysActLegendErr: 'Có lỗi', sysActInRange: 'Tổng theo kỳ',
+    // realtime (mục 6): chỉ báo live + pause + mất kết nối + chỉ số bổ sung
+    sysLive: 'Đang live', sysPausedLabel: 'Đã tạm dừng', sysUpdatedAt: 'Cập nhật lúc',
+    sysPause: 'Tạm dừng', sysResume: 'Tiếp tục',
+    sysDisconnected: 'Mất kết nối — giữ số liệu cũ, đang thử lại',
+    sysErrRate: 'Tỉ lệ lỗi', sysThroughput: 'Req/phút',
+    sysJobQueue: 'Hàng đợi job', sysJobPending: 'đang chờ', sysJobRunning: 'đang chạy', sysJobFailed: 'thất bại 24h',
+    sysLastIncident: 'Sự cố gần nhất',
+    sysLatencyPct: 'Latency p50 / p95 / p99', sysNeedApi: 'cần API backend bổ sung',
+    sysXDetail: 'xem chi tiết', sysXCollapse: 'thu gọn', sysTimes: '×{n}',
     rng1h: '1 giờ', rng24h: '24 giờ', rng7d: '7 ngày', rng30d: '30 ngày', rng1y: '1 năm',
     // log hệ thống
     colTime: 'Thời gian', colLevel: 'Mức độ', colModule: 'Module', colMessage: 'Nội dung',
@@ -820,7 +853,8 @@ export const STRINGS = {
     fpSuccess: 'Password reset successfully. Please sign in.',
     // complete profile (CompleteProfilePage)
     cpSaved: 'Profile saved — a confirmation email has been sent',
-    secMain: 'OVERVIEW', upgradeTitle: 'Upgrade to Pro', upgradeMsg: 'Unlock unlimited AI & advanced analytics.', upgradeBtn: 'Upgrade now',
+    secMain: 'OVERVIEW', secContent: 'CONTENT', secBrand: 'BRAND',
+    upgradeTitle: 'Upgrade to Pro', upgradeMsg: 'Unlock unlimited AI & advanced analytics.', upgradeBtn: 'Upgrade now',
     usageTitle: 'AI tokens this month', usageUnlimited: 'Unlimited',
     // "Tokens & usage" page (pages/app/Usage.tsx — source: ai_usage event log)
     navUsage: 'Tokens & usage',
@@ -835,6 +869,16 @@ export const STRINGS = {
     tuEmpty: 'No AI activity this period yet.',
     tuFreeHint: 'You are on the Free plan — upgrade for a bigger token limit.',
     tuViewPlans: 'View plans',
+    // "Tokens & usage" tab inside Settings (item 7): forecast + threshold + billable explainer + CSV
+    tuForecast: 'Quota forecast',
+    tuForecastDate: 'At the current pace, quota runs out around {d}',
+    tuForecastPct: 'Projected to use ~{p}% of this period quota',
+    tuForecastNoData: 'Not enough data to forecast yet',
+    tuWarnBanner: 'You have used {p}% of this period quota — consider upgrading or buying extra tokens.',
+    tuWarnUpgrade: 'Upgrade plan', tuWarnBuy: 'Buy tokens',
+    tuRawWhat: 'Raw vs billable tokens?',
+    tuRawExplain: 'Raw tokens are the total tokens processed by the AI model (input + output). Your plan quota is charged in BILLABLE tokens: raw tokens multiplied by a conversion factor configured per feature/model (may differ from 1). Charts and breakdowns on this page show raw tokens; the quota bar and "used" figure are billable tokens.',
+    tuExportCsv: 'Export CSV',
     // admin "Tokens & limits" page (pages/admin/UsageOverview.tsx)
     navAdminUsage: 'Tokens & limits',
     auTabOverview: 'Overview', auTabByPlan: 'By plan', auTabByUser: 'By user',
@@ -851,6 +895,18 @@ export const STRINGS = {
     auManagePlans: 'Manage plans',
     auColPlan: 'Plan', auPlanUsers: 'Users', auPlanTokens: 'Tokens this period',
     auPlanLimitPerUser: 'Limit/user', auPlanCap: 'vs total cap',
+    // heatmap legend (item 5a) + per-plan consumption monitor table (item 5b)
+    hmLow: 'Low', hmHigh: 'High',
+    hmPeak: 'Peak hour', hmQuiet: 'Quietest hour', hmTotal: 'Period total', hmAvgHour: 'Avg/hour',
+    hmNightWarn: 'Unusual night activity 0–5h: {p}% of total',
+    auPlanAllocated: 'Total allocated quota', auPlanUsed: 'Tokens used',
+    auPlanCost: 'Cost', auPlanAttention: 'Users needing attention',
+    auPlanWarnShort: '{n} users ≥ 80%', auPlanOverShort: '{n} users at cap',
+    auPlanTotal: 'Total', auPlanAvgUser: 'avg/user',
+    auEditPlanLimits: 'Edit plan limits →',
+    auPeriodThis: 'This period', auPeriodPrev: 'Previous period', auPeriod30: '30 days',
+    auPeriodNeedApi: 'Needs an additional backend API (custom period)',
+    auDrillEmpty: 'No users on this plan (within the first 500 users).',
     auFilterAll: 'All', auFilterWarn: 'Near limit', auFilterOver: 'Over limit',
     auSearchPh: 'Search by name or email…',
     auColUser: 'User', auColUsage: 'Usage this period', auDetail: 'Details',
@@ -1282,6 +1338,7 @@ export const STRINGS = {
     pageSubAdminSystem: 'Real-time service health', pageSubAdminLogs: 'System error logs',
     pageSubAdminApi: 'Platform API versions', pageSubAdminRevenue: 'Revenue & plans',
     pageSubAdminPlans: 'Service plans & landing comparison table',
+    pageSubAdminUsage: 'Token consumption monitored against plan quotas',
 
     // ===== AI configuration (admin) =====
     admGrpAi: 'AI CONFIGURATION',
@@ -1406,6 +1463,15 @@ export const STRINGS = {
     sysActivityEmpty: 'No activity data in this range yet',
     sysViewAll: 'View all', sysPosts: 'Posts', sysJobs: 'Jobs', sysErrors: 'Errors',
     sysActLegendOk: 'Normal', sysActLegendErr: 'Has errors', sysActInRange: 'Total in range',
+    // realtime (item 6): live indicator + pause + disconnect + extra metrics
+    sysLive: 'Live', sysPausedLabel: 'Paused', sysUpdatedAt: 'Updated at',
+    sysPause: 'Pause', sysResume: 'Resume',
+    sysDisconnected: 'Connection lost — keeping last data, retrying',
+    sysErrRate: 'Error rate', sysThroughput: 'Req/min',
+    sysJobQueue: 'Job queue', sysJobPending: 'pending', sysJobRunning: 'running', sysJobFailed: 'failed 24h',
+    sysLastIncident: 'Last incident',
+    sysLatencyPct: 'Latency p50 / p95 / p99', sysNeedApi: 'needs an additional backend API',
+    sysXDetail: 'details', sysXCollapse: 'collapse', sysTimes: '×{n}',
     rng1h: '1 hour', rng24h: '24 hours', rng7d: '7 days', rng30d: '30 days', rng1y: '1 year',
     colTime: 'Time', colLevel: 'Level', colModule: 'Module', colMessage: 'Message',
     filterLevel: 'Level', filterFrom: 'From', filterTo: 'To', logDetailTitle: 'Log details',

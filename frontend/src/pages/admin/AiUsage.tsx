@@ -1,4 +1,5 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import {
+useEffect, useState, type CSSProperties } from 'react';
 import { Coins, DollarSign } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Loader, Card } from '../../components/ui';
@@ -22,6 +23,7 @@ import {
   type AiUsageRow,
   type AiUsageSummary,
 } from '../../api/adminAi';
+import PageContainer from '../../components/PageContainer';
 
 const tdStyle: CSSProperties = { padding: '12px 16px', fontSize: 13.5, color: '#2b2543' };
 const tdMuted: CSSProperties = { ...tdStyle, color: '#8a85a0', fontSize: 13 };
@@ -74,20 +76,20 @@ export default function AiUsage() {
   }, []);
 
   if (load === 'loading' && !summary) {
-    return <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto' }}><Card><Loader label={t.listLoading} /></Card></div>;
+    return <PageContainer><Card><Loader label={t.listLoading} /></Card></PageContainer>;
   }
   if (load === 'error' && !summary) {
     return (
-      <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto' }}>
+      <PageContainer>
         <Card style={{ textAlign: 'center', padding: '54px 16px', color: '#8a85a0', fontSize: 14 }}>{t.listError}</Card>
-      </div>
+      </PageContainer>
     );
   }
 
   const s = summary!;
 
   return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <PageContainer>
       {/* Chọn tháng + badge AI service */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -205,6 +207,6 @@ export default function AiUsage() {
           </>
         )}
       </SectionCard>
-    </div>
+    </PageContainer>
   );
 }

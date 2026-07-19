@@ -20,7 +20,6 @@ const FailedPosts = lazy(() => import("./pages/app/FailedPosts.tsx"));
 const Analytics = lazy(() => import("./pages/app/Analytics.tsx"));
 const Trends = lazy(() => import("./pages/app/Trends.tsx"));
 const Brand = lazy(() => import("./pages/app/Brand.tsx"));
-const Usage = lazy(() => import("./pages/app/Usage.tsx"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
 const AdminOverview = lazy(() => import("./pages/admin/Overview"));
@@ -73,7 +72,6 @@ const APP_PAGE_IMPORTS = [
   () => import("./pages/app/Analytics.tsx"),
   () => import("./pages/app/Trends.tsx"),
   () => import("./pages/app/Brand.tsx"),
-  () => import("./pages/app/Usage.tsx"),
   () => import("./pages/Profile"),
   () => import("./pages/Settings"),
 ] as const;
@@ -158,9 +156,12 @@ export default function App() {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/trends" element={<Trends />} />
           <Route path="/brand" element={<Brand />} />
-          <Route path="/usage" element={<Usage />} />
+          {/* "Token & mức dùng" giờ là tab trong Cài đặt (mục 7) — giữ route cũ /usage
+              redirect sang /settings/usage để không vỡ link cũ. */}
+          <Route path="/usage" element={<Navigate to="/settings/usage" replace />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/usage" element={<Settings />} />
         </Route>
 
         {/* Khu vực Quản trị hệ thống — tách riêng giao diện, chỉ ADMIN. */}

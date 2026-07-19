@@ -7,6 +7,7 @@ import { useApp } from '../../context/AppContext.tsx';
 import { useUiStore } from '../../store/useUiStore.ts';
 import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
 import { Icon, Card, PlatformTag } from '../../components/ui.tsx';
+import PageContainer from '../../components/PageContainer.tsx';
 import OnboardingModal, { isOnboardingDismissed } from '../../components/OnboardingModal.tsx';
 import { PLATFORM_BG, PLATFORMS } from '../../theme.ts';
 import { TONE_COLORS } from '../../statusTokens.ts';
@@ -42,10 +43,6 @@ interface DashData {
 const srOnly: CSSProperties = {
   position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
   overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0,
-};
-
-const outerStyle: CSSProperties = {
-  maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 22,
 };
 
 const fmtNum = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1)}K` : String(n));
@@ -107,16 +104,16 @@ export default function Dashboard() {
 
   if (status === 'loading') {
     return (
-      <div className="view-pop" style={outerStyle} role="status" aria-busy="true">
+      <PageContainer role="status" aria-busy="true">
         <span style={srOnly}>{t.dashLoading}</span>
         <DashboardSkeleton isMobile={isMobile} isTablet={isTablet} />
-      </div>
+      </PageContainer>
     );
   }
 
   if (status === 'error' || !data) {
     return (
-      <div className="view-pop" style={outerStyle}>
+      <PageContainer>
         <StatePanel
           role="alert"
           tone="error"
@@ -130,7 +127,7 @@ export default function Dashboard() {
             </button>
           }
         />
-      </div>
+      </PageContainer>
     );
   }
 
@@ -138,7 +135,7 @@ export default function Dashboard() {
 
   if (isEmpty) {
     return (
-      <div className="view-pop" style={outerStyle}>
+      <PageContainer>
         {onboardingOpen && <OnboardingModal onClose={() => setOnboardingOpen(false)} />}
         <SetupProgressCard setup={data.setup} />
         <StatePanel
@@ -153,7 +150,7 @@ export default function Dashboard() {
             </button>
           }
         />
-      </div>
+      </PageContainer>
     );
   }
 
@@ -175,7 +172,7 @@ export default function Dashboard() {
   const postedTone = TONE_COLORS.success;
 
   return (
-    <div className="view-pop" style={outerStyle}>
+    <PageContainer>
       {onboardingOpen && <OnboardingModal onClose={() => setOnboardingOpen(false)} />}
       <SetupProgressCard setup={data.setup} />
 
@@ -377,7 +374,7 @@ export default function Dashboard() {
           </table>
         </div>
       </Card>
-    </div>
+    </PageContainer>
   );
 }
 

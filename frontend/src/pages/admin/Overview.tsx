@@ -5,6 +5,8 @@ import SectionCard from '../../components/admin/SectionCard';
 import StatusBadge from '../../components/admin/StatusBadge';
 import { DataTable } from '../../components/admin/AdminListPage';
 import { adminStats, adminUsers, planDist, health } from '../../data';
+import PageContainer from '../../components/PageContainer';
+
 
 // Dữ liệu vẫn là MOCK (data.ts) — đợt này chỉ đồng bộ UI về bộ component quản trị
 // dùng chung (StatCard / SectionCard / DataTable / StatusBadge), chưa nối API thật.
@@ -17,7 +19,7 @@ export default function Overview() {
   const stacked = isMobile || isTablet;
 
   return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <PageContainer>
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 18 }}>
         {sCards.map((s, i) => (
           <StatCard key={i} icon={s.icon} iconBg={s.bg} iconColor={s.color} value={s.value} label={s.label} pill={s.trend} pillTone="success" />
@@ -84,6 +86,6 @@ export default function Overview() {
           </SectionCard>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

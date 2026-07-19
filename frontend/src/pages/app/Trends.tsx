@@ -3,6 +3,7 @@ import { Search, Play, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
 import { Card, Icon } from '../../components/ui.tsx';
+import PageContainer from '../../components/PageContainer.tsx';
 import Pagination from '../../components/admin/Pagination.tsx';
 import { PLATFORMS } from '../../theme.ts';
 import { trendStats, trendItems, contentIdeas, researchSessions, type ContentIdea, type FitLevel, type ResearchSession, type TrendsTab } from '../../trendsData.ts';
@@ -413,7 +414,7 @@ export default function Trends() {
   if (status === 'loading') return <TrendsSkeleton tab={tab} />;
 
   return (
-    <div className="view-pop" style={{ maxWidth: width >= 1440 ? 1320 : 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <PageContainer>
       {/* Header trang */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
         <div>
@@ -668,6 +669,6 @@ export default function Trends() {
       {scheduleOpen && (
         <ScheduleModal initial={schedule} onClose={() => setScheduleOpen(false)} onSave={saveSchedule} />
       )}
-    </div>
+    </PageContainer>
   );
 }

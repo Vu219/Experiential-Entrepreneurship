@@ -1,10 +1,10 @@
+import type { CSSProperties } from 'react';
 import { Inbox } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { Card, Icon } from '../ui.tsx';
-import { DataTable } from '../admin/AdminListPage.tsx';
 import Pagination from '../admin/Pagination.tsx';
 import type { FailedPost } from '../../api/failedPosts.ts';
-import FailedPostRow from './FailedPostRow.tsx';
+import FailedPostRow, { STICKY_TH_SHADOW } from './FailedPostRow.tsx';
 
 // Danh sách master của layout master–detail: bảng (desktop/tablet) hoặc card list (mobile).
 // Số item/trang do page quyết theo breakpoint (items đã cắt trang sẵn).
@@ -100,6 +100,16 @@ export default function FailedPostList({
     );
   }
 
+  // Bảng riêng (không dùng DataTable chung) vì cần: table-layout fixed với tỉ lệ cột
+  // hợp lý (cột "Bài viết" co giãn, còn lại rộng cố định) + cột "Trạng thái" ghim
+  // sticky right (nền + shadow trái) để không phải cuộn ngang mới thấy (mục 8).
+  const th = (sticky = false): CSSProperties => ({
+    fontSize: 12, fontWeight: 600, color: '#a59fbb', padding: '12px 16px', whiteSpace: 'nowrap',
+    textAlign: 'left', background: '#faf9fe',
+    ...(sticky ? { position: 'sticky' as const, right: 0, boxShadow: STICKY_TH_SHADOW } : {}),
+  });
+  const heads = [t.fpColPost, t.fpColPlatform, t.fpColReason, t.fpErrorCode, t.fpColTime];
+
   return (
     <Card style={{ padding: 0, overflow: 'hidden' }}>
       {loading ? (
@@ -108,14 +118,29 @@ export default function FailedPostList({
         <EmptyState />
       ) : (
         <>
-          <DataTable
-            minWidth={640}
-            head={[t.fpColPost, t.fpColPlatform, t.fpColReason, t.fpErrorCode, t.fpColTime, t.fpColStatus]}
-          >
-            {items.map((p) => (
-              <FailedPostRow key={p.id} post={p} variant="row" selected={p.id === selectedId} onSelect={() => onSelect(p)} />
-            ))}
-          </DataTable>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', minWidth: 760 }}>
+              <colgroup>
+                <col />{/* Bài viết — cột co giãn duy nhất */}
+                <col style={{ width: 76 }} />
+                <col style={{ width: '24%' }} />
+                <col style={{ width: 96 }} />
+                <col style={{ width: 100 }} />
+                <col style={{ width: 168 }} />
+              </colgroup>
+              <thead>
+                <tr>
+                  {heads.map((h) => <th key={h} style={th()}>{h}</th>)}
+                  <th style={th(true)}>{t.fpColStatus}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((p) => (
+                  <FailedPostRow key={p.id} post={p} variant="row" selected={p.id === selectedId} onSelect={() => onSelect(p)} />
+                ))}
+              </tbody>
+            </table>
+          </div>
           <div style={{ padding: '0 16px 16px' }}>
             <Pagination page={page} pageCount={pageCount} onChange={onPageChange} />
           </div>

@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { HelpCircle, Plus } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { useUiStore } from '../../store/useUiStore.ts';
-import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
+
 import { Icon } from '../../components/ui.tsx';
+import PageContainer from '../../components/PageContainer.tsx';
 import BrandProfileList from '../../components/brand/BrandProfileList.tsx';
 import StrategyManager from '../../components/brand/StrategyManager.tsx';
 
@@ -15,7 +16,7 @@ type Tab = 'brand' | 'strategy';
  */
 export default function Brand() {
   const { t, brandGradient } = useApp();
-  const { width } = useBreakpoint();
+
   // Tab mở sẵn do nơi khác yêu cầu (vd wizard Tạo nội dung → "Chỉnh sửa chiến lược");
   // đọc 1 lần lúc mount rồi xóa để lần vào sau trở về mặc định.
   const [tab, setTab] = useState<Tab>(() => useUiStore.getState().brandInitialTab ?? 'brand');
@@ -50,8 +51,7 @@ export default function Brand() {
   };
 
   return (
-    // PC (≥1440) nới container lên 1320 (cùng mốc trang Trends) để grid card thoáng hơn.
-    <div className="view-pop" style={{ maxWidth: width >= 1440 ? 1320 : 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <PageContainer>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 6, background: '#fff', border: '1px solid #efeaf8', borderRadius: 14, padding: 5 }}>
           {tabBtn('brand', t.bpTabBrand)}
@@ -71,6 +71,6 @@ export default function Brand() {
       </div>
 
       {tab === 'brand' ? <BrandProfileList /> : <StrategyManager />}
-    </div>
+    </PageContainer>
   );
 }

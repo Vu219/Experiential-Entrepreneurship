@@ -23,6 +23,8 @@ import {
   type AdminUserRow, type UserRole, type UserPlan, type UserStatus, type UserStats,
 } from '../../api/admin';
 import { useToast } from '../../components/toast/ToastProvider';
+import PageContainer from '../../components/PageContainer';
+
 
 const PAGE_SIZE = 8;
 
@@ -169,7 +171,7 @@ export default function Users() {
   const head: ReactNode[] = [t.colName, t.colRole, t.colPlan, t.colStatus, t.colLastLogin, t.colCreated, t.colAction];
 
   return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <PageContainer>
       {/* Stat cards — component quản trị dùng chung */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 18 }}>
         {statCards.map((s, i) => (
@@ -266,7 +268,7 @@ export default function Users() {
           onCreated={(row) => { setShowCreate(false); toast.success(`${t.usrCreated}: ${row.name}`); fetchUsers(); fetchStats(); }}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }
 

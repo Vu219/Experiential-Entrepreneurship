@@ -3,6 +3,7 @@ import { AlertTriangle, CalendarClock, RefreshCw, type LucideIcon } from 'lucide
 import { useApp } from '../../context/AppContext.tsx';
 import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
 import { Card, Icon } from '../../components/ui.tsx';
+import PageContainer from '../../components/PageContainer.tsx';
 import { PLATFORM_BG } from '../../theme.ts';
 import { cancelSchedule, listSchedules, type PostSchedule, type ScheduleStatus } from '../../api/schedules.ts';
 import type { Platform } from '../../api/brandProfile.ts';
@@ -164,23 +165,18 @@ export default function Calendar() {
     }
   }, [confirmCancelId, refresh, toast]);
 
-  const outer: CSSProperties = {
-    maxWidth: width >= 1440 ? 1320 : 1180, margin: '0 auto',
-    display: 'flex', flexDirection: 'column', gap: isMobile ? 16 : 20,
-  };
-
   if (status === 'loading') {
     return (
-      <div className="view-pop" style={outer} role="status" aria-busy="true">
+      <PageContainer role="status" aria-busy="true">
         <span style={srOnly}>{t.calLoading}</span>
         <CalendarSkeleton stacked={stacked} isMobile={isMobile} />
-      </div>
+      </PageContainer>
     );
   }
 
   if (status === 'error') {
     return (
-      <div className="view-pop" style={outer}>
+      <PageContainer>
         <StatePanel
           role="alert"
           tone="error"
@@ -194,14 +190,14 @@ export default function Calendar() {
             </button>
           }
         />
-      </div>
+      </PageContainer>
     );
   }
 
   const empty = schedules.length === 0;
 
   return (
-    <div className="view-pop" style={outer}>
+    <PageContainer>
       <StatCards counts={counts} postedDelta={postedDelta} onFailedClick={onGoFailed} />
 
       {isMobile && !empty && (
@@ -358,7 +354,7 @@ export default function Calendar() {
           onSaved={() => { setRescheduling(null); refresh(); }}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }
 

@@ -21,6 +21,11 @@ interface UiState {
   // đúng khu vực gốc (vd đang ở Quản trị/Bảng điều khiển) thay vì nhảy về.
   profileOrigin: Route | null;
   setProfileOrigin: (r: Route | null) => void;
+  // Heading động cho Topbar: trang chi tiết (vd /admin/usage/users/:id) set tên user
+  // + dòng phụ sau khi tải dữ liệu; null = dùng PAGE_KEYS tĩnh. Trang phải tự clear
+  // khi unmount để không rò sang trang khác.
+  pageHeading: { title: string; sub?: string } | null;
+  setPageHeading: (h: { title: string; sub?: string } | null) => void;
   // Tín hiệu "tạo chiến lược mới": nút nằm ở header trang (Brand) còn logic mở form
   // ở StrategyManager — tăng nonce để StrategyManager mở form tạo mới (không lift toàn bộ state).
   strategyCreateNonce: number;
@@ -45,6 +50,8 @@ export const useUiStore = create<UiState>((set) => ({
   toggleAutoCollapse: () => set((s) => ({ autoCollapse: !s.autoCollapse })),
   profileOrigin: null,
   setProfileOrigin: (r) => set((s) => (s.profileOrigin === r ? s : { profileOrigin: r })),
+  pageHeading: null,
+  setPageHeading: (h) => set({ pageHeading: h }),
   strategyCreateNonce: 0,
   requestStrategyCreate: () => set((s) => ({ strategyCreateNonce: s.strategyCreateNonce + 1 })),
   brandInitialTab: null,

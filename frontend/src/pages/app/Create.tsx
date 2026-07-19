@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
+import PageContainer from '../../components/PageContainer.tsx';
 import ContentList from '../../components/create/ContentList.tsx';
 
 /**
@@ -8,15 +8,14 @@ import ContentList from '../../components/create/ContentList.tsx';
  * (/create/new); bản nháp dở dang "Tiếp tục" cũng vào wizard kèm draftId.
  */
 export default function Create() {
-  const { width } = useBreakpoint();
   const navigate = useNavigate();
 
   return (
-    <div className="view-pop" style={{ maxWidth: width >= 1440 ? 1320 : 1180, margin: '0 auto' }}>
+    <PageContainer>
       <ContentList
         onCreate={() => navigate('/create/new')}
         onContinue={(item) => navigate('/create/new', { state: { draftId: item.id } })}
       />
-    </div>
+    </PageContainer>
   );
 }

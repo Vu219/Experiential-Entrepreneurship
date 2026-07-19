@@ -85,17 +85,31 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
     }
   };
 
-  const mainItems: Item[] = [
-    { key: 'dashboard', label: t.navDashboard, icon: ICON.dashboard },
-    { key: 'create', label: t.navCreate, icon: ICON.create },
-    { key: 'calendar', label: t.navCalendar, icon: ICON.calendar, badge: '3' },
-    // Trung tâm hồi phục bài lỗi (FR-35..FR-39) — bổ trợ lối vào từ trang Lịch + notification.
-    { key: 'failedPosts', label: t.navFailedPosts, icon: AlertTriangle },
-    { key: 'analytics', label: t.navAnalytics, icon: ICON.analytics },
-    { key: 'trends', label: t.navTrends, icon: ICON.trends },
-    { key: 'brand', label: t.navBrand, icon: ICON.brand },
-    // Trang "Token & mức dùng" — usage kỳ này so hạn mức gói (nguồn: event log ai_usage).
-    { key: 'usage', label: t.navUsage, icon: Coins },
+  // Sidebar app chia CỤM (đồng bộ style nhãn nhóm với sidebar admin — UI refactor mục 3).
+  // "Token & mức dùng" không còn ở đây — đã thành tab trong Cài đặt (mục 7), lối vào là
+  // widget token ở đáy sidebar + dropdown avatar.
+  const appGroups: { label?: string; items: Item[] }[] = [
+    {
+      label: t.secMain,
+      items: [
+        { key: 'dashboard', label: t.navDashboard, icon: ICON.dashboard },
+        { key: 'analytics', label: t.navAnalytics, icon: ICON.analytics },
+        { key: 'trends', label: t.navTrends, icon: ICON.trends },
+      ],
+    },
+    {
+      label: t.secContent,
+      items: [
+        { key: 'create', label: t.navCreate, icon: ICON.create },
+        { key: 'calendar', label: t.navCalendar, icon: ICON.calendar, badge: '3' },
+        // Trung tâm hồi phục bài lỗi (FR-35..FR-39) — bổ trợ lối vào từ trang Lịch + notification.
+        { key: 'failedPosts', label: t.navFailedPosts, icon: AlertTriangle },
+      ],
+    },
+    {
+      label: t.secBrand,
+      items: [{ key: 'brand', label: t.navBrand, icon: ICON.brand }],
+    },
   ];
   // Sidebar admin chia NHÓM (đồng bộ UI khu quản trị). Nhóm đầu (Bảng điều khiển)
   // không cần nhãn — mục Tổng quan tự đứng đầu như các admin UI thông dụng.
@@ -131,7 +145,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
   ];
   // Hồ sơ / Cài đặt / Đăng xuất / Trang chủ đã chuyển lên dropdown avatar ở topbar (UserMenu
   // variant "app") — sidebar không còn khối mục đáy.
-  const navGroups = isAdminArea ? adminGroups : [{ label: t.secMain, items: mainItems }];
+  const navGroups = isAdminArea ? adminGroups : appGroups;
 
   const itemBase = (active: boolean): CSSProperties => ({
     display: 'flex',
@@ -236,12 +250,30 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
   );
 
   const sectionLabelStyle: CSSProperties ={ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', color: '#a59fbb', padding: '6px 12px', flex: 'none' };
+  // Khi thu gọn, nhãn nhóm ẩn — thay bằng đường kẻ ngang mờ 24px căn giữa để vẫn
+  // thấy cấu trúc nhóm (không hiện trước nhóm đầu tiên).
+  const collapsedDivider: CSSProperties = { width: 24, height: 1, background: 'rgba(90,80,120,.18)', margin: '12px auto', flex: 'none', transition: 'opacity .2s ease' };
 
+  // Nút thu gọn/mở rộng: vùng ăn click là HÌNH VUÔNG 40×40 trong suốt (button cha) —
+  // hình tròn 30px chỉ là lớp hiển thị bên trong (pointerEvents none). Trước đây button
+  // = chính hình tròn 30px: hit-test theo border-radius nên click sát rìa bị trượt.
   const floatBtn: CSSProperties = {
     position: 'absolute',
     top: '50%',
     transform: 'translateY(-50%)',
-    right: -15,
+    right: -20,
+    width: 40,
+    height: 40,
+    padding: 0,
+    border: 'none',
+    background: 'transparent',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    zIndex: 5,
+  };
+  const floatBtnInner: CSSProperties = {
     width: 30,
     height: 30,
     borderRadius: '50%',
@@ -250,29 +282,53 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    cursor: 'pointer',
     color: '#7c5cff',
     boxShadow: '0 6px 16px -6px rgba(124,92,255,.55)',
-    zIndex: 5,
+    pointerEvents: 'none', // mọi click trong vùng 40×40 đều tính cho button cha
   };
   const arrowTitle = autoCollapse ? t.sbPin : collapsed ? t.sbExpand : t.sbCollapse;
 
   // ----- Thân (desktop): cuộn dọc khi cao quá khung -----
+  // Nút "Quay lại ứng dụng" nằm NGOÀI vùng cuộn (.sb-scroll có overflow hidden/auto sẽ
+  // cắt mất phần trên khi hover translateY(-2px) — UI refactor mục 4); chừa paddingTop
+  // cho hiệu ứng hover + shadow hiển thị đủ 4 phía.
   const desktopBody: ReactNode = (
-    <div className="sb-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {isAdminArea && <div style={{ marginBottom: 8 }}>{backBtn}</div>}
+    <>
+      {/* Divider mờ + khoảng cách tách khỏi mục "Tổng quan" bên dưới; vùng cuộn chừa
+          paddingTop để hover translateY(-2px) của mục đầu không bị mép cuộn cắt. */}
+      {isAdminArea && (
+        <div style={{ flex: 'none', padding: '4px 0 0' }}>
+          {backBtn}
+          <div style={{ height: 1, background: '#eee9f6', margin: '10px 4px 4px' }} aria-hidden />
+        </div>
+      )}
+      <div className="sb-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 3, paddingTop: 8 }}>
       {navGroups.map((g, gi) => (
-        <nav key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 'none', marginTop: gi === 0 ? 0 : 12 }}>
+        <nav key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 'none', marginTop: gi === 0 ? 0 : collapsed ? 0 : 12 }}>
           {!collapsed && g.label && <div style={sectionLabelStyle}>{g.label}</div>}
+          {collapsed && gi > 0 && <div style={collapsedDivider} aria-hidden />}
           {g.items.map(renderItem)}
         </nav>
       ))}
 
-      {!isAdminArea && isAdmin && <div style={{ marginTop: 14 }}>{adminPortalBtn}</div>}
-
       <div style={{ marginTop: 'auto', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 10, flex: 'none' }}>
+        {/* Mục Quản trị hệ thống ghim ở đáy, tách khỏi các cụm trên bằng divider (mục 3). */}
+        {!isAdminArea && isAdmin && (
+          <>
+            <div style={{ height: 1, background: '#eee9f6', flex: 'none' }} />
+            {adminPortalBtn}
+          </>
+        )}
+        {/* Widget token: click nhảy thẳng vào tab "Token & mức dùng" trong Cài đặt (mục 7). */}
         {!isAdminArea && !collapsed && usage && (
-          <div style={{ background: '#f8f6fd', border: '1px solid #eee9f6', borderRadius: 16, padding: '12px 14px' }}>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => go('usage')}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go('usage'); } }}
+            title={t.navUsage}
+            style={{ background: '#f8f6fd', border: '1px solid #eee9f6', borderRadius: 16, padding: '12px 14px', cursor: 'pointer' }}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
               <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.04em', color: '#7d6aa3', whiteSpace: 'nowrap' }}>{t.usageTitle}</span>
               <span style={{ fontSize: 11, fontWeight: 700, color: '#5b5670', whiteSpace: 'nowrap' }}>
@@ -304,7 +360,8 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 
   // ----- Thân (mobile): xổ xuống dọc -----
@@ -326,7 +383,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
       {isAdminArea && backBtn}
       {navGroups.map((g, gi) => (
         <div key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {isAdminArea && g.label && <div style={sectionLabelStyle}>{g.label}</div>}
+          {g.label && <div style={sectionLabelStyle}>{g.label}</div>}
           {g.items.map(renderItem)}
         </div>
       ))}
@@ -349,7 +406,9 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
         background: '#fff',
         borderRight: isMobile ? 'none' : '1px solid #eee9f6',
         borderBottom: isMobile ? '1px solid #eee9f6' : 'none',
-        padding: isMobile ? '10px 12px' : collapsed ? '22px 12px' : '22px 16px',
+        // Padding dồn vào khối thân — header logo cần chạm mép để border-bottom
+        // của nó nằm CÙNG đường ngang với border-bottom của Topbar (UI refactor mục 2).
+        padding: isMobile ? '10px 12px' : 0,
         display: 'flex',
         flexDirection: isMobile ? 'row' : 'column',
         alignItems: isMobile ? 'center' : 'stretch',
@@ -360,12 +419,18 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
         top: 0,
         height: isMobile ? 'auto' : '100vh',
         transition: 'width .2s ease, padding .2s ease',
+        // sticky tự tạo stacking context với z-index auto → nửa nút thu gọn thò ra
+        // ngoài aside bị Topbar (z-40) / phần tử positioned bên cột nội dung đè lên,
+        // click không ăn. Nâng lên trên Topbar; aside không chồng nội dung chỗ khác.
+        zIndex: isMobile ? undefined : 41,
       }}
     >
       {/* Logo: chuyển mượt giữa bố cục NGANG (mở: icon trái + chữ phải) và
           DỌC (đóng: icon trên + chữ dưới). Hai ảnh xếp chồng, crossfade opacity
-          + scale nhẹ để chữ "AIMA" như trượt về đúng vị trí, không cut cứng. */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', padding: isMobile ? '0 6px 0 0' : collapsed ? '4px 0 16px' : '4px 4px 16px', flex: 'none' }}>
+          + scale nhẹ để chữ "AIMA" như trượt về đúng vị trí, không cut cứng.
+          Khối header cao CỐ ĐỊNH 70px = chiều cao Topbar, căn giữa dọc, border-bottom
+          trùng đường kẻ Topbar — đúng ở cả trạng thái mở rộng lẫn thu gọn (mục 2). */}
+      <div style={{ height: isMobile ? 'auto' : 70, display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', padding: isMobile ? '0 6px 0 0' : 0, borderBottom: isMobile ? 'none' : '1px solid #eee9f6', flex: 'none' }}>
         <button
           onClick={() => go('landing')}
           title={t.nHome}
@@ -422,11 +487,18 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
       {/* Nút thu gọn/mở rộng (desktop) */}
       {!isMobile && (
         <button onClick={onArrow} title={arrowTitle} aria-label={arrowTitle} style={floatBtn}>
-          {collapsed ? <ChevronRight size={16} strokeWidth={2.2} /> : <ChevronLeft size={16} strokeWidth={2.2} />}
+          <span style={floatBtnInner}>
+            {collapsed ? <ChevronRight size={16} strokeWidth={2.2} /> : <ChevronLeft size={16} strokeWidth={2.2} />}
+          </span>
         </button>
       )}
 
-      {!isMobile && desktopBody}
+      {/* Thân sidebar tự đệm (aside padding 0 để header logo chạm mép). */}
+      {!isMobile && (
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: collapsed ? '14px 12px 22px' : '14px 16px 22px', transition: 'padding .2s ease' }}>
+          {desktopBody}
+        </div>
+      )}
     </aside>
   );
 }

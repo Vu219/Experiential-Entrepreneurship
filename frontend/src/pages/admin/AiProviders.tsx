@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import {
+useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Boxes, Clock, KeyRound, Plus, PlugZap, RefreshCw, Search, Server } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Card, Icon, Loader } from '../../components/ui';
@@ -12,6 +13,7 @@ import {
   getAiStatus, listAiProviders, syncAiProviderModels, testAiProvider, updateAiProvider, fmtAiDateTime,
   type AiEffectiveStatus, type AiProviderInfo, type AiTestResult,
 } from '../../api/adminAi';
+import PageContainer from '../../components/PageContainer';
 
 const btnOutline: CSSProperties = {
   border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '6px 12px',
@@ -190,7 +192,7 @@ export default function AiProviders() {
   ];
 
   return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <PageContainer>
       {/* Ghi chú bảo mật + badge trạng thái AI service */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: 12.5, color: '#8a85a0' }}>{t.aiProvidersHint}</div>
@@ -334,6 +336,6 @@ export default function AiProviders() {
           )}
         </ConfirmModal>
       )}
-    </div>
+    </PageContainer>
   );
 }

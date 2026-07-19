@@ -11,6 +11,8 @@ import { getRevenue, formatVND, type RevenueData, type RevenuePeriod } from '../
 import { getAdminPlans, type PlanDto } from '../../api/plans';
 import { PLANS_INTENT_KEY, type PlansIntent } from './Plans';
 import { useToast } from '../../components/toast/ToastProvider';
+import PageContainer from '../../components/PageContainer';
+
 
 const PERIODS: RevenuePeriod[] = ['1m', '3m', '12m'];
 
@@ -82,14 +84,14 @@ export default function Revenue() {
   // TODO(export-pdf): cần thư viện (jsPDF) — hỏi người dùng trước khi thêm dependency.
   const exportPdf = () => toast.info(t.revExportPdfTodo);
 
-  if (load === 'loading') return <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto' }}><Card><Loader label={t.listLoading} /></Card></div>;
+  if (load === 'loading') return <PageContainer><Card><Loader label={t.listLoading} /></Card></PageContainer>;
   if (load === 'error' || !data) return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto' }}>
+    <PageContainer>
       <Card style={{ textAlign: 'center', padding: '54px 16px' }}>
         <div style={{ fontSize: 14.5, fontWeight: 600, color: '#5b5670', marginBottom: 14 }}>{t.listError}</div>
         <button onClick={() => fetchAll(period)} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
       </Card>
-    </div>
+    </PageContainer>
   );
 
   const maxVal = Math.max(...data.series.map((s) => s.value), 1);
@@ -113,7 +115,7 @@ export default function Revenue() {
   );
 
   return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <PageContainer>
       {/* Period filter + export toolbar */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 8 }}>{PERIODS.map(periodBtn)}</div>
@@ -185,6 +187,6 @@ export default function Revenue() {
           </div>
         </SectionCard>
       </div>
-    </div>
+    </PageContainer>
   );
 }

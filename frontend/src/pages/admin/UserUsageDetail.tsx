@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useUiStore } from '../../store/useUiStore';
 import { Card, Loader } from '../../components/ui';
 import StatusBadge from '../../components/admin/StatusBadge';
 import SectionCard from '../../components/admin/SectionCard';
@@ -26,6 +27,8 @@ import {
   type UserSessions,
 } from '../../api/adminUsage';
 import { alertRuleLabel } from '../../components/admin/usage/AlertsPanel';
+import PageContainer from '../../components/PageContainer';
+
 
 // Trang chi tiết usage MỘT user (/admin/usage/users/:id) — nâng cấp từ modal "Chi tiết usage"
 // cũ (entry point giữ nguyên: nút Chi tiết ở tab Theo người dùng / Tổng quan). Tab: Nhật ký
@@ -40,6 +43,46 @@ const pctOf = (used: number, limit: number | null) =>
   limit === null ? null : Math.min(limit > 0 ? (used / limit) * 100 : 100, 100);
 
 type DetailTab = 'timeline' | 'heatmap' | 'features' | 'audit' | 'sessions';
+
+/** Khối skeleton nhỏ dùng lại (class .skeleton có sẵn ở index.css). */
+function Sk({ w, h = 12, r = 8 }: { w: number | string; h?: number; r?: number }) {
+  return <span className="skeleton" style={{ display: 'block', width: w, height: h, borderRadius: r }} />;
+}
+
+/** Skeleton mô phỏng đúng bố cục trang đích (header user + thanh mức dùng + hàng tab
+    + card nội dung) — thay cho spinner to chiếm cả trang khi điều hướng vào chi tiết. */
+function DetailSkeleton() {
+  return (
+    <PageContainer role="status" aria-busy="true">
+      <Sk w={120} h={14} />
+      <Card>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '1 1 280px' }}>
+            <span className="skeleton" style={{ width: 44, height: 44, borderRadius: '50%', flex: 'none' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: 1, maxWidth: 260 }}>
+              <Sk w="70%" h={14} />
+              <Sk w="50%" h={10} />
+            </div>
+          </div>
+          <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Sk w="100%" h={10} />
+            <Sk w="100%" h={8} r={999} />
+          </div>
+          <div style={{ flex: '1 1 280px' }}><Sk w="100%" h={92} r={14} /></div>
+        </div>
+      </Card>
+      <div style={{ display: 'flex', gap: 8 }}>
+        {Array.from({ length: 5 }, (_, i) => <Sk key={i} w={96} h={32} r={9} />)}
+      </div>
+      <Card>
+        <Sk w={180} h={14} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
+          {Array.from({ length: 6 }, (_, i) => <Sk key={i} w="100%" h={22} />)}
+        </div>
+      </Card>
+    </PageContainer>
+  );
+}
 
 export default function UserUsageDetail() {
   const { id } = useParams<{ id: string }>();
@@ -71,6 +114,17 @@ export default function UserUsageDetail() {
     getAlerts({ status: 'OPEN', userId: id }).then(setOpenAlerts).catch(() => setOpenAlerts([]));
   };
   useEffect(fetchDetail, [id]);
+
+  // Heading Topbar = tên user đang xem + email · gói (thay vì heading mặc định sai
+  // "Bảng điều khiển") — clear khi rời trang để không rò sang trang khác.
+  const setPageHeading = useUiStore((s) => s.setPageHeading);
+  useEffect(() => {
+    if (detail) {
+      const plan = userPlanMeta((detail.usage.planCode ?? 'FREE') as UserPlan);
+      setPageHeading({ title: detail.fullName || detail.email, sub: `${detail.email} · ${plan.label}` });
+    }
+    return () => setPageHeading(null);
+  }, [detail, setPageHeading]);
 
   useEffect(() => {
     if (!id) return;
@@ -111,13 +165,15 @@ export default function UserUsageDetail() {
     );
   };
 
-  if (load === 'loading') return <Card><Loader label={t.listLoading} /></Card>;
+  if (load === 'loading') return <DetailSkeleton />;
   if (load === 'error' || !detail) {
     return (
-      <Card style={{ textAlign: 'center', padding: '54px 16px' }}>
-        <div style={{ fontSize: 14.5, fontWeight: 600, color: '#5b5670', marginBottom: 14 }}>{t.listError}</div>
-        <button onClick={fetchDetail} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
-      </Card>
+      <PageContainer>
+        <Card style={{ textAlign: 'center', padding: '54px 16px' }}>
+          <div style={{ fontSize: 14.5, fontWeight: 600, color: '#5b5670', marginBottom: 14 }}>{t.listError}</div>
+          <button onClick={fetchDetail} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
+        </Card>
+      </PageContainer>
     );
   }
 
@@ -127,7 +183,7 @@ export default function UserUsageDetail() {
   const maxFeature = Math.max(...usage.byFeature.map((f) => f.totalTokens), 1);
 
   return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <PageContainer>
       <button onClick={() => navigate('/admin/usage')} style={{ display: 'flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start', border: 'none', background: 'none', fontSize: 13, fontWeight: 700, color: '#7d6aa3', cursor: 'pointer', padding: 0 }}>
         <ArrowLeft size={15} /> {t.audBack}
       </button>
@@ -221,7 +277,8 @@ export default function UserUsageDetail() {
           {heat === null ? <Loader label={t.listLoading} /> : heat.length === 0 ? (
             <div style={{ fontSize: 13, color: '#a59fbb' }}>{t.auOvNoData}</div>
           ) : (
-            <Heatmap cells={heat.map((p) => ({ bucket: p.bucket, value: p.totalTokens }))} days={7} />
+            <Heatmap cells={heat.map((p) => ({ bucket: p.bucket, value: p.totalTokens }))} days={7}
+              fmt={(v) => `${fmtTokens(v)} token`} legend={{ low: t.hmLow, high: t.hmHigh }} />
           )}
         </SectionCard>
       )}
@@ -299,6 +356,6 @@ export default function UserUsageDetail() {
           )}
         </SectionCard>
       )}
-    </div>
+    </PageContainer>
   );
 }

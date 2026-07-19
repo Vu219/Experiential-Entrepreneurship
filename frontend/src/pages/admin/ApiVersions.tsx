@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import {
+useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { PlatformTag, Loader } from '../../components/ui';
@@ -16,6 +17,7 @@ import {
   type PlatformEnum,
   type VersionStatus,
 } from '../../api/adminApiVersions';
+import PageContainer from '../../components/PageContainer';
 
 const PLATFORM_NAMES: Record<PlatformEnum, string> = {
   FACEBOOK: 'Facebook Graph API',
@@ -139,7 +141,7 @@ export default function ApiVersions() {
   };
 
   return (
-    <div className="view-pop" style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <PageContainer>
       {/* Top action header */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: -10 }}>
         <button
@@ -355,6 +357,6 @@ export default function ApiVersions() {
           </div>
         </Modal>
       )}
-    </div>
+    </PageContainer>
   );
 }
