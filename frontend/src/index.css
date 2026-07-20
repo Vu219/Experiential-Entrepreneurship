@@ -793,6 +793,21 @@ html {
   transform: translateY(-1px);
 }
 
+/* CTA cuối trang — nút "Đặt Demo": nền trắng viền mảnh, hover nền slate-50.
+   (Nút chính tái dùng .btn-grad giống hero.) */
+.cta-btn-demo {
+  transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease, box-shadow 0.3s ease;
+}
+.cta-btn-demo:hover {
+  transform: translateY(-2px);
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 12px 24px -18px rgba(15, 23, 42, 0.4) !important;
+}
+.cta-btn-demo:active {
+  transform: translateY(0);
+}
+
 .btn-soft {
   transition: transform 0.2s ease, background 0.25s ease, box-shadow 0.25s ease;
 }
@@ -863,6 +878,7 @@ html {
   .btn-grad,
   .btn-outline,
   .btn-soft,
+  .cta-btn-demo,
   .lift-card,
   .strategy-card,
   .logo-hover,
@@ -873,12 +889,14 @@ html {
   .btn-grad:hover,
   .btn-outline:hover,
   .btn-soft:hover,
+  .cta-btn-demo:hover,
   .lift-card:hover,
   .strategy-card:hover,
   .logo-hover:hover,
   .btn-grad:active,
   .btn-outline:active,
-  .btn-soft:active {
+  .btn-soft:active,
+  .cta-btn-demo:active {
     transform: none;
   }
 }

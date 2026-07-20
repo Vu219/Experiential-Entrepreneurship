@@ -4,11 +4,12 @@ The Spring Boot backend dispatches async jobs to these endpoints (architecture i
 docs/Implementation_Strategy.md §1). The AI service is stateless; all persistence
 (sessions, drafts, versions, insights) happens on the backend.
 
-SECURITY (DB-managed LLM config):
-- Requests carrying ``llm_config`` (API key inside) and ``/test-connection`` REQUIRE the
-  internal token header ``X-Internal-Token`` (shared secret AI_INTERNAL_TOKEN with the
-  backend). Token unset on this service => such requests are refused (fail-closed).
-  Requests WITHOUT llm_config keep working as before (env-based, rollback path).
+SECURITY:
+- Every endpoint EXCEPT ``GET /health`` requires the internal token header
+  ``X-Internal-Token`` (shared secret AI_INTERNAL_TOKEN with the backend). Enforcement is
+  GLOBAL — see the ``enforce_internal_token`` middleware in ``main.py`` — so routes never
+  check the token themselves (no double check). Token unset on this service (dev/local)
+  => the guard is disabled and all requests pass.
 - Never log request bodies here: llm_config carries an API key (SecretStr masks repr,
   but the rule stands — log labels and exception types only).
 """
@@ -16,11 +17,10 @@ SECURITY (DB-managed LLM config):
 from __future__ import annotations
 
 import logging
-import secrets
 import time
 from typing import Optional
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, HTTPException
 
 from ..agents import (
     content_generator,
@@ -62,24 +62,11 @@ router = APIRouter()
 INTERNAL_TOKEN_HEADER = "X-Internal-Token"
 
 
-def _require_internal_token(token: Optional[str]) -> None:
-    """Reject unless the caller presents the shared internal token (fail-closed)."""
-    expected = get_settings().ai_internal_token
-    if not expected:
-        raise HTTPException(
-            status_code=503,
-            detail="AI_INTERNAL_TOKEN is not configured on the AI service; "
-                   "requests carrying llm_config are refused.",
-        )
-    if token is None or not secrets.compare_digest(token, expected):
-        raise HTTPException(status_code=401, detail="Invalid internal token")
-
-
-def _apply_llm_config(config: Optional[LlmConfig], token: Optional[str]) -> None:
-    """Requests carrying llm_config (API key inside) must be authenticated first."""
+def _apply_llm_config(config: Optional[LlmConfig]) -> None:
+    """Route the request through the DB-managed LLM config. Authentication is enforced
+    globally by the ``enforce_internal_token`` middleware (main.py) — not here."""
     if config is None:
         return
-    _require_internal_token(token)
     use_llm_config(config)
 
 
@@ -104,83 +91,74 @@ def health() -> dict:
 @router.post("/research", response_model=ResearchResult)
 def research(
     req: ResearchRequest,
-    x_internal_token: Optional[str] = Header(default=None, alias=INTERNAL_TOKEN_HEADER),
 ) -> ResearchResult:
     """FR-19..FR-23 — trend research for one session (+ tokens_used)."""
-    _apply_llm_config(req.llm_config, x_internal_token)
+    _apply_llm_config(req.llm_config)
     return _run("trend research", trend_research.research_trends, req)
 
 
 @router.post("/generate", response_model=GenerateResult)
 def generate(
     req: GenerateRequest,
-    x_internal_token: Optional[str] = Header(default=None, alias=INTERNAL_TOKEN_HEADER),
 ) -> GenerateResult:
     """FR-24..FR-30, FR-32 — generate one content item (+ tokens_used)."""
-    _apply_llm_config(req.llm_config, x_internal_token)
+    _apply_llm_config(req.llm_config)
     return _run("content generation", content_generator.generate_content, req)
 
 
 @router.post("/format", response_model=FormatResult)
 def format_versions(
     req: FormatRequest,
-    x_internal_token: Optional[str] = Header(default=None, alias=INTERNAL_TOKEN_HEADER),
 ) -> FormatResult:
     """FR-40, FR-42, FR-44, Threads, FR-46 — one version per platform (+ tokens_used)."""
-    _apply_llm_config(req.llm_config, x_internal_token)
+    _apply_llm_config(req.llm_config)
     return _run("platform formatting", platform_formatter.format_content, req)
 
 
 @router.post("/regenerate-part", response_model=RegeneratePartResult)
 def regenerate_part(
     req: RegeneratePartRequest,
-    x_internal_token: Optional[str] = Header(default=None, alias=INTERNAL_TOKEN_HEADER),
 ) -> RegeneratePartResult:
     """Regenerate ONE part of a video script (hook/body/cta × content/scene) — FR-32."""
-    _apply_llm_config(req.llm_config, x_internal_token)
+    _apply_llm_config(req.llm_config)
     return _run("partial regeneration", content_regenerator.regenerate_part, req)
 
 
 @router.post("/analyze", response_model=AnalyzeResult)
 def analyze(
     req: AnalyzeRequest,
-    x_internal_token: Optional[str] = Header(default=None, alias=INTERNAL_TOKEN_HEADER),
 ) -> AnalyzeResult:
     """FR-63, FR-64 — success factors + insights (+ tokens_used)."""
-    _apply_llm_config(req.llm_config, x_internal_token)
+    _apply_llm_config(req.llm_config)
     return _run("performance analysis", optimizer.analyze_performance, req)
 
 
 @router.post("/optimize", response_model=OptimizeResult)
 def optimize(
     req: OptimizeRequest,
-    x_internal_token: Optional[str] = Header(default=None, alias=INTERNAL_TOKEN_HEADER),
 ) -> OptimizeResult:
     """FR-65, FR-66 — strategy adjustment + future-post proposals (+ tokens_used)."""
-    _apply_llm_config(req.llm_config, x_internal_token)
+    _apply_llm_config(req.llm_config)
     return _run("optimization", optimizer.propose_optimizations, req)
 
 
 @router.post("/golden-hours", response_model=GoldenHourResponse)
 def golden_hours(
     req: GoldenHourRequest,
-    x_internal_token: Optional[str] = Header(default=None, alias=INTERNAL_TOKEN_HEADER),
 ) -> GoldenHourResponse:
     """FR-48 — golden-hour suggestions (defaults -> data-driven)."""
-    _apply_llm_config(req.llm_config, x_internal_token)
+    _apply_llm_config(req.llm_config)
     return _run("golden-hour suggestion", optimizer.suggest_golden_hours, req)
 
 
 @router.post("/test-connection", response_model=TestConnectionResult)
 def test_connection(
     req: TestConnectionRequest,
-    x_internal_token: Optional[str] = Header(default=None, alias=INTERNAL_TOKEN_HEADER),
 ) -> TestConnectionResult:
     """Admin "Cấu hình AI": verify a provider API key with one minimal model call.
 
     A wrong/expired key is a RESULT (success=False + redacted message), not a 5xx.
     """
-    _require_internal_token(x_internal_token)
 
     spec = LlmSpec(
         provider=req.provider,
@@ -213,12 +191,10 @@ def _redact(message: str, api_key: str) -> str:
 @router.post("/list-models", response_model=ListModelsResult)
 def list_provider_models(
     req: ListModelsRequest,
-    x_internal_token: Optional[str] = Header(default=None, alias=INTERNAL_TOKEN_HEADER),
 ) -> ListModelsResult:
     """Admin "Cấu hình AI" model sync: fetch the provider's model catalog (id +
     display name + token limits — providers return NO pricing). Provider order is
     preserved (Anthropic: newest first)."""
-    _require_internal_token(x_internal_token)
 
     try:
         models = list_models(req.provider, req.api_key.get_secret_value())

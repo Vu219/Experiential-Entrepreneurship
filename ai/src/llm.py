@@ -79,6 +79,7 @@ def build_llm(spec: LlmSpec) -> BaseChatModel:
             model=spec.model,
             google_api_key=api_key,
             max_output_tokens=max_tokens,
+            timeout=120,
             **kwargs,
         )
 
@@ -117,6 +118,7 @@ def _env_llm() -> BaseChatModel:
             model=settings.google_model,
             google_api_key=settings.google_api_key,
             max_output_tokens=settings.llm_max_tokens,
+            timeout=120,
         )
 
     raise ValueError(f"Unknown LLM_PROVIDER: {settings.llm_provider!r}")
