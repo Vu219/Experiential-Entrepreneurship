@@ -77,17 +77,32 @@ export default function Profile() {
     if (!file) return;
     setAvatarUploading(true);
     const id = toast.loading('Đang chuẩn bị tải ảnh...', { title: 'Đang tải lên' });
+    
+    let targetPercent = 0;
+    let currentPercent = 0;
+    
+    const interval = setInterval(() => {
+      if (currentPercent < targetPercent) {
+        currentPercent += Math.max(1, Math.floor((targetPercent - currentPercent) / 2));
+      } else if (currentPercent < 99 && targetPercent === 100) {
+        currentPercent += 1;
+      }
+      if (currentPercent > 99) currentPercent = 99;
+      toast.loading(`Đang tải ảnh lên (${currentPercent}%)...`, { id, title: 'Đang tải lên' });
+    }, 150);
+
     try {
       const url = await uploadAvatar(file, (evt) => {
         if (evt.total) {
-          const percent = Math.round((evt.loaded * 100) / evt.total);
-          toast.loading(`Đang tải ảnh lên (${percent}%)...`, { id, title: 'Đang tải lên' });
+          targetPercent = Math.round((evt.loaded * 100) / evt.total);
         }
       });
+      clearInterval(interval);
       const updated = await updateProfile({ fullName, phone, dateOfBirth, avatarUrl: url });
       setUser(updated);
       toast.success('Cập nhật ảnh đại diện thành công', { id, title: 'Thành công' });
     } catch (err) {
+      clearInterval(interval);
       toast.error('Không thể tải ảnh lên. Vui lòng thử lại.', { id, title: 'Lỗi tải lên' });
     } finally {
       setAvatarUploading(false);
@@ -280,7 +295,7 @@ export default function Profile() {
                 <DatePicker
                   value={dateOfBirth}
                   onChange={(v) => setDateOfBirth(v)}
-                  max={new Date().toISOString().split('T')[0]}
+                  max={`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`}
                   style={{ border: '1.5px solid #e7e2f2', borderRadius: 11, padding: '0 14px', background: '#fbfaff' }}
                   inputStyle={{ fontSize: 14, padding: '12px 0' }}
                 />

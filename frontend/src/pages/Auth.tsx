@@ -68,8 +68,12 @@ export default function Auth() {
   };
 
   // Chuyển lỗi OAuth thô (vd "[access_denied]" khi người dùng huỷ) thành thông báo thân thiện.
-  const oauthErrorMessage = (raw: string) =>
-    /access_denied/i.test(raw) ? t.errGoogleCancelled : t.errGoogleFailed;
+  const oauthErrorMessage = (raw: string) => {
+    if (/access_denied/i.test(raw)) return t.errGoogleCancelled;
+    if (/khoá|khóa/i.test(raw)) return raw; // Lỗi từ backend (tiếng Việt)
+    if (/locked/i.test(raw)) return lang === 'vi' ? 'Tài khoản của bạn đã bị khóa.' : 'Your account has been locked.';
+    return t.errGoogleFailed;
+  };
 
   // Handle Google OAuth redirect coming back to /login (?login=success | ?error=... | state.oauthError).
   useEffect(() => {

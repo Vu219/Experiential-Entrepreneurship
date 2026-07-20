@@ -52,16 +52,31 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
   const pickAvatar = async (file: File) => {
     setUploading(true);
     const id = toast.loading('Đang chuẩn bị tải ảnh...', { title: 'Đang tải lên' });
+    
+    let targetPercent = 0;
+    let currentPercent = 0;
+    
+    const interval = setInterval(() => {
+      if (currentPercent < targetPercent) {
+        currentPercent += Math.max(1, Math.floor((targetPercent - currentPercent) / 2));
+      } else if (currentPercent < 99 && targetPercent === 100) {
+        currentPercent += 1;
+      }
+      if (currentPercent > 99) currentPercent = 99;
+      toast.loading(`Đang tải ảnh lên (${currentPercent}%)...`, { id, title: 'Đang tải lên' });
+    }, 150);
+
     try {
       const url = await uploadAvatar(file, (evt) => {
         if (evt.total) {
-          const percent = Math.round((evt.loaded * 100) / evt.total);
-          toast.loading(`Đang tải ảnh lên (${percent}%)...`, { id, title: 'Đang tải lên' });
+          targetPercent = Math.round((evt.loaded * 100) / evt.total);
         }
       });
+      clearInterval(interval);
       setAvatarUrl(url);
       toast.success('Tải ảnh thành công. Hãy nhấn Lưu để cập nhật.', { id, title: 'Thành công' });
     } catch {
+      clearInterval(interval);
       toast.error('Không thể tải ảnh lên. Vui lòng thử lại.', { id, title: 'Lỗi tải lên' });
     } finally {
       setUploading(false);
