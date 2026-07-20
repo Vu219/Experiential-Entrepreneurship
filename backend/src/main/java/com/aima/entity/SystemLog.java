@@ -5,6 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -20,7 +21,12 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "system_logs")
+@Table(name = "system_logs", indexes = {
+        // Trang Logs luôn sắp xếp theo thời gian giảm dần và thường kèm lọc mức độ —
+        // trước đây bảng không có index nào, mọi lần lọc là seq scan toàn bảng.
+        @Index(name = "idx_system_logs_created_at", columnList = "created_at DESC"),
+        @Index(name = "idx_system_logs_level_created", columnList = "level, created_at DESC")
+})
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class SystemLog extends BaseEntity {
 

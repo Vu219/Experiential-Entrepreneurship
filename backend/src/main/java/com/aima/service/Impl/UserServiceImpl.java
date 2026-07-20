@@ -25,6 +25,7 @@ import com.aima.dto.response.UserResponse;
 import com.aima.dto.response.UserStatsResponse;
 import com.aima.entity.Role;
 import com.aima.entity.User;
+import com.aima.enums.ActivityAction;
 import com.aima.enums.UserPlan;
 import com.aima.enums.UserStatus;
 import com.aima.exception.AppException;
@@ -33,6 +34,7 @@ import com.aima.mapper.UserMapper;
 import com.aima.repository.PlatformAccountRepository;
 import com.aima.repository.RoleRepository;
 import com.aima.repository.UserRepository;
+import com.aima.service.ActivityLogService;
 import com.aima.service.StorageService;
 import com.aima.service.UserService;
 
@@ -42,6 +44,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -60,6 +63,7 @@ public class UserServiceImpl implements UserService {
     StorageService storageService;
 
     UserMapper userMapper;
+    ActivityLogService activityLogService;
 
     PasswordEncoder passwordEncoder;
     static int PASSWORD_CHANGE_COOLDOWN_DAYS = 7;
@@ -84,6 +88,8 @@ public class UserServiceImpl implements UserService {
         user.setProfileCompleted(true);
         User savedUser = userRepository.save(user);
 
+        activityLogService.record(ActivityLogService.Entry.of(
+                ActivityAction.ACCOUNT_REGISTERED, savedUser.getId(), savedUser.getEmail()));
         UserResponse userResponse = userMapper.toResponse(savedUser);
         return ApiResponse.success("Đăng ký tài khoản thành công", userResponse);
     }
@@ -145,6 +151,10 @@ public class UserServiceImpl implements UserService {
 
         log.info("[Admin] {} tạo tài khoản {} (role={}, plan={})", adminEmail, saved.getEmail(), roleName, saved.getPlan());
 
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.USER_CREATED, adminEmail, "User", saved.getId().toString(),
+                Map.of("email", saved.getEmail(), "role", String.valueOf(roleName),
+                        "plan", String.valueOf(saved.getPlan()))));
         UserResponse response = userMapper.toResponse(saved);
         return ApiResponse.success("Tạo tài khoản thành công", response);
     }
@@ -199,6 +209,9 @@ public class UserServiceImpl implements UserService {
 
         log.info("[Admin] {} cập nhật user {} [{}]", adminEmail, userId, describeChanges(request));
 
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.USER_UPDATED, adminEmail, "User", userId.toString(),
+                Map.of("email", saved.getEmail(), "changes", describeChanges(request))));
         UserResponse response = userMapper.toResponse(saved);
         return ApiResponse.success("Cập nhật tài khoản thành công", response);
     }
@@ -218,6 +231,9 @@ public class UserServiceImpl implements UserService {
         emailService.sendForgotPasswordOtpEmail(user.getEmail(), otpCode, user.getFullName());
 
         log.info("[Admin] {} kích hoạt đặt lại mật khẩu cho user {} ({})", adminEmail, userId, user.getEmail());
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.USER_PASSWORD_RESET, adminEmail, "User", userId.toString(),
+                Map.of("email", user.getEmail())));
         return ApiResponse.success("Đã gửi email đặt lại mật khẩu");
     }
 
@@ -237,6 +253,9 @@ public class UserServiceImpl implements UserService {
         String email = user.getEmail();
         userRepository.delete(user);
         log.info("[Admin] {} XÓA CỨNG tài khoản {} ({}) + toàn bộ dữ liệu liên quan", adminEmail, userId, email);
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.USER_DELETED, adminEmail, "User", userId.toString(),
+                Map.of("email", email)));
         return ApiResponse.success("Đã xóa tài khoản và toàn bộ dữ liệu liên quan");
     }
 
@@ -269,6 +288,9 @@ public class UserServiceImpl implements UserService {
         User saved = userRepository.save(user);
         log.info("[Admin] {} đổi trạng thái user {} thành {}", adminEmail, userId, request.getStatus());
 
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.USER_STATUS_CHANGED, adminEmail, "User", userId.toString(),
+                Map.of("email", saved.getEmail(), "status", request.getStatus().name())));
         UserResponse response = userMapper.toResponse(saved);
         return ApiResponse.success("Cập nhật trạng thái tài khoản thành công", response);
     }
@@ -320,6 +342,8 @@ public class UserServiceImpl implements UserService {
         MeResponse meResponse = userMapper.toMeResponse(saved);
         meResponse.setProfileCompleted(isProfileComplete(saved));
 
+        activityLogService.record(ActivityLogService.Entry.of(
+                ActivityAction.PROFILE_UPDATED, saved.getId(), saved.getEmail()));
         return ApiResponse.success("Cập nhật thông tin cá nhân thành công", meResponse);
     }
 
@@ -410,6 +434,8 @@ public class UserServiceImpl implements UserService {
         refreshTokenService.revokeAllTokens(user.getId().toString());
         refreshTokenService.setLogoutTime(user.getEmail());
 
+        activityLogService.record(ActivityLogService.Entry.of(
+                ActivityAction.PASSWORD_RESET, user.getId(), user.getEmail()));
         return ApiResponse.success("Đặt lại mật khẩu thành công");
     }
 
@@ -461,6 +487,8 @@ public class UserServiceImpl implements UserService {
         // OTP dùng một lần: xoá toàn bộ trạng thái OTP sau khi đổi thành công.
         otpService.invalidate(user.getEmail());
 
+        activityLogService.record(ActivityLogService.Entry.of(
+                ActivityAction.PASSWORD_CHANGED, user.getId(), user.getEmail()));
         return ApiResponse.success("Đổi mật khẩu thành công");
     }
 
@@ -528,6 +556,8 @@ public class UserServiceImpl implements UserService {
                 ChronoUnit.DAYS.between(now, deletionDate),
                 "Tài khoản sẽ bị xóa vĩnh viễn sau " + ACCOUNT_DELETION_GRACE_DAYS
                         + " ngày. Bạn có thể khôi phục trước thời hạn này.");
+        activityLogService.record(ActivityLogService.Entry.of(
+                ActivityAction.ACCOUNT_DELETE_REQUESTED, user.getId(), user.getEmail()));
         return ApiResponse.success("Yêu cầu xóa tài khoản đã được ghi nhận", deleteAccountResponse);
     }
 
@@ -546,6 +576,8 @@ public class UserServiceImpl implements UserService {
 
         DeleteAccountResponse deleteAccountResponse = userMapper.toDeleteAccountResponse(user, null,
                 "Tài khoản của bạn đã được khôi phục và hoạt động bình thường.");
+        activityLogService.record(ActivityLogService.Entry.of(
+                ActivityAction.ACCOUNT_RESTORED, user.getId(), user.getEmail()));
         return ApiResponse.success("Tài khoản đã được khôi phục thành công", deleteAccountResponse);
     }
 

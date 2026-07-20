@@ -19,6 +19,8 @@ import com.aima.repository.UsageAdjustmentRepository;
 import com.aima.repository.UsageAlertRepository;
 import com.aima.repository.UsageDailyRepository;
 import com.aima.repository.UserRepository;
+import com.aima.enums.ActivityAction;
+import com.aima.service.ActivityLogService;
 import com.aima.service.SystemLogService;
 import com.aima.service.UsageAlertService;
 import lombok.AccessLevel;
@@ -83,6 +85,7 @@ public class UsageAlertServiceImpl implements UsageAlertService {
     SubscriptionRepository subscriptionRepository;
     UserRepository userRepository;
     SystemLogService systemLogService;
+    ActivityLogService activityLogService;
     UsageMapper usageMapper;
     JdbcTemplate jdbcTemplate;
 
@@ -131,6 +134,11 @@ public class UsageAlertServiceImpl implements UsageAlertService {
                 "ACK cảnh báo " + alert.getRuleCode() + ": actor=" + actorEmail
                         + ", alertId=" + alertId + ", subject=" + (alert.getUserEmail() == null ? "(hệ thống)" : alert.getUserEmail())
                         + ", falsePositive=" + falsePositive);
+        // Dual-write giai đoạn chuyển tiếp — xem ghi chú ở UsageQueryServiceImpl.eventMeta.
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.ALERT_ACKED, actorEmail, "UsageAlert", alertId.toString(),
+                Map.of("rule", alert.getRuleCode().name(), "falsePositive", falsePositive,
+                        "subject", alert.getUserEmail() == null ? "(hệ thống)" : alert.getUserEmail())));
         UsageAlertResponse response = usageMapper.toAlertResponse(saved);
         return ApiResponse.success("Đã xác nhận cảnh báo", response);
     }
@@ -173,6 +181,9 @@ public class UsageAlertServiceImpl implements UsageAlertService {
         invalidateConfigCache();
         systemLogService.info("admin.usage.alerts",
                 "Đổi ngưỡng cảnh báo: actor=" + actorEmail + ", changes=" + changes);
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.ALERT_CONFIG_UPDATED, actorEmail, "AlertConfig", null,
+                Map.of("changes", new LinkedHashMap<>(changes))));
         return ApiResponse.success("Đã cập nhật ngưỡng cảnh báo", new LinkedHashMap<>(effectiveConfig()));
     }
 

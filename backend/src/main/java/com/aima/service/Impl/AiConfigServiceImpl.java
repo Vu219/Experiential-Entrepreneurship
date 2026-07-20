@@ -30,6 +30,8 @@ import com.aima.entity.AiProvider;
 import com.aima.entity.AiTaskRouting;
 import com.aima.entity.AiUsage;
 import com.aima.entity.User;
+import com.aima.enums.ActivityAction;
+import com.aima.enums.ActivityResult;
 import com.aima.enums.AiConfigAction;
 import com.aima.enums.AiModelBlockReason;
 import com.aima.enums.AiRouteHealth;
@@ -44,6 +46,7 @@ import com.aima.repository.AiProviderRepository;
 import com.aima.repository.AiTaskRoutingRepository;
 import com.aima.repository.AiUsageRepository;
 import com.aima.repository.UserRepository;
+import com.aima.service.ActivityLogService;
 import com.aima.service.AiConfigService;
 import com.aima.service.AiRuntimeConfigService;
 import com.aima.service.AiServiceClient;
@@ -86,6 +89,8 @@ import java.util.stream.Collectors;
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AiConfigServiceImpl implements AiConfigService {
+
+    ActivityLogService activityLogService;
 
     static final int MAX_AUDIT_PAGE_SIZE = 50;
 
@@ -535,8 +540,17 @@ public class AiConfigServiceImpl implements AiConfigService {
 
     /** Snapshot truyền vào là JSON của response DTO (đã mask key) — KHÔNG serialize entity. */
     private void audit(AiConfigAction action, String entityType, UUID entityId, String before, String after) {
-        AiConfigAudit entry = aiConfigMapper.toAudit(currentUser(), action, entityType, entityId, before, after);
+        User actor = currentUser();
+        AiConfigAudit entry = aiConfigMapper.toAudit(actor, action, entityType, entityId, before, after);
         auditRepository.save(entry);
+        // ai_config_audit là audit CHI TIẾT (có snapshot trước/sau) và vẫn giữ nguyên; dòng dưới chỉ
+        // để thao tác này cũng hiện trong tab "Log hoạt động người dùng" chung với mọi hành động khác.
+        activityLogService.record(new ActivityLogService.Entry(
+                ActivityAction.AI_CONFIG_UPDATED,
+                actor == null ? null : actor.getId(),
+                actor == null ? null : actor.getEmail(),
+                entityType, entityId == null ? null : entityId.toString(),
+                ActivityResult.SUCCESS, Map.of("action", action.name())));
     }
 
     private User currentUser() {

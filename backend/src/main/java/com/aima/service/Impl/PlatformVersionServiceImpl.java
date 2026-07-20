@@ -7,6 +7,7 @@ import com.aima.dto.response.ApiVersionResponse;
 import com.aima.entity.PlatformApiVersion;
 import com.aima.entity.PlatformApiVersionHistory;
 import com.aima.entity.User;
+import com.aima.enums.ActivityAction;
 import com.aima.enums.Platform;
 import com.aima.enums.VersionChangeType;
 import com.aima.enums.VersionStatus;
@@ -16,6 +17,7 @@ import com.aima.mapper.PlatformApiVersionMapper;
 import com.aima.repository.PlatformApiVersionHistoryRepository;
 import com.aima.repository.PlatformApiVersionRepository;
 import com.aima.repository.UserRepository;
+import com.aima.service.ActivityLogService;
 import com.aima.service.PlatformVersionService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,6 +43,8 @@ import java.util.regex.Pattern;
 @Slf4j
 @Transactional
 public class PlatformVersionServiceImpl implements PlatformVersionService {
+
+    ActivityLogService activityLogService;
 
     PlatformApiVersionRepository versionRepository;
     PlatformApiVersionHistoryRepository historyRepository;
@@ -109,6 +114,10 @@ public class PlatformVersionServiceImpl implements PlatformVersionService {
         evictCache(platform);
 
         log.info("[ApiVersion] {} đổi {} -> {} bởi {}", platform, fromVersion, toVersion, adminEmail);
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.API_VERSION_UPDATED, adminEmail, "PlatformApiVersion", platform.name(),
+                Map.of("from", String.valueOf(fromVersion), "to", String.valueOf(toVersion),
+                        "changeType", changeType.name())));
         ApiVersionResponse response = versionMapper.toResponse(saved);
         return ApiResponse.success("Cập nhật version thành công", response);
     }

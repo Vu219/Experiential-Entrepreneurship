@@ -7,6 +7,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Executor riêng cho các tác vụ AI chạy nền (NFR-04) — tách khỏi executor mặc định của Spring
@@ -77,6 +78,23 @@ public class AsyncConfig {
         executor.setMaxPoolSize(3);
         executor.setQueueCapacity(20);
         executor.setThreadNamePrefix("trend-research-");
+        executor.initialize();
+        return executor;
+    }
+
+    /**
+     * Ghi activity log — tác vụ RẤT ngắn (1 insert) nhưng tần suất cao, nên hàng đợi rộng và
+     * pool nhỏ. {@code CallerRunsPolicy}: khi hàng đợi đầy thì ghi ngay trên thread gọi thay vì
+     * ném RejectedExecutionException — thà request chậm vài ms còn hơn MẤT dấu vết audit.
+     */
+    @Bean(name = "activityLogExecutor")
+    public Executor activityLogExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(3);
+        executor.setQueueCapacity(500);
+        executor.setThreadNamePrefix("activity-log-");
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         executor.initialize();
         return executor;
     }

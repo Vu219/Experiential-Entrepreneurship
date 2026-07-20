@@ -20,7 +20,10 @@ import java.util.UUID;
         @Index(name = "idx_ai_usage_user", columnList = "user_id"),
         @Index(name = "idx_ai_usage_task_code", columnList = "task_code"),
         @Index(name = "idx_ai_usage_created_at", columnList = "created_at"),
-        @Index(name = "idx_ai_usage_billing_period", columnList = "billing_period")
+        @Index(name = "idx_ai_usage_billing_period", columnList = "billing_period"),
+        // Bảng nhật ký ở TRANG CHI TIẾT USER luôn lọc user_id rồi sắp theo thời gian giảm dần —
+        // hai index rời ở trên không phục vụ được cùng lúc cả lọc lẫn sắp xếp.
+        @Index(name = "idx_ai_usage_user_created", columnList = "user_id, created_at DESC")
 })
 @Getter
 @Setter

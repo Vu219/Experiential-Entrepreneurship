@@ -580,7 +580,7 @@ export default function UsageOverview() {
         </>
       )}
 
-      {tab === 'events' && <UsageEventsTable />}
+      {tab === 'events' && <UsageEventsTable syncUrl />}
 
       {tab === 'rates' && (
         rateLoad === 'loading' ? loadingCard : rateLoad === 'error' ? errorCard(fetchRates) : (

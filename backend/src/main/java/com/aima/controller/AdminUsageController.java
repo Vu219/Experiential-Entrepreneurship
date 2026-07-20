@@ -170,9 +170,9 @@ public class AdminUsageController {
     }
 
     @GetMapping("/events")
-    @Operation(summary = "Nhật ký sử dụng: keyset cursor (KHÔNG offset); KHÔNG kèm IP/UA — lấy riêng qua "
-            + "/events/{id}/meta (có audit). Retention: SUCCESS 90 ngày, ERROR/TIMEOUT 180 ngày")
-    public ApiResponse<CursorPageResponse<UsageEventResponse>> events(
+    @Operation(summary = "Nhật ký sử dụng: phân trang offset (mới nhất trước); KHÔNG kèm IP/UA — lấy riêng "
+            + "qua /events/{id}/meta (có audit). Retention: SUCCESS 90 ngày, ERROR/TIMEOUT 180 ngày")
+    public ApiResponse<PageResponse<UsageEventResponse>> events(
             @RequestParam(required = false) LocalDateTime from,
             @RequestParam(required = false) LocalDateTime to,
             @RequestParam(required = false) UUID userId,
@@ -181,11 +181,11 @@ public class AdminUsageController {
             @RequestParam(required = false) AiUsageStatus status,
             @RequestParam(required = false) Long minTokens,
             @RequestParam(required = false) BigDecimal minCost,
-            @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "25") int size) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         UsageQueryService.EventFilter filter = new UsageQueryService.EventFilter(
                 from, to, userId, taskCode, model, status, minTokens, minCost);
-        return usageQueryService.events(filter, cursor, size);
+        return usageQueryService.events(filter, page, size);
     }
 
     @GetMapping("/events/{eventId}/meta")

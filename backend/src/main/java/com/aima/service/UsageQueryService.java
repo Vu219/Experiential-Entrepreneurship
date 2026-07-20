@@ -63,11 +63,11 @@ public interface UsageQueryService {
     ApiResponse<List<HeatmapPointResponse>> heatmap(int days, UUID userId);
 
     /**
-     * GET /admin/usage/events — tab Nhật ký sử dụng: keyset cursor (created_at, id) DESC,
-     * KHÔNG offset. Response KHÔNG chứa IP/UA (dữ liệu cá nhân — lấy riêng qua eventMeta,
-     * có audit). {@code cursor} null = trang đầu.
+     * GET /admin/usage/events — tab Nhật ký sử dụng: phân trang OFFSET (mới nhất trước), đúng
+     * pattern phân trang chung của các trang quản trị. Response KHÔNG chứa IP/UA (dữ liệu cá
+     * nhân — lấy riêng qua eventMeta, có audit).
      */
-    ApiResponse<CursorPageResponse<UsageEventResponse>> events(EventFilter filter, String cursor, int size);
+    ApiResponse<PageResponse<UsageEventResponse>> events(EventFilter filter, int page, int size);
 
     /**
      * GET /admin/usage/events/{id}/meta — IP/User-Agent của MỘT event; MỖI lần gọi ghi audit

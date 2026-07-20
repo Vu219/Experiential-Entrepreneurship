@@ -162,6 +162,9 @@ aima:
   # DEV-ONLY: bật endpoint seed token_credits (POST /admin/usage/users/{id}/dev-credits).
   dev:
     credit-seed-enabled: ${AIMA_DEV_CREDIT_SEED:false}
+    # DEV-ONLY: bật endpoint seed payments mẫu (POST/DELETE /admin/revenue/dev-seed) để dựng
+    # giao diện Quản lý doanh thu trước khi có cổng payOS. GỠ/TẮT khi có thanh toán thật.
+    payment-seed-enabled: ${AIMA_DEV_PAYMENT_SEED:false}
   encryption:
     # 32 byte base64 (openssl rand -base64 32). Bắt buộc — app fail khi startup nếu thiếu.
     key: ${AIMA_ENCRYPTION_KEY}
@@ -169,6 +172,22 @@ aima:
     state-ttl-minutes: ${OAUTH_STATE_TTL_MINUTES:10}
     frontend-success-redirect: ${FE_OAUTH_SUCCESS_URL:http://localhost:3000/settings?tab=connections}
     frontend-error-redirect: ${FE_OAUTH_ERROR_URL:http://localhost:3000/settings?tab=connections&error=oauth_failed}
+  logging:
+    # Cửa sổ chống trùng activity log (giây): cùng userId + action + targetId trong khoảng này
+    # chỉ ghi 1 lần. 0 = tắt dedup.
+    # LƯU Ý: các action trong ActivityAction.DEDUP_EXEMPT (LOGIN_FAILED) KHÔNG bị gộp — tần suất
+    # thử đăng nhập sai chính là dữ liệu bảo mật; chúng dùng trần theo IP bên dưới thay thế.
+    activity-dedup-seconds: ${ACTIVITY_LOG_DEDUP_SECONDS:60}
+    # Trần số dòng/giờ cho MỖI IP với action được miễn dedup. Vượt trần → ghi 1 dòng tổng hợp
+    # rồi im lặng tới hết giờ. 0 = tắt trần.
+    activity-ip-hourly-cap: ${ACTIVITY_LOG_IP_HOURLY_CAP:100}
+  # Số ngày giữ dữ liệu vết trước khi LogRetentionJob (03:30 hằng ngày) xoá cứng.
+  # Đặt 0 để tắt việc dọn bảng tương ứng.
+  retention:
+    activity-log-days: ${ACTIVITY_LOG_RETENTION_DAYS:90}
+    system-log-days: ${SYSTEM_LOG_RETENTION_DAYS:180}
+    usage-success-days: ${USAGE_SUCCESS_RETENTION_DAYS:90}
+    usage-error-days: ${USAGE_ERROR_RETENTION_DAYS:180}
 
 springdoc:
   api-docs:

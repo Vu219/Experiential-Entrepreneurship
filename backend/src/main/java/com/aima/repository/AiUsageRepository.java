@@ -39,6 +39,23 @@ public interface AiUsageRepository extends JpaRepository<AiUsage, UUID> {
             and (CAST(:minCost as numeric) is null or estimated_cost >= CAST(:minCost as numeric))
             """;
 
+    /**
+     * Tab Nhật ký sử dụng — phân trang OFFSET (trang có số, đúng pattern phân trang chung của
+     * các trang quản trị). Đánh đổi có chủ ý so với keyset: {@code COUNT(*)} + {@code OFFSET}
+     * chậm dần ở trang sâu, bù lại admin nhảy được tới trang bất kỳ và chia sẻ được link.
+     * Sắp xếp phụ theo {@code id} để thứ tự ổn định khi hai event trùng {@code created_at}.
+     * Các đường keyset bên dưới GIỮ LẠI cho export (quét tuần tự toàn bộ tập, không cần offset).
+     */
+    @Query(value = "select * from ai_usage where " + EVENT_FILTER
+            + " order by created_at desc, id desc",
+            countQuery = "select count(*) from ai_usage where " + EVENT_FILTER,
+            nativeQuery = true)
+    Page<AiUsage> searchEvents(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to,
+                               @Param("userId") UUID userId, @Param("taskCode") String taskCode,
+                               @Param("model") String model, @Param("status") String status,
+                               @Param("minTokens") Long minTokens, @Param("minCost") BigDecimal minCost,
+                               Pageable pageable);
+
     /** Trang ĐẦU tab Nhật ký (keyset (created_at, id) DESC — không OFFSET); Pageable chỉ giữ limit. */
     @Query(value = "select * from ai_usage where " + EVENT_FILTER
             + " order by created_at desc, id desc", nativeQuery = true)

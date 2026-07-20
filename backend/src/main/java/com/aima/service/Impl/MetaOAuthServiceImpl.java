@@ -1,5 +1,7 @@
 package com.aima.service.Impl;
 
+import com.aima.service.ActivityLogService;
+import com.aima.enums.ActivityAction;
 import com.aima.config.AimaProperties;
 import com.aima.config.MetaProperties;
 import com.aima.entity.PlatformAccount;
@@ -26,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.Map;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -40,6 +43,8 @@ import java.util.UUID;
 @Slf4j
 @Transactional
 public class MetaOAuthServiceImpl implements MetaOAuthService {
+
+    ActivityLogService activityLogService;
 
     MetaApiClient metaApiClient;
     PlatformVersionService versionService;
@@ -102,9 +107,16 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         try {
-            return platform == Platform.THREADS
+            List<PlatformAccount> connected = platform == Platform.THREADS
                     ? handleThreadsCallback(user, code)
                     : handleFacebookCallback(user, code);
+            // Một lần liên kết có thể sinh nhiều kết nối (user + từng Page + IG) — ghi MỘT dòng
+            // cho cả thao tác, kèm số kết nối, thay vì làm ngập log bằng mỗi Page một dòng.
+            activityLogService.record(ActivityLogService.Entry.of(
+                    ActivityAction.SOCIAL_CONNECTED, user.getId(), user.getEmail(),
+                    "PlatformAccount", platform.name())
+                    .withMetadata(Map.of("platform", platform.name(), "connections", connected.size())));
+            return connected;
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
@@ -241,6 +253,11 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
                 log.warn("[OAuth] Revoke token khi disconnect thất bại (vẫn soft delete): {}", e.getMessage());
             }
         }
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.SOCIAL_DISCONNECTED, account.getUser().getEmail(),
+                "PlatformAccount", account.getId().toString(),
+                Map.of("platform", account.getPlatformName().name(),
+                        "accountName", String.valueOf(account.getAccountName()))));
         softDeleteCascade(account);
     }
 

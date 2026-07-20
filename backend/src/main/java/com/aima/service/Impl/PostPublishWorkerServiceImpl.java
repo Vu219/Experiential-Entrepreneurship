@@ -7,6 +7,8 @@ import com.aima.entity.Post;
 import com.aima.entity.PostSchedule;
 import com.aima.entity.PostingJob;
 import com.aima.entity.PublishResult;
+import com.aima.enums.ActivityAction;
+import com.aima.enums.ActivityResult;
 import com.aima.enums.ConnectionStatus;
 import com.aima.enums.ContentLifecycle;
 import com.aima.enums.NotificationType;
@@ -19,6 +21,7 @@ import com.aima.exception.PublishException;
 import com.aima.mapper.PostPublishMapper;
 import com.aima.repository.PostScheduleRepository;
 import com.aima.repository.PostingJobRepository;
+import com.aima.service.ActivityLogService;
 import com.aima.service.MetaApiClient;
 import com.aima.service.NotificationService;
 import com.aima.service.PlatformPublisher;
@@ -66,6 +69,7 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
     TransactionTemplate transactionTemplate;
     NotificationService notificationService;
     SystemLogService systemLogService;
+    ActivityLogService activityLogService;
     Map<Platform, PlatformPublisher> publishers;
 
     public PostPublishWorkerServiceImpl(PostingJobRepository jobRepository,
@@ -74,6 +78,7 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
                                         TransactionTemplate transactionTemplate,
                                         NotificationService notificationService,
                                         SystemLogService systemLogService,
+                                        ActivityLogService activityLogService,
                                         List<PlatformPublisher> publisherList) {
         this.jobRepository = jobRepository;
         this.scheduleRepository = scheduleRepository;
@@ -81,6 +86,7 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         this.transactionTemplate = transactionTemplate;
         this.notificationService = notificationService;
         this.systemLogService = systemLogService;
+        this.activityLogService = activityLogService;
         this.publishers = publisherList.stream()
                 .collect(Collectors.toUnmodifiableMap(PlatformPublisher::platform, Function.identity()));
     }
@@ -170,6 +176,12 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
                 "Đã đăng bài thành công",
                 "Bài viết đã được đăng lên " + post.getPlatformName() + " (" + account.getAccountName() + ").",
                 post.getId());
+
+        // Worker nền: không có request context nên ip/userAgent để null (đúng bản chất — hệ thống
+        // tự đăng theo lịch, không phải thao tác trực tiếp của user).
+        activityLogService.record(ActivityLogService.Entry.of(
+                ActivityAction.POST_PUBLISHED, account.getUser().getId(), account.getUser().getEmail(),
+                "Post", post.getId().toString()));
 
         log.info("[PostPublish] Đã đăng bài {} lên {} (post id {})",
                 post.getId(), post.getPlatformName(), result.platformPostId());
@@ -268,6 +280,12 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
     // FR-38/FR-76: nền tảng nào, lý do gì, bước tiếp theo — phân biệt vi phạm chính sách và lỗi kỹ thuật.
     private void notifyFailure(PlatformAccount account, Post post, PublishException e) {
         String platform = String.valueOf(post.getPlatformName());
+        activityLogService.record(new ActivityLogService.Entry(
+                ActivityAction.POST_FAILED, account.getUser().getId(), account.getUser().getEmail(),
+                "Post", post.getId().toString(), ActivityResult.FAILURE,
+                Map.of("platform", platform, "errorType", String.valueOf(e.getErrorType()),
+                        "responseCode", String.valueOf(e.getResponseCode()),
+                        "reason", String.valueOf(e.getMessage()))));
         // FR-71: lỗi media (thiếu/sai định dạng) — báo kèm hướng khắc phục cụ thể.
         if (MEDIA_REQUIRED_CODE.equals(e.getResponseCode())) {
             notificationService.notify(account.getUser(), NotificationType.POST_FAILED,

@@ -13,7 +13,7 @@ import java.util.UUID;
 /**
  * Rollup THEO NGÀY của event log {@code ai_usage} — cùng quy ước với {@link UsageHourly}
  * ({@code dayBucket} theo GIỜ VIỆT NAM; userId UUID trần; latency loại NULL). Là ĐIỀU KIỆN
- * purge retention: {@code UsageRetentionJob} chỉ xoá event thô của những ngày ĐÃ có row ở
+ * purge retention: {@code LogRetentionJob} chỉ xoá event thô của những ngày ĐÃ có row ở
  * đây (rollup chết âm thầm thì dữ liệu thô được giữ lại, không mất vĩnh viễn).
  */
 @Entity

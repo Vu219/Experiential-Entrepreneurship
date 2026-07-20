@@ -39,10 +39,12 @@
   + quy tắc 8 (không bán top-up cho gói không giới hạn) ghi trong PLAN.md mục "Định hướng
   thanh toán & bán token lẻ".
 - **Việc còn thiếu** (theo thứ tự phụ thuộc):
-  1. Tích hợp cổng thanh toán thật + bảng payment (đã đặt chỗ `payment_id` trên
-     `token_credits` và `usage_adjustments.source = PURCHASE`).
+  1. ~~Bảng payment~~ ✅ **ĐÃ LÀM 2026-07-20** — bảng `payments` đã dựng, xem mục 2b bên dưới.
+     Việc còn lại của gạch đầu dòng này là *tích hợp cổng thật*, xem checklist ở 2b.
   2. Webhook xác nhận thanh toán — **bắt buộc idempotent** (cổng thanh toán gửi lặp; khoá
      theo mã giao dịch của cổng), tạo dòng `token_credits` khi thanh toán thành công.
+     *Khoá idempotency đã có sẵn*: partial unique `uk_payments_gateway_txn` trên
+     `payments.gateway_txn_id` + `PaymentRepository.findByGatewayTxnIdAndDeletedAtIsNull`.
   3. Luồng hoàn tiền/chargeback — revoke ĐÚNG DÒNG credit (status REVOKED), chỉ thu hồi
      phần CHƯA tiêu; phần đã tiêu giữ nguyên trên event log.
   4. Khái niệm giá thứ ba: **giá bán gói token lẻ** (khách trả bao nhiêu cho bao nhiêu
@@ -50,11 +52,117 @@
      quy đổi hạn mức (`billing_rates` → billable_units).
   5. **Xoá endpoint dev-credits** (`POST /admin/usage/users/{id}/dev-credits`) khi có payment
      thật — endpoint cấp token miễn phí không được tồn tại song song với luồng mua thật.
+     **Cùng lúc đó xoá cả `POST/DELETE /admin/revenue/dev-seed`** (xem 2b).
 - **Còn chờ quyết định** (product owner, không chặn việc khác): có xuất hoá đơn không; thuế/
   VAT; đơn vị tiền tệ hiển thị cho khách (VND hay USD); tỉ giá quy đổi nếu bán bằng VND
   trong khi chi phí provider tính USD.
-- **Trạng thái**: đã quyết định bán + mô hình bucket; **còn chờ quyết định** hoá đơn/thuế/
-  tiền tệ/tỉ giá + chọn cổng thanh toán.
+  *Ghi chú 2026-07-20*: các câu hỏi này KHÔNG còn chặn việc dựng sổ cái — cột `currency` và
+  `invoice_no` đã có sẵn trên `payments`, quyết định sau chỉ là điền giá trị, không phải
+  migration.
+- **Trạng thái**: đã quyết định bán + mô hình bucket; **đã chọn cổng: payOS** (2026-07-20);
+  **đã dựng bảng `payments`** (2026-07-20); **còn chờ quyết định** hoá đơn/thuế/tiền tệ/tỉ giá.
+
+## 2b. Sổ cái `payments` + trang Quản lý doanh thu (ĐÃ LÀM 2026-07-20)
+
+> Trang admin `/admin/revenue` trước đây chạy hoàn toàn bằng dữ liệu mock ở FE vì không có
+> bảng nào lưu giao dịch. Task 20/7 dựng sổ cái thật và nối trang vào đó. **Chưa tích hợp
+> cổng thanh toán** — schema được thiết kế sẵn để gắn payOS mà không phải migration.
+
+### Quyết định: cổng thanh toán tương lai là **payOS**
+
+Sổ cái được thiết kế độc lập với việc chọn cổng, nhưng đã chừa đúng chỗ cho payOS:
+`PaymentGateway` có sẵn giá trị `PAYOS`; payOS định danh đơn bằng `orderCode` (số nguyên) →
+lưu nguyên dạng chuỗi vào `gateway_txn_id`, **không cần cột riêng**.
+
+### Bảng `payments` — ý nghĩa từng cột
+
+| Cột | Kiểu | Ý nghĩa |
+|---|---|---|
+| `id`, `created_at`, `updated_at`, `deleted_at` | từ `BaseEntity` | Audit + soft delete. `created_at` là mốc INSERT, **không phải** mốc nghiệp vụ. |
+| `user_id` | FK users | Khách trả tiền. |
+| `plan_id` | FK plans | Gói được mua — cho phép báo cáo "cơ cấu gói" đọc ĐỘNG từ bảng plans. |
+| `amount` | bigint | Số tiền khách trả, đơn vị nhỏ nhất của `currency` (VND = đồng). |
+| `currency` | varchar(3) | ISO-4217. MVP chỉ `VND`; có sẵn để sau bán quốc tế. |
+| `status` | varchar(30) | `PENDING` \| `PAID` \| `FAILED` \| `REFUNDED` \| `PARTIALLY_REFUNDED`. |
+| `ordered_at` | timestamp, NOT NULL | **Mốc TẠO ĐƠN (nghiệp vụ)**. Tách khỏi `created_at` vì: webhook/đối soát payOS có thể tới muộn hoặc backfill; và đơn PENDING/FAILED không có `paid_at` nên đây là mốc duy nhất quy kỳ cho chúng. |
+| `paid_at` | timestamp, nullable | Mốc thu được tiền. Quy kỳ cho phần GỘP của doanh thu. null khi PENDING/FAILED. |
+| `refunded_amount` | bigint, NOT NULL | Số tiền đã hoàn (≤ `amount`). 0 = chưa hoàn. |
+| `refunded_at` | timestamp, nullable | Mốc phát sinh hoàn tiền. Quy kỳ cho phần TRỪ. **Chính cột này khiến "không hồi tố" thực hiện được.** |
+| `period_start` / `period_end` | timestamp | Chu kỳ dịch vụ mà lần trả tiền này mua (đối soát với `subscriptions`). |
+| `gateway` | varchar(20) | `MANUAL` (ghi tay/seed) \| `PAYOS` (dự phòng, chưa dùng). |
+| `gateway_txn_id` | varchar(100), nullable | Mã giao dịch phía cổng — payOS `orderCode` dạng chuỗi. **Partial unique** `WHERE gateway_txn_id IS NOT NULL AND deleted_at IS NULL` = khoá idempotency cho webhook retry. |
+| `invoice_no` | varchar(50) | Số hoá đơn hiển thị. |
+| `failed_reason` | varchar(500) | Lý do hỏng/huỷ/hết hạn do cổng trả về — **chỗ webhook payOS ghi vào**. |
+| `raw_payload` | TEXT, nullable | Payload thô của webhook, giữ nguyên để đối soát/tranh chấp. Dùng TEXT không jsonb vì không truy vấn vào bên trong. |
+| `note` | varchar(500) | Ghi chú nội bộ. Bản ghi do dev seeder sinh có tiền tố `dev-seed:`. |
+
+Index (tạo ở `config/PaymentDataInitializer`, `@Order(8)`, raw SQL vì `ddl-auto: update`):
+`(status, paid_at DESC)`, `(refunded_at) WHERE refunded_at IS NOT NULL`, `(plan_id, paid_at DESC)`,
+`(ordered_at DESC)`, và partial unique `uk_payments_gateway_txn`.
+
+### `PENDING` là trạng thái THẬT, không phải giá trị trang trí
+
+Bản ghi được tạo ngay khi hệ thống sinh payment link và khách **chưa** trả tiền trên cổng.
+payOS sẽ chuyển nó sang `PAID`/`FAILED` qua webhook; đơn quá hạn không trả cũng về `FAILED`
+kèm `failed_reason`. Đơn `PENDING`/`FAILED` **không vào doanh thu** nhưng vẫn hiện trong bảng
+giao dịch để admin theo dõi sức khoẻ cổng.
+
+### Công thức doanh thu ĐÃ CHỐT (đừng tính lại kiểu khác)
+
+**NET theo kỳ PHÁT SINH hoàn tiền, KHÔNG hồi tố:**
+
+```
+doanh thu(kỳ) = Σ amount          của đơn PAID|REFUNDED|PARTIALLY_REFUNDED có paid_at     ∈ kỳ
+              − Σ refunded_amount của đơn bất kỳ                            có refunded_at ∈ kỳ
+```
+
+- Đơn đã hoàn tiền **vẫn tính ở kỳ trả tiền** — nó có thu tiền thật ở kỳ đó.
+- Phần hoàn bị trừ ở **kỳ hoàn**, nên **số liệu của kỳ đã đóng sổ không bao giờ thay đổi**.
+- Hệ quả có chủ ý: doanh thu một bucket **có thể ÂM** (hoàn tiền kỳ trước lớn hơn doanh số kỳ
+  này). Không được kẹp về 0 — đó là con số đúng. Chart tô cột âm màu đỏ.
+- Giá trị TB/giao dịch = doanh thu **NET** / số giao dịch (để `tổng = TB × số lượng` khớp nhau).
+- Tỉ lệ thất bại = `failed / (paid + failed)`, quy kỳ theo `ordered_at`.
+
+Nơi cài đặt: `RevenueServiceImpl` + `PaymentRepository` (gộp bằng `GROUP BY date_trunc`, hai vế
+`UNION ALL` trong một lượt truy vấn). Test: `src/test/java/com/aima/revenue/RevenueAggregateTest.java`.
+
+### ⚠️ Dev seeder là TẠM THỜI — phải gỡ khi có payment thật
+
+`POST /admin/revenue/dev-seed` + `DELETE /admin/revenue/dev-seed` sinh/xoá ~350 bản ghi
+`payments` mẫu rải 18 tháng, chỉ để dựng và demo giao diện trước khi có cổng thanh toán.
+
+- Khoá **ba lớp** giống dev-credits: cờ `aima.dev.payment-seed-enabled` (env
+  `AIMA_DEV_PAYMENT_SEED`, mặc định **false**) + `AIMA_PRODUCTION_MODE=true` + profile
+  prod/production. Bị chặn → ErrorCode 2042.
+- Bản ghi seed mang `gateway = MANUAL` và `note` bắt đầu bằng `dev-seed:` — endpoint xoá chỉ
+  đụng đúng những dòng đó.
+- **Khi tích hợp payOS xong: XOÁ cả hai endpoint, service method, và cờ cấu hình.** Dữ liệu
+  doanh thu giả không được phép tồn tại song song với doanh thu thật.
+
+### Checklist khi tích hợp payOS thật (chưa làm)
+
+1. **Tạo payment link** — gọi payOS Create Payment Link, sinh `orderCode` (số nguyên, duy
+   nhất), lưu `payments` với `status = PENDING`, `gateway = PAYOS`, `gateway_txn_id = orderCode`,
+   `ordered_at = now`. Trả checkout URL cho FE.
+2. **Webhook + verify signature** — payOS ký payload bằng checksum key; **phải verify trước
+   khi tin**. Endpoint webhook là public (không JWT) nên chữ ký là lớp xác thực duy nhất.
+3. **Idempotency** — webhook có thể gửi lặp: UPSERT theo `gateway_txn_id`
+   (`findByGatewayTxnIdAndDeletedAtIsNull` → cập nhật; không có thì tạo). Partial unique index
+   là chốt chặn cuối nếu hai webhook chạy song song. Lưu `raw_payload` mỗi lần nhận.
+4. **Đối soát** — job định kỳ so `payments` với báo cáo giao dịch của payOS theo `orderCode`
+   + `ordered_at`; chênh lệch thì log + cảnh báo admin. Đây là lý do tồn tại của `ordered_at`
+   và `raw_payload`.
+5. **Huỷ / hết hạn** — payOS link có TTL. Job quét đơn `PENDING` quá hạn → `FAILED` +
+   `failed_reason = 'EXPIRED'`. Không để `PENDING` treo vĩnh viễn làm sai tỉ lệ thất bại.
+6. **Hoàn tiền** — ghi `refunded_amount` + `refunded_at` (mốc phát sinh, KHÔNG sửa `paid_at`),
+   đổi `status` sang `REFUNDED`/`PARTIALLY_REFUNDED`, đồng thời revoke đúng dòng
+   `token_credits` (mục 2.3 ở trên).
+7. **Hoá đơn** — điền `invoice_no`; nếu cần hoá đơn điện tử/VAT thì đây là chỗ móc vào
+   (còn chờ quyết định product owner).
+8. **Thuế** — chưa có cột thuế. Nếu phải tách VAT khỏi `amount` thì thêm `tax_amount` +
+   `amount_before_tax`; quyết định TRƯỚC khi mở bán, vì sửa sau là migration dữ liệu kế toán.
+9. **Tiền tệ** — `currency` đã có. Nếu bán bằng nhiều tiền tệ thì cần thêm tỉ giá tại thời
+   điểm giao dịch (`fx_rate`) để báo cáo quy về một đơn vị.
 
 ## 3. Gói không giới hạn mua token lẻ — Phương án B (đóng băng hạn dùng)
 
@@ -210,3 +318,74 @@
   mở rộng) — resolver `BillingRateService.toBillableUnits` sẽ cần nhận breakdown thay vì
   chỉ tổng token.
 - **Trạng thái**: ghi chú tham khảo — chưa cần quyết định.
+
+## 16. Partition `activity_logs` / `system_logs` theo tháng
+
+- **Bối cảnh**: hai bảng log là append-only, truy vấn gần như luôn kèm điều kiện thời gian,
+  và dọn dẹp hiện làm bằng `DELETE ... WHERE created_at < ?` (LogRetentionJob 03:30). Với
+  PostgreSQL, `PARTITION BY RANGE (created_at)` theo tháng sẽ biến việc dọn retention từ
+  DELETE hàng loạt (sinh bloat + phải VACUUM) thành `DROP PARTITION` tức thời, đồng thời
+  cho partition pruning khi lọc theo khoảng ngày.
+- **Vướng mắc**: `ddl-auto: update` KHÔNG tạo được bảng partition — Hibernate chỉ sinh
+  `CREATE TABLE` thường. Muốn làm phải viết `*DataInitializer` chạy SQL thủ công (mẫu:
+  `PlatformDataInitializer` tạo partial unique index), kèm job tạo trước partition tháng
+  kế tiếp. Ngoài ra khoá chính phải gồm cột phân vùng → `id` đơn lẻ không còn làm PK được,
+  ảnh hưởng `BaseEntity`.
+- **Điều kiện**: khi một trong hai bảng vượt ~vài triệu dòng hoặc khi job retention bắt đầu
+  chạy quá lâu/khoá bảng. Ở quy mô hiện tại CHƯA đáng làm.
+- **Trạng thái**: đề xuất, chưa duyệt (chốt 20/7/2026 — làm sau).
+
+## 17. Dữ liệu `admin.*` cũ còn sót trong `system_logs`
+
+- **Bối cảnh**: trước khi có `activity_logs`, các thao tác admin (`admin.usage.meta`,
+  `admin.usage.export`, `admin.usage.sessions`, `admin.usage.alerts`, `admin.devtools`)
+  được ghi INFO vào `system_logs`. Đó thực chất là activity log nằm nhầm chỗ.
+- **Đã làm (20/7/2026)**: tab "Log lỗi hệ thống" lọc bỏ `module NOT LIKE 'admin.%'` nên
+  các dòng này không còn gây nhiễu; 6 điểm gọi đã chuyển sang ghi `activity_logs` (giai
+  đoạn chuyển tiếp ghi CẢ HAI chỗ).
+- **CỐ Ý KHÔNG migrate dữ liệu cũ**: `message` là chuỗi tự do (`"actor=x, eventId=y,
+  subjectUser=z"`), parse ngược ra `userId`/`targetId` chắc chắn sai ở một số dòng. Dữ liệu
+  cũ sẽ TỰ HẾT khi retention 180 ngày của `system_logs` quét qua.
+- **⏰ VIỆC CÒN NỢ — HẠN 2026-08-31** (sau 1 kỳ quan sát trọn tháng 8): BỎ lệnh
+  `systemLogService.info(...)` ở **7 điểm gọi** đang ghi song song để hết ghi trùng.
+  Tìm bằng: `grep -rn "admin.usage.\|admin.devtools" backend/src/main/java`. Danh sách:
+  1. `UsageQueryServiceImpl.eventMeta` — `admin.usage.meta`
+  2. `UsageQueryServiceImpl.exportEvents` — `admin.usage.export`
+  3. `UsageQueryServiceImpl.getUserSessions` — `admin.usage.sessions`
+  4. `UsageAlertServiceImpl.ack` — `admin.usage.alerts`
+  5. `UsageAlertServiceImpl.updateConfig` — `admin.usage.alerts`
+  6. `TokenCreditServiceImpl.devSeed` — `admin.devtools`
+  7. `RevenueServiceImpl.devSeed` — `admin.revenue.devseed` (chưa chuyển sang activity log —
+     cân nhắc thêm action hoặc bỏ hẳn khi gỡ dev seeder theo §2b)
+  Điều kiện dừng dual-write: tab hoạt động đã chạy ổn 1 tháng, không phát hiện thiếu vết.
+- **Trạng thái**: chờ tới hạn 2026-08-31.
+
+## 18. Card-list cho bảng trên mobile (tính năng của `DataTable`)
+
+- **Bối cảnh**: mọi bảng quản trị hiện xử lý mobile bằng cuộn ngang (`DataTable` bọc
+  `overflow-x: auto` + `minWidth`). Bảng nhiều cột (nhật ký usage 10 cột, log hoạt động
+  7 cột) phải kéo ngang khá nhiều trên điện thoại.
+- **Điều kiện**: nếu làm card-list thì phải làm thành TÍNH NĂNG CỦA `DataTable` áp cho
+  TOÀN DỰ ÁN (vd prop `mobileCard` nhận renderer cho mỗi dòng), không nhét riêng cho 1-2
+  bảng — nếu không sẽ có hai pattern responsive song song, đúng thứ `rule.md` muốn tránh.
+- **Trạng thái**: đề xuất, chưa duyệt (chốt 20/7/2026 — giữ cuộn ngang).
+
+## 19. Whitelist miễn chống trùng cho action bảo mật + trần theo IP
+
+- **Bối cảnh (chốt 2026-07-20)**: quy tắc chống trùng 60s (cùng `userId+action+targetId` chỉ ghi
+  1 dòng) là đúng cho thao tác nghiệp vụ, nhưng SAI với action mà **tần suất chính là dữ liệu**:
+  gộp 50 lần `LOGIN_FAILED` trong một phút thành 1 dòng làm log mất sạch giá trị điều tra
+  brute-force.
+- **Đã làm**: `ActivityAction.DEDUP_EXEMPT` (hiện chỉ chứa `LOGIN_FAILED`) được MIỄN dedup hoàn
+  toàn — không dùng cửa sổ ngắn hơn vì đó là giải pháp nửa vời. Bù lại rủi ro phình bảng bằng
+  **trần theo IP**: tối đa `ACTIVITY_LOG_IP_HOURLY_CAP` (mặc định 100) dòng/IP/giờ cho các action
+  trong nhóm này; đúng lúc chạm trần ghi **một** dòng tổng hợp (`metadata.floodSuppressed = true`)
+  để người điều tra biết log bị cắt từ mốc nào, sau đó im lặng tới hết cửa sổ giờ.
+  Bản ghi `LOGIN_FAILED` luôn mang **email đã nhập** (kể cả tài khoản không tồn tại), **IP**,
+  **User-Agent** và lý do (`USER_NOT_FOUND` / `INVALID_CREDENTIALS` / `USER_INACTIVE`).
+- **Nguyên tắc khi mở rộng**: CHỈ thêm action vào `DEDUP_EXEMPT` khi tần suất của nó là dữ liệu
+  bảo mật. Đừng thêm action thường vào đây chỉ vì "muốn ghi đủ" — dedup tồn tại có lý do.
+- **Còn cân nhắc**: trần hiện đếm theo IP; kẻ tấn công đổi IP (botnet/proxy xoay) vẫn vượt được.
+  Nếu cần chặt hơn thì phải chuyển sang rate-limit ở tầng request (Redis, trước cả khi vào
+  service) — đó là việc của module chống brute-force đăng nhập, không phải của activity log.
+- **Trạng thái**: đã làm phần trần theo IP; rate-limit tầng request chưa cần.

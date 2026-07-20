@@ -12,6 +12,7 @@ import com.aima.entity.ContentItem;
 import com.aima.entity.ContentStrategy;
 import com.aima.entity.ContentVersion;
 import com.aima.entity.User;
+import com.aima.enums.ActivityAction;
 import com.aima.enums.ContentLifecycle;
 import com.aima.enums.Platform;
 import com.aima.enums.StrategyStatus;
@@ -22,6 +23,7 @@ import com.aima.repository.ContentIdeaRepository;
 import com.aima.repository.ContentItemRepository;
 import com.aima.repository.ContentStrategyRepository;
 import com.aima.repository.UserRepository;
+import com.aima.service.ActivityLogService;
 import com.aima.service.ContentItemService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +54,8 @@ import java.util.UUID;
 @Slf4j
 @Transactional
 public class ContentItemServiceImpl implements ContentItemService {
+
+    ActivityLogService activityLogService;
 
     // FR-33: chỉ sửa được trước khi vào pipeline đăng (WORKFLOWS.md).
     // FR-39/EX-02: bài FAILED cũng sửa được (sửa xong hủy lịch FAILED → version về FORMATTED → lên lịch lại).
@@ -132,6 +136,9 @@ public class ContentItemServiceImpl implements ContentItemService {
         }
 
         ContentItem saved = contentItemRepository.save(item); // status default DRAFT
+        activityLogService.record(ActivityLogService.Entry.of(
+                ActivityAction.CONTENT_CREATED, user.getId(), user.getEmail(),
+                "ContentItem", saved.getId().toString()));
         ContentItemResponse response = contentItemMapper.toResponse(saved);
         return ApiResponse.success("Đã tạo bài nội dung", response);
     }
@@ -159,6 +166,8 @@ public class ContentItemServiceImpl implements ContentItemService {
         }
 
         ContentItem saved = contentItemRepository.save(item);
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.CONTENT_UPDATED, email, "ContentItem", itemId.toString(), null));
         ContentItemResponse response = contentItemMapper.toResponse(saved);
         return ApiResponse.success("Cập nhật nội dung thành công", response);
     }
@@ -207,6 +216,9 @@ public class ContentItemServiceImpl implements ContentItemService {
             item.setTrendId(null);
         }
         ContentItem saved = contentItemRepository.save(item);
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.CONTENT_STATUS_CHANGED, email, "ContentItem", itemId.toString(),
+                Map.of("status", target.name())));
         ContentItemResponse response = contentItemMapper.toResponse(saved);
         return ApiResponse.success("Cập nhật trạng thái nội dung thành công", response);
     }
@@ -253,6 +265,8 @@ public class ContentItemServiceImpl implements ContentItemService {
                 .forEach(m -> m.setDeletedAt(now));
 
         ContentItem saved = contentItemRepository.save(item);
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.CONTENT_DELETED, email, "ContentItem", itemId.toString(), null));
         ContentItemResponse response = contentItemMapper.toResponse(saved);
         return ApiResponse.success("Đã xóa nội dung", response);
     }

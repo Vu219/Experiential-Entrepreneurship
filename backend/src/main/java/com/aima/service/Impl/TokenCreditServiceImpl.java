@@ -1,5 +1,6 @@
 package com.aima.service.Impl;
 
+import com.aima.enums.ActivityAction;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.TokenCreditResponse;
 import com.aima.entity.TokenCredit;
@@ -9,6 +10,7 @@ import com.aima.exception.ErrorCode;
 import com.aima.mapper.UsageMapper;
 import com.aima.repository.TokenCreditRepository;
 import com.aima.repository.UserRepository;
+import com.aima.service.ActivityLogService;
 import com.aima.service.TokenCreditService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -36,6 +39,7 @@ public class TokenCreditServiceImpl implements TokenCreditService {
     UserRepository userRepository;
     UsageMapper usageMapper;
     SystemLogService systemLogService;
+    ActivityLogService activityLogService;
     Environment environment;
 
     /** Cờ dev-only cho devSeed — mặc định TẮT, chỉ bật ở môi trường dev (.env). */
@@ -121,6 +125,11 @@ public class TokenCreditServiceImpl implements TokenCreditService {
         systemLogService.info("admin.devtools",
                 "DEV seed token_credits: actor=" + actorEmail + ", targetUser=" + user.getEmail()
                         + " (" + userId + "), scenario=" + kind + ", rows=" + responses.size());
+        // Cấp credit KHÔNG qua thanh toán — đúng loại thao tác cần dấu vết nhất, kể cả khi
+        // endpoint mặc định tắt ở production. Dual-write giai đoạn chuyển tiếp như 5 điểm admin.* kia.
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.DEV_CREDIT_GRANTED, actorEmail, "User", userId.toString(),
+                Map.of("targetUser", user.getEmail(), "scenario", kind, "rows", responses.size())));
         log.info("[TokenCredit] DEV seed {} cho user {} bởi {}: {} dòng", kind, userId, actorEmail, responses.size());
         return ApiResponse.success("Đã seed token credit (dev) — kịch bản " + kind, responses);
     }

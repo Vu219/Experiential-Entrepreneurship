@@ -12,6 +12,7 @@ import com.aima.entity.ContentVersion;
 import com.aima.entity.PlatformAccount;
 import com.aima.entity.PostSchedule;
 import com.aima.entity.User;
+import com.aima.enums.ActivityAction;
 import com.aima.enums.ConnectionStatus;
 import com.aima.enums.ContentLifecycle;
 import com.aima.enums.Platform;
@@ -23,6 +24,7 @@ import com.aima.repository.ContentVersionRepository;
 import com.aima.repository.PlatformAccountRepository;
 import com.aima.repository.PostScheduleRepository;
 import com.aima.repository.UserRepository;
+import com.aima.service.ActivityLogService;
 import com.aima.service.AiServiceClient;
 import com.aima.service.PostScheduleService;
 import lombok.AccessLevel;
@@ -51,6 +53,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class PostScheduleServiceImpl implements PostScheduleService {
+
+    ActivityLogService activityLogService;
 
     // FR-50: chỉ dời lịch khi chưa vào pipeline đăng (SCHEDULED) hoặc đang bị giữ (ON_HOLD, FR-18b).
     static final Set<ScheduleStatus> EDITABLE_STATUSES =
@@ -118,6 +122,9 @@ public class PostScheduleServiceImpl implements PostScheduleService {
         version.setStatus(ContentLifecycle.SCHEDULED);
         version.getContentItem().setStatus(ContentLifecycle.SCHEDULED);
 
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.SCHEDULE_CREATED, email, "PostSchedule", saved.getId().toString(),
+                Map.of("scheduledTime", String.valueOf(saved.getScheduledTime()))));
         PostScheduleResponse response = postScheduleMapper.toResponse(saved);
         return ApiResponse.success("Đã lên lịch đăng bài", response);
     }
@@ -155,6 +162,10 @@ public class PostScheduleServiceImpl implements PostScheduleService {
         }
         PostSchedule saved = postScheduleRepository.save(schedule);
 
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.SCHEDULE_UPDATED, email, "PostSchedule", scheduleId.toString(),
+                Map.of("scheduledTime", String.valueOf(saved.getScheduledTime()),
+                        "status", saved.getStatus().name())));
         PostScheduleResponse response = postScheduleMapper.toResponse(saved);
         return ApiResponse.success("Cập nhật lịch đăng bài thành công", response);
     }
@@ -182,6 +193,8 @@ public class PostScheduleServiceImpl implements PostScheduleService {
             item.setStatus(ContentLifecycle.FORMATTED);
         }
 
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.SCHEDULE_CANCELLED, email, "PostSchedule", scheduleId.toString(), null));
         PostScheduleResponse response = postScheduleMapper.toResponse(saved);
         return ApiResponse.success("Đã hủy lịch đăng bài", response);
     }

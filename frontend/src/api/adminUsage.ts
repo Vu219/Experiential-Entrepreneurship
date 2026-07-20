@@ -168,8 +168,8 @@ export async function getUsageHeatmap(params?: { days?: number; userId?: string 
   return data.result;
 }
 
-// ===== Tab Nhật ký sử dụng (event ai_usage — cursor pagination, KHÔNG offset) =====
-// Retention BE: SUCCESS 90 ngày, ERROR/TIMEOUT 180 ngày (UsageRetentionJob) — UI phải nói rõ.
+// ===== Tab Nhật ký sử dụng (event ai_usage — phân trang offset, có số trang) =====
+// Retention BE: SUCCESS 90 ngày, ERROR/TIMEOUT 180 ngày (LogRetentionJob) — UI phải nói rõ.
 
 export type AiUsageEventStatus = 'SUCCESS' | 'ERROR' | 'TIMEOUT';
 
@@ -201,12 +201,6 @@ export interface UsageEventMeta {
   userAgent: string | null;
 }
 
-export interface CursorPage<T> {
-  items: T[];
-  /** null = hết dữ liệu; truyền lại nguyên văn để lấy trang kế. */
-  nextCursor: string | null;
-}
-
 export interface UsageEventFilter {
   /** ISO datetime (BE lọc theo giờ VN — cùng quy ước created_at). */
   from?: string;
@@ -230,9 +224,10 @@ const eventParams = (f: UsageEventFilter) => ({
   minCost: f.minCost || undefined,
 });
 
-export async function getUsageEvents(f: UsageEventFilter, cursor: string | null, size = 25): Promise<CursorPage<UsageEvent>> {
-  const { data } = await client.get<ApiResponse<CursorPage<UsageEvent>>>('/admin/usage/events', {
-    params: { ...eventParams(f), cursor: cursor || undefined, size },
+/** `page` bắt đầu từ 0 (đúng quy ước PageResponse của backend). */
+export async function getUsageEvents(f: UsageEventFilter, page: number, size: number): Promise<PageResponse<UsageEvent>> {
+  const { data } = await client.get<ApiResponse<PageResponse<UsageEvent>>>('/admin/usage/events', {
+    params: { ...eventParams(f), page, size },
   });
   return data.result;
 }

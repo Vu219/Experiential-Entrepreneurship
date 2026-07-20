@@ -263,6 +263,29 @@ public enum ErrorCode {
     USAGE_ALERT_ALREADY_ACKED(2035, "Cảnh báo đã được xác nhận trước đó", HttpStatus.BAD_REQUEST),
     ALERT_CONFIG_KEY_INVALID(2036, "Khoá cấu hình ngưỡng cảnh báo không hợp lệ", HttpStatus.BAD_REQUEST),
     ALERT_CONFIG_VALUE_INVALID(2037, "Giá trị ngưỡng cảnh báo phải là số không âm", HttpStatus.BAD_REQUEST),
+
+    // QUẢN LÝ DOANH THU (trang admin /admin/revenue — sổ cái payments)
+    REVENUE_PARAM_REQUIRED(2038,
+            "Thiếu tham số cho chế độ lọc đã chọn (theo ngày cần year+month, theo tháng cần year, "
+                    + "theo nửa năm cần year+half, theo năm cần fromYear+toYear, tuỳ chỉnh cần from+to)",
+            HttpStatus.BAD_REQUEST),
+    REVENUE_RANGE_INVALID(2039, "Khoảng thời gian không hợp lệ — mốc bắt đầu phải trước mốc kết thúc",
+            HttpStatus.BAD_REQUEST),
+    REVENUE_RANGE_TOO_LARGE(2040,
+            "Khoảng thời gian quá dài — tối đa 10 năm, riêng chế độ tuỳ chỉnh tối đa 366 ngày",
+            HttpStatus.BAD_REQUEST),
+    REVENUE_EXPORT_TOO_LARGE(2041, "Kết quả vượt trần 50.000 dòng — thu hẹp bộ lọc rồi export lại",
+            HttpStatus.BAD_REQUEST),
+    DEV_PAYMENT_SEED_DISABLED(2042,
+            "Công cụ dev đang tắt — bật AIMA_DEV_PAYMENT_SEED=true (chỉ môi trường dev)",
+            HttpStatus.FORBIDDEN),
+
+    // LOG HOẠT ĐỘNG NGƯỜI DÙNG (tab /admin/logs?tab=activity)
+    ACTIVITY_LOG_NOT_FOUND(2043, "Không tìm thấy bản ghi hoạt động", HttpStatus.NOT_FOUND),
+    ACTIVITY_LOG_EXPORT_TOO_LARGE(2044,
+            "Kết quả vượt trần 50.000 dòng — thu hẹp bộ lọc rồi export lại", HttpStatus.BAD_REQUEST),
+    ACTIVITY_LOG_RANGE_INVALID(2045, "Khoảng thời gian không hợp lệ — từ ngày phải trước đến ngày",
+            HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

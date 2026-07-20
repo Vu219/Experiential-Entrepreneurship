@@ -5,9 +5,10 @@ import client, { type ApiError, type ApiResponse, type PageResponse } from './ap
 // 2026-07-12: Quản lý người dùng (FR-80) nối BE thật hoàn toàn — list/stats/detail/create/update/
 // đổi gói/khoá-mở/đặt lại mật khẩu. Lọc/tìm/phân trang server-side. Các module khác (bài lỗi,
 // system status, logs) đã nối BE từ trước. Gói dịch vụ nối BE thật ở api/plans.ts.
-// Còn MOCK: platform versions & Revenue (chưa có billing BE).
+// 2026-07-20: Doanh thu nối BE thật ở api/revenue.ts (bảng `payments`) — mock đã gỡ.
+// Còn MOCK: platform versions.
 
-// Giả lập độ trễ mạng cho các module còn mock (Revenue / platform versions).
+// Giả lập độ trễ mạng cho module còn mock (platform versions).
 const delay = <T>(value: T, ms = 450): Promise<T> => new Promise((r) => setTimeout(() => r(value), ms));
 
 const P = (lang: Lang, vi: string, en: string) => (lang === 'en' ? en : vi);
@@ -431,6 +432,105 @@ export async function getSystemLogs(query: SystemLogQuery): Promise<SystemLogPag
   };
 }
 
+// ===== Log hoạt động người dùng — GET /admin/logs/activity (bảng RIÊNG activity_logs) =====
+// KHÁC log lỗi ở trên: đây là dấu vết NGHIỆP VỤ (đăng nhập, tạo/sửa/xoá nội dung, thao tác
+// admin…). Retention 90 ngày (log lỗi 180) — LogRetentionJob phía backend.
+
+/** Khớp enum ActivityActionGroup phía backend. */
+export type ActivityActionGroup = 'AUTH' | 'ACCOUNT' | 'CONTENT' | 'BILLING' | 'ADMIN';
+
+/** Khớp enum ActivityAction phía backend — enum ĐÓNG, thêm giá trị phải sửa cả hai đầu. */
+export type ActivityAction =
+  | 'LOGIN' | 'LOGIN_FAILED' | 'LOGOUT' | 'PASSWORD_CHANGED' | 'PASSWORD_RESET'
+  | 'ACCOUNT_REGISTERED' | 'PROFILE_UPDATED' | 'ACCOUNT_DELETE_REQUESTED' | 'ACCOUNT_RESTORED'
+  | 'SOCIAL_CONNECTED' | 'SOCIAL_DISCONNECTED'
+  | 'CONTENT_CREATED' | 'CONTENT_UPDATED' | 'CONTENT_DELETED' | 'CONTENT_STATUS_CHANGED'
+  | 'SCHEDULE_CREATED' | 'SCHEDULE_UPDATED' | 'SCHEDULE_CANCELLED' | 'POST_PUBLISHED' | 'POST_FAILED'
+  | 'PLAN_CHANGED' | 'PAYMENT_SUCCEEDED' | 'PAYMENT_FAILED'
+  | 'USER_CREATED' | 'USER_UPDATED' | 'USER_STATUS_CHANGED' | 'USER_DELETED' | 'USER_PASSWORD_RESET'
+  | 'PLAN_CONFIG_UPDATED' | 'AI_CONFIG_UPDATED' | 'API_VERSION_UPDATED'
+  | 'TOKENS_GRANTED' | 'USAGE_RESET' | 'BILLING_RATE_CREATED'
+  | 'ALERT_ACKED' | 'ALERT_CONFIG_UPDATED' | 'USAGE_META_VIEWED' | 'USER_SESSIONS_VIEWED'
+  | 'DEV_CREDIT_GRANTED' | 'DATA_EXPORTED';
+
+export type ActivityResult = 'SUCCESS' | 'FAILURE';
+
+/** Nhóm action theo group — nguồn duy nhất dựng optgroup của dropdown lọc. */
+export const ACTIONS_BY_GROUP: Record<ActivityActionGroup, ActivityAction[]> = {
+  AUTH: ['LOGIN', 'LOGIN_FAILED', 'LOGOUT', 'PASSWORD_CHANGED', 'PASSWORD_RESET'],
+  ACCOUNT: ['ACCOUNT_REGISTERED', 'PROFILE_UPDATED', 'ACCOUNT_DELETE_REQUESTED', 'ACCOUNT_RESTORED',
+    'SOCIAL_CONNECTED', 'SOCIAL_DISCONNECTED'],
+  CONTENT: ['CONTENT_CREATED', 'CONTENT_UPDATED', 'CONTENT_DELETED', 'CONTENT_STATUS_CHANGED',
+    'SCHEDULE_CREATED', 'SCHEDULE_UPDATED', 'SCHEDULE_CANCELLED', 'POST_PUBLISHED', 'POST_FAILED'],
+  BILLING: ['PLAN_CHANGED', 'PAYMENT_SUCCEEDED', 'PAYMENT_FAILED'],
+  ADMIN: ['USER_CREATED', 'USER_UPDATED', 'USER_STATUS_CHANGED', 'USER_DELETED', 'USER_PASSWORD_RESET',
+    'PLAN_CONFIG_UPDATED', 'AI_CONFIG_UPDATED', 'API_VERSION_UPDATED', 'TOKENS_GRANTED', 'USAGE_RESET',
+    'BILLING_RATE_CREATED', 'ALERT_ACKED', 'ALERT_CONFIG_UPDATED', 'USAGE_META_VIEWED',
+    'USER_SESSIONS_VIEWED', 'DEV_CREDIT_GRANTED', 'DATA_EXPORTED'],
+};
+
+export interface ActivityLog {
+  id: string;
+  createdAt: string;
+  userId: string | null;
+  userEmail: string | null;
+  /** null khi user đã bị xoá — UI lùi về userEmail. */
+  userFullName: string | null;
+  userAvatarUrl: string | null;
+  action: ActivityAction;
+  actionGroup: ActivityActionGroup;
+  targetType: string | null;
+  targetId: string | null;
+  result: ActivityResult;
+  ip: string | null;
+  userAgent: string | null;
+  /** Chuỗi JSON (đã cắt nếu quá 4KB) — UI format lại khi hiển thị. */
+  metadata: string | null;
+}
+
+export interface ActivityLogFilter {
+  q?: string;
+  action?: ActivityAction;
+  userId?: string;
+  result?: ActivityResult;
+  from?: string; // 'YYYY-MM-DD'
+  to?: string;   // 'YYYY-MM-DD', BAO GỒM cả ngày đó
+}
+
+export interface ActivityLogQuery extends ActivityLogFilter {
+  page: number;  // 0-based
+  size: number;
+}
+
+const activityParams = (f: ActivityLogFilter) => ({
+  q: f.q?.trim() || undefined,
+  action: f.action || undefined,
+  userId: f.userId || undefined,
+  result: f.result || undefined,
+  from: f.from || undefined,
+  to: f.to || undefined,
+});
+
+export async function getActivityLogs(query: ActivityLogQuery): Promise<PageResponse<ActivityLog>> {
+  const { data } = await client.get<ApiResponse<PageResponse<ActivityLog>>>('/admin/logs/activity', {
+    params: { ...activityParams(query), page: query.page, size: query.size },
+  });
+  return data.result;
+}
+
+export async function getActivityLog(id: string): Promise<ActivityLog> {
+  const { data } = await client.get<ApiResponse<ActivityLog>>(`/admin/logs/activity/${id}`);
+  return data.result;
+}
+
+/** CSV dạng chuỗi — FE tự tạo Blob tải về (cùng quy ước export nhật ký usage). */
+export async function exportActivityLogs(filter: ActivityLogFilter): Promise<string> {
+  const { data } = await client.get<ApiResponse<string>>('/admin/logs/activity/export', {
+    params: activityParams(filter),
+  });
+  return data.result;
+}
+
 // ===== Version API nền tảng — GET /admin/platform-versions =====
 export interface PlatformVersion {
   platform: 'FB' | 'IG' | 'TH';
@@ -462,41 +562,6 @@ export async function updatePlatformVersion(platform: string, version: string): 
   return delay({ platform, current: version });
 }
 
-// ===== Quản lý doanh thu — GET /admin/revenue?period= =====
-export type RevenuePeriod = '1m' | '3m' | '12m';
-export interface RevenueData {
-  total: number;
-  orders: number;
-  growth: string;
-  series: { label: string; value: number }[];
-  transactions: { id: string; customer: string; plan: string; amount: number; tone: Tone; status: string; date: string }[];
-}
-
-export async function getRevenue(period: RevenuePeriod, lang: Lang): Promise<RevenueData> {
-  const paid = P(lang, 'Đã thanh toán', 'Paid');
-  const pending = P(lang, 'Chờ xử lý', 'Pending');
-  const refunded = P(lang, 'Hoàn tiền', 'Refunded');
-  const series: Record<RevenuePeriod, { label: string; value: number }[]> = {
-    '1m': Array.from({ length: 30 }, (_, i) => ({ label: String(i + 1), value: 8 + Math.round(6 * Math.sin(i / 3) + i / 4) })),
-    '3m': Array.from({ length: 12 }, (_, i) => ({ label: 'W' + (i + 1), value: 60 + Math.round(30 * Math.sin(i / 2) + i * 2) })),
-    '12m': (lang === 'en' ? ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'] : ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'])
-      .map((label, i) => ({ label, value: 220 + Math.round(120 * Math.sin(i / 2) + i * 12) })),
-  };
-  const totals: Record<RevenuePeriod, [number, number, string]> = {
-    '1m': [48_600_000, 312, '+11.2%'],
-    '3m': [151_400_000, 968, '+8.7%'],
-    '12m': [612_900_000, 4128, '+24.3%'],
-  };
-  const [total, orders, growth] = totals[period];
-  const transactions = [
-    { id: 'INV-0612', customer: 'David Chen', plan: 'Plus', amount: 499_000, tone: 'success' as Tone, status: paid, date: '2026-06-22' },
-    { id: 'INV-0611', customer: 'Sophie Tran', plan: 'Pro', amount: 1_990_000, tone: 'success' as Tone, status: paid, date: '2026-06-22' },
-    { id: 'INV-0610', customer: 'Mai Chi', plan: 'Plus', amount: 499_000, tone: 'warning' as Tone, status: pending, date: '2026-06-21' },
-    { id: 'INV-0609', customer: 'Hoàng Long', plan: 'Plus', amount: 499_000, tone: 'success' as Tone, status: paid, date: '2026-06-21' },
-    { id: 'INV-0608', customer: 'Quang Huy', plan: 'Pro', amount: 1_990_000, tone: 'danger' as Tone, status: refunded, date: '2026-06-20' },
-    { id: 'INV-0607', customer: 'Diệu Linh', plan: 'Plus', amount: 499_000, tone: 'success' as Tone, status: paid, date: '2026-06-20' },
-  ];
-  return delay({ total, orders, growth, series: series[period], transactions });
-}
-
+// Quản lý doanh thu: đã chuyển sang API thật /admin/revenue — xem api/revenue.ts (mock cũ đã gỡ,
+// nguồn dữ liệu là sổ cái `payments` phía BE).
 // Gói dịch vụ: đã chuyển sang API thật /admin/plans — xem api/plans.ts (mock cũ đã gỡ).

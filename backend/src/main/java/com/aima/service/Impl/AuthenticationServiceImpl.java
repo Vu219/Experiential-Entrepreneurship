@@ -18,12 +18,14 @@ import com.aima.dto.response.AuthenticationResponse;
 import com.aima.dto.response.IntrospectResponse;
 import com.aima.entity.User;
 import com.aima.enums.UserStatus;
+import com.aima.enums.ActivityAction;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.mapper.AuthenticationMapper;
 import com.aima.repository.UserRepository;
 import com.aima.security.CookieUtils;
 import com.aima.security.JwtProperties;
+import com.aima.service.ActivityLogService;
 import com.aima.service.AuthenticationService;
 import com.aima.service.JwtService;
 import com.aima.service.RefreshTokenService;
@@ -50,6 +52,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     JwtProperties jwtProperties;
     CookieUtils cookieUtils;
     AuthenticationMapper authenticationMapper;
+    ActivityLogService activityLogService;
 
     static SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -79,6 +82,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                         String email = claims.getSubject();
                         refreshTokenRedis.revoke(jti);
                         refreshTokenRedis.setLogoutTime(email);
+                        activityLogService.record(ActivityLogService.Entry.byActor(
+                                ActivityAction.LOGOUT, email, null, null, null));
                     } catch (Exception e) {
                         log.warn("Cannot parse refresh token for logout: {}", e.getMessage());
                     }
@@ -176,19 +181,32 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     @Transactional
     public ApiResponse<AuthenticationResponse> authenticate(LoginRequest request, HttpServletResponse response) {
-        var user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        // Email không tồn tại: vẫn ghi vết (userId null, snapshot = email đã nhập) — dò tài khoản
+        // là tín hiệu đáng lưu, và đây chính là chỗ duy nhất biết được email đã thử.
+        var found = userRepository.findByEmail(request.getEmail());
+        if (found.isEmpty()) {
+            activityLogService.record(ActivityLogService.Entry.failed(
+                    ActivityAction.LOGIN_FAILED, null, request.getEmail(), "USER_NOT_FOUND"));
+            throw new AppException(ErrorCode.USER_NOT_FOUND);
+        }
+        var user = found.get();
 
         boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
 
         if (!authenticated) {
+            activityLogService.record(ActivityLogService.Entry.failed(
+                    ActivityAction.LOGIN_FAILED, user.getId(), user.getEmail(), "INVALID_CREDENTIALS"));
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         if (user.getStatus() == UserStatus.LOCKED) {
+            activityLogService.record(ActivityLogService.Entry.failed(
+                    ActivityAction.LOGIN_FAILED, user.getId(), user.getEmail(), "USER_INACTIVE"));
             throw new AppException(ErrorCode.USER_INACTIVE);
         }
 
+        activityLogService.record(ActivityLogService.Entry.of(
+                ActivityAction.LOGIN, user.getId(), user.getEmail()));
         user.setLastActiveAt(LocalDateTime.now());
         userRepository.save(user);
 

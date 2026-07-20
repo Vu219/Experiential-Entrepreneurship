@@ -9,6 +9,7 @@ import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.repository.PlatformAccountRepository;
 import com.aima.repository.UserRepository;
+import com.aima.service.ActivityLogService;
 import com.aima.service.MetaApiClient;
 import com.aima.service.Impl.MetaOAuthServiceImpl;
 import com.aima.service.PlatformVersionService;
@@ -56,8 +57,8 @@ class MetaOAuthServiceImplTest {
                 new AimaProperties.Encryption("key"),
                 new AimaProperties.OAuth(10, "http://fe/success", "http://fe/error"));
 
-        service = new MetaOAuthServiceImpl(metaApiClient, versionService, accountRepository, userRepository,
-                props, aima, redisTemplate, new ObjectMapper());
+        service = new MetaOAuthServiceImpl(mock(ActivityLogService.class), metaApiClient, versionService,
+                accountRepository, userRepository, props, aima, redisTemplate, new ObjectMapper());
 
         lenient().when(redisTemplate.opsForValue()).thenReturn(valueOps);
         lenient().when(versionService.getCurrentVersion(any())).thenReturn("v25.0");

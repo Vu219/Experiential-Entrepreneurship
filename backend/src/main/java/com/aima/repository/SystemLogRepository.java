@@ -18,13 +18,22 @@ public interface SystemLogRepository extends JpaRepository<SystemLog, UUID> {
     List<SystemLog> findTop5ByLevelAndDeletedAtIsNullOrderByCreatedAtDesc(LogLevel level);
 
     /**
-     * FR-84 trang Logs: lọc mức + khoảng ngày + tìm kiếm (message/module), phân trang server-side.
-     * Mọi tham số optional (null = bỏ qua). Native + {@code CAST(:param AS ...)} vì PostgreSQL không
-     * suy được kiểu của bind null trong biểu thức {@code ? IS NULL}. {@code level} bind dạng String.
+     * FR-84 trang Logs (tab "Log lỗi hệ thống"): lọc mức + khoảng ngày + tìm kiếm (message/module),
+     * phân trang server-side. Mọi tham số optional (null = bỏ qua). Native + {@code CAST(:param AS ...)}
+     * vì PostgreSQL không suy được kiểu của bind null trong biểu thức {@code ? IS NULL}.
+     * {@code level} bind dạng String.
+     *
+     * <p><b>{@code module NOT LIKE 'admin.%'}</b> — các dòng {@code admin.usage.*} / {@code admin.devtools}
+     * là DẤU VẾT NGHIỆP VỤ (ai xem IP của ai, ai export…) chứ không phải lỗi hệ thống; chúng lọt vào
+     * bảng này vì trước đây chưa có nơi khác để ghi. Nay đã có {@code activity_logs} nên tab lỗi loại
+     * chúng ra. CỐ Ý không migrate dữ liệu cũ: {@code message} là chuỗi tự do, parse ngược ra
+     * userId/targetId chắc chắn sai — số cũ sẽ tự hết khi retention 180 ngày quét qua
+     * (xem docs/ROADMAP_FUTURE.md).
      */
     @Query(value = """
             SELECT * FROM system_logs
             WHERE deleted_at IS NULL
+              AND module NOT LIKE 'admin.%'
               AND (CAST(:level AS varchar) IS NULL OR level = CAST(:level AS varchar))
               AND (CAST(:from AS timestamp) IS NULL OR created_at >= CAST(:from AS timestamp))
               AND (CAST(:to AS timestamp) IS NULL OR created_at <= CAST(:to AS timestamp))
@@ -58,6 +67,7 @@ public interface SystemLogRepository extends JpaRepository<SystemLog, UUID> {
                    COUNT(*) AS cnt, MAX(created_at) AS last_at
             FROM system_logs
             WHERE deleted_at IS NULL
+              AND module NOT LIKE 'admin.%'
               AND (CAST(:level AS varchar) IS NULL OR level = CAST(:level AS varchar))
               AND (CAST(:from AS timestamp) IS NULL OR created_at >= CAST(:from AS timestamp))
               AND (CAST(:to AS timestamp) IS NULL OR created_at <= CAST(:to AS timestamp))

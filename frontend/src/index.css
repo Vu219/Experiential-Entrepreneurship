@@ -727,6 +727,41 @@ html {
   .share-fab-wrap {
     display: none;
   }
+
+  /* ===== In báo cáo (nút PDF trang Doanh thu dùng window.print — không thêm thư viện) =====
+     Ẩn phần điều hướng/thao tác, giữ lại đúng nội dung báo cáo: KPI + chart + bảng. Trang in
+     phản ánh ĐÚNG bộ lọc đang chọn vì ta in chính DOM đang hiển thị. */
+  aside,
+  header,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Bỏ khung cuộn/đổ bóng của app shell để nội dung trải hết khổ giấy. */
+  main {
+    overflow: visible !important;
+  }
+
+  .page-shell {
+    max-width: none;
+    padding: 0;
+  }
+
+  /* Card in ra dạng viền mảnh, nền trắng — đổ bóng/gradient tốn mực và mờ khi in. */
+  .page-shell > *,
+  .page-shell * {
+    box-shadow: none !important;
+  }
+
+  /* Không cắt đôi một khối dữ liệu giữa hai trang giấy. */
+  table,
+  .recharts-wrapper {
+    break-inside: avoid;
+  }
+
+  @page {
+    margin: 12mm;
+  }
 }
 
 /* ===== Reusable hover / press micro-interactions =====

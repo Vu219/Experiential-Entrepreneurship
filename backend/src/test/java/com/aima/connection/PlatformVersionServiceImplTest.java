@@ -12,6 +12,7 @@ import com.aima.mapper.PlatformApiVersionMapper;
 import com.aima.repository.PlatformApiVersionHistoryRepository;
 import com.aima.repository.PlatformApiVersionRepository;
 import com.aima.repository.UserRepository;
+import com.aima.service.ActivityLogService;
 import com.aima.service.Impl.PlatformVersionServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +35,7 @@ class PlatformVersionServiceImplTest {
     @Mock PlatformApiVersionHistoryRepository historyRepository;
     @Mock UserRepository userRepository;
     @Mock PlatformApiVersionMapper versionMapper;
+    @Mock ActivityLogService activityLogService;
 
     @InjectMocks PlatformVersionServiceImpl service;
 

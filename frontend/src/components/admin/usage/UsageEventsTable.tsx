@@ -1,11 +1,13 @@
 import { Fragment, useEffect, useState, type CSSProperties } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Download } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
-import { Card, Loader } from '../../ui';
 import SectionCard from '../SectionCard';
 import StatusBadge from '../StatusBadge';
+import Pagination from '../Pagination';
 import { DataTable } from '../AdminListPage';
 import { useToast } from '../../toast/ToastProvider';
+import { usePageSize } from '../../../hooks/usePageSize';
 import { aiTaskLabel, type AiTaskCode } from '../../../api/adminAi';
 import {
   getUsageEvents,
@@ -20,7 +22,8 @@ import {
 } from '../../../api/adminUsage';
 
 // Bảng "Nhật ký sử dụng" dùng chung: tab admin (đủ filter + user picker) và trang chi tiết
-// user (fixedUserId — ẩn picker). Cursor pagination (nút "Tải thêm", KHÔNG offset).
+// user (fixedUserId — ẩn picker). Phân trang SERVER-SIDE có số trang (offset), dùng chung
+// component Pagination với các trang quản trị khác.
 // IP/UA KHÔNG nằm trong bảng — chỉ tải khi mở rộng dòng (BE ghi audit mỗi lần xem).
 
 const tdStyle: CSSProperties = { padding: '10px 14px', fontSize: 13, color: '#2b2543', whiteSpace: 'nowrap' };
@@ -43,31 +46,41 @@ const fmtDateTime = (iso: string) => iso.slice(0, 19).replace('T', ' ');
 const fmtNullable = (n: number | null) => (n == null ? '—' : fmtTokens(n));
 const statusTone = (s: AiUsageEventStatus) => (s === 'SUCCESS' ? 'success' : s === 'TIMEOUT' ? 'warning' : 'danger');
 
-export default function UsageEventsTable({ fixedUserId }: { fixedUserId?: string }) {
+/** Skeleton mô phỏng đúng số cột/độ cao của bảng — không nhảy layout khi dữ liệu về. */
+function TableSkeleton({ rows, cols }: { rows: number; cols: number }) {
+  return (
+    <div style={{ padding: '0 16px 16px' }} role="status" aria-busy="true">
+      {Array.from({ length: rows }, (_, r) => (
+        <div key={r} style={{ display: 'flex', gap: 12, padding: '11px 0', borderTop: '1px solid #f1eef8' }}>
+          {Array.from({ length: cols }, (_, c) => (
+            <span key={c} className="skeleton" style={{ height: 12, borderRadius: 6, flex: c === 0 ? '0 0 130px' : 1 }} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function UsageEventsTable({ fixedUserId, syncUrl = false }: { fixedUserId?: string; syncUrl?: boolean }) {
   const { t, lang, brandGradient } = useApp();
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // URL là nguồn khởi tạo khi bật syncUrl (reload/chia sẻ link giữ nguyên trạng thái).
+  const urlValue = (key: string) => (syncUrl ? searchParams.get(key) ?? '' : '');
 
   // ----- Filter (chỉ áp khi bấm "Lọc" để không dội API theo từng phím) -----
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
-  const [taskCode, setTaskCode] = useState<AiTaskCode | ''>('');
-  const [model, setModel] = useState('');
-  const [status, setStatus] = useState<AiUsageEventStatus | ''>('');
-  const [minTokens, setMinTokens] = useState('');
-  const [minCost, setMinCost] = useState('');
-  const [userId, setUserId] = useState(fixedUserId ?? '');
+  const [fromDate, setFromDate] = useState(() => urlValue('from'));
+  const [toDate, setToDate] = useState(() => urlValue('to'));
+  const [taskCode, setTaskCode] = useState<AiTaskCode | ''>(() => urlValue('task') as AiTaskCode | '');
+  const [model, setModel] = useState(() => urlValue('model'));
+  const [status, setStatus] = useState<AiUsageEventStatus | ''>(() => urlValue('status') as AiUsageEventStatus | '');
+  const [minTokens, setMinTokens] = useState(() => urlValue('minTokens'));
+  const [minCost, setMinCost] = useState(() => urlValue('minCost'));
+  const [userId, setUserId] = useState(fixedUserId ?? (() => urlValue('userId'))());
   const [userLabel, setUserLabel] = useState('');
   const [userQ, setUserQ] = useState('');
   const [userSuggests, setUserSuggests] = useState<{ userId: string; label: string }[]>([]);
-  const [applied, setApplied] = useState<UsageEventFilter>({ userId: fixedUserId });
-
-  // ----- Data (cursor) -----
-  const [rows, setRows] = useState<UsageEvent[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [load, setLoad] = useState<'loading' | 'more' | 'error' | 'ok'>('loading');
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [metaById, setMetaById] = useState<Record<string, UsageEventMeta | 'loading' | 'error'>>({});
-  const [exporting, setExporting] = useState(false);
 
   const buildFilter = (): UsageEventFilter => ({
     from: fromDate ? `${fromDate}T00:00:00` : undefined,
@@ -80,17 +93,66 @@ export default function UsageEventsTable({ fixedUserId }: { fixedUserId?: string
     minCost: minCost ? Number(minCost) : undefined,
   });
 
-  const fetchPage = (filter: UsageEventFilter, cursor: string | null) => {
-    setLoad(cursor ? 'more' : 'loading');
-    getUsageEvents(filter, cursor)
-      .then((page) => {
-        setRows((prev) => (cursor ? [...prev, ...page.items] : page.items));
-        setNextCursor(page.nextCursor);
+  const [applied, setApplied] = useState<UsageEventFilter>(buildFilter);
+
+  // ----- Phân trang (offset, server-side) -----
+  // Khoá lưu số dòng tách riêng cho 2 chỗ dùng: bảng ở trang chi tiết user hẹp hơn bảng
+  // ở tab admin nên sở thích của user cho mỗi chỗ không nhất thiết giống nhau.
+  const [pageSize, setPageSize] = usePageSize(fixedUserId ? 'usage-events-user' : 'usage-events');
+  const [page, setPage] = useState(() => {
+    const fromUrl = Number(urlValue('page'));
+    return Number.isFinite(fromUrl) && fromUrl > 0 ? fromUrl - 1 : 0;
+  });
+  const [pageCount, setPageCount] = useState(0);
+
+  // limit trên URL được ưu tiên hơn lựa chọn đã lưu — link chia sẻ phải hiện đúng như người gửi thấy.
+  useEffect(() => {
+    const fromUrl = Number(urlValue('limit'));
+    if (Number.isFinite(fromUrl) && fromUrl > 0 && fromUrl !== pageSize) setPageSize(fromUrl);
+    // Chỉ đọc URL một lần lúc mount; sau đó state là nguồn sự thật.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ----- Data -----
+  const [rows, setRows] = useState<UsageEvent[]>([]);
+  const [load, setLoad] = useState<'loading' | 'error' | 'ok'>('loading');
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [metaById, setMetaById] = useState<Record<string, UsageEventMeta | 'loading' | 'error'>>({});
+  const [exporting, setExporting] = useState(false);
+
+  const fetchPage = () => {
+    setLoad('loading');
+    getUsageEvents(applied, page, pageSize)
+      .then((res) => {
+        setRows(res.content);
+        setPageCount(res.totalPages);
         setLoad('ok');
       })
       .catch(() => setLoad('error'));
   };
-  useEffect(() => { fetchPage(applied, null); }, [applied]);
+  useEffect(fetchPage, [applied, page, pageSize]);
+
+  // Đổi bộ lọc hoặc số dòng/trang thì phải về trang đầu, nếu không sẽ rơi vào trang trống.
+  useEffect(() => { setPage(0); }, [applied, pageSize]);
+
+  // Ghi trạng thái lên URL (chỉ trang chính) — bỏ tham số rỗng cho URL gọn.
+  useEffect(() => {
+    if (!syncUrl) return;
+    const next = new URLSearchParams(searchParams);
+    const put = (key: string, value: string) => (value ? next.set(key, value) : next.delete(key));
+    put('page', page > 0 ? String(page + 1) : '');
+    put('limit', String(pageSize));
+    put('from', fromDate);
+    put('to', toDate);
+    put('task', taskCode);
+    put('model', model);
+    put('status', status);
+    put('minTokens', minTokens);
+    put('minCost', minCost);
+    put('userId', fixedUserId ? '' : userId);
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncUrl, page, pageSize, applied]);
 
   const apply = () => { setExpanded(null); setApplied(buildFilter()); };
 
@@ -147,6 +209,8 @@ export default function UsageEventsTable({ fixedUserId }: { fixedUserId?: string
   retentionEdge.setDate(retentionEdge.getDate() - RETENTION_DAYS);
   const beyondRetention = !!fromDate && new Date(fromDate) < retentionEdge;
 
+  const colCount = fixedUserId ? 9 : 10;
+
   return (
     <SectionCard
       flush
@@ -185,7 +249,7 @@ export default function UsageEventsTable({ fixedUserId }: { fixedUserId?: string
             {userId ? (
               <button onClick={() => { setUserId(''); setUserLabel(''); setUserQ(''); }} title={t.aueUserClear}
                 style={{ ...inputStyle, cursor: 'pointer', fontWeight: 700, color: '#7d6aa3' }}>
-                {userLabel} ✕
+                {userLabel || userId} ✕
               </button>
             ) : (
               <input placeholder={t.aueUserPh} value={userQ} onChange={(e) => setUserQ(e.target.value)} style={{ ...inputStyle, width: 210 }} />
@@ -206,14 +270,20 @@ export default function UsageEventsTable({ fixedUserId }: { fixedUserId?: string
       </div>
 
       {load === 'loading' ? (
-        <Card style={{ border: 'none', boxShadow: 'none' }}><Loader label={t.listLoading} /></Card>
+        <TableSkeleton rows={Math.min(pageSize, 8)} cols={colCount} />
       ) : load === 'error' ? (
         <div style={{ textAlign: 'center', padding: '30px 16px' }}>
           <div style={{ fontSize: 13.5, color: '#8a85a0', marginBottom: 12 }}>{t.listError}</div>
-          <button onClick={() => fetchPage(applied, null)} style={{ border: 'none', borderRadius: 10, padding: '8px 16px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
+          <button onClick={fetchPage} style={{ border: 'none', borderRadius: 10, padding: '8px 16px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
         </div>
       ) : rows.length === 0 ? (
-        <div style={{ padding: '26px 16px', textAlign: 'center', fontSize: 13, color: '#a59fbb' }}>{t.aueEmpty}</div>
+        <>
+          <div style={{ padding: '26px 16px', textAlign: 'center', fontSize: 13, color: '#a59fbb' }}>{t.aueEmpty}</div>
+          <div style={{ padding: '0 16px 16px' }}>
+            <Pagination page={page + 1} pageCount={pageCount} onChange={(p) => setPage(p - 1)}
+              pageSize={pageSize} onPageSizeChange={setPageSize} />
+          </div>
+        </>
       ) : (
         <>
           <DataTable
@@ -236,7 +306,7 @@ export default function UsageEventsTable({ fixedUserId }: { fixedUserId?: string
                 </tr>
                 {expanded === r.id && (
                   <tr style={{ background: '#faf8ff' }}>
-                    <td colSpan={fixedUserId ? 9 : 10} style={{ padding: '10px 16px', fontSize: 12.5 }}>
+                    <td colSpan={colCount} style={{ padding: '10px 16px', fontSize: 12.5 }}>
                       {metaById[r.id] === 'loading' || metaById[r.id] === undefined ? (
                         <span style={{ color: '#a59fbb' }}>{t.listLoading}</span>
                       ) : metaById[r.id] === 'error' ? (
@@ -257,14 +327,10 @@ export default function UsageEventsTable({ fixedUserId }: { fixedUserId?: string
               </Fragment>
             ))}
           </DataTable>
-          {nextCursor && (
-            <div style={{ padding: '12px 16px' }}>
-              <button onClick={() => fetchPage(applied, nextCursor)} disabled={load === 'more'}
-                style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '8px 18px', fontWeight: 700, fontSize: 13, color: '#5b5670', cursor: load === 'more' ? 'wait' : 'pointer' }}>
-                {load === 'more' ? t.listLoading : t.aueLoadMore}
-              </button>
-            </div>
-          )}
+          <div style={{ padding: '0 16px 16px' }}>
+            <Pagination page={page + 1} pageCount={pageCount} onChange={(p) => setPage(p - 1)}
+              pageSize={pageSize} onPageSizeChange={setPageSize} />
+          </div>
         </>
       )}
     </SectionCard>

@@ -1,5 +1,7 @@
 package com.aima.service.Impl;
 
+import com.aima.service.ActivityLogService;
+import com.aima.enums.ActivityAction;
 import com.aima.dto.request.PlanCreateRequest;
 import com.aima.dto.request.PlanFeatureRequest;
 import com.aima.dto.request.PlanFeatureValueRequest;
@@ -21,9 +23,13 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +40,8 @@ import java.util.UUID;
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PlanServiceImpl implements PlanService {
+
+    ActivityLogService activityLogService;
 
     PlanRepository planRepository;
     PlanFeatureRepository featureRepository;
@@ -76,6 +84,7 @@ public class PlanServiceImpl implements PlanService {
         applyDefaults(plan);
         Plan saved = planRepository.save(plan);
 
+        logPlanConfig("PLAN_CREATED", "Plan", saved.getId().toString(), Map.of("code", saved.getCode()));
         PlanResponse planResponse = planMapper.toResponse(saved);
         return ApiResponse.success("Tạo gói dịch vụ thành công", planResponse);
     }
@@ -97,6 +106,7 @@ public class PlanServiceImpl implements PlanService {
         planMapper.update(request, plan);
         Plan saved = planRepository.save(plan);
 
+        logPlanConfig("PLAN_UPDATED", "Plan", saved.getId().toString(), Map.of("code", saved.getCode()));
         PlanResponse planResponse = planMapper.toResponse(saved);
         return ApiResponse.success("Cập nhật gói dịch vụ thành công", planResponse);
     }
@@ -113,6 +123,7 @@ public class PlanServiceImpl implements PlanService {
         plan.setDeletedAt(LocalDateTime.now());
         planRepository.save(plan);
         log.info("[Plan] Soft-deleted plan {} ({})", plan.getCode(), id);
+        logPlanConfig("PLAN_DELETED", "Plan", id.toString(), Map.of("code", plan.getCode()));
         return ApiResponse.success("Đã xóa gói dịch vụ");
     }
 
@@ -171,6 +182,22 @@ public class PlanServiceImpl implements PlanService {
         feature.setDeletedAt(LocalDateTime.now());
         featureRepository.save(feature);
         log.info("[Plan] Soft-deleted plan feature {}", id);
+        logPlanConfig("FEATURE_DELETED", "PlanFeature", id.toString(), Map.of());
         return ApiResponse.success("Đã xóa dòng tính năng");
+    }
+
+    /**
+     * Các method ở đây không nhận email người thao tác (chữ ký công khai, đổi sẽ lan sang
+     * controller) nên lấy actor từ SecurityContext — cùng cách {@code AiConfigServiceImpl}
+     * đã làm cho audit cấu hình AI.
+     */
+    private void logPlanConfig(String operation, String targetType, String targetId,
+                               Map<String, Object> extra) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String actorEmail = authentication == null ? null : authentication.getName();
+        Map<String, Object> metadata = new LinkedHashMap<>(extra);
+        metadata.put("operation", operation);
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.PLAN_CONFIG_UPDATED, actorEmail, targetType, targetId, metadata));
     }
 }

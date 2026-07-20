@@ -5,12 +5,14 @@ import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.BillingRateResponse;
 import com.aima.entity.BillingRate;
 import com.aima.entity.User;
+import com.aima.enums.ActivityAction;
 import com.aima.enums.AiTaskCode;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.mapper.UsageMapper;
 import com.aima.repository.BillingRateRepository;
 import com.aima.repository.UserRepository;
+import com.aima.service.ActivityLogService;
 import com.aima.service.BillingRateService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -41,6 +44,7 @@ public class BillingRateServiceImpl implements BillingRateService {
     BillingRateRepository billingRateRepository;
     UserRepository userRepository;
     UsageMapper usageMapper;
+    ActivityLogService activityLogService;
 
     @NonFinal
     volatile List<BillingRate> cachedOpenRates;
@@ -86,6 +90,12 @@ public class BillingRateServiceImpl implements BillingRateService {
         invalidateCache();
 
         BillingRateResponse response = usageMapper.toBillingRateResponse(saved);
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.BILLING_RATE_CREATED, actorEmail, "BillingRate", saved.getId().toString(),
+                Map.of("taskCode", String.valueOf(request.getTaskCode()),
+                        "modelCode", String.valueOf(request.getModelCode()),
+                        "multiplier", String.valueOf(request.getMultiplier()),
+                        "effectiveFrom", String.valueOf(effectiveFrom))));
         return ApiResponse.success("Đã thêm version hệ số quy đổi mới", response);
     }
 

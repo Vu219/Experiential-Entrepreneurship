@@ -34,6 +34,8 @@ import com.aima.repository.SubscriptionRepository;
 import com.aima.repository.UsageAdjustmentRepository;
 import com.aima.repository.UsageHourlyRepository;
 import com.aima.repository.UserRepository;
+import com.aima.enums.ActivityAction;
+import com.aima.service.ActivityLogService;
 import com.aima.service.RefreshTokenService;
 import com.aima.service.SubscriptionService;
 import com.aima.service.SystemLogService;
@@ -43,6 +45,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -90,6 +93,7 @@ public class UsageQueryServiceImpl implements UsageQueryService {
     TokenUsageService tokenUsageService;
     RefreshTokenService refreshTokenService;
     SystemLogService systemLogService;
+    ActivityLogService activityLogService;
     UsageMapper usageMapper;
     AiConfigMapper aiConfigMapper;
 
@@ -293,28 +297,13 @@ public class UsageQueryServiceImpl implements UsageQueryService {
 
     @Override
     @Transactional(readOnly = true)
-    public ApiResponse<CursorPageResponse<UsageEventResponse>> events(EventFilter f, String cursor, int size) {
-        int limit = Math.min(Math.max(size, 1), MAX_EVENT_PAGE);
-        Pageable page = PageRequest.of(0, limit + 1); // +1 dò còn trang sau không
-        List<AiUsage> rows;
-        if (cursor == null || cursor.isBlank()) {
-            rows = aiUsageRepository.findEventsFirstPage(f.from(), f.to(), f.userId(), f.taskCodeName(),
-                    f.model(), f.statusName(), f.minTokens(), f.minCost(), page);
-        } else {
-            Cursor decoded = decodeCursor(cursor);
-            rows = aiUsageRepository.findEventsAfterCursor(decoded.createdAt(), decoded.id(),
-                    f.from(), f.to(), f.userId(), f.taskCodeName(), f.model(), f.statusName(),
-                    f.minTokens(), f.minCost(), page);
-        }
+    public ApiResponse<PageResponse<UsageEventResponse>> events(EventFilter f, int page, int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_EVENT_PAGE));
+        Page<AiUsage> rows = aiUsageRepository.searchEvents(f.from(), f.to(), f.userId(),
+                f.taskCodeName(), f.model(), f.statusName(), f.minTokens(), f.minCost(), pageable);
 
-        boolean hasMore = rows.size() > limit;
-        List<AiUsage> pageRows = hasMore ? rows.subList(0, limit) : rows;
-        String nextCursor = hasMore ? encodeCursor(pageRows.get(pageRows.size() - 1)) : null;
-
-        CursorPageResponse<UsageEventResponse> response = CursorPageResponse.<UsageEventResponse>builder()
-                .items(usageMapper.toEventResponseList(pageRows))
-                .nextCursor(nextCursor)
-                .build();
+        List<UsageEventResponse> content = usageMapper.toEventResponseList(rows.getContent());
+        PageResponse<UsageEventResponse> response = PageResponse.from(rows, content);
         return ApiResponse.success("Lấy nhật ký sử dụng thành công", response);
     }
 
@@ -329,6 +318,11 @@ public class UsageQueryServiceImpl implements UsageQueryService {
         systemLogService.info("admin.usage.meta",
                 "Xem IP/UA event usage: actor=" + actorEmail + ", eventId=" + eventId
                         + ", subjectUser=" + subject);
+        // Dual-write giai đoạn chuyển tiếp: dòng system_logs ở trên là nơi ghi CŨ (đã bị ẩn khỏi
+        // tab lỗi), dòng dưới là nơi ghi MỚI. Bỏ lệnh systemLogService.info sau khi chốt.
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.USAGE_META_VIEWED, actorEmail, "AiUsage", eventId.toString(),
+                Map.of("subjectUser", subject)));
         UsageEventMetaResponse response = usageMapper.toEventMeta(event);
         return ApiResponse.success("Lấy IP/User-Agent của bản ghi thành công", response);
     }
@@ -374,6 +368,11 @@ public class UsageQueryServiceImpl implements UsageQueryService {
                 "Export CSV nhật ký usage: actor=" + actorEmail + ", rows=" + count
                         + ", filter={from=" + f.from() + ", to=" + f.to() + ", userId=" + f.userId()
                         + ", task=" + f.taskCode() + ", model=" + f.model() + ", status=" + f.status() + "}");
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.DATA_EXPORTED, actorEmail, "AiUsage", null,
+                Map.of("rows", count, "from", String.valueOf(f.from()), "to", String.valueOf(f.to()),
+                        "userId", String.valueOf(f.userId()), "task", String.valueOf(f.taskCode()),
+                        "model", String.valueOf(f.model()), "status", String.valueOf(f.status()))));
         return ApiResponse.success("Export nhật ký sử dụng thành công", csv.toString());
     }
 
@@ -398,6 +397,9 @@ public class UsageQueryServiceImpl implements UsageQueryService {
         systemLogService.info("admin.usage.sessions",
                 "Xem phiên & thiết bị: actor=" + actorEmail + ", subjectUser=" + user.getEmail()
                         + " (" + userId + ")");
+        activityLogService.record(ActivityLogService.Entry.byActor(
+                ActivityAction.USER_SESSIONS_VIEWED, actorEmail, "User", userId.toString(),
+                Map.of("subjectUser", user.getEmail())));
 
         List<UserSessionsResponse.SessionRow> clients = usageMapper.toSessionRowList(
                 aiUsageRepository.aggregateClientsForUser(userId, PageRequest.of(0, MAX_SESSION_ROWS)));
