@@ -1,8 +1,10 @@
 package com.aima.repository;
 
 import com.aima.entity.ContentItem;
+import com.aima.repository.projection.DailyCountProjection;
 import com.aima.repository.projection.DailyStatusCountProjection;
 import com.aima.repository.projection.StatusCountProjection;
+import com.aima.repository.projection.UserCountProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -82,4 +85,36 @@ public interface ContentItemRepository extends JpaRepository<ContentItem, UUID> 
             """, nativeQuery = true)
     List<DailyStatusCountProjection> countDailyByStatusForUser(@Param("userId") UUID userId,
                                                                @Param("from") LocalDateTime from);
+
+    // ===== Tổng quan quản trị (UI-10) — phạm vi TOÀN HỆ THỐNG, không lọc theo user =====
+
+    /** Tổng nội dung tích lũy tới một mốc — mẫu số % thay đổi "so với tuần trước". */
+    @Query("""
+            select count(i) from ContentItem i
+            where i.deletedAt is null and i.brandProfile.deletedAt is null and i.createdAt < :before
+            """)
+    long countAllCreatedBefore(@Param("before") LocalDateTime before);
+
+    /** Nội dung tạo mới mỗi ngày toàn hệ thống kể từ :from — sparkline tích lũy 7 ngày. */
+    @Query(value = """
+            select to_char(i.created_at, 'YYYY-MM-DD') as day, count(*) as total
+            from content_items i
+            join brand_profiles bp on bp.id = i.brand_profile_id and bp.deleted_at is null
+            where i.deleted_at is null and i.created_at >= :from
+            group by 1
+            """, nativeQuery = true)
+    List<DailyCountProjection> countDailyCreated(@Param("from") LocalDateTime from);
+
+    /**
+     * Số nội dung của ĐÚNG các user truyền vào (bảng "Người dùng gần đây") — một GROUP BY cho
+     * cả danh sách, không đếm từng dòng. User chưa có nội dung sẽ KHÔNG có hàng trả về.
+     */
+    @Query(value = """
+            select bp.user_id as userId, count(*) as total
+            from content_items i
+            join brand_profiles bp on bp.id = i.brand_profile_id and bp.deleted_at is null
+            where i.deleted_at is null and bp.user_id in (:userIds)
+            group by 1
+            """, nativeQuery = true)
+    List<UserCountProjection> countByUserIds(@Param("userIds") Collection<UUID> userIds);
 }

@@ -2,6 +2,7 @@ package com.aima.repository;
 
 import com.aima.entity.User;
 import com.aima.enums.UserStatus;
+import com.aima.repository.projection.DailyCountProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -43,6 +44,23 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     long countByDeletedAtIsNull();
     long countByStatusAndDeletedAtIsNull(UserStatus status);
     long countByCreatedAtGreaterThanEqualAndDeletedAtIsNull(LocalDateTime from);
+
+    // ===== Tổng quan quản trị (UI-10) =====
+
+    /** Tổng user tích lũy tính tới một mốc — mẫu số % thay đổi "so với tuần trước". */
+    long countByCreatedAtLessThanAndDeletedAtIsNull(LocalDateTime before);
+
+    /** Số user MỚI mỗi ngày kể từ :from — dựng sparkline tích lũy 7 ngày. */
+    @Query(value = """
+            select to_char(created_at, 'YYYY-MM-DD') as day, count(*) as total
+            from users
+            where deleted_at is null and created_at >= :from
+            group by 1
+            """, nativeQuery = true)
+    List<DailyCountProjection> countDailyNewUsers(@Param("from") LocalDateTime from);
+
+    /** N user mới nhất cho bảng "Người dùng gần đây" (Pageable giới hạn số dòng). */
+    List<User> findByDeletedAtIsNullOrderByCreatedAtDesc(Pageable pageable);
 
     // Cảnh báo "còn ≤ 7 ngày trước khi xóa": PENDING_DELETE, chưa gửi cảnh báo, hạn xóa trong (now, threshold].
     @Query("""

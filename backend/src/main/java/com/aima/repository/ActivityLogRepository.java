@@ -1,6 +1,7 @@
 package com.aima.repository;
 
 import com.aima.entity.ActivityLog;
+import com.aima.repository.projection.DailyCountProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -87,4 +88,17 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, UUID> 
             """, nativeQuery = true)
     long countByActionAndIpSince(@Param("action") String action, @Param("ip") String ip,
                                  @Param("since") LocalDateTime since);
+
+    /**
+     * Tổng quan quản trị (UI-10) — số user KHÁC NHAU có hoạt động mỗi ngày kể từ :from. Đây là
+     * định nghĩa của thẻ "Hoạt động hôm nay": đếm NGƯỜI, không đếm số dòng log, nên một user
+     * thao tác 50 lần vẫn chỉ tính một. Dòng có {@code user_id} null (job hệ thống) bị loại.
+     */
+    @Query(value = """
+            select to_char(created_at, 'YYYY-MM-DD') as day, count(distinct user_id) as total
+            from activity_logs
+            where deleted_at is null and user_id is not null and created_at >= :from
+            group by 1
+            """, nativeQuery = true)
+    List<DailyCountProjection> countDailyActiveUsers(@Param("from") LocalDateTime from);
 }

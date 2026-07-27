@@ -36,6 +36,7 @@ const ERR_PLAN_CODE_EXISTED = 1982;
 const toSaveInput = (p: PlanDto): PlanSaveInput => ({
   nameVi: p.nameVi, nameEn: p.nameEn, price: p.price,
   billingCycleVi: p.billingCycleVi, billingCycleEn: p.billingCycleEn,
+  billingIntervalMonths: p.billingIntervalMonths,
   tokenQuota: p.tokenQuota, descriptionVi: p.descriptionVi, descriptionEn: p.descriptionEn,
   featuresVi: p.featuresVi, featuresEn: p.featuresEn,
   teaserFeaturesVi: p.teaserFeaturesVi, teaserFeaturesEn: p.teaserFeaturesEn,
@@ -408,6 +409,7 @@ function PlanFormModal({ plan, onClose, onSaved }: {
   const [price, setPrice] = useState(String(plan?.price ?? 0));
   const [cycleVi, setCycleVi] = useState(plan?.billingCycleVi ?? '/tháng');
   const [cycleEn, setCycleEn] = useState(plan?.billingCycleEn ?? '/month');
+  const [interval, setInterval] = useState(String(plan?.billingIntervalMonths ?? 1));
   const [tokenQuota, setTokenQuota] = useState(plan?.tokenQuota === null || plan?.tokenQuota === undefined ? '' : String(plan.tokenQuota));
   const [descVi, setDescVi] = useState(plan?.descriptionVi ?? '');
   const [descEn, setDescEn] = useState(plan?.descriptionEn ?? '');
@@ -433,6 +435,8 @@ function PlanFormModal({ plan, onClose, onSaved }: {
       nameVi: nameVi.trim(), nameEn: nameEn.trim(),
       price: Number(price) || 0,
       billingCycleVi: cycleVi.trim() || null, billingCycleEn: cycleEn.trim() || null,
+      // BE chặn 1..60; ô rỗng coi như gói tháng để không gửi 0 xuống.
+      billingIntervalMonths: Number(interval) || 1,
       tokenQuota: tokenQuota.trim() === '' ? null : Number(tokenQuota) || 0,
       descriptionVi: descVi.trim() || null, descriptionEn: descEn.trim() || null,
       featuresVi: lines(featuresVi), featuresEn: lines(featuresEn),
@@ -491,6 +495,14 @@ function PlanFormModal({ plan, onClose, onSaved }: {
           <div style={two}>
             <div><label style={labelStyle}>{t.plCycleVi}</label><input value={cycleVi} onChange={(e) => setCycleVi(e.target.value)} style={fieldStyle} placeholder="/tháng" /></div>
             <div><label style={labelStyle}>{t.plCycleEn}</label><input value={cycleEn} onChange={(e) => setCycleEn(e.target.value)} style={fieldStyle} placeholder="/month" /></div>
+          </div>
+          <div style={two}>
+            {/* Chu kỳ THẬT (số) — tách khỏi hai nhãn hiển thị ở trên: nhãn để hiện, số này để tính doanh thu. */}
+            <div>
+              <label style={labelStyle}>{t.plInterval}</label>
+              <input value={interval} onChange={(e) => setInterval(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" style={fieldStyle} placeholder="1" />
+              <div style={hintStyle}>{t.plIntervalHint}</div>
+            </div>
           </div>
           <div style={two}>
             <div>
