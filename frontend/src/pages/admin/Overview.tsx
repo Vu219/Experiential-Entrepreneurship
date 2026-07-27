@@ -84,6 +84,8 @@ export default function Overview() {
 
   const refreshAll = useCallback(() => { loadSummary(); loadHealth(); }, [loadSummary, loadHealth]);
 
+  useEffect(() => { refreshAll(); }, [refreshAll]);
+
   useEffect(() => {
     if (!AUTO_REFRESH_MS) return;
     const timer = window.setInterval(refreshAll, AUTO_REFRESH_MS);
