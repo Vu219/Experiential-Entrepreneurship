@@ -1,6 +1,7 @@
 package com.aima.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -34,11 +35,18 @@ public class PlanCreateRequest {
     @Schema(description = "Giá VND / chu kỳ. 0 = miễn phí.", example = "999000")
     Long price;
 
-    @Schema(description = "Nhãn chu kỳ (vi), vd \"/tháng\" hoặc \"trọn đời\".", example = "/tháng")
+    @Schema(description = "Nhãn chu kỳ (vi), vd \"/tháng\" hoặc \"trọn đời\". Chỉ để HIỂN THỊ.", example = "/tháng")
     String billingCycleVi;
 
-    @Schema(description = "Nhãn chu kỳ (en).", example = "/month")
+    @Schema(description = "Nhãn chu kỳ (en). Chỉ để HIỂN THỊ.", example = "/month")
     String billingCycleEn;
+
+    @NotNull(message = "PLAN_BILLING_INTERVAL_INVALID")
+    @Min(value = 1, message = "PLAN_BILLING_INTERVAL_INVALID")
+    @Max(value = 60, message = "PLAN_BILLING_INTERVAL_INVALID")
+    @Schema(description = "Chu kỳ thanh toán THẬT (tháng) — dùng để quy giá về doanh thu định kỳ "
+            + "tháng: gói tháng = 1, quý = 3, năm = 12.", example = "1")
+    Short billingIntervalMonths;
 
     @Schema(description = "Hạn mức token mô tả để hiển thị (chưa phải số dư thật). null = không giới hạn.", example = "500")
     Long tokenQuota;

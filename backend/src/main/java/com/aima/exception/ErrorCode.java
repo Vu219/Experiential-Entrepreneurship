@@ -215,6 +215,7 @@ public enum ErrorCode {
     PLAN_FEATURE_NOT_FOUND(1986, "Không tìm thấy dòng tính năng", HttpStatus.NOT_FOUND),
     PLAN_FEATURE_NAME_REQUIRED(1987, "Thiếu tên tính năng", HttpStatus.BAD_REQUEST),
     PLAN_FIELD_REQUIRED(1988, "Thiếu trường bắt buộc của gói", HttpStatus.BAD_REQUEST),
+    PLAN_BILLING_INTERVAL_INVALID(1989, "Chu kỳ thanh toán phải từ 1 đến 60 tháng", HttpStatus.BAD_REQUEST),
 
     // TOKEN USAGE (hạn mức token LLM theo tháng — Plan.monthlyTokenLimit)
     TOKEN_QUOTA_EXCEEDED(1990, "Bạn đã dùng hết hạn mức token của tháng này. Nâng cấp gói hoặc chờ sang tháng sau.", HttpStatus.TOO_MANY_REQUESTS),
@@ -293,6 +294,9 @@ public enum ErrorCode {
     ANALYTICS_RANGE_TOO_LARGE(2051, "Khoảng thời gian quá dài — tối đa 366 ngày", HttpStatus.BAD_REQUEST),
     ANALYTICS_SEED_DISABLED(2052,
             "Công cụ dev đang tắt — bật AIMA_DEV_ANALYTICS_SEED=true (chỉ môi trường dev)", HttpStatus.FORBIDDEN),
+    ANALYTICS_EXPORT_TOO_LARGE(2053,
+            "Kết quả vượt trần 50.000 dòng — thu hẹp khoảng ngày hoặc bộ lọc rồi export lại",
+            HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

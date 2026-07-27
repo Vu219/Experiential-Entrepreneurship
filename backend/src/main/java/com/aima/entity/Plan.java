@@ -40,12 +40,26 @@ public class Plan extends BaseEntity {
     @Builder.Default
     Long price = 0L;
 
-    /** Nhãn chu kỳ hiển thị cạnh giá, vd "/tháng" · "trọn đời". */
+    /**
+     * Nhãn chu kỳ HIỂN THỊ cạnh giá, vd "/tháng" · "trọn đời" — text tự do, admin gõ gì cũng được.
+     * KHÔNG dùng để tính toán: mọi phép quy đổi doanh thu đọc {@link #billingIntervalMonths}.
+     */
     @Column(name = "billing_cycle_vi", length = 50)
     String billingCycleVi;
 
     @Column(name = "billing_cycle_en", length = 50)
     String billingCycleEn;
+
+    /**
+     * Chu kỳ thanh toán THẬT tính bằng tháng — nguồn duy nhất để quy giá về doanh thu định kỳ
+     * tháng (gói năm = 12, gói quý = 3, gói tháng = 1). Tách hẳn khỏi cặp nhãn hiển thị
+     * {@code billingCycleVi/En} ở trên: một cái để hiện, một cái để tính. CHECK &gt; 0 do
+     * {@code PlanDataInitializer} tạo (ddl-auto không sinh được constraint này).
+     */
+    @Column(name = "billing_interval_months", nullable = false,
+            columnDefinition = "smallint not null default 1")
+    @Builder.Default
+    Short billingIntervalMonths = 1;
 
     /** Hạn mức token MÔ TẢ để hiển thị (chưa phải số dư thật của user). null = không giới hạn. */
     @Column(name = "token_quota")

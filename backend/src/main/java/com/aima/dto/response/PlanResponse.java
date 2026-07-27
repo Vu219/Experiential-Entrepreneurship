@@ -26,8 +26,13 @@ public class PlanResponse {
     @Schema(description = "Giá VND / chu kỳ. 0 = miễn phí.", example = "499000")
     Long price;
 
+    @Schema(description = "Nhãn chu kỳ để HIỂN THỊ cạnh giá — không dùng để tính toán.")
     String billingCycleVi;
     String billingCycleEn;
+
+    @Schema(description = "Chu kỳ thanh toán THẬT (tháng) — quy giá về doanh thu định kỳ tháng: "
+            + "tháng = 1, quý = 3, năm = 12.", example = "1")
+    Short billingIntervalMonths;
 
     @Schema(description = "Hạn mức token mô tả để hiển thị. null = không giới hạn.", example = "100")
     Long tokenQuota;

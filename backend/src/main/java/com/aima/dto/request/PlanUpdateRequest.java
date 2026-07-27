@@ -1,6 +1,7 @@
 package com.aima.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -31,8 +32,15 @@ public class PlanUpdateRequest {
     @Min(value = 0, message = "PLAN_PRICE_INVALID")
     Long price;
 
+    /** Nhãn hiển thị tự do — không dùng để tính doanh thu (xem billingIntervalMonths). */
     String billingCycleVi;
     String billingCycleEn;
+
+    @NotNull(message = "PLAN_BILLING_INTERVAL_INVALID")
+    @Min(value = 1, message = "PLAN_BILLING_INTERVAL_INVALID")
+    @Max(value = 60, message = "PLAN_BILLING_INTERVAL_INVALID")
+    @Schema(description = "Chu kỳ thanh toán THẬT (tháng): gói tháng = 1, quý = 3, năm = 12.", example = "1")
+    Short billingIntervalMonths;
 
     Long tokenQuota;
 
