@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import {
-  AlertTriangle, ChevronRight, ChevronLeft, PanelLeftClose, X, type LucideIcon,
+  AlertTriangle, ChevronRight, ChevronLeft, X, type LucideIcon,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
@@ -275,8 +275,6 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
     pointerEvents: 'none', // mọi click trong vùng 40×40 đều tính cho button cha
   };
   const arrowTitle = autoCollapse ? t.sbPin : collapsed ? t.sbExpand : t.sbCollapse;
-  // Nút chữ ở đáy chỉ hiện khi KHÔNG ở chế độ hover-to-expand nên không cần nhánh sbPin.
-  const collapseLabel = collapsed ? t.sbExpand : t.sbCollapse;
 
   // ----- Thân (desktop): cuộn dọc khi cao quá khung -----
   // Nút "Quay lại ứng dụng" nằm NGOÀI vùng cuộn (.sb-scroll có overflow hidden/auto sẽ
@@ -349,42 +347,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
             <button onClick={() => go('pricing')} style={{ width: '100%', border: 'none', borderRadius: 10, padding: 9, fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.upgradeBtn}</button>
           </div>
         )}
-        {/* Nút "Thu gọn" ở ĐÁY sidebar — lối thu gọn dễ thấy hơn nút mũi tên nổi ở cạnh phải
-            (nút kia vẫn giữ). Cả hai cùng ghi trạng thái xuống localStorage nên lần mở sau
-            sidebar giữ nguyên kiểu người dùng đã chọn. Ẩn ở chế độ hover-to-expand vì lúc đó
-            trạng thái do con trỏ quyết định, bấm sẽ không có tác dụng thấy được. */}
-        {!autoCollapse && (
-          <>
-            <div style={{ height: 1, background: '#eee9f6', flex: 'none' }} />
-            <button
-              onClick={toggleSidebar}
-              title={collapseLabel}
-              aria-label={collapseLabel}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                justifyContent: collapsed ? 'center' : 'flex-start',
-                width: '100%',
-                border: 'none',
-                borderRadius: 12,
-                padding: collapsed ? '10px 0' : '10px 13px',
-                background: 'transparent',
-                color: '#8a85a0',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              <PanelLeftClose
-                size={18}
-                strokeWidth={1.8}
-                style={{ flex: 'none', transform: collapsed ? 'rotate(180deg)' : undefined, transition: 'transform .2s ease' }}
-              />
-              {!collapsed && <span>{collapseLabel}</span>}
-            </button>
-          </>
-        )}
+
       </div>
       </div>
     </>
