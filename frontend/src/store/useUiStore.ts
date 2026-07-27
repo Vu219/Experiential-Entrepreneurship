@@ -1,6 +1,27 @@
 import { create } from "zustand";
 import type { Route } from "../types";
 
+// Trạng thái thu gọn sidebar sống qua các phiên (người dùng chỉnh một lần, không phải chỉnh lại
+// mỗi lần mở app). Chỉ MỘT khóa duy nhất; đọc/ghi bọc try/catch vì trình duyệt có thể chặn
+// localStorage (chế độ riêng tư) — hỏng chỗ này không được phép làm sập cả app.
+const SIDEBAR_COLLAPSED_KEY = "aima.sidebarCollapsed";
+
+const readCollapsed = (): boolean => {
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+
+const persistCollapsed = (v: boolean) => {
+  try {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, v ? "1" : "0");
+  } catch {
+    /* ignore persistence errors */
+  }
+};
+
 // UI-only global state (tách biệt hoàn toàn với AuthContext — auth vẫn do
 // AuthProvider quản lý). Dùng cho landing header: trạng thái cuộn dùng chung
 // và panel menu mobile, tránh mỗi component tự gắn listener riêng.
@@ -43,9 +64,17 @@ export const useUiStore = create<UiState>((set) => ({
   mobileOpen: false,
   toggleMobile: () => set((s) => ({ mobileOpen: !s.mobileOpen })),
   closeMobile: () => set({ mobileOpen: false }),
-  sidebarCollapsed: false,
-  toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
-  setSidebarCollapsed: (v) => set((s) => (s.sidebarCollapsed === v ? s : { sidebarCollapsed: v })),
+  sidebarCollapsed: readCollapsed(),
+  toggleSidebar: () => set((s) => {
+    const next = !s.sidebarCollapsed;
+    persistCollapsed(next);
+    return { sidebarCollapsed: next };
+  }),
+  setSidebarCollapsed: (v) => set((s) => {
+    if (s.sidebarCollapsed === v) return s;
+    persistCollapsed(v);
+    return { sidebarCollapsed: v };
+  }),
   autoCollapse: false,
   toggleAutoCollapse: () => set((s) => ({ autoCollapse: !s.autoCollapse })),
   profileOrigin: null,

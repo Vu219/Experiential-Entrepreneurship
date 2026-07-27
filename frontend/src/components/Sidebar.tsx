@@ -1,12 +1,11 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Users, AlertTriangle, Server, FileText, Code, DollarSign, Package,
-  KeyRound, Route as RouteIcon, Coins, Gauge,
-  ChevronRight, ChevronLeft, X, type LucideIcon,
+  AlertTriangle, ChevronRight, ChevronLeft, PanelLeftClose, X, type LucideIcon,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
+import { adminNavGroupsFor } from '../config/adminNav';
 import { getTokenUsage, type TokenUsage } from '../api/auth';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useUiStore } from '../store/useUiStore';
@@ -124,38 +123,14 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
       items: [{ key: 'brand', label: t.navBrand, icon: ICON.brand }],
     },
   ];
-  // Sidebar admin chia NHÓM (đồng bộ UI khu quản trị). Nhóm đầu (Bảng điều khiển)
-  // không cần nhãn — mục Tổng quan tự đứng đầu như các admin UI thông dụng.
-  const adminGroups: { label?: string; items: Item[] }[] = [
-    { items: [{ key: 'admin', label: t.navAdminOverview, icon: ICON.dashboard }] },
-    { label: t.admGrpContent, items: [{ key: 'adminPosts', label: t.navAdminPosts, icon: AlertTriangle }] },
-    {
-      label: t.admGrpBusiness,
-      items: [
-        { key: 'adminUsers', label: t.navAdminUsers, icon: Users },
-        { key: 'adminRevenue', label: t.navAdminRevenue, icon: DollarSign },
-        { key: 'adminPlans', label: t.navAdminPlans, icon: Package },
-        // Token & hạn mức — usage đối chiếu hạn mức gói (đọc/gộp từ ai_usage + grant/reset).
-        { key: 'adminUsage', label: t.navAdminUsage, icon: Gauge },
-      ],
-    },
-    {
-      label: t.admGrpAi,
-      items: [
-        { key: 'adminAiProviders', label: t.navAdminAiProviders, icon: KeyRound },
-        { key: 'adminAiModels', label: t.navAdminAiModels, icon: RouteIcon },
-        { key: 'adminAiUsage', label: t.navAdminAiUsage, icon: Coins },
-      ],
-    },
-    {
-      label: t.admGrpSystem,
-      items: [
-        { key: 'adminSystem', label: t.navAdminSystem, icon: Server },
-        { key: 'adminLogs', label: t.navAdminLogs, icon: FileText },
-        { key: 'adminApiVersions', label: t.navAdminApi, icon: Code },
-      ],
-    },
-  ];
+  // Sidebar admin: danh sách mục KHÔNG khai báo ở đây nữa. Nguồn duy nhất là
+  // `config/adminNav.ts` — cùng bản đồ đó nuôi khối "Lối tắt quản trị" trên trang Tổng quan,
+  // nên hai nơi không thể lệch route/nhãn. Ở đây chỉ dịch labelKey sang chuỗi theo ngôn ngữ
+  // đang bật và lọc theo vai trò của user hiện tại.
+  const adminGroups: { label?: string; items: Item[] }[] = adminNavGroupsFor(user?.role).map((g) => ({
+    label: g.labelKey ? t[g.labelKey] : undefined,
+    items: g.items.map((n) => ({ key: n.key, label: t[n.labelKey], icon: n.icon })),
+  }));
   // Hồ sơ / Cài đặt / Đăng xuất / Trang chủ đã chuyển lên dropdown avatar ở topbar (UserMenu
   // variant "app") — sidebar không còn khối mục đáy.
   const navGroups = isAdminArea ? adminGroups : appGroups;
@@ -300,6 +275,8 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
     pointerEvents: 'none', // mọi click trong vùng 40×40 đều tính cho button cha
   };
   const arrowTitle = autoCollapse ? t.sbPin : collapsed ? t.sbExpand : t.sbCollapse;
+  // Nút chữ ở đáy chỉ hiện khi KHÔNG ở chế độ hover-to-expand nên không cần nhánh sbPin.
+  const collapseLabel = collapsed ? t.sbExpand : t.sbCollapse;
 
   // ----- Thân (desktop): cuộn dọc khi cao quá khung -----
   // Nút "Quay lại ứng dụng" nằm NGOÀI vùng cuộn (.sb-scroll có overflow hidden/auto sẽ
@@ -371,6 +348,42 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
             <div style={{ fontSize: 12, color: '#7d6aa3', margin: '4px 0 12px', lineHeight: 1.45 }}>{t.upgradeMsg}</div>
             <button onClick={() => go('pricing')} style={{ width: '100%', border: 'none', borderRadius: 10, padding: 9, fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.upgradeBtn}</button>
           </div>
+        )}
+        {/* Nút "Thu gọn" ở ĐÁY sidebar — lối thu gọn dễ thấy hơn nút mũi tên nổi ở cạnh phải
+            (nút kia vẫn giữ). Cả hai cùng ghi trạng thái xuống localStorage nên lần mở sau
+            sidebar giữ nguyên kiểu người dùng đã chọn. Ẩn ở chế độ hover-to-expand vì lúc đó
+            trạng thái do con trỏ quyết định, bấm sẽ không có tác dụng thấy được. */}
+        {!autoCollapse && (
+          <>
+            <div style={{ height: 1, background: '#eee9f6', flex: 'none' }} />
+            <button
+              onClick={toggleSidebar}
+              title={collapseLabel}
+              aria-label={collapseLabel}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                width: '100%',
+                border: 'none',
+                borderRadius: 12,
+                padding: collapsed ? '10px 0' : '10px 13px',
+                background: 'transparent',
+                color: '#8a85a0',
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <PanelLeftClose
+                size={18}
+                strokeWidth={1.8}
+                style={{ flex: 'none', transform: collapsed ? 'rotate(180deg)' : undefined, transition: 'transform .2s ease' }}
+              />
+              {!collapsed && <span>{collapseLabel}</span>}
+            </button>
+          </>
         )}
       </div>
       </div>

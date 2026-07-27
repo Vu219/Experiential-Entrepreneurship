@@ -1,11 +1,10 @@
 import type { Lang } from './types';
 import { getDict } from './i18n';
 import { PLATFORM_BG, tagOf } from './theme';
-import type { Tone } from './statusTokens';
 import {
   LayoutGrid, Sparkles, Calendar, BarChart3, TrendingUp, Star, User, Settings,
-  Shield, Eye, Bell, LogOut, Heart, Users, Activity, DollarSign,
-  Search, Lightbulb, PenLine, CalendarClock, Zap, type LucideIcon,
+  Shield, Eye, Bell, LogOut, Heart,
+  Search, Lightbulb, PenLine, CalendarClock, Zap,
 } from 'lucide-react';
 
 // ===== Semantic icon registry (Lucide) =====
@@ -258,65 +257,9 @@ export function connectionStats() {
 }
 
 // ===== Admin =====
-// TODO: cần endpoint backend cho dữ liệu Admin (adminStats, adminUsers, planDist, health)
-// — hiện là mock demo, phải thay bằng lời gọi API khi BE sẵn sàng.
-export function adminStats(lang: Lang) {
-  const rows: [string, string, string, LucideIcon, string, string][] = [
-    ['12,847', P(lang, 'Tổng người dùng', 'Total users'), '+8.2%', Users, 'linear-gradient(135deg,#e9f0ff,#f1e9ff)', '#6366f1'],
-    ['3,219', P(lang, 'Hoạt động hôm nay', 'Active today'), '+4.1%', Activity, 'linear-gradient(135deg,#e7fff4,#e9f7ff)', '#10b981'],
-    ['1.2M', P(lang, 'Nội dung đã tạo', 'Content generated'), '+19%', ICON.create, 'linear-gradient(135deg,#f1e9ff,#fae9ff)', '#8b5cf6'],
-    ['$48.6K', 'MRR', '+11%', DollarSign, 'linear-gradient(135deg,#fff3e0,#ffe9f3)', '#ec4899'],
-  ];
-  return rows.map((a) => ({ value: a[0], label: a[1], trend: a[2], icon: a[3], bg: a[4], color: a[5] }));
-}
-
-export function adminUsers(lang: Lang) {
-  // Tone badge khớp userPlanMeta/userStatusMeta (api/admin.ts) — hiển thị qua StatusBadge,
-  // không mang mã màu rời (màu lấy từ TONE_COLORS trong statusTokens.ts).
-  const PL: Record<string, [string, Tone]> = {
-    plus: ['Plus', 'info'],
-    free: ['Free', 'neutral'],
-    pro: ['Pro', 'purple'],
-  };
-  const STt: Record<string, [string, Tone]> = {
-    act: [P(lang, 'Hoạt động', 'Active'), 'success'],
-    idle: [P(lang, 'Tạm nghỉ', 'Idle'), 'warning'],
-    new: [P(lang, 'Mới', 'New'), 'purple'],
-  };
-  const rows: [string, string, keyof typeof PL, keyof typeof STt, string, string][] = [
-    ['Lan Phương', 'lan.phuong@gmail.com', 'plus', 'act', '342', '12/01/26'],
-    ['Minh Tuấn', 'tuan.minh@aima.io', 'pro', 'act', '1,204', '03/11/25'],
-    ['Thu Hà', 'ha.thu@brandco.vn', 'free', 'idle', '58', '28/02/26'],
-    ['David Chen', 'david.chen@startup.co', 'plus', 'act', '489', '15/03/26'],
-    ['Ngọc Anh', 'anh.ngoc@gmail.com', 'free', 'new', '3', '18/06/26'],
-  ];
-  return rows.map((u) => {
-    const p = PL[u[2]];
-    const st = STt[u[3]];
-    return {
-      name: u[0], email: u[1], plan: p[0], planTone: p[1],
-      status: st[0], statusTone: st[1], posts: u[4], joined: u[5],
-      initials: u[0].split(' ').map((w) => w[0]).slice(-2).join(''),
-    };
-  });
-}
-
-export const planDist = [
-  ['Plus', '5,128', '42%', '#22d3ee'],
-  ['Free', '6,402', '50%', '#94a3b8'],
-  ['Pro', '1,317', '8%', '#8b5cf6'],
-].map((p) => ({ plan: p[0], count: p[1], pct: p[2], color: p[3] }));
-
-export function health(lang: Lang) {
-  const rows: [string, string, 'ok' | 'warn'][] = [
-    [P(lang, 'API', 'API'), '99.98%', 'ok'],
-    [P(lang, 'Bộ máy AI', 'AI engine'), 'Operational', 'ok'],
-    [P(lang, 'Bộ lập lịch', 'Scheduler'), 'Operational', 'ok'],
-    [P(lang, 'Lưu trữ', 'Storage'), '72% used', 'warn'],
-  ];
-  // Tone qua StatusBadge (statusTokens) thay vì mã màu rời.
-  return rows.map((h) => ({ label: h[0], value: h[1], tone: (h[2] === 'ok' ? 'success' : 'warning') as Tone }));
-}
+// Số liệu trang Quản trị → Tổng quan nay lấy THẬT từ backend (GET /admin/overview/summary +
+// GET /admin/system) qua `api/adminOverview.ts` — 4 mock cũ (adminStats/adminUsers/planDist/health)
+// đã gỡ khi nối API 2026-07-27.
 
 // ===== Brand/profile localized defaults =====
 export const brandDefaults = (lang: Lang) => ({

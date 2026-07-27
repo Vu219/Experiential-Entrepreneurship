@@ -13,8 +13,11 @@ export interface PlanDto {
   nameVi: string;
   nameEn: string;
   price: number; // VND / chu kỳ, 0 = miễn phí
+  /** Nhãn chu kỳ để HIỂN THỊ cạnh giá (text tự do) — không dùng để tính toán. */
   billingCycleVi: string | null;
   billingCycleEn: string | null;
+  /** Chu kỳ THẬT tính bằng tháng (tháng = 1, quý = 3, năm = 12) — mẫu số quy giá về MRR. */
+  billingIntervalMonths: number;
   /** Hạn mức token MÔ TẢ để hiển thị (chưa phải số dư thật). null = không giới hạn. */
   tokenQuota: number | null;
   descriptionVi: string | null;
@@ -74,6 +77,7 @@ export interface PlanSaveInput {
   price: number;
   billingCycleVi: string | null;
   billingCycleEn: string | null;
+  billingIntervalMonths: number;
   tokenQuota: number | null;
   descriptionVi: string | null;
   descriptionEn: string | null;

@@ -12,7 +12,8 @@ import client, { type ApiError, type ApiResponse, type PageResponse } from './ap
 const delay = <T>(value: T, ms = 450): Promise<T> => new Promise((r) => setTimeout(() => r(value), ms));
 
 const P = (lang: Lang, vi: string, en: string) => (lang === 'en' ? en : vi);
-const initials = (name: string) => name.trim().split(/\s+/).map((w) => w[0]).slice(-2).join('').toUpperCase();
+/** Chữ cái đầu làm avatar dự phòng khi user chưa có ảnh — dùng chung cho mọi bảng quản trị. */
+export const initials = (name: string) => name.trim().split(/\s+/).map((w) => w[0]).slice(-2).join('').toUpperCase();
 
 export const formatVND = (n: number) => n.toLocaleString('vi-VN') + '₫';
 
