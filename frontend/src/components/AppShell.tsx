@@ -141,6 +141,7 @@ function PageHeading() {
   // Heading động do trang chi tiết set (vd /admin/usage/users/:id = tên user + email)
   // — ưu tiên hơn PAGE_KEYS tĩnh theo route.
   const override = useUiStore((s) => s.pageHeading);
+  const headerAction = useUiStore((s) => s.headerAction);
   const keys = PAGE_KEYS[route as keyof typeof PAGE_KEYS];
   const title = override ? override.title : keys ? t[keys[0]] : null;
   const sub = override ? override.sub : keys ? t[keys[1]] : null;
@@ -148,9 +149,16 @@ function PageHeading() {
   // flex none + nowrap: tiêu đề bám sát sidebar, không nhảy dòng/đổi cỡ chữ khi
   // sidebar đóng/mở (khối duy nhất được phép dịch theo sidebar).
   return (
-    <div style={{ flex: 'none', whiteSpace: 'nowrap', maxWidth: 380, overflow: 'hidden' }}>
-      <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 19, color: '#211c38', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
-      {sub && <div style={{ fontSize: 12.5, color: '#8a85a0', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 'none' }}>
+      <div style={{ flex: 'none', whiteSpace: 'nowrap', maxWidth: 380, overflow: 'hidden' }}>
+        <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 19, color: '#211c38', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
+        {sub && <div style={{ fontSize: 12.5, color: '#8a85a0', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
+      </div>
+      {headerAction && (
+        <div style={{ flex: 'none', display: 'flex', alignItems: 'center' }}>
+          {headerAction}
+        </div>
+      )}
     </div>
   );
 }

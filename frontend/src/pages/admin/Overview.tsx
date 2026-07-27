@@ -5,6 +5,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../auth/AuthContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
+import { useUiStore } from '../../store/useUiStore';
 import { useToast } from '../../components/toast/ToastProvider';
 import SectionCard from '../../components/admin/SectionCard';
 import StatusBadge from '../../components/admin/StatusBadge';
@@ -83,13 +84,48 @@ export default function Overview() {
 
   const refreshAll = useCallback(() => { loadSummary(); loadHealth(); }, [loadSummary, loadHealth]);
 
-  useEffect(() => { refreshAll(); }, [refreshAll]);
-
   useEffect(() => {
     if (!AUTO_REFRESH_MS) return;
     const timer = window.setInterval(refreshAll, AUTO_REFRESH_MS);
     return () => window.clearInterval(timer);
   }, [refreshAll]);
+
+  const setHeaderAction = useUiStore((s) => s.setHeaderAction);
+
+  useEffect(() => {
+    setHeaderAction(
+      <button
+        onClick={refreshAll}
+        title={t.ovrRefresh}
+        aria-label={t.ovrRefresh}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          border: '1px solid #ece8f6',
+          background: '#fff',
+          color: '#8b5cf6',
+          cursor: 'pointer',
+          boxShadow: '0 2px 6px -2px rgba(139,92,246,0.15)',
+          transition: 'all 0.15s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = '#f5f3ff';
+          e.currentTarget.style.borderColor = '#ddd6fe';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = '#fff';
+          e.currentTarget.style.borderColor = '#ece8f6';
+        }}
+      >
+        <Icon icon={RefreshCw} size={15} stroke="#8b5cf6" />
+      </button>
+    );
+    return () => setHeaderAction(null);
+  }, [refreshAll, setHeaderAction, t.ovrRefresh]);
 
   // ----- Hành động hàng (tái sử dụng action của tab Quản lý người dùng) -----
 
@@ -136,18 +172,6 @@ export default function Overview() {
 
   return (
     <PageContainer>
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button
-          onClick={refreshAll}
-          title={t.ovrRefresh}
-          aria-label={t.ovrRefresh}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, color: '#5b5670', cursor: 'pointer' }}
-        >
-          <Icon icon={RefreshCw} size={15} stroke="#8b5cf6" />
-          {t.ovrRefresh}
-        </button>
-      </div>
-
       {/* ===== Hàng 4 thẻ KPI ===== */}
       {summaryState === 'loading' && <KpiRowSkeleton columns={kpiColumns} />}
       {summaryState === 'error' && <Card style={{ borderRadius: 18 }}><BlockError onRetry={loadSummary} /></Card>}

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { ReactNode } from "react";
 import type { Route } from "../types";
 
 // Trạng thái thu gọn sidebar sống qua các phiên (người dùng chỉnh một lần, không phải chỉnh lại
@@ -47,6 +48,9 @@ interface UiState {
   // khi unmount để không rò sang trang khác.
   pageHeading: { title: string; sub?: string } | null;
   setPageHeading: (h: { title: string; sub?: string } | null) => void;
+  // Component action hiển thị kế bên tiêu đề trên Topbar header (vd nút Làm mới số liệu).
+  headerAction: ReactNode | null;
+  setHeaderAction: (action: ReactNode | null) => void;
   // Tín hiệu "tạo chiến lược mới": nút nằm ở header trang (Brand) còn logic mở form
   // ở StrategyManager — tăng nonce để StrategyManager mở form tạo mới (không lift toàn bộ state).
   strategyCreateNonce: number;
@@ -81,6 +85,8 @@ export const useUiStore = create<UiState>((set) => ({
   setProfileOrigin: (r) => set((s) => (s.profileOrigin === r ? s : { profileOrigin: r })),
   pageHeading: null,
   setPageHeading: (h) => set({ pageHeading: h }),
+  headerAction: null,
+  setHeaderAction: (action) => set({ headerAction: action }),
   strategyCreateNonce: 0,
   requestStrategyCreate: () => set((s) => ({ strategyCreateNonce: s.strategyCreateNonce + 1 })),
   brandInitialTab: null,

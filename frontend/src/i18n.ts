@@ -565,7 +565,7 @@ export const STRINGS = {
     ovrKpiUsers: 'Tổng người dùng', ovrKpiActive: 'Hoạt động hôm nay',
     ovrKpiContent: 'Nội dung đã tạo', ovrKpiMrr: 'Doanh thu định kỳ tháng',
     ovrVsWeek: 'so với tuần trước', ovrVsDay: 'so với hôm qua', ovrNoBaseline: 'chưa có mốc so sánh',
-    ovrRefresh: 'Làm mới số liệu', ovrViewDetail: 'Xem chi tiết',
+    ovrRefresh: 'Làm mới dữ liệu', ovrViewDetail: 'Xem chi tiết',
     ovrColUser: 'Người dùng', ovrViewAllUsers: 'Xem tất cả người dùng', ovrEmptyUsers: 'Chưa có người dùng nào',
     ovrEmptyPlans: 'Chưa có ai đăng ký gói',
     ovrShortcuts: 'Lối tắt quản trị',
