@@ -82,7 +82,7 @@ def _run(label: str, fn, arg):
         raise HTTPException(status_code=502, detail=f"{label} failed: {e}")
 
 
-@router.get("/health")
+@router.api_route("/health", methods=["GET", "HEAD"])
 def health() -> dict:
     s = get_settings()
     return {"status": "ok", "provider": s.llm_provider}
