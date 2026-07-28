@@ -231,17 +231,60 @@ export function timeAgo(lang: Lang, iso: string | null): string {
   return P(lang, `${months} tháng trước`, `${months}mo ago`);
 }
 
-// ===== Bài đăng lỗi & bị từ chối (FR-82 + FR-83) — GET /admin/posts/problems =====
+// ===== Bài đăng lỗi & bị từ chối (FR-82 + FR-83) — /admin/posts/failed =====
+// Hai tab của trang: 'rejected' = bị nền tảng từ chối vì vi phạm chính sách (FR-82),
+// 'system' = lỗi kỹ thuật khi đăng (FR-83). Lọc/tìm/sắp xếp/phân trang ĐỀU server-side —
+// FE không tự cắt mảng, và KHÔNG tự đếm badge tab (số lấy từ summary bên dưới).
+
 export type PostProblemKind = 'rejected' | 'system';
+/** Khớp enum PublishErrorType phía backend. */
+export type PublishErrorType = 'TEMPORARY' | 'PERMANENT' | 'POLICY_VIOLATION';
+/** Nền tảng trong scope MVP (CLAUDE.md §2) — cùng tag với PLATFORM_BG ở theme.ts. */
+export type AdminPostPlatform = 'FB' | 'IG' | 'TH';
+
 export interface AdminPostProblem {
   id: string;
+  /** Email chủ bài — null phía BE khi user đã bị xoá. */
   user: string;
-  platform: 'FB' | 'IG' | 'TH';
+  accountName: string | null;
+  platform: AdminPostPlatform;
   kind: PostProblemKind;
-  reason: string;
-  platformError: string; // mã/thông điệp nền tảng trả về
+  errorType: PublishErrorType | null;
+  /** Mã lỗi GỐC từ nền tảng (FR-35), vd '368' / '190'. */
+  errorCode: string | null;
+  errorMessage: string | null;
+  /** Số lần đã thử lại (FR-56) — chỉ có ý nghĩa ở tab lỗi hệ thống. */
+  retryCount: number | null;
+  /** 'YYYY-MM-DD HH:mm' — lần thử lại kế tiếp, null khi đã hết lượt. */
+  nextRetryAt: string | null;
   content: string;
+  /** 'YYYY-MM-DD HH:mm' thời điểm thất bại chung cuộc. */
   date: string;
+}
+
+export type PostProblemSort = 'newest' | 'oldest';
+
+export interface PostProblemFilter {
+  kind: PostProblemKind;
+  platform?: AdminPostPlatform;
+  errorType?: PublishErrorType;
+  /** 'YYYY-MM-DD'; `to` BAO GỒM cả ngày đó (cùng quy ước log hoạt động). */
+  from?: string;
+  to?: string;
+  q?: string;
+}
+
+export interface PostProblemQuery extends PostProblemFilter {
+  sort: PostProblemSort;
+  page: number; // 0-based (Spring Pageable)
+  size: number;
+}
+
+export interface PostProblemPage {
+  rows: AdminPostProblem[];
+  total: number;
+  pageCount: number;
+  page: number;
 }
 
 // BE thật: shape AdminFailedPostResponse (GET /admin/posts/failed).
@@ -251,34 +294,113 @@ interface BeFailedPost {
   accountName: string | null;
   ownerEmail: string | null;
   caption: string | null;
-  errorType: 'TEMPORARY' | 'PERMANENT' | 'POLICY_VIOLATION' | null;
+  errorType: PublishErrorType | null;
   errorCode: string | null;
   errorMessage: string | null;
+  retryCount: number | null;
+  nextRetryAt: string | null;
   failedAt: string | null;
 }
 
-const BE_PLATFORM_TAG: Record<BeFailedPost['platformName'], 'FB' | 'IG' | 'TH'> =
+const BE_PLATFORM_TAG: Record<BeFailedPost['platformName'], AdminPostPlatform> =
   { FACEBOOK: 'FB', INSTAGRAM: 'IG', THREADS: 'TH' };
 
-// GET /admin/posts/failed (ADMIN, FR-82/FR-83) — vi phạm chính sách = 'rejected', còn lại 'system'.
-export async function getPostProblems(lang: Lang): Promise<AdminPostProblem[]> {
+const TAG_BE_PLATFORM: Record<AdminPostPlatform, BeFailedPost['platformName']> =
+  { FB: 'FACEBOOK', IG: 'INSTAGRAM', TH: 'THREADS' };
+
+/** Tab → enum FailedPostFilter phía BE (dùng lại enum sẵn có của /me/failed-posts). */
+const KIND_FILTER: Record<PostProblemKind, 'POLICY' | 'TECHNICAL'> =
+  { rejected: 'POLICY', system: 'TECHNICAL' };
+
+/** Tham số lọc dùng chung cho list / summary / export — một nguồn, không lặp 3 lần. */
+const problemParams = (f: PostProblemFilter) => ({
+  filter: KIND_FILTER[f.kind],
+  platform: f.platform ? TAG_BE_PLATFORM[f.platform] : undefined,
+  errorType: f.errorType || undefined,
+  from: f.from || undefined,
+  to: f.to || undefined,
+  q: f.q?.trim() || undefined,
+});
+
+const toProblem = (p: BeFailedPost): AdminPostProblem => ({
+  id: p.id,
+  user: p.ownerEmail ?? '—',
+  accountName: p.accountName,
+  platform: BE_PLATFORM_TAG[p.platformName] ?? 'FB',
+  kind: p.errorType === 'POLICY_VIOLATION' ? 'rejected' : 'system',
+  errorType: p.errorType,
+  errorCode: p.errorCode,
+  errorMessage: p.errorMessage,
+  retryCount: p.retryCount,
+  nextRetryAt: beDateTime(p.nextRetryAt),
+  content: p.caption ?? '',
+  date: beDateTime(p.failedAt) ?? '—',
+});
+
+// GET /admin/posts/failed (ADMIN, FR-82/FR-83).
+export async function getPostProblems(query: PostProblemQuery): Promise<PostProblemPage> {
   const { data } = await client.get<ApiResponse<PageResponse<BeFailedPost>>>('/admin/posts/failed', {
-    params: { size: 50 },
+    params: {
+      ...problemParams(query),
+      sort: query.sort === 'oldest' ? 'failedAt,asc' : 'failedAt,desc',
+      page: query.page,
+      size: query.size,
+    },
   });
-  return data.result.content.map((p) => ({
-    id: p.id,
-    user: p.ownerEmail ?? '—',
-    platform: BE_PLATFORM_TAG[p.platformName] ?? 'FB',
-    kind: p.errorType === 'POLICY_VIOLATION' ? 'rejected' : 'system',
-    reason: p.errorType === 'POLICY_VIOLATION'
-      ? P(lang, 'Nền tảng từ chối do vi phạm chính sách', 'Rejected by the platform for policy violation')
-      : p.errorType === 'TEMPORARY'
-        ? P(lang, 'Lỗi tạm thời — đã hết lượt thử lại', 'Temporary error — retries exhausted')
-        : P(lang, 'Lỗi đăng bài vĩnh viễn', 'Permanent publishing error'),
-    platformError: `${p.errorCode ?? '—'}: ${p.errorMessage ?? ''}`.trim(),
-    content: p.caption ?? '',
-    date: beDateTime(p.failedAt) ?? '—',
-  }));
+  const p = data.result;
+  return { rows: p.content.map(toProblem), total: p.totalElements, pageCount: p.totalPages, page: p.page };
+}
+
+/**
+ * Cách hiển thị ô "% thay đổi" — backend quyết định, FE không tự suy từ deltaPct null.
+ * PERCENT = có mốc so sánh; NEW = kỳ trước 0 nhưng kỳ này có (hiện "Mới", không phải +∞%);
+ * NONE = cả hai kỳ đều 0 (hiện "—", không mũi tên).
+ */
+export type KpiDeltaState = 'PERCENT' | 'NEW' | 'NONE';
+
+export interface PostProblemKpi {
+  value: number;
+  /** Chỉ khác null khi deltaState = 'PERCENT'. */
+  deltaPct: number | null;
+  deltaState: KpiDeltaState;
+  sparkline: number[];
+}
+
+export interface PostProblemSummary {
+  kind: 'ALL' | 'POLICY' | 'TECHNICAL';
+  /** Phạm vi theo tab: tab lỗi hệ thống chỉ đếm bài lỗi kỹ thuật. */
+  total: PostProblemKpi;
+  policyViolation: PostProblemKpi;
+  technical: PostProblemKpi;
+  temporary: PostProblemKpi;
+  permanent: PostProblemKpi;
+  /** Phạm vi theo tab, giống `total`. */
+  affectedUsers: PostProblemKpi;
+  /** Khoảng kỳ trước liền kề ('YYYY-MM-DD') — dựng nhãn "so với 06/07 - 12/07". */
+  comparisonFrom: string;
+  comparisonTo: string;
+}
+
+// GET /admin/posts/failed/summary — 4 thẻ KPI + badge số lượng tab.
+// Badge 2 tab luôn đọc policyViolation/technical (không đổi theo `kind`) nên số không nhảy khi
+// chuyển tab; chỉ `total` + `affectedUsers` mới thu hẹp theo tab đang xem.
+export async function getPostProblemSummary(
+  kind: PostProblemKind,
+  range: { from: string; to: string },
+): Promise<PostProblemSummary> {
+  const { data } = await client.get<ApiResponse<PostProblemSummary>>('/admin/posts/failed/summary', {
+    params: { kind: KIND_FILTER[kind], from: range.from, to: range.to },
+  });
+  return data.result;
+}
+
+// GET /admin/posts/failed/export — CSV dạng chuỗi theo ĐÚNG bộ lọc đang chọn;
+// FE tự tạo Blob tải về (cùng quy ước export doanh thu / log hoạt động).
+export async function exportPostProblems(filter: PostProblemFilter): Promise<string> {
+  const { data } = await client.get<ApiResponse<string>>('/admin/posts/failed/export', {
+    params: problemParams(filter),
+  });
+  return data.result;
 }
 
 // ===== Trạng thái hệ thống (FR-81) — GET /admin/system =====

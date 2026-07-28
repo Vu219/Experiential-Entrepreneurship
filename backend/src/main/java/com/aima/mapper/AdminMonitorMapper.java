@@ -1,15 +1,18 @@
 package com.aima.mapper;
 
 import com.aima.dto.response.AdminFailedPostResponse;
+import com.aima.dto.response.AdminFailedPostSummaryResponse;
 import com.aima.dto.response.AdminSystemStatusResponse;
 import com.aima.dto.response.SystemActivityResponse;
 import com.aima.dto.response.SystemLogResponse;
 import com.aima.entity.Post;
 import com.aima.entity.PostingJob;
 import com.aima.entity.PublishResult;
+import com.aima.enums.FailedPostFilter;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -28,8 +31,23 @@ public interface AdminMonitorMapper {
     @Mapping(target = "errorType", source = "job.errorType")
     @Mapping(target = "errorCode", source = "error.responseCode")
     @Mapping(target = "errorMessage", source = "error.responseMessage")
+    @Mapping(target = "retryCount", source = "job.retryCount")
+    @Mapping(target = "nextRetryAt", source = "job.nextRetryAt")
     @Mapping(target = "failedAt", source = "job.endTime")
     AdminFailedPostResponse toFailedPost(Post post, PostingJob job, PublishResult error);
+
+    AdminFailedPostSummaryResponse.Kpi toKpi(long value, Integer deltaPct,
+                                             AdminFailedPostSummaryResponse.DeltaState deltaState,
+                                             List<Long> sparkline);
+
+    AdminFailedPostSummaryResponse toFailedPostSummary(FailedPostFilter kind,
+                                                       AdminFailedPostSummaryResponse.Kpi total,
+                                                       AdminFailedPostSummaryResponse.Kpi policyViolation,
+                                                       AdminFailedPostSummaryResponse.Kpi technical,
+                                                       AdminFailedPostSummaryResponse.Kpi temporary,
+                                                       AdminFailedPostSummaryResponse.Kpi permanent,
+                                                       AdminFailedPostSummaryResponse.Kpi affectedUsers,
+                                                       LocalDate comparisonFrom, LocalDate comparisonTo);
 
     AdminSystemStatusResponse.ServiceHealthResponse toServiceHealth(String name, String status, String detail,
                                                                     Long latencyMs, Integer activeConnections,

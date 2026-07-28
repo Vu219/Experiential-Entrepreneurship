@@ -241,6 +241,9 @@ export default function DatePicker({
         createPortal(
           <div
             ref={panelRef}
+            /* Đánh dấu để popover bao ngoài (vd DateRangePill) nhận ra lịch là "của mình" —
+               panel này render qua portal nên contains() của phần tử cha không thấy nó. */
+            data-datepicker-panel=""
             className="menu-pop menu-pop--left"
             style={{
               position: 'fixed',

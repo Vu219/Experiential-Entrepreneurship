@@ -75,6 +75,28 @@ body {
   flex: 1;
   min-width: 0;
 }
+/* Khối vừa đổi từ khung xương sang dữ liệu thật: hiện lên bằng fade + trượt nhẹ thay vì "nháy"
+   một phát. Class chỉ được gắn khi khối có dữ liệu nên animation chạy đúng một lần mỗi lần tải
+   (đổi bộ lọc → khung xương → gắn lại class → chạy lại). Mỗi khối tải xong một thời điểm khác
+   nhau nên hiệu ứng tự so le, không cần animation-delay thủ công. */
+.ana-in {
+  animation: ana-block-in 0.34s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes ana-block-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ana-in {
+    animation: none;
+  }
+}
 input,
 textarea,
 button {
@@ -135,6 +157,29 @@ button {
 }
 .modal-scale-in {
   animation: modal-scale-in 0.22s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+/* Drawer (components/Drawer): trượt từ mép phải trên desktop, trượt lên từ đáy trên mobile. */
+@keyframes drawer-slide-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes drawer-sheet-in {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: none; }
+}
+.drawer-slide-in {
+  animation: drawer-slide-in 0.24s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.drawer-sheet-in {
+  animation: drawer-sheet-in 0.24s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .drawer-slide-in,
+  .drawer-sheet-in,
+  .modal-fade-in,
+  .modal-scale-in {
+    animation: none !important;
+  }
 }
 /* Nút "Tạo lại" của từng bước trong Script video: chỉ hiện khi hover hàng bước (desktop). */
 .step-regen {

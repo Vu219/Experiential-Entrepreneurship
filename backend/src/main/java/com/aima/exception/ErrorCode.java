@@ -297,6 +297,13 @@ public enum ErrorCode {
     ANALYTICS_EXPORT_TOO_LARGE(2053,
             "Kết quả vượt trần 50.000 dòng — thu hẹp khoảng ngày hoặc bộ lọc rồi export lại",
             HttpStatus.BAD_REQUEST),
+
+    // Bài đăng lỗi & bị từ chối (admin — FR-82/FR-83) — 2060+
+    FAILED_POST_RANGE_INVALID(2060, "Khoảng thời gian không hợp lệ — từ ngày phải trước đến ngày",
+            HttpStatus.BAD_REQUEST),
+    FAILED_POST_RANGE_TOO_LARGE(2061, "Khoảng thời gian quá dài — tối đa 366 ngày", HttpStatus.BAD_REQUEST),
+    FAILED_POST_EXPORT_TOO_LARGE(2062,
+            "Kết quả vượt trần 50.000 dòng — thu hẹp bộ lọc rồi export lại", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

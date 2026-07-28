@@ -8,6 +8,7 @@ import com.aima.enums.LogLevel;
 import com.aima.mapper.SystemLogMapper;
 import com.aima.repository.SystemLogRepository;
 import com.aima.service.SystemLogService;
+import com.aima.util.SqlTemporalUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -21,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -97,18 +97,10 @@ public class SystemLogServiceImpl implements SystemLogService {
                         LogLevel.valueOf((String) r[1]),
                         (String) r[2],
                         (String) r[3],
-                        toLocalDateTime(r[5]),
+                        SqlTemporalUtil.toLocalDateTime(r[5]),
                         ((Number) r[4]).longValue()))
                 .toList();
         return PageResponse.from(groups, content);
-    }
-
-    // MAX(created_at) native có thể trả LocalDateTime (Hibernate) hoặc java.sql.Timestamp tuỳ driver.
-    private static LocalDateTime toLocalDateTime(Object value) {
-        if (value instanceof Timestamp ts) {
-            return ts.toLocalDateTime();
-        }
-        return (LocalDateTime) value;
     }
 
     private void save(LogLevel level, String module, String message, String detail) {

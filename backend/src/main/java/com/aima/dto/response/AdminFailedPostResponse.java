@@ -43,6 +43,12 @@ public class AdminFailedPostResponse {
 
     String errorMessage;
 
+    @Schema(description = "Retries already attempted for this post (FR-56, max 3).")
+    Integer retryCount;
+
+    @Schema(description = "When the next retry is due; null once retries are exhausted or the error is permanent.")
+    LocalDateTime nextRetryAt;
+
     @Schema(description = "When the final failure happened.")
     LocalDateTime failedAt;
 }

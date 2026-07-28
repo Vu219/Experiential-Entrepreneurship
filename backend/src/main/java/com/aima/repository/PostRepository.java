@@ -44,6 +44,134 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             + "order by p.updatedAt desc")
     Page<Post> findFailedForAdmin(@Param("violationOnly") boolean violationOnly, Pageable pageable);
 
+    /*
+     * FR-82/FR-83 (trang admin đầy đủ): cùng tập bài với findFailedForAdmin nhưng lọc/tìm/sắp xếp
+     * server-side. Native vì mốc thời gian của bài lỗi là `failedAt` = end_time của job FAILED muộn
+     * nhất (không phải một cột trên `posts`) — JPQL không sắp xếp/lọc theo giá trị dẫn xuất đó được.
+     * Lùi về p.updated_at khi bài chưa có job FAILED nào, để không bài nào biến mất khỏi danh sách.
+     *
+     * Mọi tham số optional đều CAST(:x AS ...) trước khi so sánh với NULL — PostgreSQL không suy được
+     * kiểu của bind parameter trần trong biểu thức `is null`.
+     */
+    String FAILED_ADMIN_FROM = """
+            from posts p
+            join post_schedules ps on ps.id = p.schedule_id and ps.deleted_at is null
+            join platform_accounts pa on pa.id = ps.platform_account_id and pa.deleted_at is null
+            join users u on u.id = pa.user_id
+            left join content_versions cv on cv.id = ps.content_version_id and cv.deleted_at is null
+            cross join lateral (
+                select coalesce(max(j.end_time), p.updated_at) as failed_at
+                from posting_jobs j
+                where j.post_id = p.id and j.status = 'FAILED'
+            ) lj
+            where p.deleted_at is null
+              and p.status = 'FAILED'
+              and (cast(:mode as text) = 'ALL'
+                   or (cast(:mode as text) = 'POLICY' and exists (
+                        select 1 from posting_jobs j where j.post_id = p.id
+                          and j.error_type = 'POLICY_VIOLATION'))
+                   or (cast(:mode as text) = 'TECHNICAL' and not exists (
+                        select 1 from posting_jobs j where j.post_id = p.id
+                          and j.error_type = 'POLICY_VIOLATION')))
+              and (cast(:platform as text) is null or p.platform_name = cast(:platform as text))
+              and (cast(:errorType as text) is null or exists (
+                    select 1 from posting_jobs j where j.post_id = p.id
+                      and j.error_type = cast(:errorType as text)))
+              and (cast(:q as text) is null
+                   or lower(coalesce(cv.formatted_caption, '')) like lower(concat('%', cast(:q as text), '%'))
+                   or lower(u.email) like lower(concat('%', cast(:q as text), '%'))
+                   or lower(coalesce(pa.account_name, '')) like lower(concat('%', cast(:q as text), '%')))
+              and (cast(:from as timestamp) is null or lj.failed_at >= cast(:from as timestamp))
+              and (cast(:to as timestamp) is null or lj.failed_at < cast(:to as timestamp))
+            """;
+
+    @Query(value = "select p.* " + FAILED_ADMIN_FROM
+            + """
+            order by case when cast(:asc as boolean) then lj.failed_at end asc nulls last,
+                     case when not cast(:asc as boolean) then lj.failed_at end desc nulls last,
+                     p.id desc
+            """,
+            countQuery = "select count(*) " + FAILED_ADMIN_FROM,
+            nativeQuery = true)
+    Page<Post> searchFailedForAdmin(@Param("mode") String mode,
+                                    @Param("platform") String platform,
+                                    @Param("errorType") String errorType,
+                                    @Param("q") String q,
+                                    @Param("from") LocalDateTime from,
+                                    @Param("to") LocalDateTime to,
+                                    @Param("asc") boolean asc,
+                                    Pageable pageable);
+
+    @Query(value = "select count(*) " + FAILED_ADMIN_FROM, nativeQuery = true)
+    long countFailedForAdmin(@Param("mode") String mode,
+                             @Param("platform") String platform,
+                             @Param("errorType") String errorType,
+                             @Param("q") String q,
+                             @Param("from") LocalDateTime from,
+                             @Param("to") LocalDateTime to);
+
+    /*
+     * Khối 4 thẻ KPI: gom theo NGÀY thất bại trong [from, to). Mỗi ngày một dòng
+     * [day, total, policy, temporary, permanent, affectedUsers, affectedUsersTechnical].
+     *
+     * Lỗi kỹ thuật = total - policy (không cột riêng để hai con số không bao giờ lệch nhau).
+     * `temporary`/`permanent` đọc errorType của job FAILED MUỐN NHẤT — đúng job mà bảng danh sách
+     * đang hiển thị; hai số này CỐ Ý không cộng lại thành `technical` vì job có errorType null sẽ
+     * không rơi vào ô nào (thà thiếu còn hơn gán bừa).
+     *
+     * Các cột `affected*` là distinct THEO NGÀY (chỉ để lấy hình dạng sparkline); distinct cho cả
+     * kỳ phải hỏi countAffectedUsersForAdmin — cộng dồn theo ngày sẽ đếm trùng người dùng.
+     */
+    @Query(value = """
+            select cast(x.failed_at as date) as day,
+                   count(*) as total,
+                   sum(case when x.is_policy then 1 else 0 end) as policy,
+                   sum(case when not x.is_policy and x.last_error_type = 'TEMPORARY' then 1 else 0 end) as temporary_count,
+                   sum(case when not x.is_policy and x.last_error_type = 'PERMANENT' then 1 else 0 end) as permanent_count,
+                   count(distinct x.user_id) as affected_users,
+                   count(distinct case when not x.is_policy then x.user_id end) as affected_users_technical
+            from (
+                select p.id as id,
+                       pa.user_id as user_id,
+                       coalesce((select max(j.end_time) from posting_jobs j
+                                 where j.post_id = p.id and j.status = 'FAILED'), p.updated_at) as failed_at,
+                       exists (select 1 from posting_jobs j2 where j2.post_id = p.id
+                               and j2.error_type = 'POLICY_VIOLATION') as is_policy,
+                       (select j3.error_type from posting_jobs j3
+                        where j3.post_id = p.id and j3.status = 'FAILED'
+                        order by j3.end_time desc nulls last limit 1) as last_error_type
+                from posts p
+                join post_schedules ps on ps.id = p.schedule_id and ps.deleted_at is null
+                join platform_accounts pa on pa.id = ps.platform_account_id and pa.deleted_at is null
+                where p.deleted_at is null and p.status = 'FAILED'
+            ) x
+            where x.failed_at >= :from and x.failed_at < :to
+            group by cast(x.failed_at as date)
+            order by 1
+            """, nativeQuery = true)
+    List<Object[]> countFailedForAdminByDay(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    /**
+     * Số người dùng RIÊNG BIỆT có bài lỗi trong kỳ — không suy được từ tổng theo ngày.
+     * `technicalOnly` = true thì chỉ tính bài KHÔNG vi phạm chính sách (tab "Lỗi hệ thống").
+     */
+    @Query(value = """
+            select count(distinct pa.user_id)
+            from posts p
+            join post_schedules ps on ps.id = p.schedule_id and ps.deleted_at is null
+            join platform_accounts pa on pa.id = ps.platform_account_id and pa.deleted_at is null
+            where p.deleted_at is null and p.status = 'FAILED'
+              and (:technicalOnly = false or not exists (
+                    select 1 from posting_jobs j0 where j0.post_id = p.id
+                      and j0.error_type = 'POLICY_VIOLATION'))
+              and coalesce((select max(j.end_time) from posting_jobs j
+                            where j.post_id = p.id and j.status = 'FAILED'), p.updated_at) >= :from
+              and coalesce((select max(j.end_time) from posting_jobs j
+                            where j.post_id = p.id and j.status = 'FAILED'), p.updated_at) < :to
+            """, nativeQuery = true)
+    long countAffectedUsersForAdmin(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to,
+                                    @Param("technicalOnly") boolean technicalOnly);
+
     // FR-35..FR-39: bài lỗi CHƯA xử lý của CHÍNH user (trang "Bài lỗi & cần xử lý"), lọc phân loại
     // mode = ALL | POLICY (vi phạm chính sách) | TECHNICAL (lỗi kỹ thuật — không phải vi phạm).
     // Chỉ tính lịch còn FAILED: hủy/đặt lại/đăng lại sẽ đổi schedule khỏi FAILED → tự rời danh sách.

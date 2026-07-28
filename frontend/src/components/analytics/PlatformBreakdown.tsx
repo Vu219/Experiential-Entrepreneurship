@@ -11,14 +11,17 @@ import { PLATFORM_DONUT } from './analyticsTokens';
 import type { AnalyticsPlatform } from '../../api/analytics';
 
 /**
- * Khối D — "Hiệu suất theo nền tảng": donut tỷ trọng tương tác BÊN TRÁI + danh sách 3 nền tảng BÊN
- * PHẢI (icon + tên + số + %). Backend luôn trả đủ 3 nền tảng; nền tảng chưa kết nối
- * ({@code connected=false}) hiện CTA "Kết nối ngay" dẫn về Cài đặt (nơi duy nhất chạy OAuth). Cùng
- * mẫu donut với `dashboard/ContentTypeDonut` (tâm ngoài SVG cho chữ sắc nét).
+ * Khối D — "Hiệu suất theo nền tảng": donut tỷ trọng tương tác Ở TRÊN (căn giữa card) + danh sách 3
+ * nền tảng Ở DƯỚI, mỗi dòng full width (icon + tên + số + %). Backend luôn trả đủ 3 nền tảng; nền
+ * tảng chưa kết nối ({@code connected=false}) hiện CTA "Kết nối ngay" dẫn về Cài đặt (nơi duy nhất
+ * chạy OAuth). Cùng mẫu donut với `dashboard/ContentTypeDonut` (tâm ngoài SVG cho chữ sắc nét).
  *
- * Donut/list tự gập xuống một cột bằng `flex-wrap` khi card hẹp (tablet/mobile, hoặc cột 4 ở màn
- * 1280) — không cần breakpoint riêng cho card này.
+ * Xếp DỌC chứ không donut-trái/list-phải: card nằm ở cột 4 của lưới nên khi để cạnh nhau danh sách
+ * chỉ còn ~120px, tên nền tảng và tên tài khoản đều bị cắt ellipsis. Bố cục dọc dùng chung cho mọi
+ * bề rộng → không cần breakpoint riêng cho card này.
  */
+/** Đường kính donut — `AnalyticsSkeleton.PlatformSkeleton` dùng đúng con số này để không nhảy. */
+const DONUT = 150;
 function PlatformBreakdown({ rows, from, to }: { rows: AnalyticsPlatform[]; from: string; to: string }) {
   const { t, lang } = useApp();
 
@@ -53,11 +56,11 @@ function PlatformBreakdown({ rows, from, to }: { rows: AnalyticsPlatform[]; from
           </div>
         </>
       ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginTop: 14, flex: 1 }}>
-          <div style={{ position: 'relative', width: 132, height: 132, flex: 'none' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', marginTop: 14, flex: 1 }}>
+          <div style={{ position: 'relative', width: DONUT, height: DONUT, flex: 'none', margin: '0 auto' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={slices} dataKey="engagement" nameKey="platform" innerRadius={42} outerRadius={60}
+                <Pie data={slices} dataKey="engagement" nameKey="platform" innerRadius={48} outerRadius={68}
                   paddingAngle={2} stroke="none" isAnimationActive={false}>
                   {slices.map((r) => (
                     <Cell key={r.platform} fill={PLATFORM_DONUT[r.platform] ?? '#8b5cf6'} />
@@ -70,27 +73,29 @@ function PlatformBreakdown({ rows, from, to }: { rows: AnalyticsPlatform[]; from
               alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', padding: '0 8px',
             }}>
               <div style={{
-                fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: '#211c38',
+                fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: '#211c38',
                 maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>
                 {formatGroupedNumber(totalEngagement, lang)}
               </div>
-              <div style={{ fontSize: 10.5, color: '#8a85a0' }}>{t.anaEngagement}</div>
+              <div style={{ fontSize: 11, color: '#8a85a0' }}>{t.anaEngagement}</div>
             </div>
           </div>
-          <PlatformList rows={rows} />
+          <div style={{ display: 'flex', marginTop: 14, flex: 1 }}>
+            <PlatformList rows={rows} />
+          </div>
         </div>
       )}
     </Card>
   );
 }
 
-/** Danh sách 3 nền tảng — `flex: 1 1 120px` để đứng cạnh donut khi đủ chỗ, tự xuống dòng khi hẹp. */
+/** Danh sách 3 nền tảng, mỗi dòng full width dưới donut. */
 function PlatformList({ rows }: { rows: AnalyticsPlatform[] }) {
   const { t, go, lang } = useApp();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: '1 1 120px', minWidth: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minWidth: 0 }}>
       {rows.map((row) => {
         const tag = PLATFORM_TO_TAG[row.platform] ?? 'FB';
         const name = PLATFORMS.find((p) => p.tag === tag)?.name ?? row.platform;

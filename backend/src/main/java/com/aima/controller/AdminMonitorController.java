@@ -2,6 +2,7 @@ package com.aima.controller;
 
 import com.aima.dto.response.ActivityLogResponse;
 import com.aima.dto.response.AdminFailedPostResponse;
+import com.aima.dto.response.AdminFailedPostSummaryResponse;
 import com.aima.dto.response.AdminSystemStatusResponse;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.PageResponse;
@@ -9,7 +10,10 @@ import com.aima.dto.response.SystemActivityResponse;
 import com.aima.dto.response.SystemLogResponse;
 import com.aima.enums.ActivityAction;
 import com.aima.enums.ActivityResult;
+import com.aima.enums.FailedPostFilter;
 import com.aima.enums.LogLevel;
+import com.aima.enums.Platform;
+import com.aima.enums.PublishErrorType;
 import com.aima.service.ActivityLogService;
 import com.aima.service.AdminMonitorService;
 import com.aima.service.SystemLogService;
@@ -61,12 +65,58 @@ public class AdminMonitorController {
 
     @GetMapping("/posts/failed")
     @Operation(summary = "Failed posts across all users (FR-82/FR-83)",
-            description = "Paged, newest failures first; violationOnly=true returns only policy-rejected posts (FR-82).")
+            description = "Phân trang + lọc + tìm kiếm server-side, mặc định thất bại mới nhất trước. "
+                    + "filter = ALL | POLICY (bị nền tảng từ chối, FR-82) | TECHNICAL (lỗi hệ thống, FR-83); "
+                    + "lọc thêm platform / errorType / khoảng ngày (to BAO GỒM cả ngày đó) / q "
+                    + "(caption, email chủ bài, tên tài khoản đăng). sort = 'failedAt,asc' để đảo chiều. "
+                    + "violationOnly giữ nguyên cho caller cũ — true ⇒ ép filter về POLICY. "
+                    + "Ngày ở đây là THỜI ĐIỂM THẤT BẠI (end_time của job FAILED muộn nhất).")
     public ApiResponse<PageResponse<AdminFailedPostResponse>> listFailedPosts(
+            @RequestParam(defaultValue = "ALL") FailedPostFilter filter,
             @RequestParam(defaultValue = "false") boolean violationOnly,
+            @RequestParam(required = false) Platform platform,
+            @RequestParam(required = false) PublishErrorType errorType,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "failedAt,desc") String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return adminMonitorService.listFailedPosts(violationOnly, page, size);
+        AdminMonitorService.FailedPostFilterQuery query =
+                new AdminMonitorService.FailedPostFilterQuery(filter, violationOnly, platform, errorType, from, to, q);
+        return adminMonitorService.listFailedPosts(query, sort.endsWith("asc"), page, size);
+    }
+
+    @GetMapping("/posts/failed/summary")
+    @Operation(summary = "KPI block for the failed/rejected posts page (FR-82/FR-83)",
+            description = "Trả CẢ 6 chỉ số để client dựng 2 bộ thẻ: tab \"Bị từ chối\" dùng total / "
+                    + "policyViolation / technical / affectedUsers; tab \"Lỗi hệ thống\" dùng total / temporary "
+                    + "/ permanent / affectedUsers. `kind` chỉ đổi PHẠM VI của total + affectedUsers "
+                    + "(TECHNICAL ⇒ chỉ bài lỗi kỹ thuật). Mỗi thẻ kèm deltaState (PERCENT | NEW | NONE) + "
+                    + "deltaPct so với kỳ trước LIỀN KỀ và chuỗi đếm theo ngày (zero-fill) cho sparkline. "
+                    + "Số đếm badge của 2 tab cũng lấy từ đây. Tối đa 366 ngày.")
+    public ApiResponse<AdminFailedPostSummaryResponse> failedPostSummary(
+            @RequestParam(defaultValue = "POLICY") FailedPostFilter kind,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return adminMonitorService.failedPostSummary(kind, from, to);
+    }
+
+    @GetMapping("/posts/failed/export")
+    @Operation(summary = "Export CSV bài lỗi theo ĐÚNG bộ lọc đang chọn",
+            description = "CSV dạng chuỗi trong result (FE tự tạo file) — cùng quy ước với export log hoạt "
+                    + "động. Vượt 50.000 dòng → lỗi 2062, KHÔNG cắt cụt im lặng.")
+    public ApiResponse<String> exportFailedPosts(
+            @RequestParam(defaultValue = "ALL") FailedPostFilter filter,
+            @RequestParam(defaultValue = "false") boolean violationOnly,
+            @RequestParam(required = false) Platform platform,
+            @RequestParam(required = false) PublishErrorType errorType,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String q) {
+        AdminMonitorService.FailedPostFilterQuery query =
+                new AdminMonitorService.FailedPostFilterQuery(filter, violationOnly, platform, errorType, from, to, q);
+        return adminMonitorService.exportFailedPosts(query);
     }
 
     @GetMapping("/logs")

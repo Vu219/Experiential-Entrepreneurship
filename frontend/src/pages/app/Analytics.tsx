@@ -18,7 +18,8 @@ import AllPostsModal from '../../components/analytics/AllPostsModal.tsx';
 import PostDetailModal from '../../components/analytics/PostDetailModal.tsx';
 import BlockError from '../../components/analytics/BlockError.tsx';
 import AnalyticsSkeleton, {
-  BlockSkeleton, InsightsSkeleton, KpiSkeleton, TopPostsSkeleton,
+  BlockSkeleton, ContentTypeSkeleton, HeatmapSkeleton, InsightsSkeleton, KpiCardSkeleton,
+  PlatformSkeleton, TopPostsSkeleton,
 } from '../../components/analytics/AnalyticsSkeleton.tsx';
 import { METRIC_TONE } from '../../components/analytics/analyticsTokens.ts';
 import { defaultRange } from '../../components/analytics/dateRange.ts';
@@ -55,11 +56,24 @@ const EXPORT_TOO_LARGE_CODE = 2053;
 /** Một khoảng cách duy nhất cho cả hàng lẫn cột của lưới 12 cột. */
 const GRID_GAP = 18;
 
-/** Một ô của lưới 12 cột. Class `.ana-cell` (index.css) cho card con cao đầy ô → hai card cùng
- *  hàng bằng nhau mà không cần biết chiều cao trước. */
-function Cell({ span, children }: { span: number; children: ReactNode }) {
-  return <div className="ana-cell" style={{ gridColumn: `span ${span}` }}>{children}</div>;
+/**
+ * Một ô của lưới 12 cột. Class `.ana-cell` (index.css) cho card con cao đầy ô → hai card cùng hàng
+ * bằng nhau mà không cần biết chiều cao trước.
+ *
+ * `ready` = khối đã có dữ liệu thật → thêm `.ana-in` để nội dung hiện lên bằng fade + trượt nhẹ thay
+ * vì "nhảy" thẳng từ khung xương sang. Cờ này chỉ bật khi khối đổi từ khung xương sang dữ liệu (mỗi
+ * khối tải xong một lúc khác nhau nên hiệu ứng tự so le, không cần delay thủ công).
+ */
+function Cell({ span, ready = false, children }: { span: number; ready?: boolean; children: ReactNode }) {
+  return (
+    <div className={cellClass(ready)} style={{ gridColumn: `span ${span}` }}>
+      {children}
+    </div>
+  );
 }
+
+/** Dùng chung cho ô lưới và hai tầng của cột phải (heatmap/loại nội dung không phải ô lưới). */
+const cellClass = (ready: boolean) => (ready ? 'ana-cell ana-in' : 'ana-cell');
 
 function parseCsvParam<T extends string>(raw: string | null, allowed: readonly T[]): T[] {
   if (!raw) return [];
@@ -74,7 +88,7 @@ const ddmmyyyy = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.
 
 export default function Analytics() {
   const { t } = useApp();
-  const { isMobile, isTablet, width } = useBreakpoint();
+  const { isMobile, width } = useBreakpoint();
   const toast = useToast();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -232,13 +246,17 @@ export default function Analytics() {
   if (!booted) {
     return (
       <PageContainer>
-        <AnalyticsSkeleton isMobile={isMobile} isTablet={isTablet} withToolbar />
+        <AnalyticsSkeleton width={width} withToolbar />
       </PageContainer>
     );
   }
 
+  // Mỗi khối: lỗi → nút thử lại · đang tải → ĐÚNG khung xương của chính khối đó (cùng bố cục, cùng
+  // chiều cao tự nhiên) · xong → dữ liệu thật kèm fade-in qua `ready` của `Cell`.
+  const coreReady = coreLoad === 'ok' && !!summary;
+
   const chartBlock = coreLoad === 'error' ? <BlockError onRetry={fetchCore} minHeight={280} />
-    : coreLoad === 'loading' || !series ? <BlockSkeleton height={360} />
+    : coreLoad === 'loading' || !series ? <BlockSkeleton minHeight={424} />
       : <AnalyticsTrendChart points={series.points} from={filter.from} to={filter.to} />;
 
   const topPostsBlock = topPosts.status === 'loading' ? <TopPostsSkeleton />
@@ -250,15 +268,15 @@ export default function Analytics() {
         />
       );
 
-  const platformBlock = byPlatform.status === 'loading' ? <BlockSkeleton withDonut />
+  const platformBlock = byPlatform.status === 'loading' ? <PlatformSkeleton />
     : byPlatform.status === 'error' ? <BlockError onRetry={byPlatform.reload} />
       : <PlatformBreakdown rows={byPlatform.data ?? []} from={filter.from} to={filter.to} />;
 
-  const contentTypeBlock = byContentType.status === 'loading' ? <BlockSkeleton height={260} withDonut />
+  const contentTypeBlock = byContentType.status === 'loading' ? <ContentTypeSkeleton />
     : byContentType.status === 'error' ? <BlockError onRetry={byContentType.reload} />
       : <ContentTypeBreakdown rows={byContentType.data ?? []} from={filter.from} to={filter.to} />;
 
-  const heatmapBlock = heatmap.status === 'loading' ? <BlockSkeleton height={260} />
+  const heatmapBlock = heatmap.status === 'loading' ? <HeatmapSkeleton />
     : heatmap.status === 'error' ? <BlockError onRetry={heatmap.reload} />
       : heatmap.data ? <ActivityHeatmap data={heatmap.data} from={filter.from} to={filter.to} /> : null;
 
@@ -285,14 +303,15 @@ export default function Analytics() {
         display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
         gap: GRID_GAP, alignItems: 'stretch',
       }}>
-        {/* B — 4 KPI */}
+        {/* B — 4 KPI. Lúc tải vẫn là 4 ô ĐÚNG span của trang (không phải một ô 12 chứa lưới con) →
+            đổi bộ lọc không làm hàng KPI đổi số cột trong nháy mắt. */}
         {coreLoad === 'error' ? (
           <Cell span={12}><BlockError onRetry={fetchCore} minHeight={120} /></Cell>
-        ) : coreLoad === 'loading' || !summary ? (
-          <Cell span={12}><KpiSkeleton cols={12 / kpiSpan} /></Cell>
+        ) : !coreReady ? (
+          kpi.map((k) => <Cell key={k.key} span={kpiSpan}><KpiCardSkeleton /></Cell>)
         ) : (
           kpi.map((k) => (
-            <Cell key={k.key} span={kpiSpan}>
+            <Cell key={k.key} span={kpiSpan} ready>
               <KpiCard icon={k.icon} tone={METRIC_TONE[k.key]} label={k.label}
                 stat={summary[k.key]} comparisonLabel={compareLabel} />
             </Cell>
@@ -300,23 +319,27 @@ export default function Analytics() {
         )}
 
         {/* C — chart 8 + hiệu suất nền tảng 4 (cùng hàng ⇒ tự bằng chiều cao) */}
-        <Cell span={mainSpan}>{chartBlock}</Cell>
-        <Cell span={sideSpan}>{platformBlock}</Cell>
+        <Cell span={mainSpan} ready={coreLoad === 'ok' && !!series}>{chartBlock}</Cell>
+        <Cell span={sideSpan} ready={byPlatform.status === 'ok'}>{platformBlock}</Cell>
 
         {/* D — Top bài viết 8 + cột phải 4 chẻ đôi: loại nội dung (hút chiều cao dôi) trên, heatmap
             dưới. Cột phải là flex column nên TỔNG chiều cao hai card = chiều cao bảng bên trái. */}
-        <Cell span={mainSpan}>{topPostsBlock}</Cell>
+        <Cell span={mainSpan} ready={topPosts.status === 'ok'}>{topPostsBlock}</Cell>
         <Cell span={sideSpan}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: GRID_GAP, minWidth: 0 }}>
             {/* `.ana-cell` cho card con lấp đầy bề ngang; card trên nhận flex:1 để hút phần dôi,
                 card heatmap giữ chiều cao tự nhiên → không cần px cứng cho card nào. */}
-            <div className="ana-cell" style={{ flex: 1, minHeight: 0 }}>{contentTypeBlock}</div>
-            {heatmapBlock && <div className="ana-cell" style={{ flex: 'none' }}>{heatmapBlock}</div>}
+            <div className={cellClass(byContentType.status === 'ok')} style={{ flex: 1, minHeight: 0 }}>
+              {contentTypeBlock}
+            </div>
+            {heatmapBlock && (
+              <div className={cellClass(heatmap.status === 'ok')} style={{ flex: 'none' }}>{heatmapBlock}</div>
+            )}
           </div>
         </Cell>
 
         {/* E — dải "Thông tin chi tiết" cuối trang, full width */}
-        {insightsBlock && <Cell span={12}>{insightsBlock}</Cell>}
+        {insightsBlock && <Cell span={12} ready={insights.status === 'ok'}>{insightsBlock}</Cell>}
       </div>
 
       {allPostsOpen && (

@@ -1,6 +1,7 @@
 package com.aima.service.Impl;
 
 import com.aima.dto.response.AdminFailedPostResponse;
+import com.aima.dto.response.AdminFailedPostSummaryResponse;
 import com.aima.dto.response.AdminSystemStatusResponse;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.PageResponse;
@@ -9,10 +10,13 @@ import com.aima.entity.Post;
 import com.aima.entity.PostingJob;
 import com.aima.entity.PublishResult;
 import com.aima.enums.ConnectionStatus;
+import com.aima.enums.FailedPostFilter;
 import com.aima.enums.LogLevel;
 import com.aima.enums.PostStatus;
 import com.aima.enums.PostingJobStatus;
 import com.aima.enums.ScheduleStatus;
+import com.aima.exception.AppException;
+import com.aima.exception.ErrorCode;
 import com.aima.mapper.AdminMonitorMapper;
 import com.aima.mapper.SystemLogMapper;
 import com.aima.repository.PlatformAccountRepository;
@@ -21,6 +25,8 @@ import com.aima.repository.PostScheduleRepository;
 import com.aima.repository.SystemLogRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.AdminMonitorService;
+import com.aima.util.CsvUtil;
+import com.aima.util.SqlTemporalUtil;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -42,9 +48,12 @@ import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +70,14 @@ public class AdminMonitorServiceImpl implements AdminMonitorService {
 
     static final String STATUS_UP = "UP";
     static final String STATUS_DOWN = "DOWN";
+
+    // Trần export + kích thước lô: giống export log hoạt động / doanh thu để hành vi nhất quán.
+    static final int EXPORT_MAX_ROWS = 50_000;
+    static final int EXPORT_CHUNK = 1_000;
+    static final int MAX_PAGE_SIZE = 50;
+    static final int MAX_RANGE_DAYS = 366;
+    /** Ngày không có bài lỗi nào — 6 cột đếm của countFailedForAdminByDay đều 0. */
+    static final long[] EMPTY_DAY = {0L, 0L, 0L, 0L, 0L, 0L};
 
     UserRepository userRepository;
     PlatformAccountRepository platformAccountRepository;
@@ -129,16 +146,223 @@ public class AdminMonitorServiceImpl implements AdminMonitorService {
 
     @Override
     @Transactional(readOnly = true)
-    public ApiResponse<PageResponse<AdminFailedPostResponse>> listFailedPosts(boolean violationOnly,
-                                                                              int page, int size) {
-        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 50));
-        Page<Post> posts = postRepository.findFailedForAdmin(violationOnly, pageable);
+    public ApiResponse<PageResponse<AdminFailedPostResponse>> listFailedPosts(FailedPostFilterQuery query,
+                                                                              boolean ascending, int page, int size) {
+        validateRange(query.from(), query.to());
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
+        Page<Post> posts = postRepository.searchFailedForAdmin(mode(query), name(query.platform()),
+                name(query.errorType()), blankToNull(query.q()), startOf(query.from()), endOf(query.to()),
+                ascending, pageable);
 
         List<AdminFailedPostResponse> content = posts.getContent().stream()
                 .map(this::toFailedPost)
                 .toList();
         PageResponse<AdminFailedPostResponse> response = PageResponse.from(posts, content);
         return ApiResponse.success("Lấy danh sách bài thất bại thành công", response);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApiResponse<AdminFailedPostSummaryResponse> failedPostSummary(FailedPostFilter kind,
+                                                                         LocalDate from, LocalDate to) {
+        validateRange(from, to);
+        if (from == null || to == null) {
+            throw new AppException(ErrorCode.FAILED_POST_RANGE_INVALID);
+        }
+        long days = ChronoUnit.DAYS.between(from, to) + 1;
+        LocalDate prevTo = from.minusDays(1);
+        LocalDate prevFrom = prevTo.minusDays(days - 1);
+
+        DailyTotals current = dailyTotals(from, to);
+        DailyTotals previous = dailyTotals(prevFrom, prevTo);
+
+        // Tab "Lỗi hệ thống" nhìn một tập con: tổng và số người bị ảnh hưởng đều phải thu hẹp
+        // theo tập đó, nếu không thẻ "Tổng" sẽ to hơn tổng các thẻ con ngay bên cạnh.
+        boolean technicalOnly = kind == FailedPostFilter.TECHNICAL;
+        MetricSeries totalNow = technicalOnly ? current.technical() : current.total();
+        MetricSeries totalPrev = technicalOnly ? previous.technical() : previous.total();
+        long affectedNow = postRepository.countAffectedUsersForAdmin(startOf(from), endOf(to), technicalOnly);
+        long affectedPrev = postRepository.countAffectedUsersForAdmin(startOf(prevFrom), endOf(prevTo), technicalOnly);
+        List<Long> affectedSeries = technicalOnly ? current.affectedTechnical().series() : current.affectedAll().series();
+
+        AdminFailedPostSummaryResponse response = adminMonitorMapper.toFailedPostSummary(
+                kind,
+                kpi(totalNow, totalPrev),
+                kpi(current.policy(), previous.policy()),
+                kpi(current.technical(), previous.technical()),
+                kpi(current.temporary(), previous.temporary()),
+                kpi(current.permanent(), previous.permanent()),
+                kpi(new MetricSeries(affectedNow, affectedSeries),
+                        new MetricSeries(affectedPrev, List.of())),
+                prevFrom, prevTo);
+        return ApiResponse.success("Lấy tổng quan bài lỗi thành công", response);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApiResponse<String> exportFailedPosts(FailedPostFilterQuery query) {
+        validateRange(query.from(), query.to());
+        String mode = mode(query);
+        String platform = name(query.platform());
+        String errorType = name(query.errorType());
+        String q = blankToNull(query.q());
+        LocalDateTime from = startOf(query.from());
+        LocalDateTime to = endOf(query.to());
+
+        long count = postRepository.countFailedForAdmin(mode, platform, errorType, q, from, to);
+        if (count > EXPORT_MAX_ROWS) {
+            // KHÔNG cắt cụt im lặng — admin thu hẹp filter rồi export lại (như export log/doanh thu).
+            throw new AppException(ErrorCode.FAILED_POST_EXPORT_TOO_LARGE);
+        }
+
+        StringBuilder csv = new StringBuilder(
+                "failed_at,platform,owner_email,account_name,error_type,error_code,error_message,"
+                        + "retry_count,next_retry_at,caption\n");
+        for (int chunk = 0; chunk * EXPORT_CHUNK < count; chunk++) {
+            postRepository.searchFailedForAdmin(mode, platform, errorType, q, from, to, false,
+                            PageRequest.of(chunk, EXPORT_CHUNK))
+                    .getContent().stream()
+                    .map(this::toFailedPost)
+                    .forEach(row -> appendCsvRow(csv, row));
+        }
+        return ApiResponse.success("Export bài lỗi thành công", csv.toString());
+    }
+
+    /** Một chỉ số: tổng cả kỳ + chuỗi đếm theo ngày (đã zero-fill) để vẽ sparkline. */
+    private record MetricSeries(long total, List<Long> series) {
+    }
+
+    /** Sáu chỉ số của một kỳ, đủ cho cả hai bộ thẻ KPI (tab Bị từ chối và tab Lỗi hệ thống). */
+    private record DailyTotals(MetricSeries total, MetricSeries policy, MetricSeries technical,
+                               MetricSeries temporary, MetricSeries permanent,
+                               MetricSeries affectedAll, MetricSeries affectedTechnical) {
+    }
+
+    /** Vị trí các cột đếm trong một dòng của countFailedForAdminByDay (sau cột `day`). */
+    private static final int COL_TOTAL = 0;
+    private static final int COL_POLICY = 1;
+    private static final int COL_TEMPORARY = 2;
+    private static final int COL_PERMANENT = 3;
+    private static final int COL_AFFECTED = 4;
+    private static final int COL_AFFECTED_TECH = 5;
+
+    /**
+     * Gom kết quả GROUP BY theo ngày về chuỗi liên tục [from..to]: ngày không có bài lỗi vẫn phải
+     * có điểm 0, nếu không sparkline sẽ bóp méo khoảng cách giữa các ngày.
+     */
+    private DailyTotals dailyTotals(LocalDate from, LocalDate to) {
+        Map<LocalDate, long[]> byDay = new HashMap<>();
+        for (Object[] row : postRepository.countFailedForAdminByDay(startOf(from), endOf(to))) {
+            LocalDate day = SqlTemporalUtil.toLocalDate(row[0]);
+            long[] counts = new long[EMPTY_DAY.length];
+            for (int i = 0; i < counts.length; i++) {
+                counts[i] = ((Number) row[i + 1]).longValue();
+            }
+            byDay.put(day, counts);
+        }
+
+        List<Long> totals = new ArrayList<>();
+        List<Long> policies = new ArrayList<>();
+        List<Long> technicals = new ArrayList<>();
+        List<Long> temporaries = new ArrayList<>();
+        List<Long> permanents = new ArrayList<>();
+        List<Long> affectedAll = new ArrayList<>();
+        List<Long> affectedTech = new ArrayList<>();
+        long sumTotal = 0;
+        long sumPolicy = 0;
+        long sumTemporary = 0;
+        long sumPermanent = 0;
+        for (LocalDate day = from; !day.isAfter(to); day = day.plusDays(1)) {
+            long[] v = byDay.getOrDefault(day, EMPTY_DAY);
+            totals.add(v[COL_TOTAL]);
+            policies.add(v[COL_POLICY]);
+            technicals.add(v[COL_TOTAL] - v[COL_POLICY]);
+            temporaries.add(v[COL_TEMPORARY]);
+            permanents.add(v[COL_PERMANENT]);
+            affectedAll.add(v[COL_AFFECTED]);
+            affectedTech.add(v[COL_AFFECTED_TECH]);
+            sumTotal += v[COL_TOTAL];
+            sumPolicy += v[COL_POLICY];
+            sumTemporary += v[COL_TEMPORARY];
+            sumPermanent += v[COL_PERMANENT];
+        }
+        return new DailyTotals(
+                new MetricSeries(sumTotal, totals),
+                new MetricSeries(sumPolicy, policies),
+                new MetricSeries(sumTotal - sumPolicy, technicals),
+                new MetricSeries(sumTemporary, temporaries),
+                new MetricSeries(sumPermanent, permanents),
+                new MetricSeries(0, affectedAll),
+                new MetricSeries(0, affectedTech));
+    }
+
+    /**
+     * Ô "% thay đổi" có BA trạng thái khác nhau vì kỳ trước bằng 0 không có nghĩa duy nhất:
+     * cả hai kỳ đều 0 ⇒ NONE ("—", không có gì để so); kỳ này mới phát sinh ⇒ NEW ("Mới", không
+     * phải +∞%); còn lại mới tính phần trăm. Nhờ vậy ô 0 bài KHÔNG bao giờ hiện -100%.
+     */
+    private AdminFailedPostSummaryResponse.Kpi kpi(MetricSeries current, MetricSeries previous) {
+        long value = current.total();
+        long prev = previous.total();
+        if (prev == 0) {
+            AdminFailedPostSummaryResponse.DeltaState state = value == 0
+                    ? AdminFailedPostSummaryResponse.DeltaState.NONE
+                    : AdminFailedPostSummaryResponse.DeltaState.NEW;
+            return adminMonitorMapper.toKpi(value, null, state, current.series());
+        }
+        int deltaPct = (int) Math.round((value - prev) * 100.0 / prev);
+        return adminMonitorMapper.toKpi(value, deltaPct,
+                AdminFailedPostSummaryResponse.DeltaState.PERCENT, current.series());
+    }
+
+    /** violationOnly (cờ cũ) thắng filter — caller cũ chỉ biết cờ này. */
+    private static String mode(FailedPostFilterQuery query) {
+        if (query.violationOnly()) {
+            return FailedPostFilter.POLICY.name();
+        }
+        return (query.filter() == null ? FailedPostFilter.ALL : query.filter()).name();
+    }
+
+    private static String name(Enum<?> value) {
+        return value == null ? null : value.name();
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static LocalDateTime startOf(LocalDate date) {
+        return date == null ? null : date.atStartOfDay();
+    }
+
+    /** `to` BAO GỒM cả ngày đó → mốc trên là 00:00 ngày kế tiếp (so sánh nửa mở, cùng quy ước log). */
+    private static LocalDateTime endOf(LocalDate date) {
+        return date == null ? null : date.plusDays(1).atStartOfDay();
+    }
+
+    private static void validateRange(LocalDate from, LocalDate to) {
+        if (from == null || to == null) {
+            return;
+        }
+        if (from.isAfter(to)) {
+            throw new AppException(ErrorCode.FAILED_POST_RANGE_INVALID);
+        }
+        if (ChronoUnit.DAYS.between(from, to) + 1 > MAX_RANGE_DAYS) {
+            throw new AppException(ErrorCode.FAILED_POST_RANGE_TOO_LARGE);
+        }
+    }
+
+    private static void appendCsvRow(StringBuilder csv, AdminFailedPostResponse row) {
+        csv.append(CsvUtil.nullToEmpty(row.getFailedAt())).append(',')
+                .append(CsvUtil.nullToEmpty(row.getPlatformName())).append(',')
+                .append(CsvUtil.field(row.getOwnerEmail())).append(',')
+                .append(CsvUtil.field(row.getAccountName())).append(',')
+                .append(CsvUtil.nullToEmpty(row.getErrorType())).append(',')
+                .append(CsvUtil.field(row.getErrorCode())).append(',')
+                .append(CsvUtil.field(row.getErrorMessage())).append(',')
+                .append(CsvUtil.nullToEmpty(row.getRetryCount())).append(',')
+                .append(CsvUtil.nullToEmpty(row.getNextRetryAt())).append(',')
+                .append(CsvUtil.field(row.getCaption())).append('\n');
     }
 
     // Job FAILED cuối = nguồn errorType/thời điểm; PublishResult lỗi cuối = mã + message gốc (FR-35).
