@@ -118,13 +118,17 @@ export default function Analytics() {
     setParams(next, { replace: true });
   }, [params, setParams]);
 
+  // Patch được MERGE vào bộ lọc đang áp dụng trước khi ghi lên URL. Bản cũ ghi thẳng từng khoá
+  // của patch, mà `patchParams` hiểu `undefined` = XOÁ khoá → sửa một phần (bỏ 1 chip nền tảng,
+  // tick 1 loại nội dung) làm bay luôn các bộ lọc còn lại VÀ cả khoảng ngày.
   const onFilterChange = useCallback((patch: Partial<AnalyticsFilter>) => {
+    const next = { ...filter, ...patch };
     patchParams({
-      from: patch.from, to: patch.to,
-      platforms: patch.platforms ? patch.platforms.join(',') || undefined : undefined,
-      types: patch.contentTypes ? patch.contentTypes.join(',') || undefined : undefined,
+      from: next.from, to: next.to,
+      platforms: next.platforms.join(',') || undefined,
+      types: next.contentTypes.join(',') || undefined,
     });
-  }, [patchParams]);
+  }, [filter, patchParams]);
   const setSort = (next: TopPostSort) => patchParams({ sortField: next.field, sortDir: next.asc ? 'asc' : 'desc' });
 
   // Khoá ổn định để các useCallback bên dưới chỉ đổi khi bộ lọc thực sự đổi.

@@ -3,6 +3,7 @@ package com.aima.mapper;
 import com.aima.dto.request.CompleteProfileRequest;
 import com.aima.dto.response.DeleteAccountResponse;
 import com.aima.dto.response.MeResponse;
+import com.aima.dto.response.ProfileStatsResponse;
 import com.aima.dto.response.TokenUsageResponse;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
@@ -57,6 +58,11 @@ public interface UserMapper {
     void updateByAdmin(AdminUpdateUserRequest request, @MappingTarget User user);
 
     DeleteAccountResponse toDeleteAccountResponse(User user, Long daysRemaining, String message);
+
+    // Hai ô số card hồ sơ — tên tham số trùng tên property đích nên MapStruct tự khớp.
+    // Tham số phải BOXED: toàn tham số nguyên thủy thì MapStruct sinh ra `if (  )` rỗng (không có
+    // nguồn nào để null-check) và file sinh ra không biên dịch được.
+    ProfileStatsResponse toProfileStatsResponse(Long postsPublished, Long totalReach);
 
     // used/limit khớp tên tham số; plan lấy từ user (null → FREE, cùng quy ước toResponse).
     @Mapping(target = "plan", expression = "java(user.getPlan() != null ? user.getPlan().name() : \"FREE\")")

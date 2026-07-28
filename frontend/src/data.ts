@@ -188,25 +188,6 @@ export const brandToneLabels = (lang: Lang) =>
     : ['Truyền cảm hứng', 'Sáng tạo', 'Đáng tin', 'Trẻ trung', 'Tối giản', 'Chuyên nghiệp'];
 export const brandColors = ['#22D3EE', '#8B5CF6', '#EC4899', '#6366F1', '#1877f2'];
 
-// ===== Profile activity =====
-export function activity(lang: Lang) {
-  const rows: [string, string, string, string][] =
-    lang === 'en'
-      ? [
-          ['Published a post to Facebook', '2h', PLATFORM_BG.FB, 'FB'],
-          ['AI generated 3 new content ideas', '5h', '#8b5cf6', '✨'],
-          ['Scheduled 4 posts for this week', 'Yesterday', '#10b981', '📅'],
-          ['Updated brand profile', '2 days ago', '#f59e0b', '★'],
-        ]
-      : [
-          ['Đã đăng bài lên Facebook', '2h', PLATFORM_BG.FB, 'FB'],
-          ['AI tạo 3 ý tưởng nội dung mới', '5h', '#8b5cf6', '✨'],
-          ['Lên lịch 4 bài cho tuần này', 'Hôm qua', '#10b981', '📅'],
-          ['Cập nhật hồ sơ thương hiệu', '2 ngày trước', '#f59e0b', '★'],
-        ];
-  return rows.map((a) => ({ text: a[0], time: a[1], bg: a[2], tag: a[3] }));
-}
-
 // ===== Settings notifications =====
 export const notifLabels = (lang: Lang) =>
   lang === 'en'

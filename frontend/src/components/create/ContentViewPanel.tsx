@@ -1,15 +1,14 @@
-import { useEffect, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Layers, Pencil, Save, Send, Undo2, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, CheckCircle2, Pencil, Save, Send, Undo2, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Card, Icon, cardStyle } from '../ui';
 import type { ApiError } from '../../api/apiClient';
-import { type ContentLifecycle, ERR_TOKEN_QUOTA_EXCEEDED } from '../../api/contentGeneration';
+import { type ContentLifecycle } from '../../api/contentGeneration';
 import {
   getContentDetail,
   saveVersionEdit,
   changeContentStatus,
-  formatContent,
   emptyScript,
   type ContentListItem,
   type ContentVersion,
@@ -20,6 +19,7 @@ import type { Dict } from '../../i18n';
 import PlatformTabs from './PlatformTabs';
 import { VersionTabs, ScriptView, ContentFieldsView, MediaPromptView, type VersionTab } from './VersionContent';
 import ScriptSections from './ScriptSections';
+import AutoGrowTextarea from './AutoGrowTextarea';
 import SourceInfoCard, { type SourceInfoData } from './SourceInfoCard';
 import PostImagePreview from './PostImagePreview';
 import BrandVoicePanel from './BrandVoicePanel';
@@ -33,8 +33,8 @@ import { useToast } from '../toast/ToastProvider';
 // FR-33: chỉ sửa được trước khi vào pipeline đăng (khớp EDITABLE_STATUSES backend).
 const EDITABLE_STATUSES: ContentLifecycle[] = ['DRAFT', 'GENERATED', 'NEED_REVIEW', 'APPROVED'];
 
-// FR-40..FR-46: "Định dạng lại theo nền tảng" — khớp FORMATTABLE_STATUSES backend.
-const FORMATTABLE_STATUSES: ContentLifecycle[] = ['GENERATED', 'APPROVED', 'FORMATTED'];
+/** Topbar AppShell cao 70 + 8px thở — mốc dính của header panel (tính từ viewport). */
+const HEADER_TOP = 78;
 
 // FR-34: action đổi trạng thái theo review flow — chỉ đưa ra bước hợp lệ kế tiếp của
 // state machine (REVIEW_TRANSITIONS backend): Gửi duyệt / Duyệt / Trả về sửa.
@@ -88,13 +88,24 @@ export default function ContentViewPanel({
   const [hashtagText, setHashtagText] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
   const [statusBusy, setStatusBusy] = useState(false);
-  // FR-40..FR-46: "Định dạng lại theo nền tảng" — mở lại job format cho bài đã có (PA2-a).
-  const [formatBusy, setFormatBusy] = useState(false);
   // Thông tin nguồn (rút gọn) cho màn xem: brand + nền tảng có sẵn từ item; ngành hàng/logo
   // enrich best-effort từ hồ sơ thương hiệu (chi tiết này không mang strategy/trend nên các
   // dòng đó bị ẩn — SourceInfoCard tự ẩn dòng thiếu dữ liệu).
   const [srcInfo, setSrcInfo] = useState<SourceInfoData>({ brandName: item.brandName, platforms: item.platforms });
   const st = CONTENT_STATUS_META[status];
+
+  // Header panel là sticky và CAO THAY ĐỔI (tiêu đề bài xuống 2 dòng, cụm nút xuống hàng) —
+  // đo thật để khối xem trước bên phải dính ngay dưới nó thay vì chui vào sau.
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [headerH, setHeaderH] = useState(0);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setHeaderH(entry.contentRect.height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const previewTop = HEADER_TOP + Math.round(headerH) + 16;
 
   useEffect(() => {
     let cancelled = false;
@@ -159,25 +170,6 @@ export default function ContentViewPanel({
     }
   };
 
-  // FR-40..FR-46: định dạng lại theo nền tảng (job format thật). Xong thì nạp lại versions + status.
-  const doFormat = async () => {
-    if (formatBusy) return;
-    setFormatBusy(true);
-    try {
-      await formatContent(item.id, item.platforms);
-      const { item: it, versions: vs } = await getContentDetail(item.id);
-      setVersions(vs);
-      setStatus(it.status);
-      toast.success(t.cvReformatDone);
-      onChanged?.();
-    } catch (e) {
-      const err = e as ApiError;
-      toast.error(err.code === ERR_TOKEN_QUOTA_EXCEEDED ? t.cwFormatQuota : err.message || t.cvReformatError);
-    } finally {
-      setFormatBusy(false);
-    }
-  };
-
   const applyStatus = async (target: ContentLifecycle) => {
     if (statusBusy) return;
     setStatusBusy(true);
@@ -207,10 +199,12 @@ export default function ContentViewPanel({
           />
         </>
       )}
+      {/* Ô nhập tự co giãn hết chữ (AutoGrowTextarea) — caption/CTA/media prompt dài thì ô cao
+          theo, không phải cuộn trong ô như bản textarea cố định. Cùng cách với mốc 3 của wizard. */}
       {tab === 'content' && (
         <div>
           <label style={label}>{t.cwTabCaption}</label>
-          <textarea value={draft.caption} onChange={(e) => setDraft({ ...draft, caption: e.target.value })} style={{ ...inputBase, resize: 'vertical', minHeight: 90 }} />
+          <AutoGrowTextarea value={draft.caption} onChange={(v) => setDraft({ ...draft, caption: v })} minHeight={90} style={inputBase} />
           <CaptionCounter platform={draft.platform} text={draft.caption} />
           <label style={{ ...label, marginTop: 16 }}>{t.cwTabHashtag}</label>
           <input
@@ -221,13 +215,13 @@ export default function ContentViewPanel({
           />
           <HashtagCounter platform={draft.platform} count={draft.hashtags.length} />
           <label style={{ ...label, marginTop: 16 }}>{t.cwTabCta}</label>
-          <textarea value={draft.cta} onChange={(e) => setDraft({ ...draft, cta: e.target.value })} style={{ ...inputBase, resize: 'vertical', minHeight: 56 }} />
+          <AutoGrowTextarea value={draft.cta} onChange={(v) => setDraft({ ...draft, cta: v })} minHeight={56} style={inputBase} />
         </div>
       )}
       {tab === 'media' && (
         <div>
           <label style={label}>{t.cwTabMedia}</label>
-          <textarea value={draft.mediaPrompt} onChange={(e) => setDraft({ ...draft, mediaPrompt: e.target.value })} style={{ ...inputBase, resize: 'vertical', minHeight: 90 }} />
+          <AutoGrowTextarea value={draft.mediaPrompt} onChange={(v) => setDraft({ ...draft, mediaPrompt: v })} minHeight={90} style={inputBase} />
         </div>
       )}
     </div>
@@ -267,17 +261,6 @@ export default function ContentViewPanel({
           </button>
         )
       )}
-      {/* FR-40..FR-46: định dạng lại theo nền tảng — ẩn khi đang sửa; chỉ khi bài ở trạng thái format được */}
-      {!draft && FORMATTABLE_STATUSES.includes(status) && (
-        <button
-          onClick={doFormat}
-          disabled={formatBusy}
-          className="btn-soft"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, color: '#7c3aed', cursor: formatBusy ? 'not-allowed' : 'pointer', opacity: formatBusy ? 0.6 : 1 }}
-        >
-          <Icon icon={Layers} size={13} stroke="#7c3aed" />{formatBusy ? t.cvReformatting : t.cvReformat}
-        </button>
-      )}
       {/* FR-34: bước hợp lệ kế tiếp của review flow — ẩn khi đang sửa để tránh đổi trạng thái giữa chừng */}
       {!draft && statusActions(status).map(({ target, labelKey, icon, primary }) => (
         <button
@@ -300,8 +283,9 @@ export default function ContentViewPanel({
   return (
     <div className="view-pop" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Header 2 TẦNG là MỘT CARD riêng (cùng token với các card khác: bo góc 20, bóng nhẹ),
-          sticky đầu trang, tách khỏi vùng nội dung bởi gap của container — không dính liền. */}
-      <div style={{ ...cardStyle, position: 'sticky', top: 8, zIndex: 20, padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          sticky ngay DƯỚI Topbar của AppShell (cao 70) — offset tính từ viewport nên phải
+          cộng chiều cao Topbar, để top nhỏ hơn là header chui vào sau Topbar. */}
+      <div ref={headerRef} style={{ ...cardStyle, position: 'sticky', top: HEADER_TOP, zIndex: 20, padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <button onClick={onClose} className="btn-soft" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flex: 'none', border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '6px 11px', fontSize: 12.5, fontWeight: 700, color: '#574f6e', cursor: 'pointer' }}>
             <Icon icon={ArrowLeft} size={14} stroke="#574f6e" />{t.bpBack}
@@ -330,7 +314,7 @@ export default function ContentViewPanel({
       ) : load === 'error' ? (
         <div style={{ textAlign: 'center', padding: '40px 16px', color: '#8a85a0', fontSize: 14 }}>{t.listError}</div>
       ) : shown ? (
-        <div style={{ display: 'grid', gridTemplateColumns: stacked ? '1fr' : '1.2fr .9fr', gap: 16, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: stacked ? '1fr' : '1.2fr .9fr', gap: 16, alignItems: stacked ? 'start' : 'stretch' }}>
           <Card>
             <div style={{ marginBottom: 16 }}>
               <PlatformTabs platforms={item.platforms} value={shown.platform} onChange={(p) => { if (!draft) setPlatform(p); }} />
@@ -346,11 +330,17 @@ export default function ContentViewPanel({
               </>
             )}
           </Card>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: stacked ? 'static' : 'sticky', top: 80 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
             {/* Thông tin nguồn (rút gọn) — mặc định thu gọn vì đây là màn xem/duyệt */}
             <SourceInfoCard info={srcInfo} defaultOpen={false} />
             <BrandVoicePanel check={shown.brandVoice} />
-            <PostImagePreview version={shown} brandName={item.brandName} />
+            {/* Từ "Xem trước bài đăng" trở xuống dính theo màn hình khi cuộn — cùng cơ chế với
+                wizard (StepLayout): cho dính CẢ cột thì khi cột cao hơn màn hình, preview nằm
+                dưới sẽ không bao giờ dính được. Mốc dính nằm dưới header (chiều cao header đo
+                thật vì tiêu đề bài có thể xuống 2 dòng), không đoán bằng số cứng. */}
+            <div style={{ position: stacked ? 'static' : 'sticky', top: previewTop, minWidth: 0, maxHeight: stacked ? undefined : `calc(100vh - ${previewTop + 12}px)`, overflowY: stacked ? undefined : 'auto' }}>
+              <PostImagePreview version={shown} brandName={item.brandName} />
+            </div>
           </div>
         </div>
       ) : null}

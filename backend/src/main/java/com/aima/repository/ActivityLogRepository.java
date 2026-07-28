@@ -60,6 +60,13 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, UUID> 
                        @Param("result") String result, @Param("q") String q);
 
     /**
+     * "Hoạt động gần đây" trên trang Hồ sơ của CHÍNH chủ tài khoản (GET /users/me/activity).
+     * Không nhận bộ lọc — chỉ phân trang, mới nhất trước. Dùng index
+     * {@code idx_activity_logs_user_created}.
+     */
+    Page<ActivityLog> findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(UUID userId, Pageable pageable);
+
+    /**
      * Chống spam: đã có bản ghi CÙNG (userId, action, targetId) trong cửa sổ dedup chưa.
      * {@code targetId} null được coi là khớp với null (hành động không gắn đối tượng, vd LOGIN)
      * — {@code is not distinct from} xử lý đúng NULL, khác hẳn {@code =}.

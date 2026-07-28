@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Calendar, Check, ChevronDown, Download, SlidersHorizontal } from 'lucide-react';
+import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Calendar, Check, ChevronDown, Download, SlidersHorizontal, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import DaySheet from '../calendar/DaySheet';
@@ -25,6 +25,10 @@ import { PRESETS, activePreset, formatRangeLabel, rangeOfPreset, todayISO, type 
  * + icon xuất), phễu mở **bottom sheet** chứa toàn bộ bộ lọc với footer Áp dụng / Xoá lọc dính đáy —
  * KHÔNG trải chip preset ngang gây tràn màn hình.
  */
+/** Phần bộ lọc "chọn nhiều" của thanh công cụ — tách khỏi khoảng ngày vì chỉ hai mục này
+ *  đi qua bản nháp + nút "Áp dụng"; khoảng ngày vẫn áp dụng ngay khi chọn. */
+type FilterSelection = Pick<AnalyticsFilter, 'platforms' | 'contentTypes'>;
+
 export default function AnalyticsFilterBar({
   filter,
   onChange,
@@ -43,12 +47,17 @@ export default function AnalyticsFilterBar({
   const { isMobile } = useBreakpoint();
   const [openPanel, setOpenPanel] = useState<'range' | 'filters' | 'export' | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  // Bản NHÁP của popover lọc: tick/bỏ tick chỉ đổi nháp, phải bấm "Áp dụng" mới gọi lại API —
+  // trước đây mỗi lần chạm là một lượt fetch, chọn 3 mục là 3 lần tải lại cả trang.
+  const [draft, setDraft] = useState<FilterSelection>({ platforms: filter.platforms, contentTypes: filter.contentTypes });
   const rangeRef = useRef<HTMLButtonElement>(null);
   const filtersRef = useRef<HTMLButtonElement>(null);
   const exportRef = useRef<HTMLButtonElement>(null);
 
   const preset = activePreset(filter.from, filter.to);
   const activeCount = filter.platforms.length + filter.contentTypes.length;
+  const draftCount = draft.platforms.length + draft.contentTypes.length;
+  const typeLabel = useTypeLabel();
   const presetLabel: Record<PresetKey, string> = {
     today: t.anaRangeToday, d7: t.anaRange7, d30: t.anaRange30, d90: t.anaRange90, custom: t.anaRangeCustom,
   };
@@ -58,6 +67,14 @@ export default function AnalyticsFilterBar({
 
   const close = () => setOpenPanel(null);
   const toggle = (panel: 'range' | 'filters' | 'export') => setOpenPanel((v) => (v === panel ? null : panel));
+
+  // Mở popover lọc = chép bộ lọc ĐANG áp dụng sang nháp (đóng giữa chừng thì bỏ, không âm thầm giữ).
+  const openFilters = () => {
+    if (isMobile) { setSheetOpen(true); return; }
+    if (openPanel === 'filters') { close(); return; }
+    setDraft({ platforms: filter.platforms, contentTypes: filter.contentTypes });
+    setOpenPanel('filters');
+  };
 
   return (
     <div
@@ -74,6 +91,20 @@ export default function AnalyticsFilterBar({
 
       {/* Cụm nút luôn căn phải, kể cả khi không có badge dữ liệu mẫu. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto', flexWrap: 'wrap' }}>
+        {/* Chip các bộ lọc ĐANG áp dụng — cùng hàng, ngay bên trái nút khoảng ngày. Mỗi chip
+            có nút × để bỏ nhanh đúng mục đó, không phải mở lại popover. */}
+        {filter.platforms.map((p) => {
+          const pf = PLATFORMS.find((x) => TAG_TO_PLATFORM[x.tag] === p);
+          return (
+            <ActiveChip key={p} onRemove={() => onChange({ platforms: filter.platforms.filter((x) => x !== p) })} label={pf?.name ?? p}>
+              {pf && <PlatformTag tag={pf.tag} bg={PLATFORM_BG[pf.tag] ?? '#6b7280'} size={16} radius={5} fontSize={9} />}
+            </ActiveChip>
+          );
+        })}
+        {filter.contentTypes.map((ty) => (
+          <ActiveChip key={ty} onRemove={() => onChange({ contentTypes: filter.contentTypes.filter((x) => x !== ty) })} label={typeLabel[ty]} />
+        ))}
+
         <button
           ref={rangeRef}
           type="button"
@@ -94,16 +125,19 @@ export default function AnalyticsFilterBar({
           aria-haspopup="dialog"
           aria-expanded={openPanel === 'filters' || sheetOpen}
           aria-label={t.anaFilterBtn}
-          onClick={() => (isMobile ? setSheetOpen(true) : toggle('filters'))}
-          style={triggerStyle(openPanel === 'filters', isMobile)}
+          onClick={openFilters}
+          style={{ ...triggerStyle(openPanel === 'filters', isMobile), position: 'relative' }}
         >
           <SlidersHorizontal size={15} strokeWidth={1.9} />
           {!isMobile && t.anaFilterBtn}
+          {/* Số bộ lọc đang áp dụng — huy hiệu ở GÓC TRÁI TRÊN nút, không chen trong nhãn nên
+              bề rộng nút không nhảy mỗi lần đổi bộ lọc. */}
           {activeCount > 0 && (
             <span aria-hidden style={{
-              minWidth: 18, height: 18, borderRadius: 999, background: '#7c3aed', color: '#fff',
+              position: 'absolute', top: -7, left: -7,
+              minWidth: 19, height: 19, borderRadius: 999, background: '#7c3aed', color: '#fff',
               fontSize: 11, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              padding: '0 5px',
+              padding: '0 5px', border: '2px solid #fff',
             }}>
               {activeCount}
             </span>
@@ -135,11 +169,18 @@ export default function AnalyticsFilterBar({
 
       {openPanel === 'filters' && !isMobile && (
         <FilterPopover anchorRef={filtersRef} onClose={close} width={280} ariaLabel={t.anaFilterBtn}>
-          <FiltersPanel filter={filter} onChange={onChange} />
-          <button type="button" onClick={() => onChange({ platforms: [], contentTypes: [] })}
-            disabled={activeCount === 0} style={{ ...clearBtn, opacity: activeCount === 0 ? 0.5 : 1 }}>
-            {t.anaFilterClear}
-          </button>
+          <FiltersPanel filter={draft} onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))} />
+          {/* Xoá lọc chỉ dọn bản NHÁP — mọi thay đổi chỉ có hiệu lực khi bấm "Áp dụng"
+              (cùng quy ước với bottom sheet mobile). */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button type="button" onClick={() => setDraft({ platforms: [], contentTypes: [] })}
+              disabled={draftCount === 0} style={{ ...clearBtn, opacity: draftCount === 0 ? 0.5 : 1 }}>
+              {t.anaFilterClear}
+            </button>
+            <button type="button" onClick={() => { onChange(draft); close(); }} style={applyBtn}>
+              {t.anaFilterApply}
+            </button>
+          </div>
         </FilterPopover>
       )}
 
@@ -205,17 +246,45 @@ function RangePanel({
   );
 }
 
+/** Nhãn loại nội dung — dùng chung cho panel lọc và chip "đang áp dụng". */
+function useTypeLabel(): Record<ContentTypeLabel, string> {
+  const { t } = useApp();
+  return useMemo(() => ({
+    IMAGE: t.dbFmtImage, VIDEO: t.dbFmtVideo, TEXT: t.dbFmtText, OTHER: t.dbFmtOther,
+  }), [t]);
+}
+
+/** Một bộ lọc đang áp dụng, có nút × bỏ nhanh ngay trên thanh công cụ. */
+function ActiveChip({ label, onRemove, children }: { label: string; onRemove: () => void; children?: ReactNode }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 32, padding: '0 6px 0 8px',
+      border: '1px solid #e4dbfa', background: '#f8f5ff', borderRadius: 999,
+      fontSize: 12.5, fontWeight: 700, color: '#5b21b6', whiteSpace: 'nowrap',
+    }}>
+      {children}
+      {label}
+      <button type="button" onClick={onRemove} aria-label={`${label} ✕`} title={label}
+        style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none',
+          width: 18, height: 18, border: 'none', borderRadius: 999, background: 'transparent',
+          color: '#7c3aed', cursor: 'pointer', padding: 0,
+        }}>
+        <X size={13} strokeWidth={2.4} />
+      </button>
+    </span>
+  );
+}
+
 /** Nền tảng (multi-select) + loại nội dung — trạng thái checked rõ ràng bằng ô tick. */
 function FiltersPanel({
   filter, onChange,
 }: {
-  filter: AnalyticsFilter;
-  onChange: (patch: Partial<AnalyticsFilter>) => void;
+  filter: FilterSelection;
+  onChange: (patch: Partial<FilterSelection>) => void;
 }) {
   const { t } = useApp();
-  const typeLabel: Record<ContentTypeLabel, string> = useMemo(() => ({
-    IMAGE: t.dbFmtImage, VIDEO: t.dbFmtVideo, TEXT: t.dbFmtText, OTHER: t.dbFmtOther,
-  }), [t]);
+  const typeLabel = useTypeLabel();
 
   const togglePlatform = (p: Platform) => onChange({
     platforms: filter.platforms.includes(p) ? filter.platforms.filter((x) => x !== p) : [...filter.platforms, p],
@@ -338,8 +407,13 @@ const groupTitle: CSSProperties = {
 };
 
 const clearBtn: CSSProperties = {
-  width: '100%', marginTop: 10, minHeight: 40, border: '1px solid #ece8f6', background: '#fff',
+  flex: 1, minHeight: 40, border: '1px solid #ece8f6', background: '#fff',
   borderRadius: 10, fontSize: 13, fontWeight: 700, color: '#e23d6e', cursor: 'pointer',
+};
+
+const applyBtn: CSSProperties = {
+  flex: 1, minHeight: 40, border: 'none', background: 'linear-gradient(135deg,#8b5cf6,#d946ef)',
+  borderRadius: 10, fontSize: 13, fontWeight: 800, color: '#fff', cursor: 'pointer',
 };
 
 const menuItem: CSSProperties = {

@@ -38,9 +38,9 @@ export function sourceToInfo(source: SourceSelection): SourceInfoData {
 
 /**
  * Card "Thông tin nguồn" — neo cột phải ở các màn tạo/xem/sửa. Gom nguồn AI dùng để sinh nội dung.
- * - Dòng CHÍNH luôn hiện (thu gọn vẫn thấy): Hồ sơ thương hiệu, Ngành hàng, Nền tảng.
- * - Dòng PHỤ chỉ hiện khi mở rộng: Chiến lược, Trend/Ý tưởng, Mục tiêu content.
- * - Dòng thiếu dữ liệu bị ẩn hẳn. `defaultOpen=false` → dạng rút gọn (màn xem/duyệt).
+ * - Mở rộng: Hồ sơ thương hiệu, Ngành hàng, Chiến lược, Trend/Ý tưởng, Mục tiêu content, Nền tảng.
+ * - Thu gọn: CHỈ còn header (logo + tên thương hiệu) — toàn bộ phần thân bị ẩn.
+ * - Dòng thiếu dữ liệu bị ẩn hẳn. `defaultOpen=false` → mở ra ở dạng thu gọn (màn xem/duyệt).
  */
 export default function SourceInfoCard({ info, defaultOpen = true }: { info: SourceInfoData; defaultOpen?: boolean }) {
   const { t, go, brandGradient } = useApp();
@@ -105,17 +105,18 @@ export default function SourceInfoCard({ info, defaultOpen = true }: { info: Sou
         </button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '10px 14px 14px', borderTop: '1px solid #f1edfa' }}>
-        {/* Dòng chính — luôn hiện */}
-        {row(t.cwSrcBrand, <span style={{ fontWeight: 700, color: '#211c38' }}>{brandName}</span>)}
-        {row(t.cwSrcIndustry, industry)}
-        {/* Dòng phụ — chỉ khi mở rộng */}
-        {open && row(t.cwSrcStrategy, strategyName)}
-        {open && row(t.cwSrcTrendIdea, trend ? `${trend.kind === 'trend' ? t.cwTrendWord : t.cwIdeaWord}: ${trend.title}` : null)}
-        {open && row(t.cwSrcGoal, goals && goals.length ? goals.join(' · ') : null)}
-        {/* Nền tảng — dòng chính */}
-        {row(t.cwSrcPlatforms, platformsRow)}
-      </div>
+      {/* Thu gọn = ẩn TOÀN BỘ phần thân, không chừa lại vài dòng "chính" — header đã có tên
+          thương hiệu nên giữ thêm nửa card lúc thu gọn chỉ làm nút thu gọn mất tác dụng. */}
+      {open && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '10px 14px 14px', borderTop: '1px solid #f1edfa' }}>
+          {row(t.cwSrcBrand, <span style={{ fontWeight: 700, color: '#211c38' }}>{brandName}</span>)}
+          {row(t.cwSrcIndustry, industry)}
+          {row(t.cwSrcStrategy, strategyName)}
+          {row(t.cwSrcTrendIdea, trend ? `${trend.kind === 'trend' ? t.cwTrendWord : t.cwIdeaWord}: ${trend.title}` : null)}
+          {row(t.cwSrcGoal, goals && goals.length ? goals.join(' · ') : null)}
+          {row(t.cwSrcPlatforms, platformsRow)}
+        </div>
+      )}
     </Card>
   );
 }

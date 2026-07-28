@@ -5,6 +5,7 @@ import com.aima.repository.projection.ContentTypeMetricProjection;
 import com.aima.repository.projection.DailyEngagementProjection;
 import com.aima.repository.projection.DailyMetricProjection;
 import com.aima.repository.projection.HeatmapCellProjection;
+import com.aima.repository.projection.LifetimeStatsProjection;
 import com.aima.repository.projection.PlatformMetricProjection;
 import com.aima.repository.projection.PostEngagementProjection;
 import com.aima.repository.projection.TopPostProjection;
@@ -27,6 +28,33 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
      * nên mỗi bài chỉ được lấy MỘT snapshot (mốc giờ lớn nhất) — cộng cả ba mốc sẽ đếm trùng.
      * Tất cả đều lọc theo user qua posts → post_schedules → platform_accounts.user_id (API-03).
      */
+
+    /**
+     * Hai ô số trên card hồ sơ: TỔNG TÍCH LŨY, không giới hạn khoảng ngày (khác mọi endpoint
+     * /analytics/* vốn bị chặn tối đa 366 ngày nên không dùng lại được).
+     *
+     * <p>{@code totalReach} cộng lượt xem của MỘT snapshot mỗi bài (mốc giờ lớn nhất) — cộng cả
+     * ba mốc 24h/48h/168h sẽ đếm trùng vì số liệu là cộng dồn. Bài chưa có snapshot nào (mới đăng,
+     * hoặc nền tảng không trả lượt xem) vẫn được đếm ở {@code postsPublished} và góp 0 vào reach.
+     * Scope theo user qua posts → post_schedules → platform_accounts.user_id (API-03).
+     */
+    @Query(value = """
+            select cast(count(*) as bigint) as postsPublished,
+                   cast(coalesce(sum(la.views), 0) as bigint) as totalReach
+            from posts p
+            join post_schedules ps on ps.id = p.schedule_id and ps.deleted_at is null
+            join platform_accounts pa on pa.id = ps.platform_account_id and pa.deleted_at is null
+            left join (
+                select distinct on (a.post_id) a.post_id, a.views
+                from post_analytics a
+                where a.deleted_at is null
+                order by a.post_id, a.milestone_hours desc nulls last
+            ) la on la.post_id = p.id
+            where pa.user_id = :userId
+              and p.deleted_at is null
+              and p.status = 'POSTED'
+            """, nativeQuery = true)
+    LifetimeStatsProjection findLifetimeStatsForUser(@Param("userId") UUID userId);
 
     // Biểu đồ "Hiệu suất nội dung": tiếp cận (views) + tương tác (likes+comments+shares) theo NGÀY ĐĂNG.
     @Query(value = """

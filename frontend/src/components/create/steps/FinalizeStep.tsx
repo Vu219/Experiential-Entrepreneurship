@@ -236,6 +236,13 @@ export default function FinalizeStep({
         baselineScore={baselines[version.id]}
         onRecheck={() => voice.run(version)}
       />
+    </>
+  );
+
+  // Từ "Xem trước bài đăng" trở xuống dính theo màn hình khi cuộn — vừa sửa nội dung bên
+  // trái vừa nhìn được bài sắp đăng, và cụm nút không phải nằm dưới cùng trang.
+  const sideSticky = (
+    <>
       <PostImagePreview version={version} brandName={source.brand.brandName} />
       {/* Duyệt & Lưu gộp vào đây: chọn trạng thái ngay tại bước Hoàn thiện */}
       <Card style={{ padding: 20 }}>
@@ -295,5 +302,5 @@ export default function FinalizeStep({
     </div>
   );
 
-  return <StepLayout main={mainCard} side={side} action={action} />;
+  return <StepLayout main={mainCard} side={side} sideSticky={sideSticky} sideAction={action} />;
 }

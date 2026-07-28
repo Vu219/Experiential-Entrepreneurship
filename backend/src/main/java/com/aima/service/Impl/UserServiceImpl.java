@@ -21,6 +21,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import com.aima.config.storage.StorageBuckets;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.PageResponse;
+import com.aima.dto.response.ProfileStatsResponse;
 import com.aima.dto.response.UserResponse;
 import com.aima.dto.response.UserStatsResponse;
 import com.aima.entity.Role;
@@ -32,8 +33,10 @@ import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.mapper.UserMapper;
 import com.aima.repository.PlatformAccountRepository;
+import com.aima.repository.PostAnalyticsRepository;
 import com.aima.repository.RoleRepository;
 import com.aima.repository.UserRepository;
+import com.aima.repository.projection.LifetimeStatsProjection;
 import com.aima.service.ActivityLogService;
 import com.aima.service.StorageService;
 import com.aima.service.UserService;
@@ -56,6 +59,7 @@ public class UserServiceImpl implements UserService {
     UserRepository userRepository;
     RoleRepository roleRepository;
     PlatformAccountRepository platformAccountRepository;
+    PostAnalyticsRepository postAnalyticsRepository;
 
     EmailService emailService;
     OtpService otpService;
@@ -305,6 +309,19 @@ public class UserServiceImpl implements UserService {
         // Số kênh MXH đã kết nối — trường suy diễn không có trên entity (cùng mẫu setProfileCompleted).
         userResponse.setConnectedChannels((int) platformAccountRepository.countByUser_IdAndDeletedAtIsNull(userId));
         return ApiResponse.success("Lấy thông tin Người dùng thành công", userResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApiResponse<ProfileStatsResponse> getMyStats(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        LifetimeStatsProjection stats = postAnalyticsRepository.findLifetimeStatsForUser(user.getId());
+        // Truy vấn có aggregate nên luôn trả đúng một dòng, nhưng vẫn phòng null cho chắc.
+        ProfileStatsResponse response = stats == null
+                ? userMapper.toProfileStatsResponse(0L, 0L)
+                : userMapper.toProfileStatsResponse(stats.getPostsPublished(), stats.getTotalReach());
+        return ApiResponse.success("Lấy số liệu hồ sơ thành công", response);
     }
 
     @Override

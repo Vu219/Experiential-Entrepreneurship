@@ -46,6 +46,9 @@ public class ActivityLogServiceImpl implements ActivityLogService {
 
     static final int MAX_PAGE_SIZE = 100;
 
+    /** Trần size mỗi trang của card "Hoạt động gần đây" (trang Hồ sơ) — card nhỏ, không cần hơn. */
+    static final int MAX_MY_ACTIVITY_SIZE = 20;
+
     /** Cùng trần với export nhật ký usage — giữ một quy ước cho mọi export CSV. */
     static final int EXPORT_MAX_ROWS = 50_000;
     static final int EXPORT_CHUNK = 1_000;
@@ -91,6 +94,22 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 .orElseThrow(() -> new AppException(ErrorCode.ACTIVITY_LOG_NOT_FOUND));
         ActivityLogResponse response = toResponseList(List.of(activityLog)).getFirst();
         return ApiResponse.success("Lấy chi tiết log hoạt động thành công", response);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApiResponse<PageResponse<ActivityLogResponse>> listMine(String email, int page, int size) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_MY_ACTIVITY_SIZE));
+        Page<ActivityLog> logs = activityLogRepository
+                .findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(user.getId(), pageable);
+        // Chủ thể luôn là chính user đang gọi → không cần tra bảng users theo lô như bản admin.
+        List<ActivityLogResponse> content = logs.getContent().stream()
+                .map(row -> activityLogMapper.toResponse(row, user))
+                .toList();
+        PageResponse<ActivityLogResponse> response = PageResponse.from(logs, content);
+        return ApiResponse.success("Lấy hoạt động gần đây thành công", response);
     }
 
     @Override

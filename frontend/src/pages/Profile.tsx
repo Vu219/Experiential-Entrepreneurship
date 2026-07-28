@@ -8,28 +8,40 @@ import { useBreakpoint } from '../hooks/useBreakpoint';
 import { Card } from '../components/ui';
 import Modal from '../components/Modal';
 import ChangePasswordModal from '../components/ChangePasswordModal';
-import { updateProfile, uploadAvatar, requestDeleteAccount, restoreAccount } from '../api/auth';
-import { activity } from '../data';
+import { updateProfile, uploadAvatar, requestDeleteAccount, restoreAccount, getProfileStats, type ProfileStats } from '../api/auth';
+import { formatCompactNumber } from '../utils/format';
 import { useToast } from '../components/toast/ToastProvider';
 import { withToast } from '../utils/toastFlow';
 import PageContainer from '../components/PageContainer';
+import RecentActivityCard from '../components/profile/RecentActivityCard';
 
 
 const fieldLabel = { display: 'block', fontSize: 12, fontWeight: 700, color: '#574f6e', marginBottom: 7 } as const;
 const fieldInput = { width: '100%', border: '1.5px solid #e7e2f2', borderRadius: 11, padding: '12px 14px', fontSize: 14, color: '#241f3a', background: '#fbfaff', outline: 'none' } as const;
+
+/**
+ * Bề ngang tối đa của nội dung trang Hồ sơ. `.page-shell` cho tới 1600px — ở màn rộng (nhất là
+ * khi sidebar thu lại) card bị kéo dài ngoác, chữ trong form chạy hết một hàng rất khó đọc.
+ * Kẹp lại + `margin: 0 auto` nên khối nội dung LUÔN nằm giữa vùng nội dung, đóng hay mở
+ * sidebar cũng cân hai bên như nhau.
+ */
+const CONTENT_MAX = 1120;
 
 export default function Profile() {
   const { t, lang, logout, brandGradient } = useApp();
   const toast = useToast();
   const { user, setUser, refreshUser } = useAuth();
   const { isMobile, isTablet } = useBreakpoint();
-  const acts = activity(lang);
   const stacked = isMobile || isTablet;
 
   const [fullName, setFullName] = useState(user?.fullName ?? '');
   const [phone, setPhone] = useState(user?.phone ?? '');
   const [dateOfBirth, setDateOfBirth] = useState(user?.dateOfBirth ?? '');
   const [saving, setSaving] = useState(false);
+
+  // Hai ô số của card danh tính — null = chưa có (đang tải hoặc lỗi), KHÔNG có số mặc định.
+  const [stats, setStats] = useState<ProfileStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   const [showChangePw, setShowChangePw] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -47,6 +59,15 @@ export default function Profile() {
   const initials = name.trim().split(/\s+/).map((w) => w[0]).slice(-2).join('').toUpperCase();
   const avatarUrl = user?.avatarUrl ?? null;
   const pendingDelete = user?.status === 'PENDING_DELETE';
+
+  useEffect(() => {
+    let cancelled = false;
+    getProfileStats()
+      .then((s) => { if (!cancelled) setStats(s); })
+      .catch(() => { /* để null → hiện "—", không bịa số */ })
+      .finally(() => { if (!cancelled) setStatsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   // Đóng dropdown avatar khi nhấn ra ngoài.
   useEffect(() => {
@@ -163,6 +184,9 @@ export default function Profile() {
 
   return (
     <PageContainer>
+      {/* Khối nội dung hẹp + căn giữa (xem CONTENT_MAX): phần dư chia đều hai bên nên trang
+          luôn cân dù sidebar đang đóng hay mở. */}
+      <div style={{ width: '100%', maxWidth: CONTENT_MAX, margin: '0 auto' }}>
       {/* Pending-deletion banner */}
       {pendingDelete && (
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, background: '#fdeef2', border: '1px solid #f3c9d6', borderRadius: 16, padding: '16px 20px', marginBottom: 16 }}>
@@ -228,10 +252,18 @@ export default function Profile() {
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, fontWeight: 700, color: '#7c3aed', background: '#f3edff', borderRadius: 999, padding: '5px 13px' }}>
               ★ {user?.plan === 'PRO' ? t.planPro : user?.plan === 'PLUS' ? t.planPlus : t.planFree}
             </div>
+            {/* Số THẬT từ GET /users/me/stats — chưa tải xong thì hiện khung xương, lỗi thì "—",
+                tuyệt đối không rơi về số mẫu (người dùng sẽ tưởng đó là số liệu của mình). */}
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-              {[['142', t.stPosts], ['248K', t.stTotalReach]].map(([v, l], i) => (
+              {[[stats?.postsPublished, t.stPosts], [stats?.totalReach, t.stTotalReach]].map(([v, l], i) => (
                 <div key={i} style={{ flex: 1, border: '1px solid #efeaf8', borderRadius: 13, padding: 13 }}>
-                  <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: '#211c38' }}>{v}</div>
+                  {statsLoading ? (
+                    <span className="sk" style={{ display: 'block', width: 52, height: 20, borderRadius: 6, margin: '2px auto 3px' }} />
+                  ) : (
+                    <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: '#211c38' }}>
+                      {typeof v === 'number' ? formatCompactNumber(v) : '—'}
+                    </div>
+                  )}
                   <div style={{ fontSize: 11, color: '#a59fbb' }}>{l}</div>
                 </div>
               ))}
@@ -304,19 +336,11 @@ export default function Profile() {
             <button onClick={save} disabled={saving} style={{ marginTop: 18, border: 'none', borderRadius: 12, padding: '12px 24px', fontWeight: 700, fontSize: 14, color: '#fff', background: brandGradient, boxShadow: '0 14px 28px -12px rgba(139,92,246,.6)', cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.75 : 1 }}>{saving ? t.processing : t.save}</button>
           </Card>
 
-          <Card style={{ padding: 26, order: stacked ? 3 : undefined }}>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38', marginBottom: 18 }}>{t.prActivity}</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {acts.map((a, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
-                  <span style={{ width: 34, height: 34, flex: 'none', borderRadius: 9, background: a.bg, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800 }}>{a.tag}</span>
-                  <span style={{ flex: 1, fontSize: 13.5, color: '#3f3a55' }}>{a.text}</span>
-                  <span style={{ fontSize: 12, color: '#a59fbb' }}>{a.time}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
+          <div style={{ order: stacked ? 3 : undefined }}>
+            <RecentActivityCard />
+          </div>
         </div>
+      </div>
       </div>
 
       {lightboxOpen && createPortal(

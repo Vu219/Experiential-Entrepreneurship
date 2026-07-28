@@ -18,6 +18,7 @@ import { DataTable } from '../../components/admin/AdminListPage';
 import ConfirmDialog from '../../components/brand/ConfirmDialog';
 import PageContainer from '../../components/PageContainer';
 import EditUserModal from './EditUserModal';
+
 import { Card, Icon } from '../../components/ui';
 import { planColor } from '../../components/admin/revenue/chartTokens';
 import { TONE_COLORS, type Tone } from '../../statusTokens';
@@ -64,7 +65,7 @@ export default function Overview() {
 
   const loadSummary = useCallback(() => {
     setSummaryState((s) => (s === 'ok' ? s : 'loading'));
-    getAdminOverviewSummary(5)
+    getAdminOverviewSummary(8)
       .then((data) => { setSummary(data); setSummaryState('ok'); })
       .catch(() => setSummaryState('error'));
   }, []);

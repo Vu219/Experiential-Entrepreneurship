@@ -1,11 +1,13 @@
 package com.aima.controller;
 
 import com.aima.dto.request.*;
+import com.aima.dto.response.ActivityLogResponse;
 import com.aima.dto.response.ApiResponse;
 import com.aima.enums.UserPlan;
 import com.aima.enums.UserStatus;
 import com.aima.dto.response.DeleteAccountResponse;
 import com.aima.dto.response.MeResponse;
+import com.aima.dto.response.ProfileStatsResponse;
 import com.aima.dto.response.UserStatsResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -30,6 +32,7 @@ import com.aima.dto.response.PageResponse;
 import com.aima.dto.response.TokenUsageResponse;
 import com.aima.dto.response.UserResponse;
 import com.aima.dto.response.UserUsageResponse;
+import com.aima.service.ActivityLogService;
 import com.aima.service.TokenUsageService;
 import com.aima.service.UsageQueryService;
 import com.aima.service.UserService;
@@ -45,6 +48,7 @@ public class AccountController {
     UserService userService;
     TokenUsageService tokenUsageService;
     UsageQueryService usageQueryService;
+    ActivityLogService activityLogService;
 
     @PostMapping("/register")
     @Operation(
@@ -197,6 +201,34 @@ public class AccountController {
     public ApiResponse<UserUsageResponse> getUsage(
             @AuthenticationPrincipal UserDetails userDetails) {
         return usageQueryService.getMyUsage(userDetails.getUsername());
+    }
+
+    @GetMapping("/me/stats")
+    @Operation(
+            summary = "Get the current user's lifetime stats",
+            description = "Posts published (POSTED) and total reach for the authenticated user, cumulative over all "
+                    + "time. Drives the two stat tiles on the profile card. Reach sums one snapshot per post (the "
+                    + "latest milestone) — the /analytics/* endpoints cannot serve this because they are capped to a "
+                    + "366-day range."
+    )
+    public ApiResponse<ProfileStatsResponse> getMyStats(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return userService.getMyStats(userDetails.getUsername());
+    }
+
+    @GetMapping("/me/activity")
+    @Operation(
+            summary = "Get the current user's recent activity (paginated)",
+            description = "Returns rows of activity_logs whose actor is the authenticated user (sign-ins, "
+                    + "profile/content/schedule changes, publish results…), newest first. Drives the "
+                    + "\"Recent activity\" card on the profile page. size is clamped to 20; admin actions performed "
+                    + "on this account by someone else are not included because their actor is that admin."
+    )
+    public ApiResponse<PageResponse<ActivityLogResponse>> getMyActivity(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size) {
+        return activityLogService.listMine(userDetails.getUsername(), page, size);
     }
 
     @PutMapping("/me")

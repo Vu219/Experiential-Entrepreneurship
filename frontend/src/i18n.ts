@@ -351,8 +351,6 @@ export const STRINGS = {
     cvEditError: 'Lưu thay đổi thất bại',
     cvSubmitReview: 'Gửi duyệt', cvApprove: 'Duyệt', cvReturnEdit: 'Trả về sửa',
     cvStatusError: 'Đổi trạng thái thất bại',
-    cvReformat: 'Định dạng lại theo nền tảng', cvReformatting: 'Đang định dạng…',
-    cvReformatDone: 'Đã định dạng lại theo nền tảng — bản mới đã sẵn sàng lên lịch.', cvReformatError: 'Định dạng lại thất bại',
     // panel brand voice + preview ảnh
     cwVoiceTitle: 'Kiểm tra brand voice', cwVoiceMatch: 'Phù hợp', cwVoiceTone: 'Giọng điệu', cwVoiceWording: 'Ngôn từ', cwVoiceMessage: 'Thông điệp',
     cwVoiceChecking: 'Đang kiểm tra...', cwVoiceRecheck: 'Kiểm tra lại', cwVoiceError: 'Kiểm tra brand voice thất bại',
@@ -542,6 +540,7 @@ export const STRINGS = {
     brLoadErr: 'Không tải được hồ sơ thương hiệu',
     // profile
     prEdit: 'Chỉnh sửa hồ sơ', prBio: 'Giới thiệu', prActivity: 'Hoạt động gần đây',
+    prActivityEmpty: 'Chưa có hoạt động nào được ghi nhận. Các thao tác như đăng nhập, tạo/sửa nội dung, lên lịch và đăng bài sẽ hiện ở đây.',
     prPhone: 'SỐ ĐIỆN THOẠI', prDob: 'NGÀY SINH',
     // profile · avatar
     avView: 'Xem ảnh', avChange: 'Đổi ảnh đại diện', avUploading: 'Đang tải ảnh...',
@@ -605,7 +604,7 @@ export const STRINGS = {
     ovrRefresh: 'Làm mới dữ liệu', ovrViewDetail: 'Xem chi tiết',
     ovrColUser: 'Người dùng', ovrViewAllUsers: 'Xem tất cả người dùng', ovrEmptyUsers: 'Chưa có người dùng nào',
     ovrEmptyPlans: 'Chưa có ai đăng ký gói',
-    ovrShortcuts: 'Lối tắt quản trị',
+    ovrShortcuts: 'Lối tắt quản trị',
     // Card tình trạng hệ thống — nhãn dịch vụ + badge tiếng Việt + banner tổng kết
     ovrSvcApi: 'API', ovrSvcAi: 'Bộ máy AI', ovrSvcScheduler: 'Bộ lập lịch', ovrSvcStorage: 'Lưu trữ',
     ovrStatusOk: 'Hoạt động', ovrStatusWarn: 'Cảnh báo', ovrStatusDown: 'Sự cố',
@@ -1318,8 +1317,6 @@ export const STRINGS = {
     cvEditError: 'Failed to save changes',
     cvSubmitReview: 'Submit for review', cvApprove: 'Approve', cvReturnEdit: 'Return for edits',
     cvStatusError: 'Failed to update status',
-    cvReformat: 'Re-format per platform', cvReformatting: 'Formatting…',
-    cvReformatDone: 'Re-formatted per platform — the new versions are ready to schedule.', cvReformatError: 'Re-format failed',
     // brand voice panel + image preview
     cwVoiceTitle: 'Brand voice check', cwVoiceMatch: 'Match', cwVoiceTone: 'Tone', cwVoiceWording: 'Wording', cwVoiceMessage: 'Message',
     cwVoiceChecking: 'Checking...', cwVoiceRecheck: 'Re-check', cwVoiceError: 'Brand voice check failed',
@@ -1503,6 +1500,7 @@ export const STRINGS = {
     brName: 'Brand name', brIndustry: 'Industry', brSlogan: 'Slogan', brAudience: 'Target audience', brToneT: 'Brand voice', brColors: 'Brand colors', brChannels: 'Connected channels',
     brLoadErr: 'Could not load brand profile',
     prEdit: 'Edit profile', prBio: 'Bio', prActivity: 'Recent activity',
+    prActivityEmpty: 'No activity recorded yet. Sign-ins, content edits, scheduling and publishing will show up here.',
     prPhone: 'PHONE', prDob: 'DATE OF BIRTH',
     avView: 'View photo', avChange: 'Change photo', avUploading: 'Uploading...',
     prSecurity: 'Security', prChangePw: 'Change password', prChangePwSub: 'Update your sign-in password',
@@ -1560,7 +1558,7 @@ export const STRINGS = {
     ovrRefresh: 'Refresh data', ovrViewDetail: 'View details',
     ovrColUser: 'User', ovrViewAllUsers: 'View all users', ovrEmptyUsers: 'No users yet',
     ovrEmptyPlans: 'No plan subscriptions yet',
-    ovrShortcuts: 'Admin shortcuts',
+    ovrShortcuts: 'Admin shortcuts',
     ovrSvcApi: 'API', ovrSvcAi: 'AI engine', ovrSvcScheduler: 'Scheduler', ovrSvcStorage: 'Storage',
     ovrStatusOk: 'Operational', ovrStatusWarn: 'Degraded', ovrStatusDown: 'Down',
     ovrLatency: 'Latency', ovrSchedulerPending: '{n} pending', ovrStorageUsed: '{n}% used',

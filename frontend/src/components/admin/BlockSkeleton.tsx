@@ -27,12 +27,14 @@ export function KpiRowSkeleton({ columns }: { columns: string }) {
   );
 }
 
-/** Bảng "Người dùng gần đây" — thân bảng, header do SectionCard lo. */
-export function TableSkeleton({ rows = 5 }: { rows?: number }) {
+/** Bảng "Người dùng gần đây" — thân bảng, header do SectionCard lo.
+ *  Mỗi dòng skeleton phản chiếu đúng chiều cao dòng thật (padding 13px + border) để lúc
+ *  dữ liệu về layout không "nhảy". Footer "Xem tất cả" cũng có shimmer. */
+export function TableSkeleton({ rows = 8 }: { rows?: number }) {
   return (
-    <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '18px 20px' }}>
+    <div aria-hidden="true">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderTop: '1px solid #f1eef8' }}>
           <div className="sk" style={{ width: 32, height: 32, borderRadius: '50%', flex: 'none' }} />
           <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div className="sk" style={{ width: '52%', height: 12 }} />
@@ -44,6 +46,10 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
           <div className="sk" style={{ width: 56, height: 12 }} />
         </div>
       ))}
+      {/* Footer "Xem tất cả người dùng" */}
+      <div style={{ borderTop: '1px solid #f1eef8', padding: '13px 16px', display: 'flex', justifyContent: 'center' }}>
+        <div className="sk" style={{ width: 140, height: 13, borderRadius: 6 }} />
+      </div>
     </div>
   );
 }
@@ -81,6 +87,7 @@ export function ServiceListSkeleton({ rows = 4 }: { rows?: number }) {
     </div>
   );
 }
+
 
 const skCard: CSSProperties = {
   background: '#fff',

@@ -85,6 +85,18 @@ export async function getTokenUsage(): Promise<TokenUsage> {
   return data.result;
 }
 
+/** Hai ô số trên card hồ sơ — TÍCH LŨY từ trước tới nay (GET /users/me/stats). */
+export interface ProfileStats {
+  postsPublished: number;
+  /** Tổng lượt xem; mỗi bài chỉ tính snapshot mốc muộn nhất nên không cộng trùng. */
+  totalReach: number;
+}
+
+export async function getProfileStats(): Promise<ProfileStats> {
+  const { data } = await client.get<ApiResponse<ProfileStats>>('/users/me/stats');
+  return data.result;
+}
+
 export async function updateProfile(request: UpdateProfileRequest): Promise<User> {
   const { data } = await client.put<ApiResponse<User>>("/users/me", request);
   return data.result;

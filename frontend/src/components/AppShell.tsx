@@ -172,8 +172,13 @@ export default function AppShell({ children, variant = 'app' }: { children: Reac
       <Sidebar mode={variant} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <Topbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
-        {/* Padding vùng nội dung do .page-shell (PageContainer) đảm nhiệm — main không đệm riêng. */}
-        <main style={{ flex: 1, overflow: 'auto' }}>
+        {/* Padding vùng nội dung do .page-shell (PageContainer) đảm nhiệm — main không đệm riêng.
+            `overflow` PHẢI là `visible`: `overflow: auto` biến <main> thành scrollport gần nhất,
+            mà chính nó lại KHÔNG bao giờ cuộn (trang cuộn ở document) → mọi `position: sticky`
+            bên trong nội dung trang chết lặng (thanh nút neo đáy wizard, cột phải xem trước bài
+            đăng, header panel chi tiết…). Đừng đổi sang `auto`/`hidden`/`overflow-x` — chỉ cần
+            một trục khác `visible` là scrollport tái xuất và lỗi quay lại. */}
+        <main style={{ flex: 1 }}>
           {isMobile && <div style={{ padding: 'var(--page-pad-t) var(--page-pad-x) 0' }}><PageHeading /></div>}
           {children}
         </main>

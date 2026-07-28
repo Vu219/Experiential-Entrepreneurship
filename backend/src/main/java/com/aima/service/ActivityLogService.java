@@ -35,6 +35,15 @@ public interface ActivityLogService {
     ApiResponse<ActivityLogResponse> get(UUID id);
 
     /**
+     * GET /users/me/activity — card "Hoạt động gần đây" trên trang Hồ sơ. Chỉ trả các dòng có
+     * {@code user_id} = người đang đăng nhập (hành động do CHÍNH họ thực hiện), mới nhất trước,
+     * phân trang server-side (không bộ lọc — card này không có ô lọc nào). {@code size} bị kẹp ở
+     * {@code MAX_MY_ACTIVITY_SIZE}. Thao tác admin trên tài khoản này KHÔNG hiện ở đây vì chủ thể
+     * của dòng log đó là admin, không phải user.
+     */
+    ApiResponse<PageResponse<ActivityLogResponse>> listMine(String email, int page, int size);
+
+    /**
      * GET /admin/logs/activity/export — CSV (chuỗi trong result, FE tự tạo file) theo ĐÚNG bộ
      * lọc đang chọn. Vượt trần 50.000 dòng → ACTIVITY_LOG_EXPORT_TOO_LARGE, không cắt cụt im lặng
      * (cùng quy ước với export nhật ký usage).

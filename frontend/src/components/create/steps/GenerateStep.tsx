@@ -215,7 +215,7 @@ export default function GenerateStep({
     </Card>
   );
 
-  // Cột phải — chip ngữ cảnh nguồn + brand voice + preview của TAB đang chọn.
+  // Cột phải — chip ngữ cảnh nguồn + brand voice cuộn bình thường...
   const side = (
     <>
       <SourceInfoCard info={sourceToInfo(source)} />
@@ -224,13 +224,17 @@ export default function GenerateStep({
         busy={voice.busy}
         onRecheck={version ? () => voice.run(version) : undefined}
       />
-      <PostImagePreview
-        version={version}
-        brandName={source.brand.brandName}
-        imageBusy={imageBusy}
-        onGenerateImage={version ? runGenerateImage : undefined}
-      />
     </>
+  );
+
+  // ...còn preview của TAB đang chọn thì dính theo màn hình khi cuộn xuống.
+  const sideSticky = (
+    <PostImagePreview
+      version={version}
+      brandName={source.brand.brandName}
+      imageBusy={imageBusy}
+      onGenerateImage={version ? runGenerateImage : undefined}
+    />
   );
 
   const action = (
@@ -258,5 +262,5 @@ export default function GenerateStep({
     </div>
   );
 
-  return <StepLayout main={mainCard} side={side} action={action} />;
+  return <StepLayout main={mainCard} side={side} sideSticky={sideSticky} action={action} />;
 }

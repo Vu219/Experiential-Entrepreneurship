@@ -7,6 +7,7 @@ import com.aima.enums.UserStatus;
 import com.aima.dto.response.DeleteAccountResponse;
 import com.aima.dto.response.MeResponse;
 import com.aima.dto.response.PageResponse;
+import com.aima.dto.response.ProfileStatsResponse;
 import com.aima.dto.response.UserResponse;
 import com.aima.dto.response.UserStatsResponse;
 import org.springframework.data.domain.Pageable;
@@ -29,6 +30,14 @@ public interface UserService {
     /** FR-80: admin khóa/mở khóa tài khoản; không áp dụng lên tài khoản ADMIN. */
     ApiResponse<UserResponse> updateUserStatus(String adminEmail, UUID userId, UserStatusUpdateRequest request);
     ApiResponse<MeResponse> getCurrentUser(String email);
+
+    /**
+     * GET /users/me/stats — hai ô số trên card hồ sơ: số bài đã đăng + tổng lượt tiếp cận,
+     * TÍCH LŨY từ trước tới nay. Không tái dùng /analytics/* được vì các endpoint đó luôn
+     * bị chặn trong một khoảng ngày (tối đa 366 ngày).
+     */
+    ApiResponse<ProfileStatsResponse> getMyStats(String email);
+
     ApiResponse<MeResponse> updateCurrentUser(String email, UpdateProfileRequest request);
 
     ApiResponse<String> forgotPassword(ForgotPasswordRequest request);
