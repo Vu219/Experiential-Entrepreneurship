@@ -1,8 +1,9 @@
 import { memo } from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 import { Icon, cardStyle } from '../ui';
 import Sparkline from '../Sparkline';
-import { formatCompactNumber, formatDeltaPct } from '../../utils/format';
+import { formatCompactNumber, formatDeltaPct, formatGroupedNumber } from '../../utils/format';
 import { STAT_TONES, type StatTone } from './dashboardTokens';
 import type { DashboardStat } from '../../api/dashboard';
 
@@ -25,6 +26,7 @@ function StatCard({
   stat: DashboardStat;
   comparisonLabel: string;
 }) {
+  const { lang } = useApp();
   const { bg, color, stroke } = STAT_TONES[tone];
   const up = stat.deltaPct !== null && stat.deltaPct > 0;
   const flat = stat.deltaPct === null || stat.deltaPct === 0;
@@ -47,9 +49,12 @@ function StatCard({
         <span style={{ fontSize: 13, fontWeight: 600, color: '#8a85a0' }}>{label}</span>
       </div>
 
-      <div style={{
-        fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 28, color: '#211c38', lineHeight: 1.1,
-      }}>
+      {/* Số lớn rút gọn (7K) cho gọn thẻ; số ĐẦY ĐỦ theo ngôn ngữ nằm ở title để tra cứu chính xác —
+          hai cách hiển thị cùng một con số, không còn lẫn lộn định dạng giữa thẻ và bảng. */}
+      <div
+        title={formatGroupedNumber(stat.total, lang)}
+        style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 28, color: '#211c38', lineHeight: 1.1 }}
+      >
         {formatCompactNumber(stat.total)}
       </div>
 
@@ -64,8 +69,9 @@ function StatCard({
         <span style={{ fontSize: 11.5, color: '#a39bbf' }}>{comparisonLabel}</span>
       </div>
 
-      {/* Chiều cao cố định để 4 thẻ luôn bằng nhau, kể cả thẻ chưa đủ dữ liệu vẽ đường. */}
-      <div style={{ height: 34, margin: '-2px -4px -4px' }} aria-hidden>
+      {/* Chiều cao cố định để 4 thẻ luôn bằng nhau, kể cả thẻ chưa đủ dữ liệu vẽ đường.
+          Chừa 8px dưới đáy — trước đây margin âm kéo đường dính sát mép card. */}
+      <div style={{ height: 42, margin: '-2px -4px 0', paddingBottom: 8 }} aria-hidden>
         <Sparkline values={stat.series} stroke={stroke} />
       </div>
     </div>

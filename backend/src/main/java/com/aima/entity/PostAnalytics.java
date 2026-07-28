@@ -16,7 +16,11 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "post_analytics")
+// Các truy vấn gộp lấy MỘT snapshot/bài bằng DISTINCT ON (post_id) ORDER BY milestone_hours DESC —
+// index này khớp đúng thứ tự đó nên Postgres không phải sort lại. ddl-auto=update tự tạo khi thiếu.
+@Table(name = "post_analytics", indexes = {
+        @Index(name = "idx_post_analytics_post_milestone", columnList = "post_id, milestone_hours")
+})
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PostAnalytics extends BaseEntity {
 

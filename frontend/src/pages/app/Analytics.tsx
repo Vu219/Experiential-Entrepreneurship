@@ -1,67 +1,95 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, Heart, MessageCircle, Share2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
+import { useToast } from '../../components/toast/ToastProvider.tsx';
 import { Card } from '../../components/ui.tsx';
 import PageContainer from '../../components/PageContainer.tsx';
-import StatCard from '../../components/dashboard/StatCard.tsx';
-import DemoBadge from '../../components/dashboard/DemoBadge.tsx';
-import AnalyticsToolbar, { shiftISO, todayISO } from '../../components/analytics/AnalyticsToolbar.tsx';
+import KpiCard from '../../components/analytics/KpiCard.tsx';
+import AnalyticsFilterBar from '../../components/analytics/AnalyticsFilterBar.tsx';
 import AnalyticsTrendChart from '../../components/analytics/AnalyticsTrendChart.tsx';
 import PlatformBreakdown from '../../components/analytics/PlatformBreakdown.tsx';
+import ContentTypeBreakdown from '../../components/analytics/ContentTypeBreakdown.tsx';
+import ActivityHeatmap from '../../components/analytics/ActivityHeatmap.tsx';
+import InsightsStrip from '../../components/analytics/InsightsStrip.tsx';
 import TopPostsTable from '../../components/analytics/TopPostsTable.tsx';
 import AllPostsModal from '../../components/analytics/AllPostsModal.tsx';
-import AnalyticsSkeleton, { TopPostsSkeleton } from '../../components/analytics/AnalyticsSkeleton.tsx';
+import PostDetailModal from '../../components/analytics/PostDetailModal.tsx';
+import BlockError from '../../components/analytics/BlockError.tsx';
+import AnalyticsSkeleton, {
+  BlockSkeleton, InsightsSkeleton, KpiSkeleton, TopPostsSkeleton,
+} from '../../components/analytics/AnalyticsSkeleton.tsx';
 import { METRIC_TONE } from '../../components/analytics/analyticsTokens.ts';
+import { defaultRange } from '../../components/analytics/dateRange.ts';
 import type { Platform } from '../../api/brandProfile.ts';
 import {
-  getAnalyticsByPlatform, getAnalyticsSummary, getAnalyticsTimeseries, getAnalyticsTopPosts,
-  type AnalyticsPlatform, type AnalyticsSummary, type AnalyticsTimeseries, type AnalyticsTopPost,
-  type TopPostSort, type TopPostSortField,
+  CONTENT_TYPES, exportAnalyticsCsv, getAnalyticsByContentType, getAnalyticsByPlatform, getAnalyticsHeatmap,
+  getAnalyticsInsights, getAnalyticsSummary, getAnalyticsTimeseries, getAnalyticsTopPosts,
+  type AnalyticsFilter, type AnalyticsSummary, type AnalyticsTimeseries, type AnalyticsTopPost,
+  type ContentTypeLabel, type TopPostSort, type TopPostSortField,
 } from '../../api/analytics.ts';
-import { mockByPlatform, mockSummary, mockTimeseries, mockTopPosts } from '../../api/analyticsMock.ts';
+import {
+  mockByContentType, mockByPlatform, mockHeatmap, mockInsights, mockSummary, mockTimeseries, mockTopPosts,
+} from '../../api/analyticsMock.ts';
 
-// UI-08 — Trang Phân tích tổng hợp. Số liệu từ slice /analytics/* (AnalyticsController), GỘP theo
-// kỳ/ngày. Bộ lọc (khoảng ngày + nền tảng + cột sort) đồng bộ lên URL query (khuôn trang Doanh thu).
+// UI-08 v2 — Trang Phân tích tổng hợp. Số liệu từ slice /analytics/* (AnalyticsController), GỘP theo
+// kỳ/ngày. MỘT nguồn bộ lọc duy nhất (khoảng ngày + nền tảng + loại nội dung + cột sort) đồng bộ lên
+// URL query — không card nào có bộ chọn thời gian riêng, các card chỉ hiện `RangeBadge` tĩnh nhắc
+// khoảng đang áp dụng (dropdown riêng từng card sẽ khiến bấm ở card này làm ba card kia nhảy theo).
 //
-// DỮ LIỆU MẪU: khi chưa có số liệu thật (tài khoản mới / backend chưa deploy endpoint) hoặc lỗi API,
-// trang tự hiển thị dữ liệu demo (kèm badge "Dữ liệu mẫu") để hình dung giao diện — cùng triết lý
-// fallback của Bảng điều khiển. Có số liệu thật thì LUÔN ưu tiên thật. Cờ VITE_USE_MOCK=true ép mock.
+// Bố cục: hàng công cụ (KHÔNG sticky) → 4 KPI ngang → chart 8 + nền tảng 4 → Top bài viết 8 + cột
+// phải 4 (loại nội dung / heatmap xếp dọc) → dải "Thông tin chi tiết" cuối trang. Mỗi khối
+// tải/skeleton/thử lại ĐỘC LẬP: đổi bộ lọc chỉ thay phần dữ liệu, hàng công cụ vẫn thao tác được,
+// không remount cả trang.
 //
-// Thứ tự khối: A toolbar (sticky) → B 4 KPI → C biểu đồ đa series | D hiệu suất nền tảng → E Top bài viết.
-// Khối F/G/H (loại nội dung / heatmap / insights) hoãn sang đợt sau.
+// DỮ LIỆU MẪU: chỉ bật khi tài khoản CHƯA từng có số liệu thật (hoặc API lỗi ngay lần đầu). Khi đã
+// thấy dữ liệu thật một lần, mọi lần lọc sau LUÔN hiển thị dữ liệu thật — lọc không ra kết quả thì
+// hiện empty state, tuyệt đối không âm thầm đổi sang số liệu demo. Cờ VITE_USE_MOCK=true ép mock.
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 const ALL_PLATFORMS: Platform[] = ['FACEBOOK', 'INSTAGRAM', 'THREADS'];
 const SORT_FIELDS: TopPostSortField[] = ['views', 'likes', 'comments', 'shares', 'engagement', 'date'];
+/** Trần export của backend — vượt thì trả mã 2053 kèm hướng dẫn thu hẹp bộ lọc. */
+const EXPORT_TOO_LARGE_CODE = 2053;
+/** Một khoảng cách duy nhất cho cả hàng lẫn cột của lưới 12 cột. */
+const GRID_GAP = 18;
 
-/** Khoảng mặc định: 7 ngày gần nhất (khớp mặc định backend). */
-function defaultRange(): { from: string; to: string } {
-  const to = todayISO();
-  return { from: shiftISO(to, -6), to };
+/** Một ô của lưới 12 cột. Class `.ana-cell` (index.css) cho card con cao đầy ô → hai card cùng
+ *  hàng bằng nhau mà không cần biết chiều cao trước. */
+function Cell({ span, children }: { span: number; children: ReactNode }) {
+  return <div className="ana-cell" style={{ gridColumn: `span ${span}` }}>{children}</div>;
 }
 
-function parsePlatforms(raw: string | null): Platform[] {
+function parseCsvParam<T extends string>(raw: string | null, allowed: readonly T[]): T[] {
   if (!raw) return [];
-  return raw.split(',').filter((p): p is Platform => ALL_PLATFORMS.includes(p as Platform));
+  return raw.split(',').filter((v): v is T => (allowed as readonly string[]).includes(v));
 }
 
-/** Có ít nhất một metric > 0 → coi là có số liệu thật; toàn 0 → fallback dữ liệu mẫu. */
+/** Có ít nhất một metric > 0 → coi là có số liệu thật; toàn 0 → chưa có gì để hiển thị. */
 const summaryHasData = (s: AnalyticsSummary) =>
   s.views.total > 0 || s.likes.total > 0 || s.comments.total > 0 || s.shares.total > 0;
 
+const ddmmyyyy = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+
 export default function Analytics() {
-  const { t, go } = useApp();
-  const { isMobile, isTablet } = useBreakpoint();
+  const { t } = useApp();
+  const { isMobile, isTablet, width } = useBreakpoint();
+  const toast = useToast();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
 
   // ---- Bộ lọc (nguồn sự thật = URL) ----
-  const { from, to } = useMemo(() => {
+  const filter: AnalyticsFilter = useMemo(() => {
     const def = defaultRange();
-    return { from: params.get('from') || def.from, to: params.get('to') || def.to };
+    return {
+      from: params.get('from') || def.from,
+      to: params.get('to') || def.to,
+      platforms: parseCsvParam(params.get('platforms'), ALL_PLATFORMS),
+      contentTypes: parseCsvParam<ContentTypeLabel>(params.get('types'), CONTENT_TYPES),
+    };
   }, [params]);
-  const platforms = useMemo(() => parsePlatforms(params.get('platforms')), [params]);
+
   const sort: TopPostSort = useMemo(() => ({
     field: SORT_FIELDS.includes(params.get('sortField') as TopPostSortField) ? (params.get('sortField') as TopPostSortField) : 'views',
     asc: params.get('sortDir') === 'asc',
@@ -76,148 +104,283 @@ export default function Analytics() {
     setParams(next, { replace: true });
   }, [params, setParams]);
 
-  const platformsKey = platforms.join(',');
+  const onFilterChange = useCallback((patch: Partial<AnalyticsFilter>) => {
+    patchParams({
+      from: patch.from, to: patch.to,
+      platforms: patch.platforms ? patch.platforms.join(',') || undefined : undefined,
+      types: patch.contentTypes ? patch.contentTypes.join(',') || undefined : undefined,
+    });
+  }, [patchParams]);
+  const setSort = (next: TopPostSort) => patchParams({ sortField: next.field, sortDir: next.asc ? 'asc' : 'desc' });
 
-  // ---- Khối lõi: KPI (B) + chart (C) + nền tảng (D) — cùng phụ thuộc from/to/platforms ----
-  const [coreLoad, setCoreLoad] = useState<'loading' | 'ok'>('loading');
-  // Đã qua lần tải ĐẦU chưa: lần đầu skeleton CẢ trang (kể cả thanh lọc) cho đồng bộ; các lần đổi
-  // filter sau giữ thanh lọc thật để còn thao tác, chỉ skeleton phần nội dung.
+  // Khoá ổn định để các useCallback bên dưới chỉ đổi khi bộ lọc thực sự đổi.
+  const filterKey = `${filter.from}|${filter.to}|${filter.platforms.join(',')}|${filter.contentTypes.join(',')}`;
+  const stableFilter = useMemo(() => filter, [filterKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---- Khối lõi: KPI (B) + chart (C). Quyết định luôn trang đang ở chế độ thật hay dữ liệu mẫu ----
+  const [coreLoad, setCoreLoad] = useState<'loading' | 'ok' | 'error'>('loading');
   const [booted, setBooted] = useState(false);
-  const [demo, setDemo] = useState(false);
+  // null = chưa quyết định → các khối khác chờ, tránh nửa thật nửa mẫu.
+  const [demo, setDemo] = useState<boolean | null>(null);
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [series, setSeries] = useState<AnalyticsTimeseries | null>(null);
-  const [byPlatform, setByPlatform] = useState<AnalyticsPlatform[]>([]);
+  // Đã từng thấy số liệu thật → không bao giờ rơi lại về dữ liệu mẫu khi lọc hẹp ra 0 kết quả.
+  const everReal = useRef(false);
 
   const fetchCore = useCallback(() => {
     setCoreLoad('loading');
-    const platformFilter = platformsKey ? (platformsKey.split(',') as Platform[]) : undefined;
-    // Fallback dữ liệu mẫu: cờ bật / API rỗng / API lỗi → hiển thị demo để hình dung trang.
     const useMockData = () => {
-      setSummary(mockSummary(from, to, platformFilter));
-      setSeries(mockTimeseries(from, to, platformFilter));
-      setByPlatform(mockByPlatform(from, to));
+      setSummary(mockSummary(stableFilter));
+      setSeries(mockTimeseries(stableFilter));
       setDemo(true);
       setCoreLoad('ok');
     };
     if (USE_MOCK) { useMockData(); return; }
-    Promise.all([
-      getAnalyticsSummary(from, to, platformFilter),
-      getAnalyticsTimeseries(from, to, platformFilter),
-      getAnalyticsByPlatform(from, to),
-    ])
-      .then(([s, ts, bp]) => {
-        if (summaryHasData(s)) { setSummary(s); setSeries(ts); setByPlatform(bp); setDemo(false); setCoreLoad('ok'); }
-        else useMockData();
+    Promise.all([getAnalyticsSummary(stableFilter), getAnalyticsTimeseries(stableFilter)])
+      .then(([s, ts]) => {
+        if (summaryHasData(s)) everReal.current = true;
+        if (summaryHasData(s) || everReal.current) {
+          setSummary(s); setSeries(ts); setDemo(false); setCoreLoad('ok');
+        } else useMockData();
       })
-      .catch(useMockData);
-  }, [from, to, platformsKey]);
+      // Đã từng có dữ liệu thật thì lỗi là lỗi thật → hiện nút "Thử lại", KHÔNG lặng lẽ đổi sang
+      // dữ liệu mẫu (người dùng sẽ tưởng số liệu của mình tụt).
+      .catch(() => { if (everReal.current) setCoreLoad('error'); else useMockData(); });
+  }, [stableFilter]);
   useEffect(() => { fetchCore(); }, [fetchCore]);
-  useEffect(() => { if (coreLoad === 'ok') setBooted(true); }, [coreLoad]);
+  useEffect(() => { if (coreLoad !== 'loading') setBooted(true); }, [coreLoad]);
 
-  // ---- Khối E: Top bài viết — phụ thuộc thêm sort. Lấy tối đa (50 = trần backend) để modal "Xem
-  // tất cả" phân trang tại chỗ; bảng chính chỉ hiển thị 5 bài đầu. ----
-  const [topLoad, setTopLoad] = useState<'loading' | 'ok'>('loading');
-  const [topPosts, setTopPosts] = useState<AnalyticsTopPost[]>([]);
+  // ---- Các khối còn lại: tải độc lập, mỗi khối tự skeleton/thử lại ----
+  const byPlatform = useBlock(
+    useCallback(() => getAnalyticsByPlatform(stableFilter), [stableFilter]),
+    useCallback(() => mockByPlatform(stableFilter), [stableFilter]), demo);
+  const byContentType = useBlock(
+    useCallback(() => getAnalyticsByContentType(stableFilter), [stableFilter]),
+    useCallback(() => mockByContentType(stableFilter), [stableFilter]), demo);
+  const heatmap = useBlock(
+    useCallback(() => getAnalyticsHeatmap(stableFilter), [stableFilter]),
+    useCallback(() => mockHeatmap(stableFilter), [stableFilter]), demo);
+  const insights = useBlock(
+    useCallback(() => getAnalyticsInsights(stableFilter), [stableFilter]),
+    useCallback(() => mockInsights(stableFilter), [stableFilter]), demo);
+  // Top bài viết lấy tối đa 50 (trần backend) để modal "Xem tất cả" phân trang tại chỗ.
+  const topPosts = useBlock<AnalyticsTopPost[]>(
+    useCallback(() => getAnalyticsTopPosts(stableFilter, sort, 50), [stableFilter, sort.field, sort.asc]), // eslint-disable-line react-hooks/exhaustive-deps
+    useCallback(() => mockTopPosts(stableFilter, sort, 50), [stableFilter, sort.field, sort.asc]), // eslint-disable-line react-hooks/exhaustive-deps
+    demo);
+
+  // ---- Xuất báo cáo ----
+  const [exporting, setExporting] = useState(false);
+  const onExportCsv = async () => {
+    setExporting(true);
+    try {
+      // Chế độ dữ liệu mẫu chưa có gì thật để xuất → dựng CSV ngay từ bảng đang hiển thị.
+      const csv = demo ? mockCsv(topPosts.data ?? []) : await exportAnalyticsCsv(stableFilter, sort);
+      download(csv, `aima-phan-tich-${filter.from}-${filter.to}.csv`);
+      toast.success(t.anaExportDone);
+    } catch (e) {
+      const code = (e as { code?: number }).code;
+      if (code === EXPORT_TOO_LARGE_CODE) toast.warning(t.anaExportTooLarge);
+      else toast.error(t.anaExportFailed);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // ---- Điều hướng ----
   const [allPostsOpen, setAllPostsOpen] = useState(false);
+  const [detailPost, setDetailPost] = useState<AnalyticsTopPost | null>(null);
+  // Ô "Bài lỗi & cần xử lý" mang theo ĐÚNG khoảng ngày đang lọc để hai màn hình cùng một con số.
+  // `go()` chỉ nhận key route (không kèm query) nên điều hướng thẳng bằng navigate.
+  const openFailedPosts = () => navigate(`/failed-posts?from=${filter.from}&to=${filter.to}`);
 
-  const fetchTop = useCallback(() => {
-    setTopLoad('loading');
-    const platformFilter = platformsKey ? (platformsKey.split(',') as Platform[]) : undefined;
-    const useMockData = () => { setTopPosts(mockTopPosts(from, to, platformFilter, sort, 50)); setTopLoad('ok'); };
-    if (USE_MOCK) { useMockData(); return; }
-    getAnalyticsTopPosts(from, to, platformFilter, sort, 50)
-      .then((rows) => { if (rows.length > 0) { setTopPosts(rows); setTopLoad('ok'); } else useMockData(); })
-      .catch(useMockData);
-  }, [from, to, platformsKey, sort]);
-  useEffect(() => { fetchTop(); }, [fetchTop]);
+  // ---- Bố cục: MỘT lưới 12 cột cho cả trang ----
+  // Mọi khối là ô của cùng một lưới: hai card cùng hàng luôn bằng chiều cao (grid stretch +
+  // `.ana-cell > * { flex: 1 }`), không có khoảng trống dọc bất thường và không hardcode height.
+  //
+  // ≥1280: KPI 4×3 · chart 8 + nền tảng 4 · Top bài viết 8 + [loại nội dung / heatmap] 4 · Thông tin
+  //        chi tiết 12.  768–1279: mọi cặp 8/4 xuống một cột, KPI 2 cột.  <768: tất cả một cột.
+  const wide = width >= 1280;
+  const kpiSpan = wide ? 3 : isMobile ? 12 : 6;
+  const mainSpan = wide ? 8 : 12;   // chart / bảng Top bài viết
+  const sideSpan = wide ? 4 : 12;   // donut nền tảng / donut loại nội dung
+  const insightsCols = wide ? 5 : width > 1024 ? 3 : 2; // <768 vẫn 2 cột để strip không cao lêu nghêu
 
-  // ---- Handlers bộ lọc ----
-  const setRange = (nextFrom: string, nextTo: string) => patchParams({ from: nextFrom, to: nextTo });
-  const setPlatforms = (next: Platform[]) => patchParams({ platforms: next.length ? next.join(',') : undefined });
-  const setSort = (next: TopPostSort) => patchParams({ sortField: next.field, sortDir: next.asc ? 'asc' : 'desc' });
-
-  // Click dòng / "Xem tất cả" → Quản lý nội dung (danh sách nội dung đã tạo). Chưa có route chi tiết
-  // theo id nên điều hướng về danh sách; deep-link theo bài để đợt sau.
-  const openContent = () => go('create');
-
-  // 4 KPI: 4 cột (desktop) → 2 (tablet) → 1 (mobile).
-  const statCols = isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)';
   const kpi = [
     { key: 'views' as const, icon: Eye, label: t.anaViews },
     { key: 'likes' as const, icon: Heart, label: t.anaLikes },
     { key: 'comments' as const, icon: MessageCircle, label: t.anaComments },
     { key: 'shares' as const, icon: Share2, label: t.anaShares },
   ];
+  // Delta ghi rõ KHOẢNG kỳ trước đã tính (backend trả compareFrom/compareTo), không nói chung chung.
+  const compareLabel = summary
+    ? t.anaVsRange.replace('{from}', ddmmyyyy(summary.compareFrom)).replace('{to}', ddmmyyyy(summary.compareTo))
+    : '';
 
-  // Lần tải đầu: skeleton CẢ trang (kèm thanh lọc) để không nhìn dở dang.
+  // Empty state (chỉ ở chế độ dữ liệu THẬT): phân biệt chưa kết nối / chưa có bài / lọc không ra.
+  const emptyNote = useMemo(() => {
+    if (demo !== false || !summary || summaryHasData(summary)) return null;
+    const rows = byPlatform.data;
+    if (rows && rows.length > 0 && rows.every((r) => !r.connected)) return t.anaEmptyNoConnection;
+    if (filter.platforms.length > 0 || filter.contentTypes.length > 0) return t.anaEmptyNoResult;
+    return t.anaEmptyNoPosts;
+  }, [demo, summary, byPlatform.data, filter.platforms.length, filter.contentTypes.length, t]);
+
+  // Lần tải ĐẦU: skeleton cả trang (kèm thanh lọc) dùng CÙNG lưới 12 cột và bao gồm tất cả
+  // các khối (KPI, chart, nền tảng, top bài viết, loại nội dung, heatmap, thông tin chi tiết)
+  // để chuyển tiếp sang dữ liệu thật không nhảy layout.
   if (!booted) {
     return (
       <PageContainer>
         <AnalyticsSkeleton isMobile={isMobile} isTablet={isTablet} withToolbar />
-        <TopPostsSkeleton />
       </PageContainer>
     );
   }
 
+  const chartBlock = coreLoad === 'error' ? <BlockError onRetry={fetchCore} minHeight={280} />
+    : coreLoad === 'loading' || !series ? <BlockSkeleton height={360} />
+      : <AnalyticsTrendChart points={series.points} from={filter.from} to={filter.to} />;
+
+  const topPostsBlock = topPosts.status === 'loading' ? <TopPostsSkeleton />
+    : topPosts.status === 'error' ? <BlockError onRetry={topPosts.reload} minHeight={240} />
+      : (
+        <TopPostsTable
+          rows={topPosts.data ?? []} sort={sort} onSortChange={setSort}
+          onRowClick={setDetailPost} onViewAll={() => setAllPostsOpen(true)}
+        />
+      );
+
+  const platformBlock = byPlatform.status === 'loading' ? <BlockSkeleton withDonut />
+    : byPlatform.status === 'error' ? <BlockError onRetry={byPlatform.reload} />
+      : <PlatformBreakdown rows={byPlatform.data ?? []} from={filter.from} to={filter.to} />;
+
+  const contentTypeBlock = byContentType.status === 'loading' ? <BlockSkeleton height={260} withDonut />
+    : byContentType.status === 'error' ? <BlockError onRetry={byContentType.reload} />
+      : <ContentTypeBreakdown rows={byContentType.data ?? []} from={filter.from} to={filter.to} />;
+
+  const heatmapBlock = heatmap.status === 'loading' ? <BlockSkeleton height={260} />
+    : heatmap.status === 'error' ? <BlockError onRetry={heatmap.reload} />
+      : heatmap.data ? <ActivityHeatmap data={heatmap.data} from={filter.from} to={filter.to} /> : null;
+
+  const insightsBlock = insights.status === 'loading' ? <InsightsSkeleton cols={insightsCols} />
+    : insights.status === 'error' ? <BlockError onRetry={insights.reload} minHeight={140} />
+      : insights.data ? <InsightsStrip data={insights.data} onOpenFailed={openFailedPosts} /> : null;
+
   return (
     <PageContainer>
-      {/* A — Toolbar sticky (đồng bộ URL) */}
-      <Card style={{ position: 'sticky', top: 0, zIndex: 5, padding: 14 }}>
-        <AnalyticsToolbar
-          from={from} to={to} platforms={platforms}
-          onRangeChange={setRange} onPlatformsChange={setPlatforms}
-        />
-      </Card>
+      {/* A — Hàng công cụ: chip "Dữ liệu mẫu" bên trái, các control căn phải, KHÔNG sticky. */}
+      <AnalyticsFilterBar
+        filter={filter} onChange={onFilterChange}
+        onExportCsv={onExportCsv} exporting={exporting} demo={demo === true}
+      />
 
-      {/* Banner dữ liệu mẫu — chỉ khi đang fallback demo (không có số liệu thật). */}
-      {demo && coreLoad === 'ok' && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-          background: '#fffaf0', border: '1px solid #fce7c3', borderRadius: 12, padding: '10px 14px',
-        }}>
-          <DemoBadge label={t.dbDemoData} />
-          <span style={{ fontSize: 12.5, color: '#8a6d3b', lineHeight: 1.5 }}>{t.anaDemoNote}</span>
-        </div>
+      {emptyNote && (
+        <Card style={{ padding: 16 }}>
+          <div style={{ fontSize: 13.5, color: '#6b6680', lineHeight: 1.6 }}>{emptyNote}</div>
+        </Card>
       )}
 
-      {coreLoad === 'loading' ? <AnalyticsSkeleton isMobile={isMobile} isTablet={isTablet} />
-        : summary && series && (
-          <>
-            {/* B — 4 KPI */}
-            <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 16 }}>
-              {kpi.map((k) => (
-                <StatCard key={k.key} icon={k.icon} tone={METRIC_TONE[k.key]} label={k.label}
-                  stat={summary[k.key]} comparisonLabel={t.anaVsPrev} />
-              ))}
-            </div>
-
-            {/* C + D — chart đa series | hiệu suất nền tảng */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile || isTablet ? '1fr' : 'minmax(0, 2fr) minmax(0, 1fr)',
-              gap: 18, alignItems: 'start',
-            }}>
-              <AnalyticsTrendChart points={series.points} />
-              <PlatformBreakdown rows={byPlatform} />
-            </div>
-          </>
+      {/* Lưới 12 cột dùng chung cho MỌI khối — một gap duy nhất cho cả hàng lẫn cột. */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+        gap: GRID_GAP, alignItems: 'stretch',
+      }}>
+        {/* B — 4 KPI */}
+        {coreLoad === 'error' ? (
+          <Cell span={12}><BlockError onRetry={fetchCore} minHeight={120} /></Cell>
+        ) : coreLoad === 'loading' || !summary ? (
+          <Cell span={12}><KpiSkeleton cols={12 / kpiSpan} /></Cell>
+        ) : (
+          kpi.map((k) => (
+            <Cell key={k.key} span={kpiSpan}>
+              <KpiCard icon={k.icon} tone={METRIC_TONE[k.key]} label={k.label}
+                stat={summary[k.key]} comparisonLabel={compareLabel} />
+            </Cell>
+          ))
         )}
 
-      {/* E — Top bài viết (5 bài; "Xem tất cả" mở modal phân trang) */}
-      {topLoad === 'loading' ? <TopPostsSkeleton />
-        : (
-          <TopPostsTable
-            rows={topPosts} sort={sort} onSortChange={setSort}
-            onRowClick={openContent} onViewAll={() => setAllPostsOpen(true)}
-          />
-        )}
+        {/* C — chart 8 + hiệu suất nền tảng 4 (cùng hàng ⇒ tự bằng chiều cao) */}
+        <Cell span={mainSpan}>{chartBlock}</Cell>
+        <Cell span={sideSpan}>{platformBlock}</Cell>
+
+        {/* D — Top bài viết 8 + cột phải 4 chẻ đôi: loại nội dung (hút chiều cao dôi) trên, heatmap
+            dưới. Cột phải là flex column nên TỔNG chiều cao hai card = chiều cao bảng bên trái. */}
+        <Cell span={mainSpan}>{topPostsBlock}</Cell>
+        <Cell span={sideSpan}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: GRID_GAP, minWidth: 0 }}>
+            {/* `.ana-cell` cho card con lấp đầy bề ngang; card trên nhận flex:1 để hút phần dôi,
+                card heatmap giữ chiều cao tự nhiên → không cần px cứng cho card nào. */}
+            <div className="ana-cell" style={{ flex: 1, minHeight: 0 }}>{contentTypeBlock}</div>
+            {heatmapBlock && <div className="ana-cell" style={{ flex: 'none' }}>{heatmapBlock}</div>}
+          </div>
+        </Cell>
+
+        {/* E — dải "Thông tin chi tiết" cuối trang, full width */}
+        {insightsBlock && <Cell span={12}>{insightsBlock}</Cell>}
+      </div>
 
       {allPostsOpen && (
         <AllPostsModal
-          rows={topPosts} sort={sort} onSortChange={setSort}
-          onRowClick={openContent} onClose={() => setAllPostsOpen(false)}
+          rows={topPosts.data ?? []} sort={sort} onSortChange={setSort}
+          onRowClick={setDetailPost} onClose={() => setAllPostsOpen(false)}
+        />
+      )}
+
+      {detailPost && (
+        <PostDetailModal
+          postId={detailPost.postId}
+          fallback={{
+            caption: detailPost.caption, platform: detailPost.platform, publishedAt: detailPost.publishedAt,
+            views: detailPost.views, likes: detailPost.likes, comments: detailPost.comments, shares: detailPost.shares,
+          }}
+          allPosts={topPosts.data ?? []}
+          onClose={() => setDetailPost(null)}
         />
       )}
     </PageContainer>
   );
+}
+
+/**
+ * Một khối dữ liệu độc lập: chờ trang quyết định thật/mẫu (`demo === null` = chưa quyết định), sau đó
+ * gọi API thật hoặc lấy dữ liệu mẫu. Lỗi ở chế độ THẬT không nuốt im lặng — trả `status = 'error'` để
+ * khối hiện nút "Thử lại" mà không ảnh hưởng các khối khác.
+ */
+function useBlock<T>(fetcher: () => Promise<T>, mocker: () => T, demo: boolean | null) {
+  const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
+  const [data, setData] = useState<T | null>(null);
+  const [nonce, setNonce] = useState(0);
+
+  useEffect(() => {
+    if (demo === null) return;
+    if (demo) { setData(mocker()); setStatus('ok'); return; }
+    let alive = true;
+    setStatus('loading');
+    fetcher()
+      .then((d) => { if (alive) { setData(d); setStatus('ok'); } })
+      .catch(() => { if (alive) setStatus('error'); });
+    return () => { alive = false; };
+  }, [fetcher, mocker, demo, nonce]);
+
+  return { status, data, reload: useCallback(() => setNonce((n) => n + 1), []) };
+}
+
+/** Tải chuỗi CSV về máy. BOM để Excel đọc đúng UTF-8 (tiếng Việt không lỗi font). */
+function download(content: string, filename: string) {
+  const blob = new Blob(['﻿' + content], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** CSV cho chế độ dữ liệu mẫu — cùng cột với export thật của backend. */
+function mockCsv(rows: AnalyticsTopPost[]): string {
+  const head = 'publishedAt,platform,caption,views,likes,comments,shares,engagement';
+  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  return [head, ...rows.map((r) => [
+    r.publishedAt, r.platform, esc(r.caption ?? ''), r.views, r.likes, r.comments, r.shares, r.engagement,
+  ].join(','))].join('\n');
 }

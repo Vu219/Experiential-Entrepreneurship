@@ -1,5 +1,10 @@
 package com.aima.service.Impl;
 
+import com.aima.dto.response.AnalyticsContentTypeResponse;
+import com.aima.dto.response.AnalyticsGoldenHourResponse;
+import com.aima.dto.response.AnalyticsHeatmapCellResponse;
+import com.aima.dto.response.AnalyticsHeatmapResponse;
+import com.aima.dto.response.AnalyticsInsightsResponse;
 import com.aima.dto.response.AnalyticsPlatformResponse;
 import com.aima.dto.response.AnalyticsPointResponse;
 import com.aima.dto.response.AnalyticsStatResponse;
@@ -28,11 +33,16 @@ import com.aima.mapper.AnalyticsMapper;
 import com.aima.repository.BrandProfileRepository;
 import com.aima.repository.PlatformAccountRepository;
 import com.aima.repository.PostAnalyticsRepository;
+import com.aima.repository.PostRepository;
 import com.aima.repository.UserRepository;
+import com.aima.repository.projection.ContentTypeMetricProjection;
 import com.aima.repository.projection.DailyEngagementProjection;
+import com.aima.repository.projection.HeatmapCellProjection;
 import com.aima.repository.projection.PlatformMetricProjection;
+import com.aima.repository.projection.PostEngagementProjection;
 import com.aima.repository.projection.TopPostProjection;
 import com.aima.service.AnalyticsService;
+import com.aima.util.CsvUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -43,6 +53,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -56,6 +67,8 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
@@ -76,6 +89,19 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     // Cột hợp lệ để sắp xếp bảng "Top bài viết" — chặn ORDER BY tuỳ ý từ client.
     static Set<String> TOP_SORT_FIELDS = Set.of("views", "likes", "comments", "shares", "engagement", "date");
 
+    // Cache ngắn cho các số liệu GỘP: người dùng bật/tắt bộ lọc qua lại rất nhanh, mỗi lần đổi là 7
+    // request. Dự án chưa có cache manager nên dùng map thủ công (cùng cách PlatformVersionServiceImpl).
+    // TTL cố tình ngắn để số liệu mới thu về chậm nhất một phút là hiện.
+    static Duration CACHE_TTL = Duration.ofSeconds(45);
+
+    // Chặn map phình vô hạn (mỗi user × mỗi tổ hợp bộ lọc là một key): chạm trần thì xoá sạch,
+    // đơn giản hơn LRU và chấp nhận được với cache TTL 45 giây.
+    static int CACHE_MAX_ENTRIES = 500;
+
+    // Header CSV export — snake_case như các endpoint export sẵn có (usage, log hoạt động).
+    static String EXPORT_HEADER =
+            "published_at,platform,account_name,caption,views,likes,comments,shares,engagement\n";
+
     // ===== Đánh dấu dữ liệu dev-seed để dọn sạch khi seed lại / clear =====
     static String DEV_BRAND_NAME = "[DEV-SEED] Phân tích demo";
     static String DEV_MARKER_PREFIX = "devseed-";
@@ -86,9 +112,14 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     PostAnalyticsRepository postAnalyticsRepository;
     PlatformAccountRepository platformAccountRepository;
     BrandProfileRepository brandProfileRepository;
+    PostRepository postRepository;
     UserRepository userRepository;
     AnalyticsMapper analyticsMapper;
     Environment environment;
+
+    // Có khởi tạo sẵn nên KHÔNG vào constructor của @RequiredArgsConstructor (Lombok bỏ qua final
+    // đã gán giá trị) — đây là state cục bộ của service, không phải dependency.
+    ConcurrentHashMap<String, CachedResult> resultCache = new ConcurrentHashMap<>();
 
     // Cờ dev-only cho dev-seed — mặc định TẮT, chỉ bật ở môi trường dev (.env).
     @NonFinal
@@ -103,25 +134,26 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     public ApiResponse<AnalyticsSummaryResponse> summary(String email, AnalyticsQuery query) {
         UUID userId = currentUser(email).getId();
         ResolvedRange range = resolveRange(query);
-        String platformCsv = platformCsv(query.platforms());
+        Filters filters = filters(query);
 
-        List<AnalyticsPointResponse> current = fetchPoints(userId, range.from(), range.to(), platformCsv);
-        // Kỳ so sánh: cùng độ dài, nằm ngay trước kỳ hiện tại.
-        LocalDate previousTo = range.from().minusDays(1);
-        LocalDate previousFrom = previousTo.minusDays(range.rangeDays() - 1L);
-        List<AnalyticsPointResponse> previous = fetchPoints(userId, previousFrom, previousTo, platformCsv);
+        AnalyticsSummaryResponse summary = cached(key("summary", userId, range, filters), () -> {
+            List<AnalyticsPointResponse> current = fetchPoints(userId, range.from(), range.to(), filters);
+            ComparePeriod previousPeriod = comparePeriod(range);
+            List<AnalyticsPointResponse> previous =
+                    fetchPoints(userId, previousPeriod.from(), previousPeriod.to(), filters);
 
-        AnalyticsSummaryResponse summary = AnalyticsSummaryResponse.builder()
-                .from(range.from().toString())
-                .to(range.to().toString())
-                .rangeDays(range.rangeDays())
-                .compareFrom(previousFrom.toString())
-                .compareTo(previousTo.toString())
-                .views(buildStat(current, previous, AnalyticsPointResponse::getViews))
-                .likes(buildStat(current, previous, AnalyticsPointResponse::getLikes))
-                .comments(buildStat(current, previous, AnalyticsPointResponse::getComments))
-                .shares(buildStat(current, previous, AnalyticsPointResponse::getShares))
-                .build();
+            return AnalyticsSummaryResponse.builder()
+                    .from(range.from().toString())
+                    .to(range.to().toString())
+                    .rangeDays(range.rangeDays())
+                    .compareFrom(previousPeriod.from().toString())
+                    .compareTo(previousPeriod.to().toString())
+                    .views(buildStat(current, previous, AnalyticsPointResponse::getViews))
+                    .likes(buildStat(current, previous, AnalyticsPointResponse::getLikes))
+                    .comments(buildStat(current, previous, AnalyticsPointResponse::getComments))
+                    .shares(buildStat(current, previous, AnalyticsPointResponse::getShares))
+                    .build();
+        });
         return ApiResponse.success("Lấy tổng quan phân tích thành công", summary);
     }
 
@@ -129,15 +161,15 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     public ApiResponse<AnalyticsTimeseriesResponse> timeseries(String email, AnalyticsQuery query) {
         UUID userId = currentUser(email).getId();
         ResolvedRange range = resolveRange(query);
-        String platformCsv = platformCsv(query.platforms());
+        Filters filters = filters(query);
 
-        List<AnalyticsPointResponse> points = fetchPoints(userId, range.from(), range.to(), platformCsv);
-        AnalyticsTimeseriesResponse response = AnalyticsTimeseriesResponse.builder()
-                .from(range.from().toString())
-                .to(range.to().toString())
-                .rangeDays(range.rangeDays())
-                .points(points)
-                .build();
+        AnalyticsTimeseriesResponse response = cached(key("timeseries", userId, range, filters), () ->
+                AnalyticsTimeseriesResponse.builder()
+                        .from(range.from().toString())
+                        .to(range.to().toString())
+                        .rangeDays(range.rangeDays())
+                        .points(fetchPoints(userId, range.from(), range.to(), filters))
+                        .build());
         return ApiResponse.success("Lấy chuỗi số liệu phân tích thành công", response);
     }
 
@@ -145,9 +177,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     // Nạp số liệu gộp theo ngày rồi ĐIỀN 0 cho ngày không có bài đăng — nếu không, chuỗi bị đứt
     // quãng và tổng/sparkline lệch theo số ngày thực có dữ liệu.
-    private List<AnalyticsPointResponse> fetchPoints(UUID userId, LocalDate from, LocalDate to, String platformCsv) {
+    private List<AnalyticsPointResponse> fetchPoints(UUID userId, LocalDate from, LocalDate to, Filters filters) {
         Map<String, DailyEngagementProjection> byDay = postAnalyticsRepository
-                .findDailyEngagementForUser(userId, from.atStartOfDay(), to.plusDays(1).atStartOfDay(), platformCsv)
+                .findDailyEngagementForUser(userId, from.atStartOfDay(), to.plusDays(1).atStartOfDay(),
+                        filters.platformCsv(), filters.typeCsv())
                 .stream()
                 .collect(Collectors.toMap(DailyEngagementProjection::getDay, row -> row, (first, second) -> first));
 
@@ -196,21 +229,224 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     public ApiResponse<List<AnalyticsPlatformResponse>> byPlatform(String email, AnalyticsQuery query) {
         UUID userId = currentUser(email).getId();
         ResolvedRange range = resolveRange(query);
+        // NGOẠI LỆ 1/2 của trang: bỏ qua bộ lọc NỀN TẢNG (đó là chiều của chính donut này), vẫn áp
+        // bộ lọc loại nội dung. Ngoại lệ còn lại là byContentType — xem docs/Analytics.md.
+        Filters filters = filters(query);
 
-        Map<Platform, PlatformMetricProjection> metrics = postAnalyticsRepository
-                .findPlatformMetricsForUser(userId, range.from().atStartOfDay(), range.to().plusDays(1).atStartOfDay())
-                .stream()
-                .collect(Collectors.toMap(row -> Platform.valueOf(row.getPlatform()), row -> row,
-                        (first, second) -> first, () -> new EnumMap<>(Platform.class)));
-        long totalEngagement = metrics.values().stream().mapToLong(PlatformMetricProjection::getEngagement).sum();
-        List<PlatformAccount> accounts =
-                platformAccountRepository.findByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);
+        List<AnalyticsPlatformResponse> result = cached(key("by-platform", userId, range, filters), () -> {
+            Map<Platform, PlatformMetricProjection> metrics = postAnalyticsRepository
+                    .findPlatformMetricsForUser(userId, range.from().atStartOfDay(),
+                            range.to().plusDays(1).atStartOfDay(), filters.typeCsv())
+                    .stream()
+                    .collect(Collectors.toMap(row -> Platform.valueOf(row.getPlatform()), row -> row,
+                            (first, second) -> first, () -> new EnumMap<>(Platform.class)));
+            long totalEngagement = metrics.values().stream().mapToLong(PlatformMetricProjection::getEngagement).sum();
+            List<PlatformAccount> accounts =
+                    platformAccountRepository.findByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);
 
-        List<AnalyticsPlatformResponse> result = Arrays.stream(Platform.values())
-                .map(platform -> buildPlatform(platform, metrics.get(platform),
-                        representativeAccount(accounts, platform), totalEngagement))
-                .toList();
+            return Arrays.stream(Platform.values())
+                    .map(platform -> buildPlatform(platform, metrics.get(platform),
+                            representativeAccount(accounts, platform), totalEngagement))
+                    .toList();
+        });
         return ApiResponse.success("Lấy hiệu suất theo nền tảng thành công", result);
+    }
+
+    // ===== Khối F — hiệu suất theo loại nội dung =====
+
+    @Override
+    public ApiResponse<List<AnalyticsContentTypeResponse>> byContentType(String email, AnalyticsQuery query) {
+        UUID userId = currentUser(email).getId();
+        ResolvedRange range = resolveRange(query);
+        // NGOẠI LỆ 2/2: bỏ qua bộ lọc LOẠI NỘI DUNG (chiều của chính donut này), vẫn áp lọc nền tảng.
+        Filters filters = filters(query);
+
+        List<AnalyticsContentTypeResponse> result = cached(key("by-content-type", userId, range, filters), () -> {
+            List<ContentTypeMetricProjection> rows = postAnalyticsRepository.findContentTypeMetricsForUser(
+                    userId, range.from().atStartOfDay(), range.to().plusDays(1).atStartOfDay(),
+                    filters.platformCsv());
+            long totalEngagement = rows.stream().mapToLong(ContentTypeMetricProjection::getEngagement).sum();
+
+            List<AnalyticsContentTypeResponse> mapped = analyticsMapper.toContentTypeResponseList(rows);
+            mapped.forEach(row -> row.setSharePct(sharePct(row.getEngagement(), totalEngagement)));
+            return mapped;
+        });
+        return ApiResponse.success("Lấy hiệu suất theo loại nội dung thành công", result);
+    }
+
+    // ===== Khối G — heatmap thời điểm hoạt động =====
+
+    @Override
+    public ApiResponse<AnalyticsHeatmapResponse> activityHeatmap(String email, AnalyticsQuery query) {
+        UUID userId = currentUser(email).getId();
+        ResolvedRange range = resolveRange(query);
+        Filters filters = filters(query);
+
+        AnalyticsHeatmapResponse response = cached(key("heatmap", userId, range, filters),
+                () -> buildHeatmap(userId, range, filters));
+        return ApiResponse.success("Lấy heatmap thời điểm hoạt động thành công", response);
+    }
+
+    /**
+     * Gộp ô heatmap + tính thang màu. Chỉ ô có ít nhất {@link #MIN_HEATMAP_POSTS} bài mới được tính
+     * vào max/min: một ô 1 bài tình cờ viral mà lọt vào thang màu sẽ đẩy mọi ô còn lại về gần 0 và
+     * heatmap trở nên vô dụng. Dùng chung cho cả endpoint heatmap lẫn "khung giờ vàng" của insights
+     * để hai khối không bao giờ nói khác nhau.
+     */
+    private AnalyticsHeatmapResponse buildHeatmap(UUID userId, ResolvedRange range, Filters filters) {
+        List<HeatmapCellProjection> rows = postAnalyticsRepository.findHeatmapForUser(
+                userId, range.from().atStartOfDay(), range.to().plusDays(1).atStartOfDay(),
+                filters.platformCsv(), filters.typeCsv());
+
+        List<AnalyticsHeatmapCellResponse> cells = analyticsMapper.toHeatmapCellList(rows);
+        cells.forEach(cell -> {
+            cell.setHourStart(cell.getSlot() * HEATMAP_SLOT_HOURS);
+            cell.setAvgEngagement(round1(cell.getPosts() == 0 ? 0 : (double) cell.getEngagement() / cell.getPosts()));
+            cell.setLowSample(cell.getPosts() < MIN_HEATMAP_POSTS);
+        });
+        cells = cells.stream()
+                .sorted(Comparator.comparingInt(AnalyticsHeatmapCellResponse::getDow)
+                        .thenComparingInt(AnalyticsHeatmapCellResponse::getSlot))
+                .toList();
+
+        List<AnalyticsHeatmapCellResponse> scaled = cells.stream().filter(c -> !c.isLowSample()).toList();
+        Double max = scaled.stream().mapToDouble(AnalyticsHeatmapCellResponse::getAvgEngagement).max().orElse(-1);
+        Double min = scaled.stream().mapToDouble(AnalyticsHeatmapCellResponse::getAvgEngagement).min().orElse(-1);
+
+        return AnalyticsHeatmapResponse.builder()
+                .from(range.from().toString())
+                .to(range.to().toString())
+                .cells(cells)
+                // Chưa ô nào đủ mẫu → null (không phải 0): FE hiện "chưa đủ dữ liệu" thay vì vẽ thang màu giả.
+                .max(scaled.isEmpty() ? null : max)
+                .min(scaled.isEmpty() ? null : min)
+                .minPostsForScale(MIN_HEATMAP_POSTS)
+                .scaledCells(scaled.size())
+                .build();
+    }
+
+    // ===== Khối H — dải "Thông tin chi tiết" =====
+
+    @Override
+    public ApiResponse<AnalyticsInsightsResponse> insights(String email, AnalyticsQuery query) {
+        UUID userId = currentUser(email).getId();
+        ResolvedRange range = resolveRange(query);
+        Filters filters = filters(query);
+        ComparePeriod previousPeriod = comparePeriod(range);
+
+        AnalyticsInsightsResponse response = cached(key("insights", userId, range, filters), () -> {
+            PeriodInsight current = periodInsight(userId, range.from(), range.to(), filters);
+            PeriodInsight previous = periodInsight(userId, previousPeriod.from(), previousPeriod.to(), filters);
+
+            return AnalyticsInsightsResponse.builder()
+                    .from(range.from().toString())
+                    .to(range.to().toString())
+                    .compareFrom(previousPeriod.from().toString())
+                    .compareTo(previousPeriod.to().toString())
+                    .totalPosts(current.totalPosts())
+                    .totalPostsDeltaPct(deltaPct(current.totalPosts(), previous.totalPosts()))
+                    .goodPosts(current.goodPosts())
+                    .goodPostsDeltaPct(deltaPct(current.goodPosts(), previous.goodPosts()))
+                    .avgEngagementPerPost(current.avgEngagement())
+                    .needsAttentionPosts(current.failedPosts())
+                    .needsAttentionDeltaPct(deltaPct(current.failedPosts(), previous.failedPosts()))
+                    .goldenHour(goldenHour(buildHeatmap(userId, range, filters)))
+                    .engagementRatePct(current.engagementRatePct())
+                    .engagementRateDeltaPct(rateDeltaPct(current.engagementRatePct(), previous.engagementRatePct()))
+                    .ratedPosts(current.ratedPosts())
+                    .excludedPosts(current.totalPosts() - current.ratedPosts())
+                    .build();
+        });
+        return ApiResponse.success("Lấy thông tin chi tiết thành công", response);
+    }
+
+    /**
+     * Số liệu tổng kết của MỘT kỳ (dùng cho cả kỳ hiện tại lẫn kỳ so sánh).
+     *
+     * <p>"Bài hoạt động tốt" = tương tác TRÊN mức trung bình của chính kỳ đó (ngưỡng động, không phải
+     * ngưỡng cố định). "Bài lỗi & cần xử lý" đếm từ bảng bài THẤT BẠI theo thời điểm thất bại — hai
+     * con số này thuộc hai tập khác nhau, không cộng lại thành tổng bài.
+     */
+    private PeriodInsight periodInsight(UUID userId, LocalDate from, LocalDate to, Filters filters) {
+        LocalDateTime start = from.atStartOfDay();
+        LocalDateTime end = to.plusDays(1).atStartOfDay();
+        List<PostEngagementProjection> posts = postAnalyticsRepository.findPostEngagementForUser(
+                userId, start, end, filters.platformCsv(), filters.typeCsv());
+
+        long totalPosts = posts.size();
+        long totalEngagement = posts.stream().mapToLong(PostEngagementProjection::getEngagement).sum();
+        double avgEngagement = totalPosts == 0 ? 0 : (double) totalEngagement / totalPosts;
+        long goodPosts = posts.stream().filter(p -> p.getEngagement() > avgEngagement).count();
+
+        // Tỷ lệ tương tác: CHỈ tính bài thực sự có lượt xem. Facebook thường trả views null (thiếu
+        // quyền read_insights) — coi null là 0 sẽ thổi phồng tỷ lệ, còn cho vào mẫu số thì chia cho 0.
+        List<PostEngagementProjection> rated = posts.stream()
+                .filter(p -> p.getViews() != null && p.getViews() > 0)
+                .toList();
+        long ratedViews = rated.stream().mapToLong(PostEngagementProjection::getViews).sum();
+        long ratedEngagement = rated.stream().mapToLong(PostEngagementProjection::getEngagement).sum();
+        Double engagementRatePct = ratedViews == 0 ? null : round1(ratedEngagement * 100.0 / ratedViews);
+
+        long failedPosts = postRepository.countFailedForUserInRange(
+                userId, start, end, filters.platformCsv(), filters.typeCsv());
+
+        return new PeriodInsight(totalPosts, goodPosts, round1(avgEngagement), failedPosts,
+                rated.size(), engagementRatePct);
+    }
+
+    // Khung giờ vàng = ô có tương tác TB cao nhất trong các ô ĐỦ MẪU; hoà thì ưu tiên ô nhiều bài hơn.
+    // Không ô nào đủ mẫu → null: thà nói "chưa đủ dữ liệu" còn hơn gợi ý một khung giờ dựng từ 1–2 bài.
+    private AnalyticsGoldenHourResponse goldenHour(AnalyticsHeatmapResponse heatmap) {
+        return heatmap.getCells().stream()
+                .filter(cell -> !cell.isLowSample())
+                .max(Comparator.comparingDouble(AnalyticsHeatmapCellResponse::getAvgEngagement)
+                        .thenComparingLong(AnalyticsHeatmapCellResponse::getPosts))
+                .map(cell -> AnalyticsGoldenHourResponse.builder()
+                        .dow(cell.getDow())
+                        .slot(cell.getSlot())
+                        .hourStart(cell.getHourStart())
+                        .hourEnd(cell.getHourStart() + HEATMAP_SLOT_HOURS)
+                        .posts(cell.getPosts())
+                        .avgEngagement(cell.getAvgEngagement())
+                        .build())
+                .orElse(null);
+    }
+
+    // ===== Export =====
+
+    @Override
+    public ApiResponse<String> export(String email, AnalyticsQuery query, String sort) {
+        UUID userId = currentUser(email).getId();
+        ResolvedRange range = resolveRange(query);
+        Filters filters = filters(query);
+        LocalDateTime start = range.from().atStartOfDay();
+        LocalDateTime end = range.to().plusDays(1).atStartOfDay();
+
+        long count = postAnalyticsRepository.countPostsForUser(userId, start, end,
+                filters.platformCsv(), filters.typeCsv());
+        if (count > MAX_EXPORT_ROWS) {
+            // KHÔNG cắt cụt im lặng — người dùng thu hẹp khoảng ngày/bộ lọc rồi export lại.
+            throw new AppException(ErrorCode.ANALYTICS_EXPORT_TOO_LARGE);
+        }
+
+        StringBuilder csv = new StringBuilder(EXPORT_HEADER);
+        postAnalyticsRepository.findTopPostsForUser(userId, start, end, filters.platformCsv(), filters.typeCsv())
+                .stream()
+                .sorted(topComparator(sort))
+                .forEach(row -> appendCsvRow(csv, row));
+        return ApiResponse.success("Export số liệu phân tích thành công", csv.toString());
+    }
+
+    private void appendCsvRow(StringBuilder csv, TopPostProjection row) {
+        csv.append(CsvUtil.nullToEmpty(row.getPublishedAt())).append(',')
+                .append(CsvUtil.field(row.getPlatform())).append(',')
+                .append(CsvUtil.field(row.getAccountName())).append(',')
+                .append(CsvUtil.field(row.getCaption())).append(',')
+                .append(row.getViews()).append(',')
+                .append(row.getLikes()).append(',')
+                .append(row.getComments()).append(',')
+                .append(row.getShares()).append(',')
+                .append(row.getEngagement()).append('\n');
     }
 
     private AnalyticsPlatformResponse buildPlatform(Platform platform, PlatformMetricProjection metric,
@@ -255,11 +491,12 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                                                 String sort, int limit) {
         UUID userId = currentUser(email).getId();
         ResolvedRange range = resolveRange(query);
-        String platformCsv = platformCsv(query.platforms());
+        Filters filters = filters(query);
         int cappedLimit = Math.min(Math.max(limit, 1), MAX_TOP_POSTS);
 
         List<TopPostProjection> top = postAnalyticsRepository
-                .findTopPostsForUser(userId, range.from().atStartOfDay(), range.to().plusDays(1).atStartOfDay(), platformCsv)
+                .findTopPostsForUser(userId, range.from().atStartOfDay(), range.to().plusDays(1).atStartOfDay(),
+                        filters.platformCsv(), filters.typeCsv())
                 .stream()
                 .sorted(topComparator(sort))
                 .limit(cappedLimit)
@@ -322,6 +559,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             snapshots += item.getContentVersions().get(0).getPostSchedule().getPost().getPostAnalytics().size();
         }
         brandProfileRepository.save(brand);
+        // Không dọn cache thì trang Phân tích còn hiện số cũ tới 45 giây sau khi seed — dev tưởng seeder hỏng.
+        resultCache.clear();
 
         log.warn("[AnalyticsSeed] Đã tạo {} bài MẪU + {} snapshot cho {} — KHÔNG phải dữ liệu thật",
                 DEV_SEED_POSTS, snapshots, email);
@@ -333,6 +572,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     public ApiResponse<Integer> devSeedClear(String email) {
         guardDevTool();
         int removed = clearDevData(currentUser(email));
+        resultCache.clear();
         log.warn("[AnalyticsSeed] Đã xoá {} bài MẪU của {}", removed, email);
         return ApiResponse.success("Đã xoá dữ liệu phân tích mẫu", removed);
     }
@@ -485,6 +725,89 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             return null;
         }
         return platforms.stream().distinct().map(Platform::name).collect(Collectors.joining(","));
+    }
+
+    // Loại nội dung là nhãn media_format tự do do AI ghi ("image"/"video"), KHÔNG phải enum — chuẩn
+    // hoá IN HOA + bỏ khoảng trắng để khớp với biểu thức chuẩn hoá trong SQL. Nhãn lạ vẫn lọc được
+    // (không loại bỏ), đúng tinh thần donut "Loại nội dung" của Bảng điều khiển.
+    private String contentTypeCsv(List<String> contentTypes) {
+        if (contentTypes == null || contentTypes.isEmpty()) {
+            return null;
+        }
+        String csv = contentTypes.stream()
+                .filter(type -> type != null && !type.isBlank())
+                .map(type -> type.trim().toUpperCase())
+                .distinct()
+                .collect(Collectors.joining(","));
+        return csv.isEmpty() ? null : csv;
+    }
+
+    private Filters filters(AnalyticsQuery query) {
+        return new Filters(platformCsv(query.platforms()), contentTypeCsv(query.contentTypes()));
+    }
+
+    // Kỳ so sánh: cùng độ dài, nằm ngay trước kỳ hiện tại (compare=previous_period — chế độ duy nhất).
+    private ComparePeriod comparePeriod(ResolvedRange range) {
+        LocalDate previousTo = range.from().minusDays(1);
+        return new ComparePeriod(previousTo.minusDays(range.rangeDays() - 1L), previousTo);
+    }
+
+    private double sharePct(long part, long total) {
+        return total == 0 ? 0 : round1(part * 100.0 / total);
+    }
+
+    private double round1(double value) {
+        return Math.round(value * 10) / 10.0;
+    }
+
+    // % thay đổi của một tỷ lệ (đã là %) — tách khỏi deltaPct(long, long) cho khỏi nhầm kiểu.
+    private Double rateDeltaPct(Double current, Double previous) {
+        if (current == null || previous == null || previous == 0) {
+            return null;
+        }
+        return round1((current - previous) / previous * 100);
+    }
+
+    // ===== Cache ngắn cho số liệu gộp =====
+
+    @SuppressWarnings("unchecked")
+    private <T> T cached(String key, Supplier<T> loader) {
+        CachedResult hit = resultCache.get(key);
+        if (hit != null && hit.isFresh()) {
+            return (T) hit.value();
+        }
+        T value = loader.get();
+        if (resultCache.size() >= CACHE_MAX_ENTRIES) {
+            resultCache.clear();
+        }
+        resultCache.put(key, new CachedResult(value, LocalDateTime.now()));
+        return value;
+    }
+
+    // Khoá gồm ĐỦ mọi thứ đổi kết quả: user + khối + kỳ + bộ lọc — thiếu một mảnh là trả nhầm số
+    // liệu của bộ lọc khác.
+    private String key(String block, UUID userId, ResolvedRange range, Filters filters) {
+        return String.join("|", block, userId.toString(), range.from().toString(), range.to().toString(),
+                String.valueOf(filters.platformCsv()), String.valueOf(filters.typeCsv()));
+    }
+
+    private record CachedResult(Object value, LocalDateTime cachedAt) {
+        boolean isFresh() {
+            return Duration.between(cachedAt, LocalDateTime.now()).compareTo(CACHE_TTL) < 0;
+        }
+    }
+
+    /** Bộ lọc đã chuẩn hoá thành CSV cho truy vấn native; null = không lọc chiều đó. */
+    private record Filters(String platformCsv, String typeCsv) {
+    }
+
+    /** Kỳ so sánh (cùng độ dài, liền trước kỳ hiện tại). */
+    private record ComparePeriod(LocalDate from, LocalDate to) {
+    }
+
+    /** Số liệu tổng kết của một kỳ dùng cho dải "Thông tin chi tiết". */
+    private record PeriodInsight(long totalPosts, long goodPosts, double avgEngagement, long failedPosts,
+                                 long ratedPosts, Double engagementRatePct) {
     }
 
     private User currentUser(String email) {

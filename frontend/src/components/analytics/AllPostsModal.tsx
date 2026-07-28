@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useBreakpoint } from '../../hooks/useBreakpoint';
 import Modal from '../Modal';
 import PostsTable from './PostsTable';
+import PostsCardList from './PostsCardList';
 import type { AnalyticsTopPost, TopPostSort } from '../../api/analytics';
 
 /** Số bài mỗi trang trong modal. */
@@ -28,6 +30,7 @@ export default function AllPostsModal({
   onClose: () => void;
 }) {
   const { t } = useApp();
+  const { isMobile } = useBreakpoint();
   const [page, setPage] = useState(0);
 
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
@@ -44,7 +47,10 @@ export default function AllPostsModal({
       maxWidth={920}
       animateScale
     >
-      <PostsTable rows={pageRows} sort={sort} onSortChange={onSortChange} onRowClick={onRowClick} minWidth={640} />
+      {isMobile
+        ? <PostsCardList rows={pageRows} sort={sort} onSortChange={onSortChange} onRowClick={onRowClick} />
+        : <PostsTable rows={pageRows} sort={sort} onSortChange={onSortChange} onRowClick={onRowClick}
+            minWidth={640} startIndex={page * PAGE_SIZE} />}
 
       {pageCount > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 16 }}>

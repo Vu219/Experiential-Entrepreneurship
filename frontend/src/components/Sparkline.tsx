@@ -1,5 +1,5 @@
 import { useId, useMemo } from 'react';
-import { Area, AreaChart, ResponsiveContainer } from 'recharts';
+import { Area, AreaChart, ResponsiveContainer, YAxis } from 'recharts';
 
 /**
  * Sparkline trần (không khung, không nhãn) — lấp đầy container cha, nên bọc nó trong một div đã
@@ -34,6 +34,9 @@ export default function Sparkline({ values, stroke }: { values: number[]; stroke
     <ResponsiveContainer width="100%" height="100%">
       {/* margin trên/dưới 2px để stroke 2px không bị cắt ở đỉnh/đáy chart. */}
       <AreaChart data={data} margin={{ top: 2, right: 0, bottom: 2, left: 0 }}>
+        {/* Thang y bám min–max của CHÍNH chuỗi này. Mặc định recharts lấy đáy = 0, nên chuỗi dao
+            động quanh một mức cao (vd 900→1200) bị ép thành một vệt gần như phẳng dính đáy. */}
+        <YAxis hide domain={['dataMin', 'dataMax']} />
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={stroke} stopOpacity={0.35} />

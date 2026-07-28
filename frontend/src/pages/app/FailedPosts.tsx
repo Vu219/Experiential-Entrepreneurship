@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Download } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
@@ -32,6 +33,7 @@ export default function FailedPosts() {
   const { t, go, brandGradient } = useApp();
   const { width, isDesktop } = useBreakpoint();
   const toast = useToast();
+  const [searchParams] = useSearchParams();
 
   // Mobile / tablet / laptop: 5 dòng/trang; PC lớn (>1440px): 8.
   const pageSize = width > 1440 ? 8 : 5;
@@ -42,7 +44,13 @@ export default function FailedPosts() {
 
   const [tab, setTab] = useState<FailedPostFilter>('ALL');
   const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState<FpFilters>(EMPTY_FILTERS);
+  // Khoảng ngày nhận được từ URL (?from=&to=) — trang Phân tích điều hướng sang đây kèm đúng kỳ
+  // đang lọc ở ô "Bài lỗi & cần xử lý", để hai màn hình hiển thị cùng một tập bài.
+  const [filters, setFilters] = useState<FpFilters>(() => ({
+    ...EMPTY_FILTERS,
+    from: searchParams.get('from') ?? '',
+    to: searchParams.get('to') ?? '',
+  }));
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);

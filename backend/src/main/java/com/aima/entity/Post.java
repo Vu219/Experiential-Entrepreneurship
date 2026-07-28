@@ -17,7 +17,11 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "posts")
+// Mọi truy vấn gộp của trang Phân tích đều quét posts theo (status = POSTED, published_at trong kỳ)
+// — index này để không phải seq scan cả bảng khi số bài lớn dần. ddl-auto=update tự tạo khi thiếu.
+@Table(name = "posts", indexes = {
+        @Index(name = "idx_posts_status_published_at", columnList = "status, published_at")
+})
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Post extends BaseEntity {
 

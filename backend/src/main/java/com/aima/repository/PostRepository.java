@@ -71,6 +71,40 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             + "and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION)")
     long countPolicyFailedForUser(@Param("userId") UUID userId);
 
+    // Trang Phân tích, ô "Bài lỗi & cần xử lý" (khối H): cùng tập bài với findFailedForUser nhưng
+    // giới hạn theo kỳ [from, to). Mốc thời gian là THỜI ĐIỂM THẤT BẠI = end_time của job FAILED muộn
+    // nhất — đúng trường `failedAt` mà trang "Bài lỗi & cần xử lý" đang lọc, để hai màn hình cho ra
+    // cùng một con số (bài lỗi không có published_at nên không thể lọc theo ngày đăng).
+    @Query(value = """
+            select count(*)
+            from posts p
+            join post_schedules ps on ps.id = p.schedule_id and ps.deleted_at is null
+            join platform_accounts pa on pa.id = ps.platform_account_id and pa.deleted_at is null
+            left join content_versions cv on cv.id = ps.content_version_id and cv.deleted_at is null
+            where pa.user_id = :userId
+              and p.deleted_at is null
+              and p.status = 'FAILED'
+              and ps.status = 'FAILED'
+              and (cast(:platformCsv as text) is null
+                   or p.platform_name = any(string_to_array(cast(:platformCsv as text), ',')))
+              and (cast(:typeCsv as text) is null
+                   or upper(coalesce(nullif(trim(cv.media_format), ''), 'OTHER'))
+                       = any(string_to_array(cast(:typeCsv as text), ',')))
+              and exists (
+                  select 1 from (
+                      select max(j.end_time) as failed_at
+                      from posting_jobs j
+                      where j.post_id = p.id and j.status = 'FAILED'
+                  ) lj
+                  where lj.failed_at >= :from and lj.failed_at < :to
+              )
+            """, nativeQuery = true)
+    long countFailedForUserInRange(@Param("userId") UUID userId,
+                                   @Param("from") LocalDateTime from,
+                                   @Param("to") LocalDateTime to,
+                                   @Param("platformCsv") String platformCsv,
+                                   @Param("typeCsv") String typeCsv);
+
     long countByStatusAndPublishedAtAfterAndDeletedAtIsNull(PostStatus status, LocalDateTime after);
 
     long countByStatusAndUpdatedAtAfterAndDeletedAtIsNull(PostStatus status, LocalDateTime after);

@@ -62,6 +62,19 @@ body {
   flex-direction: column;
   gap: 24px;
 }
+/* Ô của lưới 12 cột trang Phân tích: card con lấp ĐẦY chiều cao ô (grid item mặc định đã
+   stretch, nhưng card nằm trong nên phải cho nó flex:1) → hai card cùng hàng luôn bằng
+   nhau mà không cần hardcode height. Dùng lại cho từng tầng của cột phải (loại nội dung /
+   heatmap xếp dọc) để card con lấp đầy bề ngang. Inline style không viết được selector con
+   nên rule này phải nằm ở CSS toàn cục. */
+.ana-cell {
+  display: flex;
+  min-width: 0;
+}
+.ana-cell > * {
+  flex: 1;
+  min-width: 0;
+}
 input,
 textarea,
 button {
@@ -940,6 +953,17 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .sk::after {
     animation: none;
+  }
+}
+
+/* ===== PostDetailPanel fade-in (master-detail top posts) ===== */
+@keyframes pdp-fadein {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="pdp-fadein"] {
+    animation: none !important;
   }
 }
 
