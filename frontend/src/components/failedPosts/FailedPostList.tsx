@@ -4,11 +4,9 @@ import { useApp } from '../../context/AppContext.tsx';
 import { Card, Icon } from '../ui.tsx';
 import Pagination from '../admin/Pagination.tsx';
 import type { FailedPost } from '../../api/failedPosts.ts';
-import FailedPostRow, { STICKY_TH_SHADOW } from './FailedPostRow.tsx';
+import FailedPostRow from './FailedPostRow.tsx';
 
 // Danh sách master của layout master–detail: bảng (desktop/tablet) hoặc card list (mobile).
-// Số item/trang do page quyết theo breakpoint (items đã cắt trang sẵn).
-// Tự xử lý 3 trạng thái: loading skeleton / rỗng / danh sách.
 
 function SkeletonBlock({ w, h = 12 }: { w: number | string; h?: number }) {
   return <span className="skeleton" style={{ display: 'block', width: w, height: h }} />;
@@ -100,14 +98,10 @@ export default function FailedPostList({
     );
   }
 
-  // Bảng riêng (không dùng DataTable chung) vì cần: table-layout fixed với tỉ lệ cột
-  // hợp lý (cột "Bài viết" co giãn, còn lại rộng cố định) + cột "Trạng thái" ghim
-  // sticky right (nền + shadow trái) để không phải cuộn ngang mới thấy (mục 8).
-  const th = (sticky = false): CSSProperties => ({
+  const th: CSSProperties = {
     fontSize: 12, fontWeight: 600, color: '#a59fbb', padding: '12px 16px', whiteSpace: 'nowrap',
-    textAlign: 'left', background: '#faf9fe',
-    ...(sticky ? { position: 'sticky' as const, right: 0, boxShadow: STICKY_TH_SHADOW } : {}),
-  });
+    textAlign: 'left', background: '#faf9fe', borderBottom: '1px solid #f1eef8',
+  };
   const heads = [t.fpColPost, t.fpColPlatform, t.fpColReason, t.fpErrorCode, t.fpColTime];
 
   return (
@@ -119,19 +113,21 @@ export default function FailedPostList({
       ) : (
         <>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', minWidth: 760 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 760 }}>
               <colgroup>
-                <col />{/* Bài viết — cột co giãn duy nhất */}
-                <col style={{ width: 76 }} />
-                <col style={{ width: '24%' }} />
-                <col style={{ width: 96 }} />
-                <col style={{ width: 100 }} />
-                <col style={{ width: 168 }} />
+                <col />{/* Bài viết — cột co giãn */}
+                <col style={{ width: 80 }} />
+                <col style={{ width: '28%' }} />
+                <col style={{ width: 90 }} />
+                <col style={{ width: 110 }} />
+                <col style={{ width: 170 }} />
               </colgroup>
               <thead>
                 <tr>
-                  {heads.map((h) => <th key={h} style={th()}>{h}</th>)}
-                  <th style={th(true)}>{t.fpColStatus}</th>
+                  {heads.map((h, i) => (
+                    <th key={h} style={{ ...th, borderLeft: i === 0 ? '4px solid transparent' : undefined }}>{h}</th>
+                  ))}
+                  <th style={th}>{t.fpColStatus}</th>
                 </tr>
               </thead>
               <tbody>

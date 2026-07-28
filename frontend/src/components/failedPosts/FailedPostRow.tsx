@@ -9,14 +9,12 @@ import type { FailedPost } from '../../api/failedPosts.ts';
 import { fmtDate, fmtTime, toneOf, typeLabel } from './shared.ts';
 
 // Một bài lỗi trong danh sách master: variant 'row' (hàng bảng desktop/tablet) hoặc
-// 'card' (thẻ dọc trên mobile). Viền trái theo loại lỗi (đỏ = vi phạm CS, cam = kỹ thuật);
-// hàng đang chọn highlight nền tím nhạt. Hàng focus được (tabIndex) để modal chi tiết
-// trả focus về đúng dòng vừa bấm khi đóng.
+// 'card' (thẻ dọc trên mobile).
 
-const tdStyle: CSSProperties = { padding: '12px 16px', fontSize: 13, color: '#4b4660', verticalAlign: 'top' };
+const tdStyle: CSSProperties = { padding: '12px 16px', fontSize: 13, color: '#4b4660', verticalAlign: 'middle' };
 
-/** Shadow mép trái của cột "Trạng thái" ghim sticky-right (dùng chung cho th ở FailedPostList). */
-export const STICKY_TH_SHADOW = '-8px 0 8px -8px rgba(40,20,90,.18)';
+/** Shadow mép trái cũ — đã bỏ để giao diện sạch sẽ, không có đường mờ phân cách. */
+export const STICKY_TH_SHADOW = undefined;
 
 /** Thumbnail placeholder — MVP không sinh ảnh (FR-29) nên dùng ô icon trung tính. */
 function Thumb() {
@@ -31,7 +29,6 @@ function TypeBadges({ post }: { post: FailedPost }) {
   const { t } = useApp();
   const tone = toneOf(post);
   const failed = TONE_COLORS.danger;
-  // Xếp NGANG một hàng (không wrap chồng lên nhau gây cao dòng — mục 8).
   return (
     <span style={{ display: 'inline-flex', gap: 5, whiteSpace: 'nowrap' }}>
       <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 999, color: failed.color, background: failed.bg, whiteSpace: 'nowrap' }}>
@@ -78,10 +75,12 @@ export default function FailedPostRow({
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
         className="row-hover"
         style={{
-          border: `1px solid ${selected ? '#c4b5fd' : '#efeaf8'}`, borderLeft: `3px solid ${tone.color}`,
+          border: `1px solid ${selected ? '#c4b5fd' : '#efeaf8'}`,
+          borderLeft: `4px solid ${tone.color}`,
           borderRadius: 14, padding: 13,
           background: selected ? '#f7f3ff' : '#fff', cursor: 'pointer',
           display: 'flex', flexDirection: 'column', gap: 9,
+          transition: 'background-color 0.15s ease',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
@@ -104,11 +103,13 @@ export default function FailedPostRow({
     );
   }
 
-  // Bảng dùng table-layout fixed + borderCollapse separate (FailedPostList): border kẻ
-  // hàng đặt trên từng td; cột "Trạng thái" sticky right cần NỀN đặc trên td (theo trạng
-  // thái chọn) + shadow trái để nội dung cuộn phía dưới không xuyên qua (mục 8).
-  const rowBg = selected ? '#f7f3ff' : '#fff';
+  const rowBg = selected ? '#f7f3ff' : undefined;
   const td: CSSProperties = { ...tdStyle, borderTop: '1px solid #f1eef8' };
+  const firstTd: CSSProperties = {
+    ...td,
+    borderLeft: `4px solid ${tone.color}`,
+  };
+
   return (
     <tr
       onClick={onSelect}
@@ -117,15 +118,14 @@ export default function FailedPostRow({
       className="row-hover"
       style={{
         cursor: 'pointer',
-        background: selected ? '#f7f3ff' : undefined,
-        boxShadow: `inset 3px 0 0 ${tone.color}`,
+        background: rowBg,
+        transition: 'background-color 0.15s ease',
       }}
     >
-      <td style={td}>
+      <td style={firstTd}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <Thumb />
           <div style={{ minWidth: 0, flex: 1 }}>
-            {/* Ellipsis theo bề rộng cột (fixed layout) + tooltip full text */}
             <div title={caption} style={{ fontSize: 13, fontWeight: 700, color: '#2b2543', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{caption}</div>
             <div style={{ fontSize: 11, color: '#a59fbb', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.fpTypePost} · {post.accountName ?? '—'}</div>
           </div>
@@ -135,7 +135,6 @@ export default function FailedPostRow({
         <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={26} radius={8} />
       </td>
       <td style={td}>
-        {/* Rút gọn 2 dòng bằng ellipsis + tooltip full text — không cắt cứng giữa chừng */}
         <div title={post.errorMessage ?? undefined} style={{ fontSize: 12, lineHeight: 1.5, color: '#6b6680', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
           {post.errorMessage ?? '—'}
         </div>
@@ -145,7 +144,7 @@ export default function FailedPostRow({
         <div style={{ fontSize: 12.5, fontWeight: 600, color: '#4b4660' }}>{fmtDate(post.failedAt)}</div>
         <div style={{ fontSize: 11, color: '#a59fbb', marginTop: 2 }}>{fmtTime(post.failedAt)}</div>
       </td>
-      <td style={{ ...td, position: 'sticky', right: 0, background: rowBg, boxShadow: STICKY_TH_SHADOW }}>
+      <td style={td}>
         <TypeBadges post={post} />
       </td>
     </tr>
