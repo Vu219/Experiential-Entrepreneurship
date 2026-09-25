@@ -11,11 +11,23 @@ import type { Lang } from '../types';
 
 export type RevenueGranularity = 'DAY' | 'MONTH' | 'HALF_YEAR' | 'YEAR' | 'CUSTOM';
 
-/** Trạng thái thanh toán — khớp enum `PaymentStatus` của backend. */
-export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
+/**
+ * Trạng thái thanh toán — khớp enum `PaymentStatus` của backend.
+ * `EXPIRED` (hết giờ chờ) và `CANCELLED` (user/admin huỷ) tách riêng khỏi `FAILED` có chủ ý:
+ * khách bỏ giỏ hàng không phải cổng thanh toán lỗi, nên hai trạng thái này KHÔNG vào tỉ lệ
+ * giao dịch thất bại.
+ */
+export type PaymentStatus =
+  | 'PENDING'
+  | 'PAID'
+  | 'FAILED'
+  | 'EXPIRED'
+  | 'CANCELLED'
+  | 'REFUNDED'
+  | 'PARTIALLY_REFUNDED';
 
-/** Cổng thanh toán — khớp enum `PaymentGateway`. PAYOS đã khai báo sẵn, chưa tích hợp. */
-export type PaymentGateway = 'MANUAL' | 'PAYOS';
+/** Cổng thanh toán — khớp enum `PaymentGateway`. `MOCK` chỉ tồn tại ở môi trường dev. */
+export type PaymentGateway = 'MANUAL' | 'PAYOS' | 'MOCK';
 
 export interface RevenueFilter {
   granularity: RevenueGranularity;
@@ -226,8 +238,9 @@ export async function exportRevenue(
 const P = (lang: Lang, vi: string, en: string) => (lang === 'en' ? en : vi);
 
 /**
- * Màu + chữ cho badge trạng thái. Chỉ 5 giá trị của enum BE — không thêm trạng thái
- * trang trí nào khác.
+ * Màu + chữ cho badge trạng thái. Chỉ các giá trị của enum BE — không thêm trạng thái
+ * trang trí nào khác. Switch vét cạn CÓ CHỦ Ý (không `default`): thêm giá trị vào enum BE
+ * mà quên thêm case ở đây thì `tsc` fail build, đúng thứ ta muốn.
  */
 export const paymentStatusMeta = (lang: Lang, s: PaymentStatus): { tone: Tone; label: string } => {
   switch (s) {
@@ -237,6 +250,10 @@ export const paymentStatusMeta = (lang: Lang, s: PaymentStatus): { tone: Tone; l
       return { tone: 'warning', label: P(lang, 'Chờ thanh toán', 'Pending') };
     case 'FAILED':
       return { tone: 'danger', label: P(lang, 'Thất bại', 'Failed') };
+    case 'EXPIRED':
+      return { tone: 'neutral', label: P(lang, 'Hết hạn', 'Expired') };
+    case 'CANCELLED':
+      return { tone: 'neutral', label: P(lang, 'Đã huỷ', 'Cancelled') };
     case 'REFUNDED':
       return { tone: 'danger', label: P(lang, 'Đã hoàn tiền', 'Refunded') };
     case 'PARTIALLY_REFUNDED':

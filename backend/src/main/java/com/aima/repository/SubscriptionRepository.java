@@ -3,10 +3,13 @@ package com.aima.repository;
 import com.aima.entity.Subscription;
 import com.aima.enums.SubscriptionStatus;
 import com.aima.repository.projection.PlanSubscriptionProjection;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,6 +26,42 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
             where s.user.id = :userId and s.deletedAt is null
             """)
     Optional<Subscription> findWithPlanByUserId(@Param("userId") UUID userId);
+
+    /**
+     * Khoá dòng subscription của user ({@code SELECT … FOR UPDATE}) cho thao tác admin gia hạn /
+     * đổi / thu hồi — hai lần bấm gần nhau không được cộng hạn hai lần trên cùng một mốc cũ.
+     * Gọi TRƯỚC {@code getOrCreate} trong cùng transaction để entity nạp vào context là bản đã
+     * khoá. Cố ý không join fetch plan: khoá chỉ nên chạm dòng {@code subscriptions}.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select s from Subscription s where s.user.id = :userId and s.deletedAt is null")
+    Optional<Subscription> findForUpdateByUserId(@Param("userId") UUID userId);
+
+    /**
+     * Subscription kèm plan + user — {@code SubscriptionExpiryJob} phải đọc cả hai để hạ gói
+     * và gửi thông báo, mà nó chạy ngoài request context nên không thể dựa vào lazy proxy.
+     */
+    @Query("""
+            select s from Subscription s
+            join fetch s.plan
+            join fetch s.user
+            where s.id = :id and s.deletedAt is null
+            """)
+    Optional<Subscription> findDetailById(@Param("id") UUID id);
+
+    /**
+     * Id các subscription có gói trả tiền ĐÃ HẾT HẠN — nguồn của {@code SubscriptionExpiryJob}.
+     *
+     * <p>{@code planExpiresAt is not null} là điều kiện BẮT BUỘC: null nghĩa là gói KHÔNG hết
+     * hạn (Free, hoặc gói admin cấp vĩnh viễn), không phải "hết hạn từ lâu".</p>
+     */
+    @Query("""
+            select s.id from Subscription s
+            where s.deletedAt is null
+              and s.planExpiresAt is not null and s.planExpiresAt <= :now
+            order by s.planExpiresAt
+            """)
+    List<UUID> findExpiredPlanIds(@Param("now") LocalDateTime now);
 
     /** Id các user đã có subscription — cho seed idempotent (SubscriptionDataInitializer). */
     @Query("select s.user.id from Subscription s where s.deletedAt is null")

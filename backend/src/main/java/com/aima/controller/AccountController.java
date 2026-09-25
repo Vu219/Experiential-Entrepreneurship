@@ -29,10 +29,13 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import com.aima.config.swagger.SwaggerExamples;
 import com.aima.dto.response.PageResponse;
+import com.aima.dto.response.SubscriptionHistoryResponse;
 import com.aima.dto.response.TokenUsageResponse;
 import com.aima.dto.response.UserResponse;
+import com.aima.dto.response.UserSubscriptionResponse;
 import com.aima.dto.response.UserUsageResponse;
 import com.aima.service.ActivityLogService;
+import com.aima.service.AdminSubscriptionService;
 import com.aima.service.TokenUsageService;
 import com.aima.service.UsageQueryService;
 import com.aima.service.UserService;
@@ -46,6 +49,7 @@ import java.util.UUID;
 @Tag(name = "Account", description = "Account management for both regular users and admins (registration, profile, password, deletion).")
 public class AccountController {
     UserService userService;
+    AdminSubscriptionService adminSubscriptionService;
     TokenUsageService tokenUsageService;
     UsageQueryService usageQueryService;
     ActivityLogService activityLogService;
@@ -108,8 +112,9 @@ public class AccountController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "Admin updates a user (FR-80)",
-            description = "Partial update of fullName/email/phone/avatarUrl/role/plan/status. Guards: an admin cannot " +
-                    "demote or lock/delete their own account; a Google user's email cannot be changed. Restricted to ADMIN."
+            description = "Partial update of fullName/email/phone/avatarUrl/role/status. Guards: an admin cannot " +
+                    "demote or lock/delete their own account; a Google user's email cannot be changed. Sending plan is " +
+                    "rejected (2097) — plans change via /users/{userId}/subscription/*. Restricted to ADMIN."
     )
     public ApiResponse<UserResponse> updateUser(
             @AuthenticationPrincipal UserDetails principal,
@@ -166,6 +171,75 @@ public class AccountController {
     )
     public ApiResponse<UserResponse> getUserById(@PathVariable UUID userId) {
         return userService.getUserById(userId);
+    }
+
+    @GetMapping("/{userId}/subscription")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "Admin views a user's current plan",
+            description = "Reads the subscription (source of truth), not the cached User.plan label: plan, source " +
+                    "(FREE/PAYMENT/ADMIN), start and expiry. planExpiresAt = null means the plan never expires. " +
+                    "Restricted to ADMIN."
+    )
+    public ApiResponse<UserSubscriptionResponse> getUserSubscription(@PathVariable UUID userId) {
+        return adminSubscriptionService.get(userId);
+    }
+
+    @GetMapping("/{userId}/subscription/history")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "Admin views a user's plan history",
+            description = "Append-only log of every plan change (payment activation, expiry, admin extend/change/" +
+                    "revoke) with who, when, category and reason; newest first, size capped at 50. Restricted to ADMIN."
+    )
+    public ApiResponse<PageResponse<SubscriptionHistoryResponse>> getUserSubscriptionHistory(
+            @PathVariable UUID userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return adminSubscriptionService.listHistory(userId, page, size);
+    }
+
+    @PostMapping("/{userId}/subscription/extend")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "Admin extends a user's plan (accumulates onto the current expiry)",
+            description = "Adds 1–365 days / 1–52 weeks / 1–24 months to the current expiry without changing the plan " +
+                    "or its source (a paid plan stays PAYMENT). Free or never-expiring plans cannot be extended. " +
+                    "Category + reason required. Restricted to ADMIN."
+    )
+    public ApiResponse<UserSubscriptionResponse> extendUserSubscription(
+            @AuthenticationPrincipal UserDetails principal,
+            @PathVariable UUID userId,
+            @Valid @RequestBody SubscriptionExtendRequest request) {
+        return adminSubscriptionService.extend(principal.getUsername(), userId, request);
+    }
+
+    @PostMapping("/{userId}/subscription/change")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "Admin switches a user to another plan",
+            description = "Duration counts from now (or noExpiry = true). Marks the plan ADMIN-sourced so revenue never " +
+                    "counts it as a sale; the new plan's token limit applies immediately. Use revoke to go back to " +
+                    "Free. Category + reason required. Restricted to ADMIN."
+    )
+    public ApiResponse<UserSubscriptionResponse> changeUserSubscription(
+            @AuthenticationPrincipal UserDetails principal,
+            @PathVariable UUID userId,
+            @Valid @RequestBody SubscriptionChangeRequest request) {
+        return adminSubscriptionService.change(principal.getUsername(), userId, request);
+    }
+
+    @PostMapping("/{userId}/subscription/revoke")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "Admin revokes a user's plan (back to Free immediately)",
+            description = "The Free token limit applies at once. Category + reason required. Restricted to ADMIN."
+    )
+    public ApiResponse<UserSubscriptionResponse> revokeUserSubscription(
+            @AuthenticationPrincipal UserDetails principal,
+            @PathVariable UUID userId,
+            @Valid @RequestBody SubscriptionRevokeRequest request) {
+        return adminSubscriptionService.revoke(principal.getUsername(), userId, request);
     }
 
     @GetMapping("/me")

@@ -20,6 +20,18 @@ import java.util.UUID;
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByUsername(String username);
     Optional<User> findByEmail(String email);
+
+    /**
+     * Admin còn hoạt động — người nhận các cảnh báo vận hành (vd webhook thanh toán bị từ chối
+     * hàng loạt). Fetch-join {@code role} vì caller thường chạy ngoài request context.
+     */
+    @Query("""
+            select u from User u
+            join fetch u.role r
+            where r.roleName = :roleName and u.deletedAt is null and u.status = :status
+            """)
+    List<User> findActiveByRoleName(@Param("roleName") String roleName,
+                                    @Param("status") UserStatus status);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
     List<User> findAllByStatusAndDeletionDateLessThanEqual(UserStatus status, LocalDateTime now);

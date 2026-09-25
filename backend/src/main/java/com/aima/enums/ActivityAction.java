@@ -53,11 +53,27 @@ public enum ActivityAction {
     POST_FAILED(ActivityActionGroup.CONTENT),
 
     // ===== BILLING =====
-    // Chưa có điểm ghi: payment controller thuộc task doanh thu (PaymentGateway/PaymentStatus
-    // đã khai trước). Giá trị khai sẵn để khi tích hợp không phải đổi kiểu cột.
     PLAN_CHANGED(ActivityActionGroup.BILLING),
     PAYMENT_SUCCEEDED(ActivityActionGroup.BILLING),
     PAYMENT_FAILED(ActivityActionGroup.BILLING),
+
+    /**
+     * Một request vào {@code POST /webhooks/payos} bị TỪ CHỐI (body quá cỡ, chữ ký sai, JSON
+     * hỏng). Endpoint đó là public, không JWT — đây là dấu vết duy nhất cho biết có ai đang dò.
+     *
+     * <p>Nằm trong {@link #DEDUP_EXEMPT} vì <b>tần suất chính là dữ liệu</b>, giống
+     * {@link #LOGIN_FAILED}: gộp 500 lần dò trong một phút thành 1 dòng thì log mất sạch giá
+     * trị điều tra. Van chống phình là trần số dòng/IP/giờ của {@code ActivityLogWriterImpl} —
+     * cũng chính là cơ chế rate-limit mà điểm F của webhook tái sử dụng, thay vì dựng một
+     * bucket Redis riêng.</p>
+     */
+    PAYMENT_WEBHOOK_REJECTED(ActivityActionGroup.BILLING),
+
+    // Ba thao tác TAY của admin trên tiền bạc/gói dịch vụ. Bắt buộc có lý do và bắt buộc để
+    // lại vết — đây là nhóm hành động dễ bị lạm dụng nhất trong toàn hệ thống.
+    PAYMENT_CANCELLED(ActivityActionGroup.BILLING),
+    PAYMENT_MARKED_PAID(ActivityActionGroup.BILLING),
+    SUBSCRIPTION_ADJUSTED(ActivityActionGroup.BILLING),
 
     // ===== ADMIN =====
     USER_CREATED(ActivityActionGroup.ADMIN),
@@ -99,5 +115,5 @@ public enum ActivityAction {
      * <p>ĐỪNG thêm action thường vào đây chỉ vì "muốn ghi đủ": chỉ những action mà TẦN SUẤT
      * là dữ liệu bảo mật mới thuộc danh sách này.
      */
-    public static final Set<ActivityAction> DEDUP_EXEMPT = Set.of(LOGIN_FAILED);
+    public static final Set<ActivityAction> DEDUP_EXEMPT = Set.of(LOGIN_FAILED, PAYMENT_WEBHOOK_REJECTED);
 }

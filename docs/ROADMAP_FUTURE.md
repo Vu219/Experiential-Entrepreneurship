@@ -41,10 +41,15 @@
 - **Việc còn thiếu** (theo thứ tự phụ thuộc):
   1. ~~Bảng payment~~ ✅ **ĐÃ LÀM 2026-07-20** — bảng `payments` đã dựng, xem mục 2b bên dưới.
      Việc còn lại của gạch đầu dòng này là *tích hợp cổng thật*, xem checklist ở 2b.
-  2. Webhook xác nhận thanh toán — **bắt buộc idempotent** (cổng thanh toán gửi lặp; khoá
-     theo mã giao dịch của cổng), tạo dòng `token_credits` khi thanh toán thành công.
-     *Khoá idempotency đã có sẵn*: partial unique `uk_payments_gateway_txn` trên
-     `payments.gateway_txn_id` + `PaymentRepository.findByGatewayTxnIdAndDeletedAtIsNull`.
+  2. Webhook xác nhận thanh toán — **LÀM MỘT PHẦN 2026-09-23**, xem `docs/PAYMENT.md`.
+     - ✅ **Đã build**: `POST /webhooks/payos` (public, verify HMAC-SHA256), idempotent bằng
+       `SELECT … FOR UPDATE` trong `applyGatewayResult` + partial unique
+       `uk_payments_gateway_txn`; đã có test gọi lặp 3 lần chỉ kích hoạt một lần.
+     - 🟡 **Chưa chạy với payOS thật** — toàn bộ nghiệm thu trên cổng giả lập. Chữ ký, trần
+       `orderCode`, body ack của `/confirm-webhook` đều chưa đối chiếu với hệ thống thật.
+     - ❌ **CHƯA làm**: tạo dòng `token_credits` khi thanh toán thành công. Luồng hiện tại chỉ
+       kích hoạt **gói dịch vụ** (`subscriptions`), không bán token lẻ — đó vẫn là workstream
+       riêng chưa bắt đầu.
   3. Luồng hoàn tiền/chargeback — revoke ĐÚNG DÒNG credit (status REVOKED), chỉ thu hồi
      phần CHƯA tiêu; phần đã tiêu giữ nguyên trên event log.
   4. Khái niệm giá thứ ba: **giá bán gói token lẻ** (khách trả bao nhiêu cho bao nhiêu
@@ -53,6 +58,9 @@
   5. **Xoá endpoint dev-credits** (`POST /admin/usage/users/{id}/dev-credits`) khi có payment
      thật — endpoint cấp token miễn phí không được tồn tại song song với luồng mua thật.
      **Cùng lúc đó xoá cả `POST/DELETE /admin/revenue/dev-seed`** (xem 2b).
+     ❌ **CHƯA làm tính tới 2026-09-23** — cả hai endpoint vẫn còn (vẫn khoá 3 lớp). Đã đưa
+     thành hai dòng riêng trong checklist go-live ở `docs/PAYMENT.md` §9; điều kiện gỡ là
+     **chạy được một giao dịch payOS thật**, chưa phải lúc này.
 - **Còn chờ quyết định** (product owner, không chặn việc khác): có xuất hoá đơn không; thuế/
   VAT; đơn vị tiền tệ hiển thị cho khách (VND hay USD); tỉ giá quy đổi nếu bán bằng VND
   trong khi chi phí provider tính USD.
@@ -60,7 +68,9 @@
   `invoice_no` đã có sẵn trên `payments`, quyết định sau chỉ là điền giá trị, không phải
   migration.
 - **Trạng thái**: đã quyết định bán + mô hình bucket; **đã chọn cổng: payOS** (2026-07-20);
-  **đã dựng bảng `payments`** (2026-07-20); **còn chờ quyết định** hoá đơn/thuế/tiền tệ/tỉ giá.
+  **đã dựng bảng `payments`** (2026-07-20); **đã build trọn luồng MUA GÓI qua payOS**
+  (2026-09-23 — xem §2c) nhưng **chưa chạy với tài khoản thật**; **bán token lẻ chưa bắt đầu**;
+  **còn chờ quyết định** hoá đơn/thuế/tiền tệ/tỉ giá.
 
 ## 2b. Sổ cái `payments` + trang Quản lý doanh thu (ĐÃ LÀM 2026-07-20)
 
@@ -139,30 +149,73 @@ Nơi cài đặt: `RevenueServiceImpl` + `PaymentRepository` (gộp bằng `GROU
 - **Khi tích hợp payOS xong: XOÁ cả hai endpoint, service method, và cờ cấu hình.** Dữ liệu
   doanh thu giả không được phép tồn tại song song với doanh thu thật.
 
-### Checklist khi tích hợp payOS thật (chưa làm)
+### Checklist khi tích hợp payOS thật — ĐÃ BUILD 2026-09-23, CHƯA CHẠY THẬT
 
-1. **Tạo payment link** — gọi payOS Create Payment Link, sinh `orderCode` (số nguyên, duy
-   nhất), lưu `payments` với `status = PENDING`, `gateway = PAYOS`, `gateway_txn_id = orderCode`,
-   `ordered_at = now`. Trả checkout URL cho FE.
-2. **Webhook + verify signature** — payOS ký payload bằng checksum key; **phải verify trước
-   khi tin**. Endpoint webhook là public (không JWT) nên chữ ký là lớp xác thực duy nhất.
-3. **Idempotency** — webhook có thể gửi lặp: UPSERT theo `gateway_txn_id`
-   (`findByGatewayTxnIdAndDeletedAtIsNull` → cập nhật; không có thì tạo). Partial unique index
-   là chốt chặn cuối nếu hai webhook chạy song song. Lưu `raw_payload` mỗi lần nhận.
-4. **Đối soát** — job định kỳ so `payments` với báo cáo giao dịch của payOS theo `orderCode`
-   + `ordered_at`; chênh lệch thì log + cảnh báo admin. Đây là lý do tồn tại của `ordered_at`
-   và `raw_payload`.
-5. **Huỷ / hết hạn** — payOS link có TTL. Job quét đơn `PENDING` quá hạn → `FAILED` +
-   `failed_reason = 'EXPIRED'`. Không để `PENDING` treo vĩnh viễn làm sai tỉ lệ thất bại.
-6. **Hoàn tiền** — ghi `refunded_amount` + `refunded_at` (mốc phát sinh, KHÔNG sửa `paid_at`),
-   đổi `status` sang `REFUNDED`/`PARTIALLY_REFUNDED`, đồng thời revoke đúng dòng
-   `token_credits` (mục 2.3 ở trên).
-7. **Hoá đơn** — điền `invoice_no`; nếu cần hoá đơn điện tử/VAT thì đây là chỗ móc vào
-   (còn chờ quyết định product owner).
-8. **Thuế** — chưa có cột thuế. Nếu phải tách VAT khỏi `amount` thì thêm `tax_amount` +
-   `amount_before_tax`; quyết định TRƯỚC khi mở bán, vì sửa sau là migration dữ liệu kế toán.
-9. **Tiền tệ** — `currency` đã có. Nếu bán bằng nhiều tiền tệ thì cần thêm tỉ giá tại thời
-   điểm giao dịch (`fx_rate`) để báo cáo quy về một đơn vị.
+> Ký hiệu: ✅ = đã build **và** đã nghiệm thu bằng test; 🟡 = đã build nhưng **chỉ chạy với cổng
+> giả lập**, chưa từng chạm payOS thật; ❌ = chưa làm.
+> Tài liệu đầy đủ: [`PAYMENT.md`](PAYMENT.md). Checklist go-live ở `PAYMENT.md` §9.
+
+1. 🟡 **Tạo payment link** — `POST /payments/checkout` → `PayOSGatewayClientImpl` gọi
+   `POST /v2/payment-requests`. `orderCode` 15 chữ số sinh bằng `SecureRandom` (không tăng dần
+   để khỏi lộ khối lượng đơn), `expiresAt` tính MỘT lần rồi dùng chung cho cả đếm ngược phía
+   user lẫn `expiredAt` gửi payOS. **Trần `orderCode` và giới hạn `expiredAt` chưa xác minh
+   được** — cần credential thật.
+2. 🟡 **Webhook + verify signature** — `POST /webhooks/payos`, HMAC-SHA256 trên object
+   `data`, so bằng `MessageDigest.isEqual` (constant-time). Chuỗi ký mô phỏng đúng SDK payOS
+   (kể cả `Number.prototype.toString()` của JS) — 19 test vector. **Chữ ký chưa từng được đối
+   chiếu với backend payOS thật**; có sẵn công tắc đổi biến thể định dạng số
+   (`PayOSSignature.ACTIVE_STYLE`) và cảnh báo admin nếu nó lệch.
+3. ✅ **Idempotency** — tra theo `gateway_txn_id`, khoá dòng `SELECT … FOR UPDATE` rồi mới
+   kiểm trạng thái BÊN TRONG khoá; `raw_payload` lưu NGAY trước mọi bước có thể vỡ. Test: gọi
+   lặp 3 lần → kích hoạt đúng một lần, hạn không cộng thêm, không đẻ dòng doanh thu thứ hai.
+   **orderCode lạ phải trả 200 im lặng** — payOS gửi giao dịch MẪU (`orderCode = 123`) lúc
+   `/confirm-webhook`, trả lỗi ở đó = đăng ký webhook thất bại.
+4. 🟡 **Đối soát** — `PaymentReconcileJob` (mỗi phút, đơn TREO) + `PaymentExpiryJob` (mỗi
+   phút, đơn quá hạn, luôn HỎI cổng trước khi đóng). Cột `reconcile_required` là hàng đợi việc
+   cần làm tay, hiện thành badge ở `/admin/payments`. **Chưa có** đối soát theo *báo cáo giao
+   dịch* của payOS (đối soát hàng loạt cuối ngày) — hiện chỉ đối soát từng đơn theo `orderCode`.
+5. ✅ **Huỷ / hết hạn** — đóng thành **`EXPIRED`** chứ KHÔNG phải `FAILED` (quyết định sửa
+   so với dòng kế hoạch cũ ở đây: khách bỏ giỏ hàng không phải cổng hỏng, nhét vào `FAILED` sẽ
+   thổi phồng tỉ lệ thất bại — xem `PaymentStatus` javadoc). Đơn cổng báo `PROCESSING` được
+   **gia hạn**, tuyệt đối không huỷ.
+6. ❌ **Hoàn tiền** — CHƯA làm. Cột `refunded_amount`/`refunded_at` đã có và admin ghi tay
+   được, nhưng không có luồng gọi API hoàn tiền của payOS, cũng chưa revoke `token_credits`.
+   Ngoài phạm vi task 2026-09-23 (đã nêu rõ ở `PAYMENT.md` §10).
+7. 🟡 **Hoá đơn** — `invoice_no` tự sinh `INV-yyyyMM-######` (6 chữ số cuối của
+   `orderCode`) khi đơn chuyển PAID; hiện trên trang Billing của user và drawer của admin.
+   **Hoá đơn điện tử/VAT vẫn chờ quyết định product owner.**
+8. ❌ **Thuế** — CHƯA làm, vẫn chưa có cột thuế. Nếu phải tách VAT khỏi `amount` thì thêm
+   `tax_amount` + `amount_before_tax`; **quyết định TRƯỚC khi mở bán**, vì sửa sau là migration
+   dữ liệu kế toán.
+9. ❌ **Tiền tệ** — CHƯA làm. `currency` đã có cột, luồng hiện tại hardcode `VND`. Bán nhiều
+   tiền tệ cần thêm `fx_rate` tại thời điểm giao dịch để báo cáo quy về một đơn vị.
+
+---
+
+## 2c. Luồng mua gói qua payOS (ĐÃ BUILD 2026-09-23 — CHƯA CHẠY THẬT)
+
+> Tài liệu đầy đủ: [`PAYMENT.md`](PAYMENT.md). Mục này chỉ ghi **trạng thái** để đọc roadmap
+> không phải mở file khác.
+
+**Đã build và nghiệm thu bằng test (110 test thanh toán, gồm 11 test đầu-cuối trên Spring
+context + H2 thật):**
+
+- 14 endpoint: 6 của user, 1 webhook public, 1 cổng giả lập DEV-ONLY, 6 của admin.
+- 3 job nền: đối soát đơn treo, đóng đơn quá hạn, hạ gói hết hạn (+ kiểm lười trong
+  `getOrCreate` để không phụ thuộc cron).
+- Quy tắc Q1 (cộng dồn/thay thế/chặn hạ gói), Q2 (một đơn PENDING), Q4 (`subscriptions` là
+  nguồn sự thật, `User.plan` chỉ là nhãn cache).
+- Trang user "Gói & thanh toán" + trang admin "Đơn hàng"; mọi thao tác admin **bắt buộc lý do**
+  và ghi `activity_logs`.
+- Cổng giả lập (`PAYMENT_GATEWAY=mock`) chạy qua **đúng** code path của webhook thật.
+
+**🟡 Chưa từng chạm payOS thật.** Chưa xác minh: chữ ký HMAC khớp backend payOS · trần
+`orderCode` 15 chữ số · giới hạn `expiredAt` · body ack mà `/confirm-webhook` mong nhận ·
+tên trạng thái `PAID` vs `SUCCEEDED` · quy ước ký trên response API (hiện chỉ quan sát, không
+chặn). Xem checklist go-live ở `PAYMENT.md` §9.
+
+**❌ Chưa làm:** hoàn tiền qua API payOS · tách VAT · bán token lẻ (`token_credits`) · đa tiền
+tệ · gỡ hai endpoint dev-tool.
 
 ## 3. Gói không giới hạn mua token lẻ — Phương án B (đóng băng hạn dùng)
 
@@ -389,3 +442,17 @@ Nơi cài đặt: `RevenueServiceImpl` + `PaymentRepository` (gộp bằng `GROU
   Nếu cần chặt hơn thì phải chuyển sang rate-limit ở tầng request (Redis, trước cả khi vào
   service) — đó là việc của module chống brute-force đăng nhập, không phải của activity log.
 - **Trạng thái**: đã làm phần trần theo IP; rate-limit tầng request chưa cần.
+
+## 20. User tự xem "được tặng thêm N ngày" ở trang `/billing`
+
+- **Bối cảnh (chốt 2026-09-25)**: admin gia hạn gói tự mua của một user thì `planSource` GIỮ
+  `PAYMENT` (không đổi sang `ADMIN`), vết "admin tặng" chỉ nằm ở `subscription_history`
+  (`ADMIN_EXTENDED` + `extend_amount/unit` + phân loại + lý do). Trang `/billing` của user
+  (`CurrentPlanCard`, dữ liệu `GET /payments/billing` → `PaymentServiceImpl.getBilling`) hiện chỉ
+  thấy hạn mới, không biết phần nào là được tặng.
+- **Hoãn vì**: làm ở đây phải đụng module thanh toán — ngoài phạm vi đợt "tab Gói dịch vụ".
+- **Hướng làm**: dữ liệu đã đủ trong `subscription_history`. Ưu tiên endpoint riêng
+  `GET /users/me/subscription/grants` trong `AccountController` (không đụng `PaymentServiceImpl`)
+  + một dòng nhỏ trong `CurrentPlanCard`; cân nhắc có cho user thấy `reason` hay không (lý do là
+  ghi chú nội bộ của admin).
+- **Trạng thái**: chưa làm.

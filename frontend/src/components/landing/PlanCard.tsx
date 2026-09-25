@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../auth/AuthContext';
 import { BRAND_GLOW } from '../../theme';
 import type { PricingPlan } from '../../config/plans';
 import StatNumber from '../motion/StatNumber';
@@ -15,7 +16,12 @@ interface PlanCardProps {
 
 export default function PlanCard({ plan: p, stacked, popularLabel }: PlanCardProps) {
   const { go, brandGradient } = useApp();
+  const { user } = useAuth();
   const featured = !!p.featured;
+
+  // Đã đăng nhập thì "đăng ký tài khoản" là vô nghĩa — đưa thẳng sang trang mua gói.
+  // Gói miễn phí không có gì để mua nên vẫn về bảng điều khiển.
+  const target = !user ? 'register' : p.priceValue > 0 ? 'billing' : 'dashboard';
 
   // Viền gradient bằng kỹ thuật 2 lớp background (padding-box trắng + border-box gradient).
   const ringStyle = featured
@@ -73,7 +79,7 @@ export default function PlanCard({ plan: p, stacked, popularLabel }: PlanCardPro
       </div>
       <button
         className="btn-grad"
-        onClick={() => go('register')}
+        onClick={() => go(target)}
         style={{
           width: '100%',
           marginTop: 24,

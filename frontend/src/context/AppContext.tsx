@@ -27,6 +27,9 @@ const PATH_BY_ROUTE: Record<Route, string> = {
   brand: '/brand',
   // "Token & mức dùng" là tab trong Cài đặt (mục 7); /usage cũ redirect về đây.
   usage: '/settings/usage',
+  // Chỉ /billing là đích điều hướng; /billing/return và /billing/mock/:id là URL do cổng
+  // thanh toán đưa tới, không phải mục menu nên không có mặt trong bảng này.
+  billing: '/billing',
   profile: '/profile',
   settings: '/settings',
   admin: '/admin',
@@ -35,6 +38,7 @@ const PATH_BY_ROUTE: Record<Route, string> = {
   adminSystem: '/admin/system',
   adminLogs: '/admin/logs',
   adminApiVersions: '/admin/api-versions',
+  adminPayments: '/admin/payments',
   adminRevenue: '/admin/revenue',
   adminPlans: '/admin/plans',
   adminUsage: '/admin/usage',

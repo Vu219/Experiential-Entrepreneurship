@@ -5,7 +5,12 @@ import com.aima.enums.PaymentGateway;
 import com.aima.enums.PaymentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -28,7 +33,7 @@ import java.util.UUID;
  * <p>Danh sách trạng thái tính doanh thu luôn bind qua {@code :paidStatuses}
  * ({@link PaymentStatus#revenueRecognizedNames()}) — không nhúng literal SQL rải rác.
  */
-public interface PaymentRepository extends JpaRepository<Payment, UUID> {
+public interface PaymentRepository extends JpaRepository<Payment, UUID>, JpaSpecificationExecutor<Payment> {
 
     /**
      * Chuỗi doanh thu theo bucket thời gian. {@code unit} là đơn vị {@code date_trunc}
@@ -188,6 +193,133 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
      * phòng hai webhook chạy song song cùng lọt qua bước kiểm tra này).
      */
     Optional<Payment> findByGatewayTxnIdAndDeletedAtIsNull(String gatewayTxnId);
+
+    /**
+     * Khoá dòng đơn để xử lý kết quả cổng. {@code PESSIMISTIC_WRITE} là thứ làm
+     * {@code applyGatewayResult} idempotent TUYỆT ĐỐI: webhook, job đối soát và nút "kiểm tra
+     * lại" của user có thể ập tới cùng lúc — kiểm trạng thái phải diễn ra BÊN TRONG khoá, chứ
+     * không phải kiểm trước rồi mới mở transaction.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from Payment p where p.id = :id and p.deletedAt is null")
+    Optional<Payment> findByIdForUpdate(@Param("id") UUID id);
+
+    /**
+     * Đơn checkout đang mở của user (tối đa MỘT, đảm bảo bởi partial unique
+     * {@code uk_payments_one_pending_per_user}). {@code gateways} loại bản ghi {@code MANUAL}
+     * của admin/seeder ra khỏi luồng checkout.
+     */
+    @Query("""
+            select p from Payment p
+            join fetch p.plan
+            join fetch p.user
+            where p.user.id = :userId and p.status = :status and p.deletedAt is null
+              and p.gateway in :gateways
+            """)
+    Optional<Payment> findOpenOrder(@Param("userId") UUID userId,
+                                    @Param("status") PaymentStatus status,
+                                    @Param("gateways") Collection<PaymentGateway> gateways);
+
+    /**
+     * Đơn TREO cần đối soát sớm: còn PENDING mà <b>không có {@code checkout_url}</b> (lần tạo
+     * link không kết luận được) hoặc đã bật {@code reconcile_required}.
+     *
+     * <p>Đơn không có {@code checkoutUrl} là trường hợp nguy hiểm nhất: nó chiếm chỗ
+     * PENDING duy nhất của user nên CHẶN user mua lại, trong khi bản thân nó không có link để
+     * trả tiền. Phải quét sớm và thường xuyên, không đợi tới hạn 15 phút.</p>
+     */
+    @Query("""
+            select p.id from Payment p
+            where p.status = :status and p.deletedAt is null
+              and p.gateway in :gateways
+              and (p.checkoutUrl is null or p.reconcileRequired = true)
+            order by p.orderedAt
+            """)
+    List<UUID> findStuckPendingIds(@Param("status") PaymentStatus status,
+                                   @Param("gateways") Collection<PaymentGateway> gateways);
+
+    /**
+     * Đơn ĐÃ QUÁ HẠN chờ thanh toán — nguồn của {@code PaymentExpiryJob}.
+     *
+     * <p>Cố ý LOẠI hai nhóm mà {@code findStuckPendingIds} đã lo: đơn chưa có
+     * {@code checkout_url} và đơn đã bật {@code reconcile_required}. Không loại thì hai job
+     * cùng gọi cổng cho một đơn mỗi phút, và đơn {@code UNDERPAID} (giữ PENDING + cờ đối soát,
+     * chờ admin) sẽ bị job hết hạn nện vào cổng vô hạn.</p>
+     */
+    @Query("""
+            select p.id from Payment p
+            where p.status = :status and p.deletedAt is null
+              and p.gateway in :gateways
+              and p.expiresAt is not null and p.expiresAt <= :now
+              and p.checkoutUrl is not null and p.reconcileRequired = false
+            order by p.expiresAt
+            """)
+    List<UUID> findExpiredPendingIds(@Param("status") PaymentStatus status,
+                                     @Param("gateways") Collection<PaymentGateway> gateways,
+                                     @Param("now") LocalDateTime now);
+
+    /**
+     * Lịch sử đơn của CHÍNH user đang đăng nhập (API-03/SEC-04). Fetch-join {@code plan} để
+     * mapper đọc được tên gói mà không sinh N+1; {@code plan} là quan hệ ToOne nên fetch-join
+     * vẫn phân trang được ở tầng DB (khác fetch-join collection).
+     */
+    @Query(value = """
+            select p from Payment p
+            join fetch p.plan
+            where p.user.id = :userId and p.deletedAt is null
+              and (:status is null or p.status = :status)
+              and (cast(:from as LocalDateTime) is null or p.orderedAt >= :from)
+              and (cast(:to as LocalDateTime) is null or p.orderedAt < :to)
+            """,
+            countQuery = """
+            select count(p) from Payment p
+            where p.user.id = :userId and p.deletedAt is null
+              and (:status is null or p.status = :status)
+              and (cast(:from as LocalDateTime) is null or p.orderedAt >= :from)
+              and (cast(:to as LocalDateTime) is null or p.orderedAt < :to)
+            """)
+    Page<Payment> searchByUser(@Param("userId") UUID userId,
+                               @Param("status") PaymentStatus status,
+                               @Param("from") LocalDateTime from,
+                               @Param("to") LocalDateTime to,
+                               Pageable pageable);
+
+    /**
+     * Một đơn kèm gói + chủ đơn. Fetch cả {@code user} vì mọi call site đều phải kiểm quyền sở
+     * hữu ngay sau đó (API-03/SEC-04) — không fetch thì bước kiểm quyền tự nó sinh thêm query.
+     *
+     * <p>Không lọc {@code user_id} trong query: đơn của người khác phải phân biệt được với đơn
+     * không tồn tại để trả đúng {@code PAYMENT_ACCESS_DENIED} (403) thay vì 404.</p>
+     */
+    @Query("""
+            select p from Payment p
+            join fetch p.plan
+            join fetch p.user
+            where p.id = :id and p.deletedAt is null
+            """)
+    Optional<Payment> findDetailById(@Param("id") UUID id);
+
+    /**
+     * Bảng đơn hàng của ADMIN — gọi với {@link PaymentSpecifications#adminSearch}. Khác
+     * {@link #search} (trang doanh thu, projection phẳng) ở hai điểm: trả ENTITY để drawer chi
+     * tiết đọc được {@code rawPayload}/{@code note}, và có thêm bộ lọc {@code reconcileRequired}
+     * — hàng đợi công việc thật của admin.
+     *
+     * <p>{@code @EntityGraph} nạp sẵn user + plan cho trang kết quả (mapper đọc cả hai); count
+     * query do Spring Data tự sinh KHÔNG mang fetch nên không vỡ khi phân trang.</p>
+     */
+    @Override
+    @EntityGraph(attributePaths = {"user", "plan"})
+    Page<Payment> findAll(Specification<Payment> spec, Pageable pageable);
+
+    /** Số đơn đang chờ ĐỐI SOÁT TAY — badge hàng đợi công việc của admin. */
+    long countByReconcileRequiredTrueAndDeletedAtIsNull();
+
+    /** Số đơn còn chờ thanh toán — badge phụ, cho biết luồng mua hàng có đang chạy không. */
+    long countByStatusAndDeletedAtIsNull(PaymentStatus status);
+
+    /** Sinh orderCode: kiểm trùng trước, partial unique index là chốt chặn cuối. */
+    boolean existsByGatewayTxnIdAndDeletedAtIsNull(String gatewayTxnId);
 
     /** Đếm/dọn dữ liệu dev seeder — chỉ chạm đúng bản ghi do seeder sinh ra. */
     long countByGatewayAndNoteStartingWith(PaymentGateway gateway, String notePrefix);

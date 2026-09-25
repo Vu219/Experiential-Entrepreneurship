@@ -201,6 +201,16 @@ backend/
 >   (+`Impl`), `mapper/NotificationMapper`, `entity/Notification`, `enums/NotificationType`,
 >   `repository/NotificationRepository`. Phát từ worker đăng bài, worker tạo nội dung và
 >   `TokenHealthCheckJob`. See §4 "Notifications".
+> - **Thanh toán gói dịch vụ (payOS)**: `controller/{PaymentController, PayOSWebhookController,
+>   AdminPaymentController}`, `service/{PaymentService, PaymentGatewayClient, AdminPaymentService}`
+>   (+ `Impl/{PaymentServiceImpl, PayOSGatewayClientImpl, MockGatewayClientImpl,
+>   AdminPaymentServiceImpl}`), `scheduler/{PaymentReconcileJob, PaymentExpiryJob,
+>   SubscriptionExpiryJob}`, `util/PayOSSignature`, `config/{PaymentProperties, PayOSProperties,
+>   PayOSWebClientConfig, PaymentDataInitializer, StringToMockPaymentOutcomeConverter}`,
+>   `mapper/{PaymentMapper, AdminPaymentMapper, PayOSMapper}`, `dto/payos/*`,
+>   `enums/{PaymentStatus, PaymentGateway, GatewayLinkStatus, PlanSource, MockGatewayScenario,
+>   MockPaymentOutcome}`. See §4 "Thanh toán gói dịch vụ" và tài liệu đầy đủ
+>   [`../docs/PAYMENT.md`](../docs/PAYMENT.md).
 > - **Performance Analysis (FR-59..FR-62)**: `scheduler/AnalyticsCollectionJob`,
 >   `MetaApiClient.getPostMetrics`, `controller/PostAnalyticsController`, `service/PostAnalyticsService`
 >   (+`Impl`), `mapper/PostAnalyticsMapper`, entity `PostAnalytics` (+ cột `milestone_hours`). See §4
@@ -660,6 +670,59 @@ size chặn ≤ 50) • GET `/unread-count` (badge chuông) • PATCH `/{id}/rea
 • `ContentGenerationWorkerServiceImpl.saveSuccess` (REVIEW_NEEDED — FR-77) • `TokenHealthCheckJob.markExpired` (RECONNECT_NEEDED +
 chuyển lịch SCHEDULED → ON_HOLD, hoàn tất phần lịch của FR-18b). **ErrorCode** dùng lại `NOTIFICATION_NOT_FOUND` (1600, có sẵn).
 
+### Thanh toán gói dịch vụ (payOS) — 🟡 đã build, CHƯA chạy với tài khoản thật
+> Tài liệu đầy đủ (sơ đồ luồng, bảng map trạng thái, biến env, checklist go-live):
+> [`../docs/PAYMENT.md`](../docs/PAYMENT.md). Mục này chỉ ghi những thứ dễ làm sai khi sửa code.
+
+**`PaymentServiceImpl.applyGatewayResult` là ĐƯỜNG DUY NHẤT đổi trạng thái đơn.** Webhook, verify
+thủ công, hai job nền, cổng giả lập và cả thao tác tay của admin đều đi qua đó — đừng viết nhánh
+riêng, vì đó là chỗ duy nhất có khoá dòng (`SELECT … FOR UPDATE`) và quy tắc kích hoạt gói.
+
+**Kích hoạt gói cần ĐỦ BA vế**: chữ ký hợp lệ **VÀ** cổng xác nhận link `PAID` **VÀ** số tiền khớp
+tuyệt đối. Webhook payOS trả `code = "00"` nghĩa là *một lệnh chuyển tiền thành công*, KHÔNG phải
+*đơn đã đủ tiền* — khách chuyển thiếu vẫn làm payOS gửi `code = "00"`.
+
+**Ba cái bẫy đã sập, đừng làm lại:**
+
+1. **`@Transactional` bị gọi nội bộ = annotation chết.** Trong `PaymentServiceImpl` mọi call site
+   của `applyGatewayResult` đều nằm trong chính bean đó → proxy bị bỏ qua → khoá dòng nhả ngay sau
+   câu SELECT. Lớp này mở transaction bằng `TransactionTemplate` (`inTransaction`/`applyLocked`),
+   KHÔNG bằng annotation. Quy tắc chung: trong lớp này `@Transactional` chỉ có tác dụng nếu call
+   site nằm ở **bean KHÁC**.
+2. **Gói vừa hạ có thể "hồi sinh".** `SubscriptionServiceImpl.getOrCreate` hạ gói hết hạn xong thì
+   `planSource` về `FREE`, mở lại nhánh đồng bộ theo nhãn `User.plan` (lúc đó còn cũ) → gói cũ
+   được khôi phục ngay trong cùng lời gọi. Nhánh đó bị chặn bằng `!justExpired` — đừng gỡ.
+3. **Phân loại lỗi cổng theo HTTP STATUS, không theo kiểu ngoại lệ.** Read-timeout xảy ra sau khi
+   header đã về vẫn ném `WebClientResponseException` mang status `200 OK`; phân loại theo kiểu sẽ
+   đóng nhầm `FAILED` một đơn có thể đã tạo link thành công. 5xx/timeout = **không kết luận được**
+   → giữ `PENDING` + `reconcile_required`.
+
+**Trạng thái đơn**: `EXPIRED` (hết giờ) và `CANCELLED` (huỷ chủ động) **tách khỏi** `FAILED` có chủ
+đích — `FAILED` là vế duy nhất vào "tỉ lệ giao dịch thất bại", gộp lại sẽ thổi phồng chỉ số sức
+khoẻ cổng. Đơn cổng báo `PROCESSING` **tuyệt đối không huỷ**, chỉ gia hạn.
+
+**Endpoints**: 6 user (`/payments/*`) • 1 public (`/webhooks/payos`) • 1 DEV-ONLY
+(`/payments/mock/{id}/{outcome}`, khoá 3 lớp) • 5 admin (`/admin/payments/*`,
+`@PreAuthorize("hasRole('ADMIN')")` cấp lớp, **mọi thao tác bắt buộc `reason` và ghi
+`activity_logs`**). **ErrorCode** 2070–2089.
+
+**Gói của MỘT user (admin, 2026-09-25)** — `POST /admin/users/{userId}/subscription` cũ đã GỠ, thay
+bằng 5 endpoint trong `AccountController` (rule 1a, `@PreAuthorize` từng method):
+`GET /users/{userId}/subscription` · `GET .../history` · `POST .../extend` (CỘNG DỒN vào hạn cũ, giữ
+gói + `planSource` + `planStartedAt`) · `POST .../change` (từ bây giờ, `planSource = ADMIN`) ·
+`POST .../revoke` (về Free ngay, `planSource = FREE`). Quy tắc nằm ở `SubscriptionService`
+(`extendPlan/changePlan/revokeToFree`), lớp `ApiResponse` là `AdminSubscriptionService` (khoá dòng
+`findForUpdateByUserId` TRƯỚC `getOrCreate`). Trần thời hạn ở `enums/DurationUnit` (1–365 ngày /
+1–52 tuần / 1–24 tháng); bắt buộc `category` (`SubscriptionChangeCategory`) + `reason`.
+**Lịch sử**: bảng append-only `subscription_history` (`entity/SubscriptionHistory`) ghi ĐỒNG BỘ
+cùng transaction ở MỌI đường đổi gói trong `SubscriptionServiceImpl` (thanh toán, hết hạn, 3 thao
+tác admin); plan lưu mã snapshot, actor lưu id + email KHÔNG FK. `PATCH /users/{id}` gửi `plan` bị
+từ chối (2097) — nó chỉ ghi được nhãn cache `User.plan`. **ErrorCode** 2090–2097.
+
+**`rawPayload` chỉ ra tới admin**: DTO của user (`PaymentResponse`) không có trường nào như vậy, và
+danh sách admin cũng bỏ qua (`AdminPaymentMapper.toRow` ignore) — chỉ endpoint chi tiết mới trả.
+Có test reflection chặn việc thêm trường đối soát nội bộ vào DTO của user.
+
 ### PostgreSQL (`application.yml` + `.env`)
 ```
 URL:      jdbc:postgresql://DB_HOST:DB_PORT/DB_NAME
@@ -816,7 +879,7 @@ AUTH_COOKIE_NAME (refresh_token), AUTH_COOKIE_SECURE (false), AUTH_COOKIE_SAME_S
 
 2. **ErrorCode enum keys are validation message keys.** Every `@NotBlank(message="KEY")` maps directly to `ErrorCode.KEY`. Adding a new validation requires a matching `ErrorCode` entry. **The numeric `code` of each `ErrorCode` MUST be unique** — the FE distinguishes errors by `code`, so never reuse the same int across two constants (e.g. don't let a brand-profile and a file error both be `1700`).
 
-3. **Always use `ApiResponse<T>` as the return type** for every controller method. Never return raw types or `ResponseEntity` directly. *Single documented exception:* `PlatformConnectionController.callback` returns `ResponseEntity<Void>` because it must 302-redirect the browser back to the FE (see §4 "Social Media Connection") — do not add further exceptions. `ApiResponse` here means **only** our `com.aima.dto.response.ApiResponse` — never the Swagger annotation `io.swagger.v3.oas.annotations.responses.ApiResponse` (see the Swagger convention in §3). Import our `ApiResponse` directly so the return type is plain `ApiResponse<T>`, not a fully-qualified name.
+3. **Always use `ApiResponse<T>` as the return type** for every controller method. Never return raw types or `ResponseEntity` directly. *Two documented exceptions:* (a) `PlatformConnectionController.callback` returns `ResponseEntity<Void>` because it must 302-redirect the browser back to the FE (see §4 "Social Media Connection"); (b) `PayOSWebhookController.receive` returns `ResponseEntity<Object>` so the ack body payOS receives lives in the single constant `WEBHOOK_ACK` and can be switched to a bare `{"success": true}` in one line if payOS's `/confirm-webhook` rejects the envelope at go-live (the expected body is not documented by payOS). Do not add further exceptions. `ApiResponse` here means **only** our `com.aima.dto.response.ApiResponse` — never the Swagger annotation `io.swagger.v3.oas.annotations.responses.ApiResponse` (see the Swagger convention in §3). Import our `ApiResponse` directly so the return type is plain `ApiResponse<T>`, not a fully-qualified name.
 
 4. **`@JsonInclude(NON_NULL)` on `ApiResponse` is intentional.** Do not remove it; absent fields must be omitted from JSON output.
 
@@ -831,6 +894,8 @@ AUTH_COOKIE_NAME (refresh_token), AUTH_COOKIE_SECURE (false), AUTH_COOKIE_SAME_S
 9. **Soft delete by default.** Entities extend `BaseEntity` (`deleted_at`); mark `deleted_at` instead of hard-deleting, except GDPR account deletion (per the root `DATA_MODEL.md`). Do not physically `delete` rows for normal flows.
 
 10. **`ddl-auto: update` is active.** Adding new entity fields auto-creates columns on startup. Do not use `create` or `create-drop` in any environment that has existing data.
+
+    **10a. Adding a value to an `@Enumerated(STRING)` enum = you MUST fix its CHECK constraint — do NOT trust `ddl-auto: update`.** Hibernate writes the enum values into a CHECK constraint (`<table>_<column>_check`) only when the table is first created; `update` never touches it again, so the new value works in Java and is rejected by the DB (SQLState `23514`) — silently until the first INSERT. (Burned 2026-09-25: `payments.gateway` lacked `MOCK`, `payments.status` lacked `EXPIRED`/`CANCELLED`, plus `activity_logs.action` and `notifications.type`.) Register the column in `PaymentDataInitializer.ENUM_COLUMNS` (re-syncs the constraint from `pg_constraint` on startup and logs ERROR naming the column + missing values if it still drifts), or ship an explicit `ALTER TABLE` that drops and re-adds it. Same family as the NOT NULL trap: a new NOT NULL column on a populated table needs `columnDefinition = "... not null default ..."` (see `Payment.expiryGraceCount`).
 
 11. **Service implementations live in `service/Impl/`**, not in `service/`. The pattern `FooService` (interface) + `FooServiceImpl` (class in `Impl/`) must be maintained.
 

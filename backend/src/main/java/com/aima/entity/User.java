@@ -124,4 +124,11 @@ public class User extends BaseEntity {
     @EqualsAndHashCode.Exclude
     @Builder.Default
     List<UsageAdjustment> usageAdjustments = new ArrayList<>();
+
+    // Lịch sử đổi gói — cùng lý do cascade như subscriptions (purge GDPR không vỡ FK).
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @Builder.Default
+    List<SubscriptionHistory> subscriptionHistory = new ArrayList<>();
 }

@@ -128,6 +128,7 @@ const PAGE_KEYS = {
   adminSystem: ['navAdminSystem', 'pageSubAdminSystem'],
   adminLogs: ['navAdminLogs', 'pageSubAdminLogs'],
   adminApiVersions: ['navAdminApi', 'pageSubAdminApi'],
+  adminPayments: ['navAdminPayments', 'pageSubAdminPayments'],
   adminRevenue: ['navAdminRevenue', 'pageSubAdminRevenue'],
   adminPlans: ['navAdminPlans', 'pageSubAdminPlans'],
   adminUsage: ['navAdminUsage', 'pageSubAdminUsage'],

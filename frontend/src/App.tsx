@@ -20,6 +20,9 @@ const FailedPosts = lazy(() => import("./pages/app/FailedPosts.tsx"));
 const Analytics = lazy(() => import("./pages/app/Analytics.tsx"));
 const Trends = lazy(() => import("./pages/app/Trends.tsx"));
 const Brand = lazy(() => import("./pages/app/Brand.tsx"));
+const Billing = lazy(() => import("./pages/app/Billing.tsx"));
+const BillingReturn = lazy(() => import("./pages/app/BillingReturn.tsx"));
+const BillingMock = lazy(() => import("./pages/app/BillingMock.tsx"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
 const AdminOverview = lazy(() => import("./pages/admin/Overview"));
@@ -28,6 +31,7 @@ const AdminPosts = lazy(() => import("./pages/admin/Posts"));
 const AdminSystem = lazy(() => import("./pages/admin/SystemStatus"));
 const AdminLogs = lazy(() => import("./pages/admin/Logs"));
 const AdminApiVersions = lazy(() => import("./pages/admin/ApiVersions"));
+const AdminPayments = lazy(() => import("./pages/admin/Payments"));
 const AdminRevenue = lazy(() => import("./pages/admin/Revenue"));
 const AdminPlans = lazy(() => import("./pages/admin/Plans"));
 const AdminUsage = lazy(() => import("./pages/admin/UsageOverview"));
@@ -72,6 +76,7 @@ const APP_PAGE_IMPORTS = [
   () => import("./pages/app/Analytics.tsx"),
   () => import("./pages/app/Trends.tsx"),
   () => import("./pages/app/Brand.tsx"),
+  () => import("./pages/app/Billing.tsx"),
   () => import("./pages/Profile"),
   () => import("./pages/Settings"),
 ] as const;
@@ -83,6 +88,7 @@ const ADMIN_PAGE_IMPORTS = [
   () => import("./pages/admin/SystemStatus"),
   () => import("./pages/admin/Logs"),
   () => import("./pages/admin/ApiVersions"),
+  () => import("./pages/admin/Payments"),
   () => import("./pages/admin/Revenue"),
   () => import("./pages/admin/Plans"),
   () => import("./pages/admin/UsageOverview"),
@@ -159,6 +165,12 @@ export default function App() {
           {/* "Token & mức dùng" giờ là tab trong Cài đặt (mục 7) — giữ route cũ /usage
               redirect sang /settings/usage để không vỡ link cũ. */}
           <Route path="/usage" element={<Navigate to="/settings/usage" replace />} />
+          <Route path="/billing" element={<Billing />} />
+          {/* Hai route dưới do CỔNG THANH TOÁN đưa trình duyệt tới, không phải mục menu.
+              /billing/return cố tình KHÔNG đọc query string payOS gắn vào (không có chữ ký)
+              — nó gọi endpoint verify để backend tự hỏi cổng. */}
+          <Route path="/billing/return" element={<BillingReturn />} />
+          <Route path="/billing/mock/:paymentId" element={<BillingMock />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/settings/usage" element={<Settings />} />
@@ -172,6 +184,7 @@ export default function App() {
           <Route path="/admin/system" element={<AdminSystem />} />
           <Route path="/admin/logs" element={<AdminLogs />} />
           <Route path="/admin/api-versions" element={<AdminApiVersions />} />
+          <Route path="/admin/payments" element={<AdminPayments />} />
           <Route path="/admin/revenue" element={<AdminRevenue />} />
           <Route path="/admin/plans" element={<AdminPlans />} />
           <Route path="/admin/usage" element={<AdminUsage />} />

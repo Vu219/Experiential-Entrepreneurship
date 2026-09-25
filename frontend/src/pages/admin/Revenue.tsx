@@ -208,6 +208,8 @@ export default function Revenue() {
     ['PAID', t.revStatusPaid],
     ['PENDING', t.revStatusPending],
     ['FAILED', t.revStatusFailed],
+    ['EXPIRED', t.revStatusExpired],
+    ['CANCELLED', t.revStatusCancelled],
     ['REFUNDED', t.revStatusRefunded],
     ['PARTIALLY_REFUNDED', t.revStatusPartial],
   ];

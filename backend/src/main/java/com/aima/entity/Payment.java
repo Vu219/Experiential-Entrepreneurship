@@ -112,6 +112,62 @@ public class Payment extends BaseEntity {
     @Column(name = "gateway_txn_id", length = 100)
     String gatewayTxnId;
 
+    /**
+     * Mã payment link phía payOS ({@code data.paymentLinkId}). Không dùng để định danh đơn
+     * (đó là việc của {@link #gatewayTxnId} = {@code orderCode}) — giữ lại để tra cứu trên
+     * cổng khi đối soát/tranh chấp, vì payOS hiển thị link theo id này.
+     */
+    @Column(name = "gateway_link_id", length = 100)
+    String gatewayLinkId;
+
+    /**
+     * URL trang thanh toán do cổng sinh ra ({@code data.checkoutUrl}). Lưu lại để nút
+     * "Tiếp tục thanh toán" ở trang Billing đưa user quay lại ĐÚNG link cũ thay vì tạo đơn
+     * mới. Chỉ có ý nghĩa khi đơn còn {@code PENDING}.
+     */
+    @Column(name = "checkout_url", length = 500)
+    String checkoutUrl;
+
+    /**
+     * Hạn chót thanh toán. MỘT mốc duy nhất cho cả hai phía: đếm ngược hiển thị cho user VÀ
+     * {@code expiredAt} (Unix giây) gửi cho payOS lúc tạo link — tính một lần lúc tạo đơn rồi
+     * dùng lại, để không bao giờ xảy ra cảnh user thấy còn thời gian mà link đã chết bên cổng.
+     * null với bản ghi ghi tay/seed (không qua cổng).
+     */
+    @Column(name = "expires_at")
+    LocalDateTime expiresAt;
+
+    /**
+     * Số lần đơn được GIA HẠN ân hạn vì cổng báo {@code PROCESSING} (tiền đang chuyển dở).
+     *
+     * <p><b>Vì sao có {@code columnDefinition ... default 0}</b>: bảng {@code payments} ĐÃ có
+     * dữ liệu, và {@code ddl-auto: update} sinh {@code ALTER TABLE ADD COLUMN ... not null}
+     * — PostgreSQL TỪ CHỐI câu đó trên bảng không rỗng nếu cột không có DEFAULT, Hibernate chỉ
+     * log warning rồi đi tiếp → cột KHÔNG được tạo và app vỡ lúc chạy. Mệnh đề DEFAULT làm
+     * ALTER thành công và backfill luôn các dòng cũ. Cùng lý do với
+     * {@code Plan.billingIntervalMonths}.
+     * Không bao giờ huỷ một đơn PROCESSING — tiền sẽ về sau khi đơn đã đóng. Vượt trần
+     * {@code payment.max-grace-rounds} thì bật {@link #reconcileRequired} và báo admin,
+     * nhưng đơn vẫn giữ PENDING chứ không tự đóng.
+     */
+    @Column(name = "expiry_grace_count", nullable = false,
+            columnDefinition = "integer not null default 0")
+    @Builder.Default
+    Integer expiryGraceCount = 0;
+
+    /**
+     * Cần ĐỐI SOÁT TAY. Bật khi hệ thống không thể tự kết luận an toàn: tiền về sau khi đơn đã
+     * hết hạn/bị huỷ, số tiền lệch với đơn (chuyển thiếu — payOS {@code UNDERPAID} vẫn gửi
+     * webhook {@code code="00"} — hoặc chuyển thừa), cổng trả trạng thái lạ, hoặc không xác
+     * nhận được trạng thái thật của link khi đóng đơn.
+     *
+     * <p>Nguyên tắc: thà để admin xử lý tay còn hơn im lặng bỏ qua tiền của khách.
+     */
+    @Column(name = "reconcile_required", nullable = false,
+            columnDefinition = "boolean not null default false")
+    @Builder.Default
+    Boolean reconcileRequired = false;
+
     /** Số hoá đơn hiển thị cho admin/khách (vd INV-000123). */
     @Column(name = "invoice_no", length = 50)
     String invoiceNo;

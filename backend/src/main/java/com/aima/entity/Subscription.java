@@ -1,5 +1,6 @@
 package com.aima.entity;
 
+import com.aima.enums.PlanSource;
 import com.aima.enums.SubscriptionStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -44,6 +45,35 @@ public class Subscription extends BaseEntity {
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
     SubscriptionStatus status = SubscriptionStatus.ACTIVE;
+
+    /**
+     * Mốc bắt đầu gói TRẢ TIỀN hiện hành. null = gói Free (không có vòng đời).
+     *
+     * <p><b>Đừng nhầm với {@link #currentPeriodStart}.</b> Cặp {@code currentPeriod*} là KỲ
+     * TÍNH HẠN MỨC TOKEN (tháng lịch, reset đều đặn); cặp {@code planStartedAt}/
+     * {@link #planExpiresAt} là VÒNG ĐỜI GÓI đã mua (ngày mua → ngày hết hạn). Hai khái niệm
+     * độc lập: một user mua gói ngày 20/9 vẫn reset token vào 01/10 như mọi người.
+     */
+    @Column(name = "plan_started_at")
+    LocalDateTime planStartedAt;
+
+    /**
+     * Mốc hết hạn gói trả tiền — cột mà job hạ gói quét. <b>null = KHÔNG hết hạn</b> (gói Free,
+     * hoặc gói admin cấp vĩnh viễn), không phải "hết hạn ngay".
+     */
+    @Column(name = "plan_expires_at")
+    LocalDateTime planExpiresAt;
+
+    /**
+     * Vì sao user đang ở gói này — phân biệt khách trả tiền với gói admin cấp tay.
+     * {@code columnDefinition} có DEFAULT vì {@code subscriptions} đã có dữ liệu: xem lý do
+     * đầy đủ ở {@code Payment.expiryGraceCount}.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "plan_source", nullable = false, length = 20,
+            columnDefinition = "varchar(20) not null default 'FREE'")
+    @Builder.Default
+    PlanSource planSource = PlanSource.FREE;
 
     /** Đầu kỳ hiện tại (inclusive). */
     @Column(name = "current_period_start", nullable = false)

@@ -18,7 +18,7 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Schema(name = "AdminUpdateUserRequest",
-        description = "Admin cập nhật hồ sơ/gói/vai trò/trạng thái người dùng (partial — chỉ ghi đè trường có giá trị).")
+        description = "Admin cập nhật hồ sơ/vai trò/trạng thái người dùng (partial — chỉ ghi đè trường có giá trị). Gói đổi qua /users/{userId}/subscription/*.")
 public class AdminUpdateUserRequest {
 
     @Size(max = 255, message = "INVALID_FULLNAME")
@@ -36,7 +36,8 @@ public class AdminUpdateUserRequest {
     @Schema(description = "USER hoặc ADMIN.", example = "USER")
     String role;
 
-    @Schema(description = "Gói: FREE / PLUS / PRO.", example = "PLUS")
+    /** Bị TỪ CHỐI nếu gửi (2097) — giữ field để báo lỗi rõ thay vì Jackson lặng lẽ bỏ qua. */
+    @Schema(description = "Không dùng — gửi sẽ bị từ chối (2097). Đổi gói qua /users/{userId}/subscription/*.")
     UserPlan plan;
 
     @Schema(description = "Trạng thái: ACTIVE / LOCKED / PENDING_DELETE.", example = "ACTIVE")

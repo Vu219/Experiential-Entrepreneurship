@@ -10,16 +10,19 @@ import { phoneOk } from '../../validations/profileValidation';
 import { uploadAvatar } from '../../api/auth';
 import { useToast } from '../../components/toast/ToastProvider';
 import {
-  updateAdminUser, adminResetPassword, userPlanMeta, ADMIN_ERR,
-  type AdminUserRow, type UserRole, type UserPlan, type UserStatus,
+  updateAdminUser, adminResetPassword, ADMIN_ERR,
+  type AdminUserRow, type UserRole, type UserStatus,
 } from '../../api/admin';
 import { withToast } from '../../utils/toastFlow';
+import UserPlanTab from '../../components/admin/users/UserPlanTab';
 
 
 /**
- * Modal "Chi tiết người dùng" — 2 tab:
- *  • Thông tin: admin sửa tên/email/SĐT/vai trò/gói/trạng thái + avatar; trường chỉ đọc
+ * Modal "Chi tiết người dùng" — 3 tab:
+ *  • Thông tin: admin sửa tên/email/SĐT/vai trò/trạng thái + avatar; trường chỉ đọc
  *    (ngày tạo, đăng nhập gần nhất, số kênh). Guard: tự-vai-trò & Google-email bị khoá ở UI + BE.
+ *  • Gói dịch vụ: gói hiện tại + gia hạn / đổi gói / thu hồi + lịch sử (UserPlanTab) — gói KHÔNG
+ *    còn sửa ở tab Thông tin vì PATCH /users chỉ ghi được nhãn cache, lệch với subscription thật.
  *  • Tài khoản: email đăng nhập + phương thức đăng nhập + đặt lại mật khẩu (ẩn với Google).
  */
 export default function EditUserModal({ user, currentAdminId, onClose, onSaved }: {
@@ -30,7 +33,7 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
 }) {
   const { t, brandGradient } = useApp();
   const toast = useToast();
-  const [tab, setTab] = useState<'info' | 'account'>('info');
+  const [tab, setTab] = useState<'info' | 'plan' | 'account'>('info');
 
   const isGoogle = user.authProvider === 'GOOGLE';
   const isSelf = user.id === currentAdminId;
@@ -40,13 +43,11 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
   const [email, setEmail] = useState(user.email);
   const [phone, setPhone] = useState(user.phone ?? '');
   const [role, setRole] = useState<UserRole>(user.role);
-  const [plan, setPlan] = useState<UserPlan>(user.plan);
   const [status, setStatus] = useState<UserStatus>(user.status);
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(user.avatarUrl);
   const [errors, setErrors] = useState<{ name?: string; email?: string; phone?: string }>({});
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [confirmPlan, setConfirmPlan] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const pickAvatar = async (file: File) => {
@@ -101,7 +102,6 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
         email: isGoogle ? undefined : email.trim(),
         phone: phone.trim() || undefined,
         role: isSelf ? undefined : role,
-        plan,
         status: isSelf ? undefined : status,
         avatarUrl,
       };
@@ -121,15 +121,18 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
       toast.error(errorMsg);
     } finally {
       setBusy(false);
-      setConfirmPlan(false);
     }
   };
 
   const submit = () => {
     if (!validate()) { setTab('info'); return; }
-    if (plan !== user.plan) { setConfirmPlan(true); return; } // đổi gói → xác nhận trước khi lưu
     persist();
   };
+
+  // Tab Gói tự lưu từng thao tác và giữ modal mở (xem ngay lịch sử). Khi đóng modal mà gói đã đổi
+  // thì đi đường onSaved để trang danh sách tải lại badge gói.
+  const [planLabel, setPlanLabel] = useState<AdminUserRow['plan'] | null>(null);
+  const close = () => (planLabel ? onSaved({ ...user, plan: planLabel }) : onClose());
 
   // ----- Tab Tài khoản: đặt lại mật khẩu -----
   const [confirmReset, setConfirmReset] = useState(false);
@@ -161,7 +164,7 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
     : null;
 
   return (
-    <Modal title={t.usrDetailTitle} onClose={onClose} maxWidth={560}>
+    <Modal title={t.usrDetailTitle} onClose={close} maxWidth={560}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
         <Avatar url={avatarUrl} initials={user.initials} size={52} gradient={brandGradient} />
@@ -187,7 +190,7 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid #efeaf8', marginBottom: 16 }}>
-        {([['info', t.usrTabInfo], ['account', t.usrTabAccount]] as const).map(([k, label]) => (
+        {([['info', t.usrTabInfo], ['plan', t.usrTabPlan], ['account', t.usrTabAccount]] as const).map(([k, label]) => (
           <button
             key={k}
             type="button"
@@ -243,23 +246,16 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
               </select>
               {isSelf && <span style={hint}>{t.usrSelfRoleLocked}</span>}
             </Field>
-            <Field label={t.filterPlan} style={{ flex: 1 }}>
-              <select value={plan} onChange={(e) => setPlan(e.target.value as UserPlan)} style={input}>
-                <option value="FREE">Free</option>
-                <option value="PLUS">Plus</option>
-                <option value="PRO">Pro</option>
+            <Field label={t.colStatus} style={{ flex: 1 }}>
+              <select value={status} disabled={isSelf}
+                onChange={(e) => setStatus(e.target.value as UserStatus)} style={isSelf ? inputDisabled : input}>
+                <option value="ACTIVE">{t.stActive}</option>
+                <option value="LOCKED">{t.stLocked}</option>
+                <option value="PENDING_DELETE">{t.stPendingDel}</option>
               </select>
+              {isSelf && <span style={hint}>{t.usrSelfStatusLocked}</span>}
             </Field>
           </div>
-          <Field label={t.colStatus}>
-            <select value={status} disabled={isSelf}
-              onChange={(e) => setStatus(e.target.value as UserStatus)} style={isSelf ? inputDisabled : input}>
-              <option value="ACTIVE">{t.stActive}</option>
-              <option value="LOCKED">{t.stLocked}</option>
-              <option value="PENDING_DELETE">{t.stPendingDel}</option>
-            </select>
-            {isSelf && <span style={hint}>{t.usrSelfStatusLocked}</span>}
-          </Field>
 
           {/* Chỉ đọc */}
           <div style={roLabel}>{t.usrReadonlyHint}</div>
@@ -276,10 +272,12 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
           </Field>
 
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-            <button onClick={onClose} style={cancelBtn}>{t.cancel}</button>
+            <button onClick={close} style={cancelBtn}>{t.cancel}</button>
             <button onClick={submit} disabled={busy || uploading} style={primaryBtn(busy || uploading)}>{t.usrSave}</button>
           </div>
         </div>
+      ) : tab === 'plan' ? (
+        <UserPlanTab userId={user.id} userName={user.name} onPlanChanged={setPlanLabel} />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <InfoLine label={t.usrLoginEmail} value={user.email} />
@@ -299,19 +297,6 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
             </div>
           )}
         </div>
-      )}
-
-      {/* Confirm đổi gói */}
-      {confirmPlan && (
-        <ConfirmDialog
-          title={t.usrPlanChangeTitle}
-          message={`${t.usrPlanChangeMsg} ${user.name} ${t.usrPlanChangeTo} ${userPlanMeta(plan).label}?`}
-          confirmLabel={t.usrPlanChangeBtn}
-          variant="warning"
-          busy={busy}
-          onConfirm={persist}
-          onClose={() => setConfirmPlan(false)}
-        />
       )}
 
       {/* Confirm gửi email đặt lại mật khẩu */}

@@ -7,7 +7,11 @@ export type NotificationType =
   | "POST_FAILED"
   | "REVIEW_NEEDED"
   | "RECONNECT_NEEDED"
-  | "NEW_INSIGHT";
+  | "NEW_INSIGHT"
+  | "PAYMENT_SUCCEEDED"
+  | "PLAN_EXPIRED"
+  /** Chỉ admin nhận: webhook payOS đang bị từ chối bất thường. */
+  | "PAYMENT_WEBHOOK_ALERT";
 
 export interface AppNotification {
   id: string;

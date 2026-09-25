@@ -36,6 +36,10 @@ export const actionLabel = (lang: Lang, action: ActivityAction): string =>
     PLAN_CHANGED: P(lang, 'Đổi gói dịch vụ', 'Plan changed'),
     PAYMENT_SUCCEEDED: P(lang, 'Thanh toán thành công', 'Payment succeeded'),
     PAYMENT_FAILED: P(lang, 'Thanh toán thất bại', 'Payment failed'),
+    PAYMENT_WEBHOOK_REJECTED: P(lang, 'Webhook thanh toán bị từ chối', 'Payment webhook rejected'),
+    PAYMENT_CANCELLED: P(lang, 'Admin huỷ đơn hàng', 'Order cancelled by admin'),
+    PAYMENT_MARKED_PAID: P(lang, 'Admin đánh dấu đã thanh toán', 'Marked paid by admin'),
+    SUBSCRIPTION_ADJUSTED: P(lang, 'Admin đổi gói người dùng', 'Plan adjusted by admin'),
 
     USER_CREATED: P(lang, 'Tạo người dùng', 'User created'),
     USER_UPDATED: P(lang, 'Sửa người dùng', 'User updated'),

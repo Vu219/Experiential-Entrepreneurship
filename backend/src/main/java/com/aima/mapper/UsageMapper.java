@@ -25,15 +25,21 @@ import com.aima.entity.BillingRate;
 import com.aima.entity.TokenCredit;
 import com.aima.entity.UsageAlert;
 import com.aima.entity.Plan;
+import com.aima.dto.response.SubscriptionHistoryResponse;
+import com.aima.dto.response.UserSubscriptionResponse;
 import com.aima.entity.Subscription;
+import com.aima.entity.SubscriptionHistory;
 import com.aima.entity.UsageAdjustment;
 import com.aima.entity.User;
+import com.aima.enums.DurationUnit;
+import com.aima.enums.SubscriptionHistoryAction;
 import com.aima.enums.SubscriptionStatus;
 import com.aima.enums.UsageAdjustmentSource;
 import com.aima.enums.UsageAdjustmentType;
 import com.aima.repository.AiUsageRepository;
 import com.aima.repository.UsageAlertRepository;
 import com.aima.repository.UsageHourlyRepository;
+import com.aima.service.SubscriptionService;
 import com.aima.service.TokenUsageService;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -49,6 +55,40 @@ public interface UsageMapper {
     @Mapping(target = "status", source = "subStatus")
     Subscription toSubscription(User userEntity, Plan planEntity, SubscriptionStatus subStatus,
                                 LocalDateTime currentPeriodStart, LocalDateTime currentPeriodEnd);
+
+    // ===== Lịch sử gói (subscription_history) + gói của một user cho admin =====
+
+    /**
+     * Một dòng lịch sử: vế "from" từ snapshot trước khi đổi, vế "to" từ subscription sau khi đổi.
+     * {@code change} null = sự kiện hệ thống → actor/category/reason null. Mapper đi qua builder
+     * (không lộ field BaseEntity) nên id/audit field của {@code after} không bị chép sang.
+     */
+    @Mapping(target = "fromPlanCode", source = "before.planCode")
+    @Mapping(target = "fromExpiresAt", source = "before.expiresAt")
+    @Mapping(target = "fromSource", source = "before.source")
+    @Mapping(target = "toPlanCode", source = "after.plan.code")
+    @Mapping(target = "toExpiresAt", source = "after.planExpiresAt")
+    @Mapping(target = "toSource", source = "after.planSource")
+    @Mapping(target = "actorUserId", source = "change.actorId")
+    @Mapping(target = "actorEmail", source = "change.actorEmail")
+    @Mapping(target = "category", source = "change.category")
+    @Mapping(target = "reason", source = "change.reason")
+    SubscriptionHistory toSubscriptionHistory(SubscriptionHistoryAction action,
+                                              SubscriptionService.PlanSnapshot before, Subscription after,
+                                              SubscriptionService.AdminChange change,
+                                              Integer extendAmount, DurationUnit extendUnit);
+
+    SubscriptionHistoryResponse toSubscriptionHistoryResponse(SubscriptionHistory history);
+
+    List<SubscriptionHistoryResponse> toSubscriptionHistoryResponseList(List<SubscriptionHistory> histories);
+
+    @Mapping(target = "userId", source = "user.id")
+    @Mapping(target = "planId", source = "plan.id")
+    @Mapping(target = "planCode", source = "plan.code")
+    @Mapping(target = "planNameVi", source = "plan.nameVi")
+    @Mapping(target = "planNameEn", source = "plan.nameEn")
+    @Mapping(target = "planLabel", source = "user.plan")
+    UserSubscriptionResponse toUserSubscriptionResponse(Subscription subscription);
 
     @Mapping(target = "day", source = "dayOfMonth")
     UsageSeriesPointResponse toSeriesPoint(AiUsageRepository.DailyUsageAgg agg);

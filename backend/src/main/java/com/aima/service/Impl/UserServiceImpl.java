@@ -163,10 +163,16 @@ public class UserServiceImpl implements UserService {
         return ApiResponse.success("Tạo tài khoản thành công", response);
     }
 
-    // FR-80: admin cập nhật hồ sơ/gói/vai trò/trạng thái (partial). Guard chống tự hạ vai trò/tự khoá-xoá
+    // FR-80: admin cập nhật hồ sơ/vai trò/trạng thái (partial; gói bị từ chối — xem guard đầu hàm). Guard chống tự hạ vai trò/tự khoá-xoá
     // chính mình + khoá đổi email cho tài khoản Google. Ghi audit log (ai, gì, khi nào).
     @Override
     public ApiResponse<UserResponse> updateUser(String adminEmail, UUID userId, AdminUpdateUserRequest request) {
+        // Gói KHÔNG đổi ở đây: endpoint này chỉ ghi được nhãn cache User.plan, không đụng tới
+        // subscriptions (nguồn sự thật) → nhãn và gói thật lệch nhau. Đổi gói đi qua
+        // /users/{id}/subscription/* (AdminSubscriptionService).
+        if (request.getPlan() != null) {
+            throw new AppException(ErrorCode.USER_PLAN_UPDATE_NOT_ALLOWED);
+        }
         User admin = userRepository.findByEmail(adminEmail)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         User user = userRepository.findById(userId)
@@ -271,7 +277,6 @@ public class UserServiceImpl implements UserService {
         if (r.getPhone() != null) f.add("phone");
         if (r.getAvatarUrl() != null) f.add("avatarUrl");
         if (r.getRole() != null) f.add("role=" + r.getRole());
-        if (r.getPlan() != null) f.add("plan=" + r.getPlan());
         if (r.getStatus() != null) f.add("status=" + r.getStatus());
         return String.join(", ", f);
     }

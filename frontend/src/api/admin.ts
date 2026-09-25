@@ -1,6 +1,7 @@
 import type { Lang } from '../types';
 import type { Tone } from '../components/admin/StatusBadge';
 import client, { type ApiError, type ApiResponse, type PageResponse } from './apiClient';
+import type { PlanSource } from './payments';
 
 // 2026-07-12: Quản lý người dùng (FR-80) nối BE thật hoàn toàn — list/stats/detail/create/update/
 // đổi gói/khoá-mở/đặt lại mật khẩu. Lọc/tìm/phân trang server-side. Các module khác (bài lỗi,
@@ -144,27 +145,110 @@ export interface AdminUserPatch {
   email?: string;
   phone?: string;
   role?: UserRole;
-  plan?: UserPlan;
   status?: UserStatus;
   avatarUrl?: string;
 }
 
-// PATCH /users/{id} — admin cập nhật (partial). Đổi gói riêng cũng đi qua đây.
+// PATCH /users/{id} — admin cập nhật (partial). KHÔNG đổi gói ở đây: BE từ chối field `plan`
+// (2097) vì nó chỉ ghi nhãn cache, lệch với subscription thật — đổi gói qua các hàm subscription bên dưới.
 export async function updateAdminUser(id: string, patch: AdminUserPatch): Promise<AdminUserRow> {
   const { data } = await client.patch<ApiResponse<BeUser>>(`/users/${id}`, {
     fullName: patch.name,
     email: patch.email,
     phone: patch.phone,
     role: patch.role,
-    plan: patch.plan,
     status: patch.status,
     avatarUrl: patch.avatarUrl,
   });
   return toRow(data.result);
 }
 
-// Đổi gói (dùng chung endpoint partial) — tách hàm để confirm + audit rõ ràng.
-export const changeUserPlan = (id: string, plan: UserPlan) => updateAdminUser(id, { plan });
+// ===== Gói dịch vụ của MỘT user (tab "Gói dịch vụ" trong modal chi tiết) =====
+
+export type DurationUnit = 'DAY' | 'WEEK' | 'MONTH';
+export type SubscriptionChangeCategory = 'PROMOTION' | 'COMPENSATION' | 'SUPPORT' | 'OTHER';
+export type SubscriptionHistoryAction =
+  | 'PAYMENT_ACTIVATED' | 'ADMIN_EXTENDED' | 'ADMIN_CHANGED' | 'ADMIN_REVOKED' | 'EXPIRED';
+
+/** Trần thời hạn theo đơn vị — khớp `DurationUnit` backend (user chốt 25/9). */
+export const DURATION_MAX: Record<DurationUnit, number> = { DAY: 365, WEEK: 52, MONTH: 24 };
+
+export interface UserSubscription {
+  userId: string;
+  planId: string;
+  planCode: string;
+  planNameVi: string;
+  planNameEn: string;
+  planSource: PlanSource;
+  /** null = gói Free (không có vòng đời). */
+  planStartedAt: string | null;
+  /** null = KHÔNG hết hạn, không phải "đã hết hạn". */
+  planExpiresAt: string | null;
+  /** Nhãn cache User.plan sau thao tác — cập nhật badge ở bảng danh sách. */
+  planLabel: UserPlan;
+}
+
+export interface SubscriptionHistoryEntry {
+  id: string;
+  action: SubscriptionHistoryAction;
+  category: SubscriptionChangeCategory | null;
+  fromPlanCode: string | null;
+  toPlanCode: string | null;
+  fromExpiresAt: string | null;
+  toExpiresAt: string | null;
+  fromSource: PlanSource | null;
+  toSource: PlanSource | null;
+  extendAmount: number | null;
+  extendUnit: DurationUnit | null;
+  /** null = hệ thống (thanh toán / hết hạn). */
+  actorEmail: string | null;
+  reason: string | null;
+  createdAt: string;
+}
+
+interface SubscriptionActionBase {
+  category: SubscriptionChangeCategory;
+  reason: string;
+}
+
+export async function getUserSubscription(userId: string): Promise<UserSubscription> {
+  const { data } = await client.get<ApiResponse<UserSubscription>>(`/users/${userId}/subscription`);
+  return data.result;
+}
+
+export async function getUserSubscriptionHistory(
+  userId: string, page = 0, size = 10
+): Promise<PageResponse<SubscriptionHistoryEntry>> {
+  const { data } = await client.get<ApiResponse<PageResponse<SubscriptionHistoryEntry>>>(
+    `/users/${userId}/subscription/history`, { params: { page, size } }
+  );
+  return data.result;
+}
+
+/** Cộng dồn vào hạn hiện tại — không ghi đè. */
+export async function extendUserSubscription(
+  userId: string, input: SubscriptionActionBase & { amount: number; unit: DurationUnit }
+): Promise<UserSubscription> {
+  const { data } = await client.post<ApiResponse<UserSubscription>>(`/users/${userId}/subscription/extend`, input);
+  return data.result;
+}
+
+/** Đổi gói — thời hạn tính từ bây giờ; `noExpiry` = không hết hạn. */
+export async function changeUserSubscription(
+  userId: string,
+  input: SubscriptionActionBase & { planId: string; noExpiry: boolean; amount?: number; unit?: DurationUnit }
+): Promise<UserSubscription> {
+  const { data } = await client.post<ApiResponse<UserSubscription>>(`/users/${userId}/subscription/change`, input);
+  return data.result;
+}
+
+/** Thu hồi — hạ về Free ngay. */
+export async function revokeUserSubscription(
+  userId: string, input: SubscriptionActionBase
+): Promise<UserSubscription> {
+  const { data } = await client.post<ApiResponse<UserSubscription>>(`/users/${userId}/subscription/revoke`, input);
+  return data.result;
+}
 
 // POST /users — admin tạo tài khoản thủ công (mặc định FREE).
 export async function createAdminUser(input: {
@@ -569,7 +653,8 @@ export type ActivityAction =
   | 'SOCIAL_CONNECTED' | 'SOCIAL_DISCONNECTED'
   | 'CONTENT_CREATED' | 'CONTENT_UPDATED' | 'CONTENT_DELETED' | 'CONTENT_STATUS_CHANGED'
   | 'SCHEDULE_CREATED' | 'SCHEDULE_UPDATED' | 'SCHEDULE_CANCELLED' | 'POST_PUBLISHED' | 'POST_FAILED'
-  | 'PLAN_CHANGED' | 'PAYMENT_SUCCEEDED' | 'PAYMENT_FAILED'
+  | 'PLAN_CHANGED' | 'PAYMENT_SUCCEEDED' | 'PAYMENT_FAILED' | 'PAYMENT_WEBHOOK_REJECTED'
+  | 'PAYMENT_CANCELLED' | 'PAYMENT_MARKED_PAID' | 'SUBSCRIPTION_ADJUSTED'
   | 'USER_CREATED' | 'USER_UPDATED' | 'USER_STATUS_CHANGED' | 'USER_DELETED' | 'USER_PASSWORD_RESET'
   | 'PLAN_CONFIG_UPDATED' | 'AI_CONFIG_UPDATED' | 'API_VERSION_UPDATED'
   | 'TOKENS_GRANTED' | 'USAGE_RESET' | 'BILLING_RATE_CREATED'
@@ -585,7 +670,8 @@ export const ACTIONS_BY_GROUP: Record<ActivityActionGroup, ActivityAction[]> = {
     'SOCIAL_CONNECTED', 'SOCIAL_DISCONNECTED'],
   CONTENT: ['CONTENT_CREATED', 'CONTENT_UPDATED', 'CONTENT_DELETED', 'CONTENT_STATUS_CHANGED',
     'SCHEDULE_CREATED', 'SCHEDULE_UPDATED', 'SCHEDULE_CANCELLED', 'POST_PUBLISHED', 'POST_FAILED'],
-  BILLING: ['PLAN_CHANGED', 'PAYMENT_SUCCEEDED', 'PAYMENT_FAILED'],
+  BILLING: ['PLAN_CHANGED', 'PAYMENT_SUCCEEDED', 'PAYMENT_FAILED', 'PAYMENT_WEBHOOK_REJECTED',
+    'PAYMENT_CANCELLED', 'PAYMENT_MARKED_PAID', 'SUBSCRIPTION_ADJUSTED'],
   ADMIN: ['USER_CREATED', 'USER_UPDATED', 'USER_STATUS_CHANGED', 'USER_DELETED', 'USER_PASSWORD_RESET',
     'PLAN_CONFIG_UPDATED', 'AI_CONFIG_UPDATED', 'API_VERSION_UPDATED', 'TOKENS_GRANTED', 'USAGE_RESET',
     'BILLING_RATE_CREATED', 'ALERT_ACKED', 'ALERT_CONFIG_UPDATED', 'USAGE_META_VIEWED',

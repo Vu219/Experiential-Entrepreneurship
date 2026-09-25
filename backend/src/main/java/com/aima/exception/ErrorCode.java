@@ -304,6 +304,80 @@ public enum ErrorCode {
     FAILED_POST_RANGE_TOO_LARGE(2061, "Khoảng thời gian quá dài — tối đa 366 ngày", HttpStatus.BAD_REQUEST),
     FAILED_POST_EXPORT_TOO_LARGE(2062,
             "Kết quả vượt trần 50.000 dòng — thu hẹp bộ lọc rồi export lại", HttpStatus.BAD_REQUEST),
+
+    // Thanh toán gói dịch vụ qua payOS — 2070+
+    PAYMENT_NOT_FOUND(2070, "Không tìm thấy đơn hàng", HttpStatus.NOT_FOUND),
+    PLAN_NOT_PURCHASABLE(2071, "Gói này hiện không bán — vui lòng chọn gói khác",
+            HttpStatus.BAD_REQUEST),
+    PLAN_DOWNGRADE_NOT_ALLOWED(2072,
+            "Bạn đang dùng gói cao hơn và còn hạn. Vui lòng chờ hết hạn gói hiện tại rồi mua gói này.",
+            HttpStatus.BAD_REQUEST),
+    PAYMENT_PENDING_EXISTS(2073,
+            "Bạn đang có một đơn chờ thanh toán. Hoàn tất hoặc huỷ đơn đó trước khi tạo đơn mới.",
+            HttpStatus.CONFLICT),
+    PAYMENT_NOT_CANCELLABLE(2074, "Chỉ huỷ được đơn đang chờ thanh toán", HttpStatus.BAD_REQUEST),
+    PAYMENT_ALREADY_PAID(2075, "Đơn hàng này đã được thanh toán", HttpStatus.CONFLICT),
+    PAYMENT_ACCESS_DENIED(2076, "Bạn không có quyền xem đơn hàng này", HttpStatus.FORBIDDEN),
+    PAYMENT_GATEWAY_ERROR(2077, "Không kết nối được cổng thanh toán — vui lòng thử lại sau",
+            HttpStatus.BAD_GATEWAY),
+    PAYMENT_GATEWAY_NOT_CONFIGURED(2078,
+            "Cổng thanh toán chưa được cấu hình — thiếu PAYOS_CLIENT_ID/PAYOS_API_KEY/PAYOS_CHECKSUM_KEY",
+            HttpStatus.SERVICE_UNAVAILABLE),
+    PAYMENT_SIGNATURE_INVALID(2079, "Chữ ký dữ liệu thanh toán không hợp lệ", HttpStatus.BAD_REQUEST),
+    PAYMENT_AMOUNT_MISMATCH(2080, "Số tiền không khớp với đơn hàng", HttpStatus.BAD_REQUEST),
+    PAYMENT_ORDER_CODE_UNAVAILABLE(2081,
+            "Không sinh được mã đơn hàng duy nhất — vui lòng thử lại", HttpStatus.INTERNAL_SERVER_ERROR),
+    PAYMENT_REASON_REQUIRED(2082, "Thiếu lý do cho thao tác này", HttpStatus.BAD_REQUEST),
+    PAYMENT_MOCK_DISABLED(2083,
+            "Cổng giả lập đang tắt — đặt PAYMENT_GATEWAY=mock (chỉ môi trường dev)",
+            HttpStatus.FORBIDDEN),
+    // Chữ ký lệch NHƯNG khớp với biến thể định dạng số còn lại (PayOSSignature.NumberStyle).
+    // Tách riêng khỏi PAYMENT_SIGNATURE_INVALID để luồng webhook bật reconcile_required và
+    // admin thấy ngay nguyên nhân, thay vì mò nửa ngày. Vẫn KHÔNG kích hoạt gói.
+    PAYMENT_SIGNATURE_NUMBER_STYLE_MISMATCH(2084,
+            "Chữ ký dữ liệu thanh toán không hợp lệ", HttpStatus.BAD_REQUEST),
+    // KHÔNG KẾT LUẬN ĐƯỢC (timeout/lỗi mạng) — khác hẳn PAYMENT_GATEWAY_ERROR (cổng đã từ
+    // chối). Link có thể ĐÃ được tạo bên payOS, nên đơn KHÔNG được set FAILED: giữ PENDING,
+    // bật reconcile_required và để job đối soát gọi getPaymentLink kết luận.
+    PAYMENT_GATEWAY_TIMEOUT(2085,
+            "Cổng thanh toán không phản hồi kịp — đơn đang được đối soát, vui lòng chờ",
+            HttpStatus.GATEWAY_TIMEOUT),
+    // Cổng khẳng định KHÔNG CÓ link này (HTTP 404). Khác hẳn PAYMENT_GATEWAY_ERROR: đây là
+    // bằng chứng link CHƯA TỪNG được tạo, nên đóng đơn treo là an toàn và bắt buộc — nếu
+    // không, đơn PENDING không có checkoutUrl sẽ khoá cứng user khỏi việc mua lại.
+    PAYMENT_GATEWAY_LINK_NOT_FOUND(2086,
+            "Cổng thanh toán không có đơn này", HttpStatus.NOT_FOUND),
+    // Đơn đã thu tiền hoặc đã hoàn tiền thì không còn gì để "đánh dấu đã trả" — chặn để admin
+    // không vô tình ghi đè sổ cái và cộng hạn gói lần hai.
+    PAYMENT_NOT_MARKABLE_PAID(2087,
+            "Đơn này đã thu tiền hoặc đã hoàn tiền — không đánh dấu lại được", HttpStatus.CONFLICT),
+    // Admin gia hạn/thu hồi gói: mốc hết hạn phải ở TƯƠNG LAI. Đặt mốc quá khứ nghĩa là hạ gói
+    // ngay lập tức, việc đó phải làm tường minh bằng cách chọn gói Free.
+    SUBSCRIPTION_EXPIRY_INVALID(2088,
+            "Ngày hết hạn phải ở tương lai — muốn hạ gói ngay thì chọn gói Free",
+            HttpStatus.BAD_REQUEST),
+    // Lưu đơn vi phạm một ràng buộc DB KHÁC ràng buộc một-đơn-PENDING (vd CHECK constraint của
+    // cột enum lệch với Java). Là lỗi hệ thống, không phải lỗi của user — không thử lại, tên
+    // constraint chỉ nằm trong log (không lộ schema DB ra client).
+    PAYMENT_ORDER_SAVE_FAILED(2089,
+            "Không tạo được đơn thanh toán do lỗi hệ thống — vui lòng thử lại sau hoặc liên hệ hỗ trợ",
+            HttpStatus.INTERNAL_SERVER_ERROR),
+    // Admin thao tác gói của MỘT user (tab "Gói dịch vụ" trong modal chi tiết người dùng).
+    SUBSCRIPTION_DURATION_INVALID(2090,
+            "Thời hạn không hợp lệ — cho phép 1–365 ngày, 1–52 tuần hoặc 1–24 tháng", HttpStatus.BAD_REQUEST),
+    SUBSCRIPTION_NOT_EXTENDABLE(2091,
+            "Gói hiện tại không có hạn dùng để gia hạn (Free hoặc không hết hạn) — hãy dùng Đổi gói",
+            HttpStatus.BAD_REQUEST),
+    SUBSCRIPTION_SAME_PLAN(2092,
+            "Người dùng đang ở gói này — muốn cộng thêm thời hạn thì dùng Gia hạn", HttpStatus.BAD_REQUEST),
+    SUBSCRIPTION_ALREADY_FREE(2093, "Người dùng đang ở gói Free — không có gì để thu hồi", HttpStatus.BAD_REQUEST),
+    SUBSCRIPTION_CHANGE_TO_FREE(2094, "Muốn hạ về gói Free thì dùng Thu hồi", HttpStatus.BAD_REQUEST),
+    SUBSCRIPTION_REASON_REQUIRED(2095, "Vui lòng nhập lý do (tối đa 500 ký tự)", HttpStatus.BAD_REQUEST),
+    SUBSCRIPTION_CATEGORY_REQUIRED(2096, "Vui lòng chọn phân loại thao tác", HttpStatus.BAD_REQUEST),
+    // PATCH /users/{id} không còn đổi được gói: nó chỉ ghi nhãn cache User.plan, không đụng tới
+    // subscriptions (nguồn sự thật) → nhãn và gói thật lệch nhau (bug 25/9).
+    USER_PLAN_UPDATE_NOT_ALLOWED(2097,
+            "Không đổi gói qua cập nhật tài khoản — dùng mục Gói dịch vụ", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

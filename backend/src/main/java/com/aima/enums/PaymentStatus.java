@@ -11,8 +11,13 @@ import java.util.List;
  * {@link #FAILED} kèm {@code failed_reason}.
  *
  * <p>Doanh thu CHỈ tính {@link #PAID}/{@link #REFUNDED}/{@link #PARTIALLY_REFUNDED} (những đơn
- * đã thực sự thu được tiền) — xem công thức ở {@code RevenueServiceImpl}. PENDING/FAILED vẫn
- * hiện trong bảng giao dịch để admin theo dõi sức khoẻ cổng thanh toán.
+ * đã thực sự thu được tiền) — xem công thức ở {@code RevenueServiceImpl}. Các trạng thái chưa
+ * thu được tiền vẫn hiện trong bảng giao dịch để admin theo dõi sức khoẻ cổng thanh toán.
+ *
+ * <p><b>Tỉ lệ giao dịch thất bại</b> = {@code FAILED / (đã thu tiền + FAILED)}. {@link #EXPIRED}
+ * và {@link #CANCELLED} KHÔNG nằm ở vế nào — khách bỏ giỏ hàng không phải cổng thanh toán hỏng.
+ * Điều này đạt được tự nhiên vì {@code PaymentRepository.aggregateTotals} đếm đúng literal
+ * {@code 'FAILED'}; đừng gộp ba trạng thái này lại.
  */
 public enum PaymentStatus {
 
@@ -22,8 +27,24 @@ public enum PaymentStatus {
     /** Đã thu tiền thành công ({@code paid_at} bắt buộc có giá trị). */
     PAID,
 
-    /** Thất bại/huỷ/hết hạn — lý do lưu ở {@code failed_reason}. */
+    /**
+     * Cổng thanh toán báo giao dịch HỎNG — lý do lưu ở {@code failed_reason}. CHỈ dùng cho
+     * lỗi thật sự của giao dịch, KHÔNG dùng cho đơn hết giờ hay đơn bị huỷ (xem
+     * {@link #EXPIRED} / {@link #CANCELLED}) — đây là vế duy nhất vào "tỉ lệ giao dịch
+     * thất bại", nhét nhầm vào sẽ thổi phồng chỉ số sức khoẻ cổng.
+     */
     FAILED,
+
+    /**
+     * Đơn quá hạn chờ thanh toán ({@code expires_at} đã qua mà khách không trả tiền).
+     *
+     * <p>Tách riêng khỏi {@link #FAILED} có chủ ý: khách không bấm trả tiền KHÔNG phải cổng
+     * thanh toán lỗi. Trạng thái này không vào doanh thu và cũng KHÔNG vào tỉ lệ thất bại.
+     */
+    EXPIRED,
+
+    /** Đơn bị huỷ chủ động — user tự huỷ, admin huỷ, hoặc bị thay bằng đơn mới. */
+    CANCELLED,
 
     /** Đã hoàn TOÀN BỘ ({@code refunded_amount} = {@code amount}). */
     REFUNDED,

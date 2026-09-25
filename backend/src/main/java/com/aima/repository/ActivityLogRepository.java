@@ -97,6 +97,21 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, UUID> 
                                  @Param("since") LocalDateTime since);
 
     /**
+     * Số dòng của MỘT action trong khoảng gần đây, không phân biệt IP/user.
+     *
+     * <p>Dùng làm bộ đếm cảnh báo vận hành: {@code PAYMENT_WEBHOOK_REJECTED} vượt ngưỡng trong
+     * cửa sổ ngắn nghĩa là webhook payOS đang bị từ chối hàng loạt (nhiều khả năng do
+     * {@code checksumKey} hoặc quy ước format số của TA sai, chứ không phải kẻ xấu). Trang admin
+     * đơn hàng đọc lại chính hàm này với {@code since = now - 24h} để hiện badge cảnh báo.</p>
+     */
+    @Query(value = """
+            select count(*) from activity_logs
+            where action = CAST(:action as varchar)
+              and created_at >= :since
+            """, nativeQuery = true)
+    long countByActionSince(@Param("action") String action, @Param("since") LocalDateTime since);
+
+    /**
      * Tổng quan quản trị (UI-10) — số user KHÁC NHAU có hoạt động mỗi ngày kể từ :from. Đây là
      * định nghĩa của thẻ "Hoạt động hôm nay": đếm NGƯỜI, không đếm số dòng log, nên một user
      * thao tác 50 lần vẫn chỉ tính một. Dòng có {@code user_id} null (job hệ thống) bị loại.

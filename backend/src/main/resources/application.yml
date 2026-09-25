@@ -155,6 +155,58 @@ ai-config:
     google-api-key: ${AI_SEED_GOOGLE_API_KEY:}
     google-model: ${AI_SEED_GOOGLE_MODEL:}
 
+# Thanh toán gói dịch vụ. Cổng chọn bằng payment.gateway — mock (dev, không cần credential)
+# hoặc payos (thật). Tầng adapter PaymentGatewayClient có một bean cho mỗi giá trị.
+payment:
+  gateway: ${PAYMENT_GATEWAY:mock}
+  # Hạn chờ thanh toán của một đơn PENDING. Dùng CHUNG cho đếm ngược phía user và expiredAt
+  # gửi payOS — một mốc duy nhất, tính lúc tạo đơn.
+  pending-ttl-minutes: ${PAYMENT_PENDING_TTL_MINUTES:15}
+  # Đơn cổng báo PROCESSING (tiền đang chuyển dở) KHÔNG được huỷ. Mỗi lần gặp thì gia hạn
+  # thêm bấy nhiêu phút và kiểm lại vòng sau.
+  grace-minutes: ${PAYMENT_GRACE_MINUTES:10}
+  # Số vòng ân hạn tối đa; vượt thì bật reconcile_required + báo admin, đơn vẫn giữ PENDING.
+  max-grace-rounds: ${PAYMENT_MAX_GRACE_ROUNDS:3}
+  # Trần kích thước body webhook (byte). Endpoint webhook là public, không JWT.
+  webhook-max-body-bytes: ${PAYMENT_WEBHOOK_MAX_BODY_BYTES:16384}
+  # Bao nhiêu webhook bị từ chối vì SAI CHỮ KÝ trong cửa sổ dưới thì báo admin. Chữ ký khớp
+  # biến thể format số còn lại thì báo NGAY từ lần đầu, không đợi ngưỡng — đó gần như chắc
+  # chắn là lỗi cấu hình của ta chứ không phải kẻ xấu.
+  webhook-alert-threshold: ${PAYMENT_WEBHOOK_ALERT_THRESHOLD:5}
+  webhook-alert-window-minutes: ${PAYMENT_WEBHOOK_ALERT_WINDOW_MINUTES:10}
+  # DEV-ONLY: kịch bản hỏng mà cổng giả lập mô phỏng (NORMAL | CREATE_TIMEOUT |
+  # CREATE_SERVER_ERROR | GET_LINK_NOT_FOUND | LINK_EXPIRED). Có mặt để logic đối soát được
+  # chạy thử TRƯỚC khi gặp sự cố thật. Luôn để NORMAL ngoài môi trường dev.
+  mock-scenario: ${PAYMENT_MOCK_SCENARIO:NORMAL}
+  # Chu kỳ quét đơn TREO (ms). Đơn PENDING không có checkout_url chiếm chỗ PENDING duy nhất
+  # của user mà lại không có link để trả tiền → phải giải phóng sớm, không đợi hết hạn 15 phút.
+  reconcile-interval-ms: ${PAYMENT_RECONCILE_INTERVAL_MS:60000}
+  # Chu kỳ quét đơn ĐÃ QUÁ HẠN (ms). Luôn hỏi cổng trước khi đóng — đó là chỗ cứu đơn đã trả
+  # tiền mà webhook không tới, và là chỗ đơn PROCESSING được gia hạn thay vì bị huỷ.
+  expiry-interval-ms: ${PAYMENT_EXPIRY_INTERVAL_MS:60000}
+  # Cron hạ gói hết hạn về Free. Đây là đường DỰ PHÒNG: việc hạ gói còn được kiểm lazy trong
+  # SubscriptionService.getOrCreate (mọi lần checkQuota) nên không phụ thuộc scheduler.
+  plan-expiry-cron: ${PAYMENT_PLAN_EXPIRY_CRON:0 5 0 * * *}
+
+# payOS — lấy ở my.payos.vn sau khi tạo kênh thanh toán. Để trống khi payment.gateway=mock.
+payos:
+  base-url: ${PAYOS_BASE_URL:https://api-merchant.payos.vn}
+  client-id: ${PAYOS_CLIENT_ID:}
+  api-key: ${PAYOS_API_KEY:}
+  checksum-key: ${PAYOS_CHECKSUM_KEY:}
+  # Nơi payOS đưa TRÌNH DUYỆT về sau khi trả tiền / bấm huỷ. Chỉ để HIỂN THỊ — query string
+  # payOS gắn vào đây KHÔNG có chữ ký, tuyệt đối không dùng để kích hoạt gói.
+  return-url: ${PAYOS_RETURN_URL:http://localhost:3000/billing/return}
+  cancel-url: ${PAYOS_CANCEL_URL:http://localhost:3000/billing/return?cancel=1}
+  # Trần độ dài description. Tài liệu payOS ghi tối đa 9 ký tự với tài khoản ngân hàng CHƯA
+  # liên kết payOS; 9 luôn hợp lệ nên đó là mặc định an toàn. Nới lên khi đã liên kết.
+  description-max-length: ${PAYOS_DESCRIPTION_MAX_LENGTH:9}
+  # Timeout TƯỜNG MINH cho mọi lời gọi payOS — thiếu nó thì một lần cổng treo sẽ giữ thread
+  # MVC vô hạn. Hết timeout = KHÔNG kết luận được (link có thể đã tạo bên cổng) → đơn giữ
+  # PENDING + reconcile_required, tuyệt đối không set FAILED.
+  connect-timeout-seconds: ${PAYOS_CONNECT_TIMEOUT_SECONDS:5}
+  read-timeout-seconds: ${PAYOS_READ_TIMEOUT_SECONDS:15}
+
 aima:
   # true trên môi trường THẬT (Render): chặn cứng mọi dev-tool (dev-seed credit…) bất kể cờ
   # dev — biến độc lập, không kéo side effect của Spring profile. Dev để mặc định false.

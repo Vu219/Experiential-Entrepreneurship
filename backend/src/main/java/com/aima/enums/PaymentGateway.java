@@ -15,6 +15,13 @@ public enum PaymentGateway {
     /** Ghi nhận thủ công bởi admin, hoặc dữ liệu do dev seeder sinh ra. */
     MANUAL,
 
-    /** payOS — chưa tích hợp, giá trị dự phòng cho luồng thanh toán thật. */
-    PAYOS
+    /** payOS — cổng thật của luồng thanh toán (PAYMENT_GATEWAY=payos). */
+    PAYOS,
+
+    /**
+     * Cổng GIẢ LẬP cho môi trường dev (PAYMENT_GATEWAY=mock) — cho phép chạy trọn luồng
+     * mua gói khi chưa có credential payOS. Bản ghi mang gateway này KHÔNG phải doanh thu
+     * thật; chỉ tồn tại trên máy dev (endpoint giả lập bị chặn khi AIMA_PRODUCTION_MODE=true).
+     */
+    MOCK
 }

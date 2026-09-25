@@ -37,6 +37,18 @@ src/
 │   │                       updateProfile nhận thêm avatarUrl (tuỳ chọn); uploadAvatar(file) → POST /files/avatar trả URL công khai.
 │   │                       User có thêm status + deletionDate (banner chờ xóa) + avatarUrl. Nút Đăng xuất trong Hồ sơ chỉ hiện ở mobile/tablet.
 │   ├── brandProfile.ts   — list/create/update/delete brand profile
+│   ├── payments.ts       — mua gói & lịch sử thanh toán của user (payOS): getBilling/list/get/
+│   │                       checkout/cancel/verify + applyMockOutcome (DEV-ONLY) + 3 helper nhớ
+│   │                       paymentId ở sessionStorage cho trang /billing/return. PaymentStatus/
+│   │                       PaymentGateway RE-EXPORT từ revenue.ts (một nguồn cho cùng enum BE).
+│   │                       Trang: pages/app/{Billing,BillingReturn,BillingMock}.tsx +
+│   │                       components/billing/*. Đếm ngược hạn thanh toán tính theo `serverTime`
+│   │                       trong response (KHÔNG theo đồng hồ máy) — xem useServerCountdown.ts;
+│   │                       về 0 thì GỌI LẠI API lấy trạng thái thật, không tự coi là đã huỷ.
+│   ├── adminPayments.ts  — quản trị ĐƠN HÀNG (/admin/payments): summary 3 badge hàng đợi +
+│   │                       list/detail/cancel/mark-paid (gói của MỘT user: api/admin.ts). Mọi hàm GHI bắt
+│   │                       buộc `reason`. rawPayload CHỈ có ở endpoint chi tiết.
+│   │                       Trang: pages/admin/Payments.tsx + components/admin/PaymentDetailModal.
 │   ├── plans.ts          — gói dịch vụ từ DB: GET /plans/public (landing/pricing) + CRUD /admin/plans;
 │   │                       map payload BE → shape UI (PricingPlan/ComparisonGroup). hooks/usePublicPlans
 │   │                       cache 1 lần gọi/phiên, fallback config/plans.ts (hardcode cũ) khi API lỗi.

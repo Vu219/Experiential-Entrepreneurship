@@ -54,6 +54,10 @@ public class SecurityConfig {
             // + chữ ký X-Hub-Signature-256 (POST), không có cookie auth.
             "/webhooks/meta",
 
+            // Webhook payOS: payOS gọi từ server của họ nên không có cookie/JWT. Xác thực bằng
+            // HMAC-SHA256 trên object `data`; endpoint luôn trả 200 để payOS không retry.
+            "/webhooks/payos",
+
             "/oauth2/**",
             "/login/oauth2/**",
 
