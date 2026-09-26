@@ -884,6 +884,7 @@ export const STRINGS = {
     revRefundedInPeriod: 'Hoàn tiền trong kỳ', revFailureRate: 'Tỉ lệ giao dịch thất bại',
     revTotalCount: 'Tổng {n} giao dịch khớp bộ lọc',
     // trạng thái (khớp enum PaymentStatus của backend)
+    revStatusFilter: 'Trạng thái', revStatusClear: 'Bỏ lọc trạng thái',
     revStatusAll: 'Mọi trạng thái', revStatusPaid: 'Đã thanh toán', revStatusPending: 'Chờ thanh toán',
     revStatusFailed: 'Thất bại', revStatusRefunded: 'Đã hoàn tiền', revStatusPartial: 'Hoàn một phần',
     revStatusExpired: 'Hết hạn', revStatusCancelled: 'Đã huỷ',
@@ -1900,6 +1901,7 @@ export const STRINGS = {
     revTxnUnit: 'transactions', revRefundedShort: 'refunded',
     revRefundedInPeriod: 'Refunds this period', revFailureRate: 'Failed transaction rate',
     revTotalCount: '{n} transactions match the filter',
+    revStatusFilter: 'Status', revStatusClear: 'Clear status filter',
     revStatusAll: 'All statuses', revStatusPaid: 'Paid', revStatusPending: 'Pending',
     revStatusFailed: 'Failed', revStatusRefunded: 'Refunded', revStatusPartial: 'Partially refunded',
     revStatusExpired: 'Expired', revStatusCancelled: 'Cancelled',

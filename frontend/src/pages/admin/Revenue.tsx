@@ -8,6 +8,7 @@ import { useToast } from '../../components/toast/ToastProvider';
 import SectionCard from '../../components/admin/SectionCard';
 import Pagination from '../../components/admin/Pagination';
 import { FilterSelect } from '../../components/admin/AdminListPage';
+import FilterMenu from '../../components/admin/FilterMenu';
 import PageContainer from '../../components/PageContainer';
 import RevenueFilterBar from '../../components/admin/revenue/RevenueFilterBar';
 import SparklineCard from '../../components/admin/revenue/SparklineCard';
@@ -205,7 +206,6 @@ export default function Revenue() {
   };
 
   const statusOptions: [string, string][] = [
-    ['', t.revStatusAll],
     ['PAID', t.revStatusPaid],
     ['PENDING', t.revStatusPending],
     ['FAILED', t.revStatusFailed],
@@ -371,7 +371,8 @@ export default function Revenue() {
                   title={t.revTransactions}
                   action={
                     <div className="no-print" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <FilterSelect value={status ?? ''} options={statusOptions}
+                      <FilterMenu label={t.revStatusFilter} allLabel={t.revStatusAll} clearLabel={t.revStatusClear}
+                        value={status ?? ''} options={statusOptions}
                         onChange={(v) => patchParams({ status: v || undefined }, true)} />
                       <FilterSelect value={String(size)} options={PAGE_SIZES}
                         onChange={(v) => patchParams({ size: v }, true)} />
