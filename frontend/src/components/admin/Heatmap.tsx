@@ -10,6 +10,10 @@ import { useApp } from '../../context/AppContext';
  * card (ô chữ nhật, không cố định px); mép phải có TỔNG THEO NGÀY (mini bar ngang),
  * dưới lưới có TỔNG THEO GIỜ (mini bar dọc) + dải chỉ số tóm tắt (giờ cao/thấp điểm,
  * tổng kỳ, TB/giờ, cảnh báo hoạt động 0h–5h). Legend 5 bậc căn phải trên lưới.
+ *
+ * Hàng = từng ngày: `days` ngày gần nhất, hoặc đúng khoảng `from`–`to` nếu truyền. Khoảng dài
+ * (`byWeekday`) gộp về 7 hàng THỨ × 24 giờ — mỗi ô cộng dồn mọi ngày cùng thứ (hoặc lấy trung bình
+ * khi `avg`, dành cho metric không cộng được như latency).
  */
 export interface HeatCell {
   /** ISO datetime của bucket giờ (giờ VN), vd "2026-07-18T03:00:00". */
@@ -24,12 +28,23 @@ const NIGHT_WARN_PCT = 20;
 export default function Heatmap({
   cells,
   days = 7,
+  from,
+  to,
+  byWeekday = false,
+  avg = false,
   color = '139, 92, 246', // rgb của tím brand (#8b5cf6)
   fmt = (v: number) => v.toLocaleString('vi-VN'),
   legend,
 }: {
   cells: HeatCell[];
   days?: number;
+  /** Khoảng ngày YYYY-MM-DD (bao gồm hai đầu) — thay cho `days` khi truyền. */
+  from?: string;
+  to?: string;
+  /** Gộp các ngày cùng thứ trong tuần thành 7 hàng (dùng cho khoảng dài). */
+  byWeekday?: boolean;
+  /** Ô gộp lấy trung bình thay vì cộng dồn (metric latency). */
+  avg?: boolean;
   /** "r, g, b" — alpha nội suy theo giá trị. */
   color?: string;
   fmt?: (v: number) => string;
@@ -44,14 +59,20 @@ export default function Heatmap({
   for (const c of cells) {
     if (c.value !== null) byHour.set(c.bucket.slice(0, 13), c.value);
   }
-  const max = Math.max(...byHour.values(), 1);
 
-  // N ngày gần nhất, cũ nhất trên cùng.
+  // Các ngày của kỳ, cũ nhất trên cùng: đúng khoảng from–to, hoặc N ngày gần nhất.
   const dates: Date[] = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    dates.push(d);
+  if (from && to) {
+    const [fy, fm, fd] = from.split('-').map(Number);
+    const [ty, tm, td] = to.split('-').map(Number);
+    const end = new Date(ty, tm - 1, td);
+    for (let d = new Date(fy, fm - 1, fd); d <= end; d.setDate(d.getDate() + 1)) dates.push(new Date(d));
+  } else {
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      dates.push(d);
+    }
   }
   const dayKey = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -60,16 +81,30 @@ export default function Heatmap({
     : ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
   const dayLabel = (d: Date) =>
     `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} ${WEEKDAYS[d.getDay()]}`;
-  const cellValue = (d: Date, h: number) => byHour.get(`${dayKey(d)}T${String(h).padStart(2, '0')}`);
+  const hourValue = (d: Date, h: number) => byHour.get(`${dayKey(d)}T${String(h).padStart(2, '0')}`);
 
-  // ===== Tổng theo ngày / theo giờ + chỉ số tóm tắt =====
-  const dayTotals = dates.map((d) => {
-    let s = 0;
-    for (let h = 0; h < 24; h++) s += cellValue(d, h) ?? 0;
-    return s;
-  });
+  // Hàng của lưới: mỗi ngày một hàng, hoặc 7 hàng thứ (T2 → CN) khi gộp.
+  const rows: { key: string; label: string; values: (number | undefined)[] }[] = byWeekday
+    ? [1, 2, 3, 4, 5, 6, 0].map((wd) => {
+        const values = Array.from({ length: 24 }, (_, h) => {
+          let sum = 0, n = 0;
+          for (const d of dates) {
+            const v = d.getDay() === wd ? hourValue(d, h) : undefined;
+            if (v !== undefined) { sum += v; n++; }
+          }
+          return n === 0 ? undefined : avg ? sum / n : sum;
+        });
+        return { key: `wd-${wd}`, label: WEEKDAYS[wd], values };
+      })
+    : dates.map((d) => ({
+        key: dayKey(d), label: dayLabel(d), values: Array.from({ length: 24 }, (_, h) => hourValue(d, h)),
+      }));
+  const max = Math.max(...rows.flatMap((r) => r.values.filter((v): v is number => v !== undefined)), 1);
+
+  // ===== Tổng theo hàng / theo giờ + chỉ số tóm tắt =====
+  const dayTotals = rows.map((r) => r.values.reduce<number>((s, v) => s + (v ?? 0), 0));
   const hourTotals = Array.from({ length: 24 }, (_, h) =>
-    dates.reduce((s, d) => s + (cellValue(d, h) ?? 0), 0));
+    rows.reduce((s, r) => s + (r.values[h] ?? 0), 0));
   const grand = dayTotals.reduce((a, b) => a + b, 0);
   const maxDayTotal = Math.max(...dayTotals, 1);
   const maxHourTotal = Math.max(...hourTotals, 1);
@@ -85,7 +120,7 @@ export default function Heatmap({
   // TB/giờ = Tổng kỳ ÷ (days × 24). Làm tròn khi ≥10 để fmt không hiển thị phần thập
   // phân kiểu vi-VN ("346,429" bị đọc nhầm thành 346 nghìn); giá trị nhỏ (vd chi phí
   // USD) giữ nguyên cho fmt của metric tự định dạng.
-  const avgPerHour = grand / (days * 24);
+  const avgPerHour = grand / (dates.length * 24);
   const avgDisplay = fmt(avgPerHour >= 10 ? Math.round(avgPerHour) : avgPerHour);
   const summaryItem = (label: string, value: string) => (
     <span key={label} style={{ fontSize: 12, color: '#8a85a0' }}>
@@ -113,16 +148,15 @@ export default function Heatmap({
             giờ) — nhãn mốc 0/3/6… nằm CHÍNH XÁC dưới cột của nó, không định vị tay.
             width fit-content + margin auto: căn giữa toàn khối trong card. */}
         <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 3, alignItems: 'center', width: 'fit-content', maxWidth: '100%', margin: '0 auto' }}>
-          {dates.map((d, di) => (
-            <Fragment key={dayKey(d)}>
-              <span style={{ fontSize: 11, color: '#8a85a0', fontWeight: 600, whiteSpace: 'nowrap' }}>{dayLabel(d)}</span>
-              {Array.from({ length: 24 }, (_, h) => {
-                const v = cellValue(d, h);
+          {rows.map((row, di) => (
+            <Fragment key={row.key}>
+              <span style={{ fontSize: 11, color: '#8a85a0', fontWeight: 600, whiteSpace: 'nowrap' }}>{row.label}</span>
+              {row.values.map((v, h) => {
                 const alpha = v === undefined ? 0 : 0.12 + 0.88 * (v / max);
                 return (
                   <div
                     key={h}
-                    title={`${dayLabel(d)} · ${String(h).padStart(2, '0')}:00–${String(h).padStart(2, '0')}:59 — ${v === undefined ? '—' : fmt(v)}`}
+                    title={`${row.label} · ${String(h).padStart(2, '0')}:00–${String(h).padStart(2, '0')}:59 — ${v === undefined ? '—' : fmt(v)}`}
                     style={{
                       height: 22, borderRadius: 4, minWidth: 0,
                       background: v === undefined ? '#f4f1fa' : `rgba(${color}, ${alpha})`,
@@ -131,7 +165,7 @@ export default function Heatmap({
                 );
               })}
               {/* Tổng theo ngày — mini bar ngang ở mép phải lưới */}
-              <div title={`${dayLabel(d)} — ${fmt(dayTotals[di])}`} style={{ height: 8, borderRadius: 999, background: '#f4f1fa', overflow: 'hidden' }}>
+              <div title={`${row.label} — ${fmt(dayTotals[di])}`} style={{ height: 8, borderRadius: 999, background: '#f4f1fa', overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${(dayTotals[di] / maxDayTotal) * 100}%`, borderRadius: 999, background: `rgba(${color}, .75)` }} />
               </div>
             </Fragment>

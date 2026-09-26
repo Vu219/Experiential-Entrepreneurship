@@ -56,6 +56,21 @@ public interface UsageHourlyRepository extends JpaRepository<UsageHourly, UUID> 
             """)
     List<UserAgg> topUsers(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to, Pageable pageable);
 
+    /**
+     * Mức dùng quy đổi hạn mức (billable − credit, cùng công thức enforcement) + chi phí theo user trong
+     * khoảng — cho tab Theo gói/Theo người dùng khi xem LỊCH SỬ (event thô có thể đã bị retention xoá,
+     * rollup thì còn).
+     */
+    @Query("""
+            select h.userId as userId,
+                   sum(coalesce(h.billableUnits, 0) - coalesce(h.creditUnits, 0)) as billableUnits,
+                   sum(h.costUsd) as costUsd
+            from UsageHourly h
+            where h.userId is not null and h.hourBucket >= :from and h.hourBucket < :to and h.deletedAt is null
+            group by h.userId
+            """)
+    List<UserBillableAgg> billableByUser(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
     /** Điểm heatmap toàn hệ thống — FE tự chọn metric (token/request/cost/latency) phía client. */
     @Query("""
             select h.hourBucket as hourBucket, sum(h.totalTokens) as totalTokens, sum(h.requests) as requests,
@@ -113,6 +128,14 @@ public interface UsageHourlyRepository extends JpaRepository<UsageHourly, UUID> 
         String getModelCode();
 
         Long getTotalTokens();
+
+        BigDecimal getCostUsd();
+    }
+
+    interface UserBillableAgg {
+        UUID getUserId();
+
+        Long getBillableUnits();
 
         BigDecimal getCostUsd();
     }

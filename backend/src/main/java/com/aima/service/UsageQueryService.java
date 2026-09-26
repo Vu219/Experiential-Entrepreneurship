@@ -17,6 +17,7 @@ import com.aima.enums.AiTaskCode;
 import com.aima.enums.AiUsageStatus;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -30,16 +31,23 @@ public interface UsageQueryService {
     /** GET /users/me/usage — tổng kỳ + biểu đồ ngày + breakdown theo nghiệp vụ + gói hiện tại. */
     ApiResponse<UserUsageResponse> getMyUsage(String email);
 
-    /** GET /admin/usage/by-plan — mỗi gói: số user + tổng token/chi phí kỳ này so hạn mức. */
-    ApiResponse<List<PlanUsageResponse>> byPlan();
+    /**
+     * GET /admin/usage/by-plan — mỗi gói: số user + tổng token/chi phí so hạn mức. {@code from}/{@code to}
+     * null = kỳ này (tính như enforcement: event − grant, tôn trọng reset); có khoảng = xem LỊCH SỬ từ
+     * rollup usage_hourly (không trừ grant/reset — đó là điều chỉnh hạn mức, không phải tiêu thụ), gom
+     * theo gói HIỆN TẠI của user (chưa join subscription_history).
+     */
+    ApiResponse<List<PlanUsageResponse>> byPlan(LocalDate from, LocalDate to);
 
     /**
      * GET /admin/usage/by-user — usage kỳ này theo user; {@code filter}: "warning" (≥80%
      * chưa vượt) / "exceeded" (≥100%) / rỗng = tất cả; {@code q} tìm tên/email. Lọc theo
      * ngưỡng cần mức dùng TÍNH TOÁN nên gộp toàn bộ rồi phân trang tại chỗ (quy mô user
-     * hiện nhỏ; chuyển materialized khi lớn).
+     * hiện nhỏ; chuyển materialized khi lớn). Có {@code from}/{@code to} = xem lịch sử như
+     * {@link #byPlan}; khi đó {@code filter} bị bỏ qua (ngưỡng % hạn mức chỉ có nghĩa với kỳ đang chạy).
      */
-    ApiResponse<PageResponse<UserUsageRowResponse>> byUser(String filter, String q, int page, int size);
+    ApiResponse<PageResponse<UserUsageRowResponse>> byUser(String filter, String q, int page, int size,
+                                                           LocalDate from, LocalDate to);
 
     /** GET /admin/usage/users/{id} — chi tiết usage một user + lịch sử điều chỉnh kỳ này. */
     ApiResponse<UserUsageDetailResponse> getUserDetail(UUID userId);
@@ -53,14 +61,17 @@ public interface UsageQueryService {
     /**
      * GET /admin/usage/overview — tab Tổng quan: tổng kỳ này so kỳ trước + top tính năng/
      * model/user + tỉ lệ lỗi. Toàn bộ đọc từ ROLLUP usage_hourly (không query thẳng event).
+     * {@code from}/{@code to} null = tháng hiện tại so tháng trước; có khoảng (to bao gồm, ≤ 366
+     * ngày) = khoảng đó so với khoảng liền trước cùng độ dài.
      */
-    ApiResponse<UsageOverviewResponse> overview();
+    ApiResponse<UsageOverviewResponse> overview(LocalDate from, LocalDate to);
 
     /**
      * GET /admin/usage/heatmap — bucket giờ (GIỜ VN) của {@code days} ngày gần nhất;
-     * {@code userId} null = toàn hệ thống. FE tự chọn metric phía client.
+     * {@code userId} null = toàn hệ thống. FE tự chọn metric phía client. Có {@code from}/{@code to}
+     * thì dùng khoảng đó (≤ 366 ngày) thay cho {@code days}.
      */
-    ApiResponse<List<HeatmapPointResponse>> heatmap(int days, UUID userId);
+    ApiResponse<List<HeatmapPointResponse>> heatmap(int days, UUID userId, LocalDate from, LocalDate to);
 
     /**
      * GET /admin/usage/events — tab Nhật ký sử dụng: phân trang OFFSET (mới nhất trước), đúng

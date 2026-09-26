@@ -53,7 +53,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -76,6 +78,8 @@ public class UsageQueryServiceImpl implements UsageQueryService {
     static final int TOP_MODELS = 5;
     static final int TOP_USERS = 10;
     static final int MAX_HEATMAP_DAYS = 31;
+    /** Trần khoảng thời gian tuỳ chọn của các tab Tổng quan / Theo gói / Theo người dùng. */
+    static final int MAX_RANGE_DAYS = 366;
 
     /** Trần tab Nhật ký: page size, số dòng export (chặn kèm số thực tế), chunk đọc khi export. */
     static final int MAX_EVENT_PAGE = 100;
@@ -108,16 +112,28 @@ public class UsageQueryServiceImpl implements UsageQueryService {
 
     @Override
     @Transactional(readOnly = true)
-    public ApiResponse<List<PlanUsageResponse>> byPlan() {
-        YearMonth month = YearMonth.now();
-        LocalDateTime start = month.atDay(1).atStartOfDay();
-        LocalDateTime end = month.plusMonths(1).atDay(1).atStartOfDay();
-
-        Map<UUID, Long> usedByUser = effectiveUsedByUser(start, end);
+    public ApiResponse<List<PlanUsageResponse>> byPlan(LocalDate from, LocalDate to) {
+        Range range = historyRange(from, to);
+        Map<UUID, Long> usedByUser;
         Map<UUID, BigDecimal> costByUser = new HashMap<>();
-        for (AiUsageRepository.UserUsageAgg agg : aiUsageRepository.aggregateByUser(start, end)) {
-            if (agg.getEstimatedCost() != null) {
-                costByUser.put(agg.getUserId(), agg.getEstimatedCost());
+        if (range == null) {
+            YearMonth month = YearMonth.now();
+            LocalDateTime start = month.atDay(1).atStartOfDay();
+            LocalDateTime end = month.plusMonths(1).atDay(1).atStartOfDay();
+            usedByUser = effectiveUsedByUser(start, end);
+            for (AiUsageRepository.UserUsageAgg agg : aiUsageRepository.aggregateByUser(start, end)) {
+                if (agg.getEstimatedCost() != null) {
+                    costByUser.put(agg.getUserId(), agg.getEstimatedCost());
+                }
+            }
+        } else {
+            List<UsageHourlyRepository.UserBillableAgg> aggs =
+                    usageHourlyRepository.billableByUser(range.start(), range.end());
+            usedByUser = historicalUsed(aggs);
+            for (UsageHourlyRepository.UserBillableAgg agg : aggs) {
+                if (agg.getCostUsd() != null) {
+                    costByUser.put(agg.getUserId(), agg.getCostUsd());
+                }
             }
         }
 
@@ -154,12 +170,16 @@ public class UsageQueryServiceImpl implements UsageQueryService {
 
     @Override
     @Transactional(readOnly = true)
-    public ApiResponse<PageResponse<UserUsageRowResponse>> byUser(String filter, String q, int page, int size) {
-        YearMonth month = YearMonth.now();
-        LocalDateTime start = month.atDay(1).atStartOfDay();
-        LocalDateTime end = month.plusMonths(1).atDay(1).atStartOfDay();
-
-        Map<UUID, Long> usedByUser = effectiveUsedByUser(start, end);
+    public ApiResponse<PageResponse<UserUsageRowResponse>> byUser(String filter, String q, int page, int size,
+                                                                  LocalDate from, LocalDate to) {
+        Range range = historyRange(from, to);
+        Map<UUID, Long> usedByUser;
+        if (range == null) {
+            YearMonth month = YearMonth.now();
+            usedByUser = effectiveUsedByUser(month.atDay(1).atStartOfDay(), month.plusMonths(1).atDay(1).atStartOfDay());
+        } else {
+            usedByUser = historicalUsed(usageHourlyRepository.billableByUser(range.start(), range.end()));
+        }
         String needle = q == null ? "" : q.trim().toLowerCase();
 
         List<UserUsageRowResponse> rows = subscriptionRepository.findAllWithPlanAndUser().stream()
@@ -167,7 +187,8 @@ public class UsageQueryServiceImpl implements UsageQueryService {
                 .filter(row -> needle.isEmpty()
                         || (row.getEmail() != null && row.getEmail().toLowerCase().contains(needle))
                         || (row.getFullName() != null && row.getFullName().toLowerCase().contains(needle)))
-                .filter(row -> matchesThreshold(row, filter))
+                // Ngưỡng % hạn mức chỉ có nghĩa với kỳ đang chạy — xem lịch sử thì bỏ qua filter.
+                .filter(row -> range != null || matchesThreshold(row, filter))
                 .sorted((a, b) -> Long.compare(b.getUsed(), a.getUsed()))
                 .toList();
 
@@ -236,11 +257,22 @@ public class UsageQueryServiceImpl implements UsageQueryService {
 
     @Override
     @Transactional(readOnly = true)
-    public ApiResponse<UsageOverviewResponse> overview() {
-        YearMonth month = YearMonth.now();
-        LocalDateTime start = month.atDay(1).atStartOfDay();
-        LocalDateTime end = month.plusMonths(1).atDay(1).atStartOfDay();
-        LocalDateTime prevStart = month.minusMonths(1).atDay(1).atStartOfDay();
+    public ApiResponse<UsageOverviewResponse> overview(LocalDate from, LocalDate to) {
+        Range range = historyRange(from, to);
+        LocalDateTime start;
+        LocalDateTime end;
+        LocalDateTime prevStart;
+        if (range == null) {
+            YearMonth month = YearMonth.now();
+            start = month.atDay(1).atStartOfDay();
+            end = month.plusMonths(1).atDay(1).atStartOfDay();
+            prevStart = month.minusMonths(1).atDay(1).atStartOfDay();
+        } else {
+            // So với khoảng liền trước CÙNG độ dài (vd 7 ngày qua ↔ 7 ngày trước đó).
+            start = range.start();
+            end = range.end();
+            prevStart = start.minus(Duration.between(start, end));
+        }
 
         UsageHourlyRepository.TotalsAgg totals = usageHourlyRepository.totals(start, end);
         UsageHourlyRepository.TotalsAgg prev = usageHourlyRepository.totals(prevStart, start);
@@ -272,10 +304,18 @@ public class UsageQueryServiceImpl implements UsageQueryService {
 
     @Override
     @Transactional(readOnly = true)
-    public ApiResponse<List<HeatmapPointResponse>> heatmap(int days, UUID userId) {
-        int safeDays = Math.min(Math.max(days, 1), MAX_HEATMAP_DAYS);
-        LocalDateTime to = LocalDateTime.now().plusHours(1).truncatedTo(java.time.temporal.ChronoUnit.HOURS);
-        LocalDateTime from = to.minusDays(safeDays);
+    public ApiResponse<List<HeatmapPointResponse>> heatmap(int days, UUID userId, LocalDate fromDate, LocalDate toDate) {
+        Range range = historyRange(fromDate, toDate);
+        LocalDateTime from;
+        LocalDateTime to;
+        if (range == null) {
+            int safeDays = Math.min(Math.max(days, 1), MAX_HEATMAP_DAYS);
+            to = LocalDateTime.now().plusHours(1).truncatedTo(java.time.temporal.ChronoUnit.HOURS);
+            from = to.minusDays(safeDays);
+        } else {
+            from = range.start();
+            to = range.end();
+        }
         List<UsageHourlyRepository.HeatPoint> points = userId == null
                 ? usageHourlyRepository.heatmap(from, to)
                 : usageHourlyRepository.heatmapForUser(userId, from, to);
@@ -506,6 +546,39 @@ public class UsageQueryServiceImpl implements UsageQueryService {
      * Mức dùng hiệu lực theo TỪNG user trong cửa sổ (cùng công thức TokenUsageService.state):
      * 3 query gộp cho số đông; user có mốc RESET (số ít) tính lại riêng từ mốc đó.
      */
+    /** Khoảng [start, end) của bộ lọc thời gian admin; start/end theo giờ VN như rollup. */
+    private record Range(LocalDateTime start, LocalDateTime end) {
+    }
+
+    /**
+     * {@code from}/{@code to} (to BAO GỒM) → khoảng xem lịch sử; cả hai null = null (kỳ hiện tại,
+     * giữ nguyên cách tính cũ). Thiếu một đầu / đảo ngược / quá {@link #MAX_RANGE_DAYS} ngày → lỗi 400.
+     */
+    static Range historyRange(LocalDate from, LocalDate to) {
+        if (from == null && to == null) {
+            return null;
+        }
+        if (from == null || to == null || to.isBefore(from)) {
+            throw new AppException(ErrorCode.USAGE_RANGE_INVALID);
+        }
+        if (java.time.temporal.ChronoUnit.DAYS.between(from, to) + 1 > MAX_RANGE_DAYS) {
+            throw new AppException(ErrorCode.USAGE_RANGE_TOO_LARGE);
+        }
+        return new Range(from.atStartOfDay(), to.plusDays(1).atStartOfDay());
+    }
+
+    /**
+     * Mức dùng LỊCH SỬ theo user từ rollup: billable − credit, KHÔNG trừ grant/reset (đó là điều
+     * chỉnh hạn mức của một kỳ, không phải lượng tiêu thụ thật).
+     */
+    private static Map<UUID, Long> historicalUsed(List<UsageHourlyRepository.UserBillableAgg> aggs) {
+        Map<UUID, Long> used = new HashMap<>();
+        for (UsageHourlyRepository.UserBillableAgg agg : aggs) {
+            used.put(agg.getUserId(), Math.max(0L, agg.getBillableUnits() == null ? 0L : agg.getBillableUnits()));
+        }
+        return used;
+    }
+
     private Map<UUID, Long> effectiveUsedByUser(LocalDateTime start, LocalDateTime end) {
         Map<UUID, Long> used = new HashMap<>();
         for (AiUsageRepository.UserUsageAgg agg : aiUsageRepository.aggregateByUser(start, end)) {

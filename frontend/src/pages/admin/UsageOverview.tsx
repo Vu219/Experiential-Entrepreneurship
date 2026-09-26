@@ -1,6 +1,6 @@
-import { Fragment, useEffect, useState, type CSSProperties } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Activity, AlertTriangle, Coins, DollarSign, RefreshCw } from 'lucide-react';
+import { Fragment, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Activity, AlertTriangle, Coins, DollarSign, History, RefreshCw } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Card, Loader } from '../../components/ui';
 import StatusBadge from '../../components/admin/StatusBadge';
@@ -11,6 +11,9 @@ import Pagination from '../../components/admin/Pagination';
 import Heatmap from '../../components/admin/Heatmap';
 import UsageEventsTable from '../../components/admin/usage/UsageEventsTable';
 import AlertsPanel from '../../components/admin/usage/AlertsPanel';
+import UsageRangeBar, {
+  rangeDays, resolveUsageRange, usageRangeFromParams, type UsageRange,
+} from '../../components/admin/usage/UsageRangeBar';
 import { DataTable } from '../../components/admin/AdminListPage';
 import { useToast } from '../../components/toast/ToastProvider';
 import { userPlanMeta, type UserPlan } from '../../api/admin';
@@ -35,6 +38,8 @@ import PageContainer from '../../components/PageContainer';
 // Trang admin "Token & hạn mức" (nhóm Kinh doanh): tab Theo gói (chỉ đọc/gộp — hạn mức
 // sửa ở Quản lý gói) + tab Theo người dùng (lọc sắp chạm/đã vượt, chi tiết, cấp thêm/reset
 // có audit qua usage_adjustments). Nguồn số liệu: event log ai_usage.
+// Thanh lọc thời gian DÙNG CHUNG (URL `range`/`from`/`to`) áp cho mọi tab dữ liệu; "Tháng này" = kỳ
+// hạn mức đang chạy (có %), khoảng khác = xem lịch sử từ rollup — ẩn % hạn mức + banner nhắc.
 
 const tdStyle: CSSProperties = { padding: '12px 16px', fontSize: 13.5, color: '#2b2543' };
 const tdMuted: CSSProperties = { ...tdStyle, color: '#8a85a0', fontSize: 13 };
@@ -53,6 +58,11 @@ const RATE_TASKS: AiTaskCode[] = [
   'GOLDEN_HOURS', 'STRATEGY_OPTIMIZATION', 'CONTENT_REGENERATION',
 ];
 const initialsOf = (name: string) => name.trim().split(/\s+/).map((w) => w[0]).slice(-2).join('').toUpperCase();
+
+/** Heatmap quá số ngày này thì gộp về 7 hàng thứ × 24 giờ (lưới theo ngày dài quá không đọc nổi). */
+const HEATMAP_MAX_DAY_ROWS = 31;
+
+const ddmm = (ymd: string) => `${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
 
 /** % mức dùng so hạn mức (null = không giới hạn) + tone màu ngưỡng 80/100. */
 const pctOf = (used: number, limit: number | null) =>
@@ -85,6 +95,35 @@ export default function UsageOverview() {
   const openDetail = (userId: string) => navigate(`/admin/usage/users/${userId}`);
   const [tab, setTab] = useState<'overview' | 'plans' | 'users' | 'events' | 'rates'>('overview');
 
+  // ----- Bộ lọc thời gian dùng chung (nguồn sự thật là URL) -----
+  const [params, setParams] = useSearchParams();
+  const rangeValue = usageRangeFromParams(params);
+  const rangeKey = JSON.stringify(rangeValue);
+  // Khoảng tuỳ chọn đang nhập dở (thiếu/sai một đầu) → giữ khoảng hợp lệ gần nhất, không nạp lại.
+  const [resolved, setResolved] = useState(() => resolveUsageRange(rangeValue) ?? resolveUsageRange({ preset: 'month' })!);
+  useEffect(() => {
+    const next = resolveUsageRange(usageRangeFromParams(params));
+    if (next) setResolved((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rangeKey]);
+  const { range, current: isCurrent } = resolved;
+  /** Tham số gửi overview/by-plan/by-user: kỳ đang chạy thì bỏ trống để BE tính như enforcement. */
+  const apiRange = useMemo(() => (isCurrent ? undefined : range), [isCurrent, range]);
+  const onRangeChange = (next: UsageRange) => {
+    const q = new URLSearchParams(params);
+    q.set('range', next.preset);
+    if (next.preset === 'custom') {
+      if (next.from) q.set('from', next.from); else q.delete('from');
+      if (next.to) q.set('to', next.to); else q.delete('to');
+    } else {
+      q.delete('from');
+      q.delete('to');
+    }
+    if (next.preset === 'month') q.delete('range');
+    setParams(q, { replace: true });
+  };
+  const heatByWeekday = rangeDays(range) > HEATMAP_MAX_DAY_ROWS;
+
   // ----- Tab Tổng quan (đọc từ rollup usage_hourly) -----
   const [ov, setOv] = useState<UsageOverviewData | null>(null);
   const [heat, setHeat] = useState<HeatmapPoint[]>([]);
@@ -92,11 +131,11 @@ export default function UsageOverview() {
   const [metric, setMetric] = useState<'tokens' | 'requests' | 'cost' | 'latency'>('tokens');
   const fetchOverview = () => {
     setOvLoad('loading');
-    Promise.all([getUsageOverview(), getUsageHeatmap({ days: 7 })])
+    Promise.all([getUsageOverview(apiRange), getUsageHeatmap({ range })])
       .then(([o, h]) => { setOv(o); setHeat(h); setOvLoad('ok'); })
       .catch(() => setOvLoad('error'));
   };
-  useEffect(() => { if (tab === 'overview') fetchOverview(); }, [tab]);
+  useEffect(() => { if (tab === 'overview') fetchOverview(); }, [tab, resolved]);
 
   const metricValue = (p: HeatmapPoint): number | null =>
     metric === 'tokens' ? p.totalTokens
@@ -116,24 +155,26 @@ export default function UsageOverview() {
   const [planLoad, setPlanLoad] = useState<'loading' | 'error' | 'ok'>('loading');
   const fetchPlans = () => {
     setPlanLoad('loading');
-    getUsageByPlan()
+    getUsageByPlan(apiRange)
       .then((p) => { setPlans(p); setPlanLoad('ok'); })
       .catch(() => setPlanLoad('error'));
   };
-  useEffect(() => { if (tab === 'plans') fetchPlans(); }, [tab]);
+  useEffect(() => { if (tab === 'plans') fetchPlans(); }, [tab, resolved]);
 
   // Toàn bộ user (tối đa 5 trang × 100) — nguồn CLIENT-SIDE cho cột "User cần chú ý"
   // + drill-down user theo gói, vì BE chưa có endpoint lọc by-user theo planCode
   // (ghi chú cần API ở cuối file). Tải lười khi mở tab, dùng lại cho mọi gói.
   const [allUsers, setAllUsers] = useState<AdminUserUsageRow[] | null>(null);
   const [drillPlan, setDrillPlan] = useState<string | null>(null);
+  // Đổi khoảng → mức dùng từng user khác hẳn, nạp lại khi mở tab.
+  useEffect(() => { setAllUsers(null); }, [resolved]);
   useEffect(() => {
     if (tab !== 'plans' || allUsers !== null) return;
     (async () => {
       const acc: AdminUserUsageRow[] = [];
       try {
         for (let p = 0; p < 5; p++) {
-          const pg = await getUsageByUser({ page: p, size: 100 });
+          const pg = await getUsageByUser({ page: p, size: 100, range: apiRange });
           acc.push(...pg.content);
           if (p >= pg.totalPages - 1) break;
         }
@@ -171,11 +212,12 @@ export default function UsageOverview() {
 
   const fetchUsers = () => {
     setUserLoad('loading');
-    getUsageByUser({ filter, q: qDebounced, page })
+    getUsageByUser({ filter: apiRange ? '' : filter, q: qDebounced, page, range: apiRange })
       .then((p) => { setRows(p.content); setPageCount(p.totalPages); setUserLoad('ok'); })
       .catch(() => setUserLoad('error'));
   };
-  useEffect(() => { if (tab === 'users') fetchUsers(); }, [tab, filter, qDebounced, page]);
+  useEffect(() => { if (tab === 'users') fetchUsers(); }, [tab, filter, qDebounced, page, resolved]);
+  useEffect(() => { setPage(0); }, [resolved]);
 
   const doReconcile = async () => {
     try {
@@ -255,13 +297,27 @@ export default function UsageOverview() {
     <PageContainer>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{tabBtn('overview', t.auTabOverview)}{tabBtn('plans', t.auTabByPlan)}{tabBtn('users', t.auTabByUser)}{tabBtn('events', t.auTabEvents)}{tabBtn('rates', t.auTabRates)}</div>
 
+      {/* Hệ số quy đổi là cấu hình, không theo thời gian — không hiện bộ lọc ở tab đó. */}
+      {tab !== 'rates' && <UsageRangeBar value={rangeValue} onChange={onRangeChange} />}
+
+      {!isCurrent && (tab === 'plans' || tab === 'users') && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 12,
+          background: '#f5f0ff', border: '1px solid #e4d9fb', fontSize: 13, fontWeight: 600, color: '#5b3fa8',
+        }}>
+          <History size={16} strokeWidth={2} aria-hidden />
+          {t.auHistoryBanner.replace('{from}', ddmm(range.from)).replace('{to}', ddmm(range.to))}
+        </div>
+      )}
+
       {tab === 'overview' && (
         ovLoad === 'loading' ? loadingCard : ovLoad === 'error' ? errorCard(fetchOverview) : ov && (
           <>
             {/* Tổng kỳ này so kỳ trước + chi phí + request + tỉ lệ lỗi */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
               <StatCard icon={Coins} iconBg="linear-gradient(135deg,#f1e9ff,#fae9ff)" iconColor="#8b5cf6"
-                value={fmtTokens(ov.totalTokens)} label={`${t.auOvTokens} · ${ov.periodStart.slice(0, 7)}`}
+                value={fmtTokens(ov.totalTokens)}
+                label={isCurrent ? `${t.auOvTokens} · ${ov.periodStart.slice(0, 7)}` : `${t.auOvTokensRange} · ${ddmm(range.from)}–${ddmm(range.to)}`}
                 pill={ov.tokenDeltaPct === null ? null : `${ov.tokenDeltaPct >= 0 ? '+' : ''}${ov.tokenDeltaPct}% ${t.auOvVsPrev}`}
                 pillTone={ov.tokenDeltaPct !== null && ov.tokenDeltaPct > 0 ? 'warning' : 'success'} />
               <StatCard icon={DollarSign} iconBg="linear-gradient(135deg,#e7fff4,#e9f7ff)" iconColor="#10b981"
@@ -284,7 +340,9 @@ export default function UsageOverview() {
 
             {/* Heatmap 7×24 — metric chọn phía client */}
             <SectionCard
-              title={t.auOvHeatmap}
+              title={heatByWeekday
+                ? t.auOvHeatmapWeekday.replace('{n}', String(rangeDays(range)))
+                : t.auOvHeatmapDays.replace('{n}', String(rangeDays(range)))}
               action={
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {([['tokens', t.auOvMetricTokens], ['requests', t.auOvMetricRequests], ['cost', t.auOvMetricCost], ['latency', t.auOvMetricLatency]] as const).map(([key, label]) => (
@@ -299,7 +357,8 @@ export default function UsageOverview() {
               {heat.length === 0 ? (
                 <div style={{ fontSize: 13, color: '#a59fbb', padding: '10px 0' }}>{t.auOvNoData}</div>
               ) : (
-                <Heatmap cells={heat.map((p) => ({ bucket: p.bucket, value: metricValue(p) }))} days={7}
+                <Heatmap cells={heat.map((p) => ({ bucket: p.bucket, value: metricValue(p) }))}
+                  from={range.from} to={range.to} byWeekday={heatByWeekday} avg={metric === 'latency'}
                   fmt={fmtMetric} legend={{ low: t.hmLow, high: t.hmHigh }} />
               )}
             </SectionCard>
@@ -393,7 +452,8 @@ export default function UsageOverview() {
           );
           const barColor = (pct: number) => (pct > 100 ? '#ef4444' : pct >= 80 ? '#f59e0b' : brandGradient);
           const usedCell = (tokens: number, cap: number | null) => {
-            const pct = cap === null || cap === 0 ? null : (tokens / cap) * 100;
+            // Xem lịch sử: % so hạn mức không có nghĩa (hạn mức chỉ áp cho kỳ đang chạy).
+            const pct = !isCurrent || cap === null || cap === 0 ? null : (tokens / cap) * 100;
             return (
               <div style={{ minWidth: 150 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: '#5b5670', marginBottom: 4 }}>
@@ -416,12 +476,6 @@ export default function UsageOverview() {
                     {att.over > 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: '#dc2626' }}>{t.auPlanOverShort.replace('{n}', String(att.over))}</span>}
                   </div>
                 );
-          const periodChip = (label: string, active: boolean) => (
-            <button key={label} disabled={!active} title={active ? undefined : t.auPeriodNeedApi}
-              style={{ border: '1px solid', borderColor: active ? 'transparent' : '#ece8f6', background: active ? brandGradient : '#fff', color: active ? '#fff' : '#a59fbb', borderRadius: 999, padding: '6px 13px', fontSize: 12.5, fontWeight: 700, cursor: active ? 'pointer' : 'not-allowed' }}>
-              {label}
-            </button>
-          );
           const totalAttention = allUsers === null ? null : plans.reduce(
             (a, p) => {
               const att = attentionOf(p.planCode)!;
@@ -431,12 +485,6 @@ export default function UsageOverview() {
           );
           return (
             <>
-              {/* Bộ chọn kỳ — hiện chỉ "Kỳ này" (BE gộp theo kỳ hiện tại); kỳ khác cần API. */}
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {periodChip(t.auPeriodThis, true)}
-                {periodChip(t.auPeriodPrev, false)}
-                {periodChip(t.auPeriod30, false)}
-              </div>
               <SectionCard
                 flush
                 title={t.auTabByPlan}
@@ -444,14 +492,16 @@ export default function UsageOverview() {
                   <button onClick={() => go('adminPlans')} style={{ border: 'none', background: 'none', fontSize: 12.5, fontWeight: 700, color: '#7c3aed', cursor: 'pointer', padding: 0 }}>{t.auEditPlanLimits}</button>
                 }
               >
-                <DataTable head={[t.auColPlan, t.auPlanUsers, t.auPlanLimitPerUser, t.auPlanAllocated, t.auPlanUsed, t.auPlanCost, t.auPlanAttention]} minWidth={920}>
+                <DataTable head={[t.auColPlan, t.auPlanUsers, t.auPlanLimitPerUser, t.auPlanAllocated, t.auPlanUsed, t.auPlanCost, ...(isCurrent ? [t.auPlanAttention] : [])]} minWidth={920}>
                   {plans.map((p) => {
                     const cap = p.monthlyTokenLimit === null ? null : p.monthlyTokenLimit * p.userCount;
                     const open = drillPlan === p.planCode;
                     const drillRows = open && allUsers !== null
                       ? allUsers
                           .filter((u) => u.planCode === p.planCode)
-                          .sort((a, b) => (pctOf(b.used, b.limit) ?? -1) - (pctOf(a.used, a.limit) ?? -1))
+                          .sort((a, b) => (isCurrent
+                            ? (pctOf(b.used, b.limit) ?? -1) - (pctOf(a.used, a.limit) ?? -1)
+                            : b.used - a.used))
                       : null;
                     return (
                       <Fragment key={p.planId}>
@@ -475,11 +525,11 @@ export default function UsageOverview() {
                               <div style={{ fontSize: 11.5, color: '#a59fbb' }}>{t.auPlanAvgUser}: {fmtUsd(p.estimatedCost / p.userCount)}</div>
                             )}
                           </td>
-                          <td style={tdStyle}>{attentionCell(attentionOf(p.planCode))}</td>
+                          {isCurrent && <td style={tdStyle}>{attentionCell(attentionOf(p.planCode))}</td>}
                         </tr>
                         {open && (
                           <tr style={{ background: '#faf8ff' }}>
-                            <td colSpan={7} style={{ padding: '4px 16px 14px' }}>
+                            <td colSpan={isCurrent ? 7 : 6} style={{ padding: '4px 16px 14px' }}>
                               {drillRows === null ? (
                                 <div style={{ fontSize: 12.5, color: '#a59fbb', padding: '8px 0' }}>{t.listLoading}</div>
                               ) : drillRows.length === 0 ? (
@@ -495,8 +545,11 @@ export default function UsageOverview() {
                                           <div style={{ fontSize: 12.5, fontWeight: 600, color: '#2b2543', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.fullName || u.email}</div>
                                           <div style={{ fontSize: 11, color: '#a59fbb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
                                         </div>
-                                        <div style={{ flex: '2 1 200px' }}><UsageBar used={u.used} limit={u.limit} gradient={brandGradient} /></div>
-                                        <StatusBadge tone={pctTone(pct)} label={pct === null ? '∞' : `${Math.round(pct)}%`} />
+                                        <div style={{ flex: '2 1 200px' }}>
+                                          {isCurrent ? <UsageBar used={u.used} limit={u.limit} gradient={brandGradient} />
+                                            : <span style={{ fontSize: 12.5, fontWeight: 700, color: '#5b5670' }}>{fmtTokens(u.used)}</span>}
+                                        </div>
+                                        {isCurrent && <StatusBadge tone={pctTone(pct)} label={pct === null ? '∞' : `${Math.round(pct)}%`} />}
                                         <button onClick={(e) => { e.stopPropagation(); openDetail(u.userId); }} style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '5px 11px', fontSize: 12, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>{t.auDetail}</button>
                                       </div>
                                     );
@@ -517,7 +570,7 @@ export default function UsageOverview() {
                     <td style={{ ...tdStyle, fontWeight: 700 }}>{totals.cap === null ? '∞' : fmtTokens(totals.cap)}</td>
                     <td style={{ ...tdStyle, fontWeight: 700 }}>{usedCell(totals.tokens, totals.cap)}</td>
                     <td style={{ ...tdStyle, fontWeight: 700 }}>{fmtUsd(totals.cost)}</td>
-                    <td style={tdStyle}>{attentionCell(totalAttention)}</td>
+                    {isCurrent && <td style={tdStyle}>{attentionCell(totalAttention)}</td>}
                   </tr>
                 </DataTable>
               </SectionCard>
@@ -529,10 +582,15 @@ export default function UsageOverview() {
       {tab === 'users' && (
         <>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* Lọc theo ngưỡng % hạn mức chỉ có nghĩa với kỳ đang chạy. */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {filterChip('', t.auFilterAll)}
-              {filterChip('warning', t.auFilterWarn)}
-              {filterChip('exceeded', t.auFilterOver)}
+              {isCurrent && (
+                <>
+                  {filterChip('', t.auFilterAll)}
+                  {filterChip('warning', t.auFilterWarn)}
+                  {filterChip('exceeded', t.auFilterOver)}
+                </>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input placeholder={t.auSearchPh} value={q} onChange={(e) => setQ(e.target.value)} style={{ border: '1px solid #ece8f6', borderRadius: 10, padding: '8px 12px', fontSize: 13, width: 220 }} />
@@ -546,7 +604,7 @@ export default function UsageOverview() {
             <Card style={{ textAlign: 'center', padding: '44px 16px', color: '#8a85a0', fontSize: 13.5 }}>{t.auEmpty}</Card>
           ) : (
             <SectionCard flush title={t.auTabByUser}>
-              <DataTable head={[t.auColUser, t.auColPlan, t.auColUsage, '%', '']} minWidth={760}>
+              <DataTable head={[t.auColUser, t.auColPlan, isCurrent ? t.auColUsage : t.auColUsageRange, ...(isCurrent ? ['%'] : []), '']} minWidth={760}>
                 {rows.map((r) => {
                   const pct = pctOf(r.used, r.limit);
                   return (
@@ -561,10 +619,15 @@ export default function UsageOverview() {
                         </div>
                       </td>
                       <td style={tdStyle}><StatusBadge {...userPlanMeta((r.planCode || 'FREE') as UserPlan)} /></td>
-                      <td style={tdStyle}><UsageBar used={r.used} limit={r.limit} gradient={brandGradient} /></td>
                       <td style={tdStyle}>
-                        <StatusBadge tone={pctTone(pct)} label={pct === null ? '∞' : `${Math.round(pct)}%`} />
+                        {isCurrent ? <UsageBar used={r.used} limit={r.limit} gradient={brandGradient} />
+                          : <span style={{ fontSize: 12.5, fontWeight: 700, color: '#5b5670' }}>{fmtTokens(r.used)}</span>}
                       </td>
+                      {isCurrent && (
+                        <td style={tdStyle}>
+                          <StatusBadge tone={pctTone(pct)} label={pct === null ? '∞' : `${Math.round(pct)}%`} />
+                        </td>
+                      )}
                       <td style={{ ...tdStyle, textAlign: 'right' }}>
                         <button onClick={() => openDetail(r.userId)} style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>{t.auDetail}</button>
                       </td>
@@ -580,7 +643,7 @@ export default function UsageOverview() {
         </>
       )}
 
-      {tab === 'events' && <UsageEventsTable syncUrl />}
+      {tab === 'events' && <UsageEventsTable syncUrl range={range} />}
 
       {tab === 'rates' && (
         rateLoad === 'loading' ? loadingCard : rateLoad === 'error' ? errorCard(fetchRates) : (

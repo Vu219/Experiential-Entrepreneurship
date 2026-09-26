@@ -17,6 +17,7 @@ import {
   getUsageByUser,
   type AiUsageEventStatus,
   type UsageEvent,
+  type UsageDateRange,
   type UsageEventFilter,
   type UsageEventMeta,
 } from '../../../api/adminUsage';
@@ -25,6 +26,8 @@ import {
 // user (fixedUserId — ẩn picker). Phân trang SERVER-SIDE có số trang (offset), dùng chung
 // component Pagination với các trang quản trị khác.
 // IP/UA KHÔNG nằm trong bảng — chỉ tải khi mở rộng dòng (BE ghi audit mỗi lần xem).
+// Truyền `range` (thanh lọc thời gian dùng chung của trang Token & hạn mức) thì bảng ẩn 2 ô ngày
+// riêng và luôn lọc theo khoảng đó.
 
 const tdStyle: CSSProperties = { padding: '10px 14px', fontSize: 13, color: '#2b2543', whiteSpace: 'nowrap' };
 const tdMuted: CSSProperties = { ...tdStyle, color: '#8a85a0', fontSize: 12.5 };
@@ -61,7 +64,11 @@ function TableSkeleton({ rows, cols }: { rows: number; cols: number }) {
   );
 }
 
-export default function UsageEventsTable({ fixedUserId, syncUrl = false }: { fixedUserId?: string; syncUrl?: boolean }) {
+export default function UsageEventsTable({ fixedUserId, syncUrl = false, range }: {
+  fixedUserId?: string;
+  syncUrl?: boolean;
+  range?: UsageDateRange;
+}) {
   const { t, lang, brandGradient } = useApp();
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -82,9 +89,11 @@ export default function UsageEventsTable({ fixedUserId, syncUrl = false }: { fix
   const [userQ, setUserQ] = useState('');
   const [userSuggests, setUserSuggests] = useState<{ userId: string; label: string }[]>([]);
 
+  const effFrom = range?.from ?? fromDate;
+  const effTo = range?.to ?? toDate;
   const buildFilter = (): UsageEventFilter => ({
-    from: fromDate ? `${fromDate}T00:00:00` : undefined,
-    to: toDate ? `${toDate}T23:59:59` : undefined,
+    from: effFrom ? `${effFrom}T00:00:00` : undefined,
+    to: effTo ? `${effTo}T23:59:59` : undefined,
     userId: fixedUserId ?? (userId || undefined),
     taskCode: taskCode || undefined,
     model: model || undefined,
@@ -94,6 +103,16 @@ export default function UsageEventsTable({ fixedUserId, syncUrl = false }: { fix
   });
 
   const [applied, setApplied] = useState<UsageEventFilter>(buildFilter);
+
+  // Khoảng của thanh lọc chung đổi → áp ngay (các ô lọc khác giữ nguyên giá trị đã áp).
+  useEffect(() => {
+    if (!range) return;
+    const from = `${range.from}T00:00:00`;
+    const to = `${range.to}T23:59:59`;
+    // Giữ nguyên object khi khoảng không đổi (lúc mount) — tránh gọi API 2 lần.
+    setApplied((prev) => (prev.from === from && prev.to === to ? prev : { ...prev, from, to }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range?.from, range?.to]);
 
   // ----- Phân trang (offset, server-side) -----
   // Khoá lưu số dòng tách riêng cho 2 chỗ dùng: bảng ở trang chi tiết user hẹp hơn bảng
@@ -142,8 +161,11 @@ export default function UsageEventsTable({ fixedUserId, syncUrl = false }: { fix
     const put = (key: string, value: string) => (value ? next.set(key, value) : next.delete(key));
     put('page', page > 0 ? String(page + 1) : '');
     put('limit', String(pageSize));
-    put('from', fromDate);
-    put('to', toDate);
+    // Có thanh lọc chung thì from/to trên URL là của nó — bảng không ghi đè.
+    if (!range) {
+      put('from', fromDate);
+      put('to', toDate);
+    }
     put('task', taskCode);
     put('model', model);
     put('status', status);
@@ -207,7 +229,7 @@ export default function UsageEventsTable({ fixedUserId, syncUrl = false }: { fix
   // Cảnh báo khi filter vượt mốc retention (không chặn — dữ liệu lỗi còn tới 180 ngày).
   const retentionEdge = new Date();
   retentionEdge.setDate(retentionEdge.getDate() - RETENTION_DAYS);
-  const beyondRetention = !!fromDate && new Date(fromDate) < retentionEdge;
+  const beyondRetention = !!effFrom && new Date(effFrom) < retentionEdge;
 
   const colCount = fixedUserId ? 9 : 10;
 
@@ -231,8 +253,12 @@ export default function UsageEventsTable({ fixedUserId, syncUrl = false }: { fix
 
       {/* Bộ lọc */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', padding: '12px 16px' }}>
-        <input type="date" title={t.aueFrom} value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={inputStyle} />
-        <input type="date" title={t.aueTo} value={toDate} onChange={(e) => setToDate(e.target.value)} style={inputStyle} />
+        {!range && (
+          <>
+            <input type="date" title={t.aueFrom} value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={inputStyle} />
+            <input type="date" title={t.aueTo} value={toDate} onChange={(e) => setToDate(e.target.value)} style={inputStyle} />
+          </>
+        )}
         <select value={taskCode} onChange={(e) => setTaskCode(e.target.value as AiTaskCode | '')} style={inputStyle}>
           <option value="">{t.aueTaskAll}</option>
           {TASKS.map((task) => <option key={task} value={task}>{aiTaskLabel(lang, task)}</option>)}

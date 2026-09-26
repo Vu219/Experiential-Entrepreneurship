@@ -378,6 +378,11 @@ public enum ErrorCode {
     // subscriptions (nguồn sự thật) → nhãn và gói thật lệch nhau (bug 25/9).
     USER_PLAN_UPDATE_NOT_ALLOWED(2097,
             "Không đổi gói qua cập nhật tài khoản — dùng mục Gói dịch vụ", HttpStatus.BAD_REQUEST),
+
+    // Bộ lọc thời gian trang Token & hạn mức (admin usage) — 2110+
+    USAGE_RANGE_INVALID(2110, "Khoảng thời gian không hợp lệ — cần đủ từ ngày và đến ngày, từ ngày không sau đến ngày",
+            HttpStatus.BAD_REQUEST),
+    USAGE_RANGE_TOO_LARGE(2111, "Khoảng thời gian quá dài — tối đa 366 ngày", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

@@ -34,12 +34,14 @@ import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -66,34 +68,45 @@ public class AdminUsageController {
 
     @GetMapping("/overview")
     @Operation(summary = "Tab Tổng quan: tổng kỳ này so kỳ trước + top tính năng/model/user + tỉ lệ lỗi "
-            + "— đọc từ rollup usage_hourly")
-    public ApiResponse<UsageOverviewResponse> overview() {
-        return usageQueryService.overview();
+            + "— đọc từ rollup usage_hourly. Bỏ trống from/to = tháng hiện tại; có from/to (to bao gồm, "
+            + "tối đa 366 ngày) = khoảng tuỳ chọn, so với khoảng liền trước cùng độ dài")
+    public ApiResponse<UsageOverviewResponse> overview(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return usageQueryService.overview(from, to);
     }
 
     @GetMapping("/heatmap")
-    @Operation(summary = "Heatmap bucket giờ (GIỜ VN) của N ngày gần nhất; userId trống = toàn hệ thống; "
-            + "FE tự chọn metric (token/request/cost/latency)")
+    @Operation(summary = "Heatmap bucket giờ (GIỜ VN) của N ngày gần nhất — hoặc của khoảng from/to nếu truyền "
+            + "(to bao gồm, tối đa 366 ngày); userId trống = toàn hệ thống; FE tự chọn metric (token/request/cost/latency)")
     public ApiResponse<List<HeatmapPointResponse>> heatmap(
             @RequestParam(defaultValue = "7") int days,
-            @RequestParam(required = false) UUID userId) {
-        return usageQueryService.heatmap(days, userId);
+            @RequestParam(required = false) UUID userId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return usageQueryService.heatmap(days, userId, from, to);
     }
 
     @GetMapping("/by-plan")
-    @Operation(summary = "Usage kỳ này theo gói: số user + tổng token/chi phí so hạn mức (chỉ đọc/gộp)")
-    public ApiResponse<List<PlanUsageResponse>> byPlan() {
-        return usageQueryService.byPlan();
+    @Operation(summary = "Usage theo gói: số user + tổng token/chi phí so hạn mức (chỉ đọc/gộp). Bỏ trống from/to = "
+            + "kỳ này; có from/to = xem lịch sử từ rollup, gom theo gói HIỆN TẠI của user")
+    public ApiResponse<List<PlanUsageResponse>> byPlan(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return usageQueryService.byPlan(from, to);
     }
 
     @GetMapping("/by-user")
-    @Operation(summary = "Usage kỳ này theo user — filter=warning (≥80% chưa vượt) / exceeded (≥100%), q tìm tên/email")
+    @Operation(summary = "Usage theo user — filter=warning (≥80% chưa vượt) / exceeded (≥100%), q tìm tên/email. "
+            + "Có from/to = xem lịch sử (mức dùng từ rollup; filter ngưỡng hạn mức bị bỏ qua vì chỉ áp cho kỳ đang chạy)")
     public ApiResponse<PageResponse<UserUsageRowResponse>> byUser(
             @RequestParam(required = false) String filter,
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return usageQueryService.byUser(filter, q, page, size);
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return usageQueryService.byUser(filter, q, page, size, from, to);
     }
 
     @GetMapping("/users/{userId}")

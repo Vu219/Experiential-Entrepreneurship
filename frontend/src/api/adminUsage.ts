@@ -54,8 +54,17 @@ export interface AdminUserUsageDetail {
   adjustments: UsageAdjustment[];
 }
 
-export async function getUsageByPlan(): Promise<PlanUsage[]> {
-  const { data } = await client.get<ApiResponse<PlanUsage[]>>('/admin/usage/by-plan');
+/**
+ * Khoảng ngày YYYY-MM-DD (`to` BAO GỒM) của bộ lọc thời gian trang Token & hạn mức. Bỏ trống ở
+ * overview/by-plan/by-user = kỳ hiện tại (tính như enforcement); có khoảng = xem lịch sử từ rollup.
+ */
+export interface UsageDateRange {
+  from: string;
+  to: string;
+}
+
+export async function getUsageByPlan(range?: UsageDateRange): Promise<PlanUsage[]> {
+  const { data } = await client.get<ApiResponse<PlanUsage[]>>('/admin/usage/by-plan', { params: range });
   return data.result;
 }
 
@@ -64,6 +73,8 @@ export async function getUsageByUser(params: {
   q?: string;
   page: number;
   size?: number;
+  /** Có khoảng = xem lịch sử: BE bỏ qua `filter` ngưỡng hạn mức. */
+  range?: UsageDateRange;
 }): Promise<PageResponse<AdminUserUsageRow>> {
   const { data } = await client.get<ApiResponse<PageResponse<AdminUserUsageRow>>>('/admin/usage/by-user', {
     params: {
@@ -71,6 +82,7 @@ export async function getUsageByUser(params: {
       q: params.q?.trim() || undefined,
       page: params.page,
       size: params.size ?? 10,
+      ...params.range,
     },
   });
   return data.result;
@@ -156,14 +168,15 @@ export interface HeatmapPoint {
   latencyAvgMs: number | null;
 }
 
-export async function getUsageOverview(): Promise<UsageOverview> {
-  const { data } = await client.get<ApiResponse<UsageOverview>>('/admin/usage/overview');
+export async function getUsageOverview(range?: UsageDateRange): Promise<UsageOverview> {
+  const { data } = await client.get<ApiResponse<UsageOverview>>('/admin/usage/overview', { params: range });
   return data.result;
 }
 
-export async function getUsageHeatmap(params?: { days?: number; userId?: string }): Promise<HeatmapPoint[]> {
+/** `range` (≤ 366 ngày) thay cho `days` khi truyền. */
+export async function getUsageHeatmap(params?: { days?: number; userId?: string; range?: UsageDateRange }): Promise<HeatmapPoint[]> {
   const { data } = await client.get<ApiResponse<HeatmapPoint[]>>('/admin/usage/heatmap', {
-    params: { days: params?.days ?? 7, userId: params?.userId || undefined },
+    params: { days: params?.days ?? 7, userId: params?.userId || undefined, ...params?.range },
   });
   return data.result;
 }
