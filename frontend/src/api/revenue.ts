@@ -29,18 +29,22 @@ export type PaymentStatus =
 /** Cổng thanh toán — khớp enum `PaymentGateway`. `MOCK` chỉ tồn tại ở môi trường dev. */
 export type PaymentGateway = 'MANUAL' | 'PAYOS' | 'MOCK';
 
+/**
+ * Chế độ lọc của trang admin. `WEEK` CHỈ có ở FE: gửi BE dưới dạng CUSTOM Thứ 2 → Chủ nhật (bucket
+ * theo ngày, so với 7 ngày liền trước). BE vẫn còn HALF_YEAR nhưng UI đã bỏ.
+ */
+export type RevenueFilterMode = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR' | 'CUSTOM';
+
 export interface RevenueFilter {
-  granularity: RevenueGranularity;
-  /** DAY / MONTH / HALF_YEAR */
+  granularity: RevenueFilterMode;
+  /** DAY / MONTH */
   year?: number;
   /** DAY (1–12) */
   month?: number;
-  /** HALF_YEAR (1 = nửa đầu, 2 = nửa sau) */
-  half?: 1 | 2;
   /** YEAR */
   fromYear?: number;
   toYear?: number;
-  /** CUSTOM — 'YYYY-MM-DD' */
+  /** WEEK / CUSTOM — 'YYYY-MM-DD' */
   from?: string;
   to?: string;
 }
@@ -57,12 +61,11 @@ const filterParams = (f: RevenueFilter): Record<string, string | number | undefi
       return { granularity: f.granularity, year: f.year, month: f.month };
     case 'MONTH':
       return { granularity: f.granularity, year: f.year };
-    case 'HALF_YEAR':
-      return { granularity: f.granularity, year: f.year, half: f.half };
     case 'YEAR':
       return { granularity: f.granularity, fromYear: f.fromYear, toYear: f.toYear };
+    case 'WEEK':
     case 'CUSTOM':
-      return { granularity: f.granularity, from: f.from, to: f.to };
+      return { granularity: 'CUSTOM', from: f.from, to: f.to };
   }
 };
 

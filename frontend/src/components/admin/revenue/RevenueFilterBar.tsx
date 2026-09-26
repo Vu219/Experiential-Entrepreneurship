@@ -1,9 +1,35 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import { FilterSelect } from '../AdminListPage';
 import DatePicker from '../../DatePicker';
-import type { RevenueFilter, RevenueGranularity } from '../../../api/revenue';
+import type { RevenueFilter, RevenueFilterMode } from '../../../api/revenue';
 
-const MODES: RevenueGranularity[] = ['DAY', 'MONTH', 'HALF_YEAR', 'YEAR', 'CUSTOM'];
+const MODES: RevenueFilterMode[] = ['DAY', 'WEEK', 'MONTH', 'YEAR', 'CUSTOM'];
+
+/** Trần khoảng tuỳ chỉnh — khớp MAX_CUSTOM_DAYS của BE. */
+const MAX_CUSTOM_DAYS = 366;
+const PANEL_WIDTH = 340;
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const iso = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const parse = (s: string) => {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+const ddmm = (s: string) => `${s.slice(8, 10)}/${s.slice(5, 7)}`;
+const ddmmyyyy = (s: string) => `${ddmm(s)}/${s.slice(0, 4)}`;
+
+/** Tuần (Thứ 2 → Chủ nhật) chứa ngày `day`. */
+export function weekOf(day: string): { from: string; to: string } {
+  const d = parse(day);
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { from: iso(monday), to: iso(sunday) };
+}
 
 /** Danh sách năm chọn được: 5 năm gần nhất + năm hiện tại (mới nhất lên đầu). */
 function yearOptions(): [string, string][] {
@@ -14,12 +40,36 @@ function yearOptions(): [string, string][] {
   });
 }
 
+/** Bộ tham số mặc định của từng chế độ (BE trả lỗi 2038 nếu thiếu). */
+function defaultsFor(mode: RevenueFilterMode): RevenueFilter {
+  const now = new Date();
+  const year = now.getFullYear();
+  switch (mode) {
+    case 'DAY':
+      return { granularity: mode, year, month: now.getMonth() + 1 };
+    case 'WEEK':
+      return { granularity: mode, ...weekOf(iso(now)) };
+    case 'MONTH':
+      return { granularity: mode, year };
+    case 'YEAR':
+      return { granularity: mode, fromYear: year - 4, toYear: year };
+    default:
+      return { granularity: 'CUSTOM', from: iso(new Date(year, now.getMonth(), 1)), to: iso(now) };
+  }
+}
+
+function isValid(f: RevenueFilter): boolean {
+  if (f.granularity === 'YEAR') return (f.fromYear ?? 0) <= (f.toYear ?? 0);
+  if (f.granularity !== 'CUSTOM') return true;
+  if (!f.from || !f.to || f.from > f.to) return false;
+  return (parse(f.to).getTime() - parse(f.from).getTime()) / 86_400_000 + 1 <= MAX_CUSTOM_DAYS;
+}
+
 /**
- * Thanh lọc thời gian của trang Doanh thu (mục B): chọn CHẾ ĐỘ rồi hiện bộ chọn phạm vi
- * tương ứng. Component thuần điều khiển — trang giữ state và đồng bộ lên URL.
- *
- * Khi đổi chế độ phải nạp lại tham số mặc định của chế độ đó, vì mỗi chế độ cần bộ tham số
- * khác nhau (BE trả lỗi 2038 nếu thiếu).
+ * Bộ lọc thời gian của trang Doanh thu & Đơn hàng: MỘT nút "Lọc ▾" (hiện tóm tắt kỳ đang áp) mở
+ * dropdown chọn chế độ + phạm vi. Mọi thay đổi trong dropdown là BẢN NHÁP — chỉ khi bấm "Lọc"
+ * mới gọi `onChange` (trang mới nạp lại dữ liệu), nên chỉnh tuỳ chỉnh từng ô ngày không bắn API.
+ * Popover render qua portal + toạ độ fixed (cùng mẫu DateRangePill).
  */
 export default function RevenueFilterBar({
   value,
@@ -29,109 +79,201 @@ export default function RevenueFilterBar({
   onChange: (next: RevenueFilter) => void;
 }) {
   const { t, brandGradient } = useApp();
-  const now = new Date();
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<RevenueFilter>(value);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const years = yearOptions();
+  const now = new Date();
 
-  const modeLabel: Record<RevenueGranularity, string> = {
-    DAY: t.revModeDay,
-    MONTH: t.revModeMonth,
-    HALF_YEAR: t.revModeHalf,
-    YEAR: t.revModeYear,
-    CUSTOM: t.revModeCustom,
+  // Mở lại luôn bắt đầu từ bộ lọc đang áp, không giữ bản nháp dở của lần trước.
+  const valueKey = JSON.stringify(value);
+  useEffect(() => {
+    if (open) setDraft(value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, valueKey]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const r = btnRef.current?.getBoundingClientRect();
+    if (!r) return;
+    setCoords({ top: r.bottom + 6, left: Math.max(8, Math.min(r.left, window.innerWidth - PANEL_WIDTH - 8)) });
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (panelRef.current?.contains(target) || btnRef.current?.contains(target)) return;
+      // DatePicker render lịch qua portal riêng — bấm vào lịch không phải bấm ra ngoài.
+      if ((target as HTMLElement).closest?.('[data-datepicker-panel]')) return;
+      setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onDown);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onDown);
+    };
+  }, [open]);
+
+  const modeLabel: Record<RevenueFilterMode, string> = {
+    DAY: t.revModeDay, WEEK: t.revModeWeek, MONTH: t.revModeMonth, YEAR: t.revModeYear, CUSTOM: t.revModeCustom,
   };
 
-  const switchMode = (granularity: RevenueGranularity) => {
-    const year = now.getFullYear();
-    switch (granularity) {
-      case 'DAY':
-        return onChange({ granularity, year, month: now.getMonth() + 1 });
-      case 'MONTH':
-        return onChange({ granularity, year });
-      case 'HALF_YEAR':
-        return onChange({ granularity, year, half: now.getMonth() < 6 ? 1 : 2 });
-      case 'YEAR':
-        return onChange({ granularity, fromYear: year - 4, toYear: year });
-      case 'CUSTOM': {
-        const iso = (d: Date) => d.toISOString().slice(0, 10);
-        const start = new Date(now.getFullYear(), now.getMonth(), 1);
-        return onChange({ granularity, from: iso(start), to: iso(now) });
-      }
+  const summary = (f: RevenueFilter): string => {
+    switch (f.granularity) {
+      case 'DAY': return `${t.revMonthPrefix} ${f.month}/${f.year}`;
+      case 'WEEK':
+      case 'CUSTOM': return f.from && f.to ? `${ddmm(f.from)} – ${ddmmyyyy(f.to)}` : '';
+      case 'MONTH': return String(f.year);
+      case 'YEAR': return `${f.fromYear} – ${f.toYear}`;
     }
   };
 
-  const modeBtn = (granularity: RevenueGranularity) => {
-    const active = value.granularity === granularity;
-    return (
-      <button
-        key={granularity}
-        onClick={() => !active && switchMode(granularity)}
-        style={{
-          border: '1px solid', borderColor: active ? 'transparent' : '#ece8f6',
-          background: active ? brandGradient : '#fff', color: active ? '#fff' : '#5b5670',
-          borderRadius: 9, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-        }}
-      >
-        {modeLabel[granularity]}
-      </button>
-    );
-  };
-
   const monthOptions: [string, string][] = Array.from({ length: 12 }, (_, i) => [
-    String(i + 1),
-    `${t.revMonthPrefix} ${i + 1}`,
+    String(i + 1), `${t.revMonthPrefix} ${i + 1}`,
   ]);
+  const activeMode = value.granularity;
+  const draftMode = draft.granularity;
+  const valid = isValid(draft);
+
+  const label = (text: string) => (
+    <div style={{ fontSize: 12, fontWeight: 700, color: '#8a85a0', margin: '12px 0 7px' }}>{text}</div>
+  );
 
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{MODES.map(modeBtn)}</div>
+    <>
+      <button
+        ref={btnRef}
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8, height: 38, padding: '0 14px',
+          border: `1px solid ${open ? '#c4b5fd' : '#ece8f6'}`, borderRadius: 10, background: open ? '#f7f4ff' : '#fff',
+          fontSize: 13, fontWeight: 700, color: '#4b4660', cursor: 'pointer', whiteSpace: 'nowrap',
+        }}
+      >
+        <SlidersHorizontal size={15} strokeWidth={1.9} color="#8b5cf6" />
+        {modeLabel[activeMode]}
+        <span style={{ color: '#a59fbb', fontWeight: 600 }}>· {summary(value)}</span>
+        <ChevronDown size={14} strokeWidth={2} color="#a39bbf" />
+      </button>
 
-      {/* Bộ chọn phạm vi ĐỘNG theo chế độ đang chọn. */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        {value.granularity === 'DAY' && (
-          <>
-            <FilterSelect value={String(value.month ?? 1)} options={monthOptions}
-              onChange={(v) => onChange({ ...value, month: Number(v) })} />
-            <FilterSelect value={String(value.year ?? now.getFullYear())} options={years}
-              onChange={(v) => onChange({ ...value, year: Number(v) })} />
-          </>
-        )}
+      {open && createPortal(
+        <div
+          ref={panelRef}
+          role="dialog"
+          aria-label={t.revFilterTitle}
+          className="menu-pop menu-pop--left"
+          style={{
+            position: 'fixed', top: coords.top, left: coords.left, width: PANEL_WIDTH, zIndex: 1000,
+            background: '#fff', border: '1px solid #ece8f6', borderRadius: 14, padding: 14,
+            boxShadow: '0 24px 50px -22px rgba(80,40,140,.5)',
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#8a85a0', marginBottom: 7 }}>{t.revFilterMode}</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {MODES.map((mode) => {
+              const active = draftMode === mode;
+              return (
+                <button key={mode} onClick={() => !active && setDraft(defaultsFor(mode))} style={{
+                  border: '1px solid', borderColor: active ? 'transparent' : '#ece8f6',
+                  background: active ? brandGradient : '#fff', color: active ? '#fff' : '#5b5670',
+                  borderRadius: 999, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+                }}>
+                  {modeLabel[mode]}
+                </button>
+              );
+            })}
+          </div>
 
-        {value.granularity === 'MONTH' && (
-          <FilterSelect value={String(value.year ?? now.getFullYear())} options={years}
-            onChange={(v) => onChange({ ...value, year: Number(v) })} />
-        )}
+          {/* Bộ chọn phạm vi ĐỘNG theo chế độ đang chọn (bản nháp). */}
+          {draftMode === 'DAY' && (
+            <>
+              {label(t.revFilterPeriod)}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <FilterSelect value={String(draft.month ?? 1)} options={monthOptions}
+                  onChange={(v) => setDraft({ ...draft, month: Number(v) })} />
+                <FilterSelect value={String(draft.year ?? now.getFullYear())} options={years}
+                  onChange={(v) => setDraft({ ...draft, year: Number(v) })} />
+              </div>
+            </>
+          )}
 
-        {value.granularity === 'HALF_YEAR' && (
-          <>
-            <FilterSelect value={String(value.half ?? 1)}
-              options={[['1', t.revHalf1], ['2', t.revHalf2]]}
-              onChange={(v) => onChange({ ...value, half: Number(v) as 1 | 2 })} />
-            <FilterSelect value={String(value.year ?? now.getFullYear())} options={years}
-              onChange={(v) => onChange({ ...value, year: Number(v) })} />
-          </>
-        )}
+          {draftMode === 'WEEK' && (
+            <>
+              {label(t.revFilterWeekPick)}
+              <DatePicker value={draft.from ?? ''} max={iso(now)} ariaLabel={t.revFilterWeekPick}
+                onChange={(v) => v && setDraft({ granularity: 'WEEK', ...weekOf(v) })} />
+              {draft.from && draft.to && (
+                <div style={{ fontSize: 12.5, color: '#5b5670', fontWeight: 600, marginTop: 8 }}>
+                  {t.revModeWeek}: {ddmm(draft.from)} – {ddmmyyyy(draft.to)}
+                </div>
+              )}
+            </>
+          )}
 
-        {value.granularity === 'YEAR' && (
-          <>
-            <FilterSelect value={String(value.fromYear ?? now.getFullYear() - 4)} options={years}
-              onChange={(v) => onChange({ ...value, fromYear: Number(v) })} />
-            <span style={{ fontSize: 13, color: '#8a85a0' }}>—</span>
-            <FilterSelect value={String(value.toYear ?? now.getFullYear())} options={years}
-              onChange={(v) => onChange({ ...value, toYear: Number(v) })} />
-          </>
-        )}
+          {draftMode === 'MONTH' && (
+            <>
+              {label(t.revFilterYear)}
+              <FilterSelect value={String(draft.year ?? now.getFullYear())} options={years}
+                onChange={(v) => setDraft({ granularity: 'MONTH', year: Number(v) })} />
+            </>
+          )}
 
-        {value.granularity === 'CUSTOM' && (
-          <>
-            {/* DatePicker của dự án là chọn MỘT ngày — ghép hai cái thành khoảng, không thêm lib. */}
-            <DatePicker value={value.from ?? ''} max={value.to} ariaLabel={t.revFrom}
-              onChange={(v) => onChange({ ...value, from: v })} />
-            <span style={{ fontSize: 13, color: '#8a85a0' }}>—</span>
-            <DatePicker value={value.to ?? ''} min={value.from} ariaLabel={t.revTo}
-              onChange={(v) => onChange({ ...value, to: v })} />
-          </>
-        )}
-      </div>
-    </div>
+          {draftMode === 'YEAR' && (
+            <>
+              {label(t.revFilterPeriod)}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <FilterSelect value={String(draft.fromYear ?? now.getFullYear() - 4)} options={years}
+                  onChange={(v) => setDraft({ ...draft, fromYear: Number(v) })} />
+                <span style={{ fontSize: 13, color: '#8a85a0' }}>—</span>
+                <FilterSelect value={String(draft.toYear ?? now.getFullYear())} options={years}
+                  onChange={(v) => setDraft({ ...draft, toYear: Number(v) })} />
+              </div>
+            </>
+          )}
+
+          {draftMode === 'CUSTOM' && (
+            <>
+              {label(t.revFrom)}
+              <DatePicker value={draft.from ?? ''} max={draft.to} ariaLabel={t.revFrom}
+                onChange={(v) => setDraft({ ...draft, from: v })} />
+              {label(t.revTo)}
+              <DatePicker value={draft.to ?? ''} min={draft.from} ariaLabel={t.revTo}
+                onChange={(v) => setDraft({ ...draft, to: v })} />
+            </>
+          )}
+
+          {!valid && (
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#dc2626', marginTop: 10 }}>{t.revFilterInvalid}</div>
+          )}
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+            <button onClick={() => setOpen(false)} style={{
+              flex: 1, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '9px 0',
+              fontSize: 13, fontWeight: 700, color: '#5b5670', cursor: 'pointer',
+            }}>
+              {t.close}
+            </button>
+            <button
+              onClick={() => { onChange(draft); setOpen(false); }}
+              disabled={!valid}
+              style={{
+                flex: 1, border: 'none', borderRadius: 10, padding: '9px 0', fontSize: 13, fontWeight: 700,
+                color: '#fff', background: brandGradient, cursor: valid ? 'pointer' : 'default', opacity: valid ? 1 : 0.55,
+              }}
+            >
+              {t.revFilterApply}
+            </button>
+          </div>
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }

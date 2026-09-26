@@ -6,9 +6,8 @@ import { Card, Icon, Loader } from '../../components/ui';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { useToast } from '../../components/toast/ToastProvider';
 import SectionCard from '../../components/admin/SectionCard';
-import { FilterSelect } from '../../components/admin/AdminListPage';
 import PageContainer from '../../components/PageContainer';
-import RevenueFilterBar from '../../components/admin/revenue/RevenueFilterBar';
+import RevenueFilterBar, { weekOf } from '../../components/admin/revenue/RevenueFilterBar';
 import SparklineCard from '../../components/admin/revenue/SparklineCard';
 import RevenueChart, { type RevenueChartMode } from '../../components/admin/revenue/RevenueChart';
 import PlanDonut from '../../components/admin/revenue/PlanDonut';
@@ -21,7 +20,7 @@ import {
   countRevenueTransactions, exportRevenue, getRevenueForecast, getRevenuePlanBreakdown,
   getRevenueSummary, getRevenueTimeseries, getRevenueTransactions,
   type PaymentStatus, type PlanRevenue, type RevenueComparison, type RevenueFilter,
-  type RevenueForecast, type RevenueGranularity, type RevenueSummary, type RevenueTimeseries,
+  type RevenueFilterMode, type RevenueForecast, type RevenueSummary, type RevenueTimeseries,
   type RevenueTransaction,
 } from '../../api/revenue';
 
@@ -55,12 +54,9 @@ function filterDateRange(f: RevenueFilter): { from: string; to: string } {
     }
     case 'MONTH':
       return { from: `${f.year}-01-01`, to: `${f.year}-12-31` };
-    case 'HALF_YEAR':
-      return f.half === 2
-        ? { from: `${f.year}-07-01`, to: `${f.year}-12-31` }
-        : { from: `${f.year}-01-01`, to: `${f.year}-06-30` };
     case 'YEAR':
       return { from: `${f.fromYear}-01-01`, to: `${f.toYear}-12-31` };
+    case 'WEEK':
     case 'CUSTOM':
       return { from: f.from!, to: f.to! };
   }
@@ -68,7 +64,7 @@ function filterDateRange(f: RevenueFilter): { from: string; to: string } {
 
 /** Đọc bộ lọc từ URL; tham số hỏng/thiếu thì rơi về mặc định thay vì để BE báo lỗi 2038. */
 function filterFromParams(params: URLSearchParams): RevenueFilter {
-  const g = params.get('granularity') as RevenueGranularity | null;
+  const g = params.get('granularity') as RevenueFilterMode | null;
   const num = (key: string) => {
     const raw = params.get(key);
     const parsed = raw === null ? NaN : Number(raw);
@@ -81,8 +77,11 @@ function filterFromParams(params: URLSearchParams): RevenueFilter {
       return { granularity: g, year: num('year') ?? now.getFullYear(), month: num('month') ?? now.getMonth() + 1 };
     case 'MONTH':
       return { granularity: g, year: num('year') ?? now.getFullYear() };
-    case 'HALF_YEAR':
-      return { granularity: g, year: num('year') ?? now.getFullYear(), half: (num('half') === 2 ? 2 : 1) };
+    case 'WEEK': {
+      // Luôn chuẩn hoá về Thứ 2 → Chủ nhật của tuần chứa `from` (link sửa tay vẫn ra tuần đúng).
+      const from = params.get('from');
+      return from && /^\d{4}-\d{2}-\d{2}$/.test(from) ? { granularity: g, ...weekOf(from) } : defaultFilter();
+    }
     case 'YEAR':
       return { granularity: g, fromYear: num('fromYear') ?? now.getFullYear() - 4, toYear: num('toYear') ?? now.getFullYear() };
     case 'CUSTOM': {
@@ -127,7 +126,6 @@ export default function Revenue() {
       granularity: next.granularity,
       year: next.year?.toString(),
       month: next.month?.toString(),
-      half: next.half?.toString(),
       fromYear: next.fromYear?.toString(),
       toYear: next.toYear?.toString(),
       from: next.from,
@@ -239,11 +237,9 @@ export default function Revenue() {
     PREV_HALF: t.revVsPrevHalf,
     PREV_RANGE: t.revVsPrevRange,
   };
-
-  const granularityOptions: [string, string][] = [
-    ['DAY', t.revModeDay], ['MONTH', t.revModeMonth],
-    ['HALF_YEAR', t.revModeHalf], ['YEAR', t.revModeYear],
-  ];
+  // Tuần là chế độ FE gửi BE dạng CUSTOM (PREV_RANGE) — nói rõ "tuần trước" cho dễ hiểu.
+  const cmpLabel = filter.granularity === 'WEEK' ? t.revVsPrevWeek
+    : summary ? comparisonLabel[summary.comparison] : '';
 
   // ---- Khối trạng thái dùng lại ----
   const loadingBox = (height: number) => (
@@ -282,7 +278,7 @@ export default function Revenue() {
 
   // Nhãn chế độ "từng bucket" theo đúng đơn vị bucket BE trả (ngày / tháng / năm).
   const bucketModeLabel = filter.granularity === 'YEAR' ? t.revModeYear
-    : filter.granularity === 'MONTH' || filter.granularity === 'HALF_YEAR' ? t.revModeMonth : t.revModeDay;
+    : filter.granularity === 'MONTH' ? t.revModeMonth : t.revModeDay;
 
   const modeBtn = (mode: RevenueChartMode, label: string) => {
     const active = chartMode === mode;
@@ -361,19 +357,19 @@ export default function Revenue() {
                 <SparklineCard
                   icon={Wallet} iconBg="linear-gradient(135deg,#f1e9ff,#fae9ff)" iconColor="#8b5cf6"
                   label={t.revTotal} value={formatVND(summary.totalRevenue)}
-                  deltaPct={summary.revenueDeltaPct} comparisonLabel={comparisonLabel[summary.comparison]}
+                  deltaPct={summary.revenueDeltaPct} comparisonLabel={cmpLabel}
                   sparkline={revenueSpark} tone="violet"
                 />
                 <SparklineCard
                   icon={ShoppingBag} iconBg="linear-gradient(135deg,#e9f0ff,#f1e9ff)" iconColor="#6366f1"
                   label={t.revOrders} value={summary.transactionCount.toLocaleString('vi-VN')}
-                  deltaPct={summary.transactionDeltaPct} comparisonLabel={comparisonLabel[summary.comparison]}
+                  deltaPct={summary.transactionDeltaPct} comparisonLabel={cmpLabel}
                   sparkline={txnSpark}
                 />
                 <SparklineCard
                   icon={BarChart3} iconBg="linear-gradient(135deg,#e7fff4,#e9f7ff)" iconColor="#10b981"
                   label={t.revAvg} value={formatVND(summary.avgPerTransaction)}
-                  deltaPct={summary.avgDeltaPct} comparisonLabel={comparisonLabel[summary.comparison]}
+                  deltaPct={summary.avgDeltaPct} comparisonLabel={cmpLabel}
                   sparkline={avgSpark}
                 />
               </div>
@@ -392,7 +388,7 @@ export default function Revenue() {
                 </div>
               )}
 
-              {/* D — Chart chính, dropdown đổi nhanh granularity ở góc phải */}
+              {/* D — Chart chính; đổi kỳ/chế độ ở nút Lọc trên cùng (không còn dropdown tắt ở đây). */}
               <SectionCard
                 title={t.revChart}
                 action={
@@ -401,20 +397,6 @@ export default function Revenue() {
                       {modeBtn('daily', bucketModeLabel)}
                       {modeBtn('cumulative', t.revChartCumulative)}
                     </div>
-                    <FilterSelect
-                      value={filter.granularity === 'CUSTOM' ? 'DAY' : filter.granularity}
-                      options={granularityOptions}
-                      onChange={(v) => {
-                        const now = new Date();
-                        const g = v as RevenueGranularity;
-                        applyFilter(
-                          g === 'DAY' ? { granularity: g, year: now.getFullYear(), month: now.getMonth() + 1 }
-                            : g === 'MONTH' ? { granularity: g, year: now.getFullYear() }
-                              : g === 'HALF_YEAR' ? { granularity: g, year: now.getFullYear(), half: now.getMonth() < 6 ? 1 : 2 }
-                                : { granularity: g, fromYear: now.getFullYear() - 4, toYear: now.getFullYear() },
-                        );
-                      }}
-                    />
                   </div>
                 }
               >
