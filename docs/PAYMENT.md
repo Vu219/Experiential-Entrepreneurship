@@ -13,9 +13,13 @@
 ## 1. Luồng tổng thể
 
 ```
-                    ┌─────────────────────────────────────────────┐
-  User bấm "Mua"    │ POST /payments/checkout {planId}            │
-  ─────────────────▶│  tx1: validate (Q1 nâng/hạ · Q2 đơn pending)│
+  User chọn gói ──▶ /billing/checkout?plan=<MÃ>  (trang "Xem lại đơn hàng")
+                    GET /payments/quote — CHỈ ĐỌC, bỏ ngang không đổi gì (§4a)
+                                   │ bấm "Thanh toán ngay"
+                    ┌──────────────▼──────────────────────────────┐
+                    │ POST /payments/checkout                     │
+                    │   {planId, paymentMethod, expectedAmount}   │
+                    │  tx1: tính lại báo giá (Q1) · Q2 đơn pending│
                     │       sinh orderCode 15 chữ số              │
                     │       INSERT payments PENDING               │
                     │       expiresAt = now + 15'  ◀── MỘT mốc duy│
@@ -94,13 +98,14 @@ PENDING ─┬─▶ PAID        (tiền về, khớp số → kích hoạt gói
 
 ---
 
-## 3. Danh sách endpoint (14)
+## 3. Danh sách endpoint (15)
 
 ### User — `PaymentController`, yêu cầu đăng nhập, scope theo token
 
 | Method | Path | Việc |
 |---|---|---|
-| POST | `/payments/checkout` | Tạo đơn + link. Chặn hạ gói (Q1); tối đa 1 đơn PENDING (Q2) |
+| GET | `/payments/quote?planId=` | Báo giá cho trang "Xem lại đơn hàng" — **chỉ đọc**. Đơn bị chặn vẫn trả 200 với `purchasable=false` + lý do (§4a) |
+| POST | `/payments/checkout` | Tạo đơn + link. Body `{planId, paymentMethod, expectedAmount}`; tính lại báo giá, lệch `expectedAmount` → 2122 (Q1); tối đa 1 đơn PENDING (Q2) |
 | GET | `/payments/billing` | Gói hiện hành + đơn đang chờ + **`serverTime`** cho đếm ngược |
 | GET | `/payments` | Lịch sử đơn, phân trang, lọc `status`/`from`/`to` |
 | GET | `/payments/{id}` | Chi tiết một đơn. Đơn người khác → **403** |
@@ -142,14 +147,78 @@ PENDING ─┬─▶ PAID        (tiền về, khớp số → kích hoạt gói
 
 | # | Quy tắc |
 |---|---|
-| **Q1** | Mua **trùng gói** → **cộng dồn** hạn (hạn cũ + 1 chu kỳ). **Nâng gói** → **thay thế** (now + 1 chu kỳ, bỏ phần dư). **Gói thấp hơn khi còn hạn** → CHẶN (`PLAN_DOWNGRADE_NOT_ALLOWED` 2072) |
-| **Q2** | **Tối đa 1 đơn PENDING/user** (partial unique `uk_payments_one_pending_per_user`). Cùng gói → trả lại link cũ, **giữ nguyên `expiresAt`**. Khác gói → huỷ đơn cũ rồi tạo đơn mới |
+| **Q1** | Mua **trùng gói** → **cộng dồn** hạn (hạn cũ + 1 chu kỳ, không khấu trừ). **Nâng gói** (chỉ lên gói **GIÁ cao hơn**) → **thay thế**: hạn = lúc trả tiền + 1 chu kỳ đầy đủ, **khấu trừ** giá trị còn lại của gói tự mua (§4a). **Gói không đắt hơn khi còn hạn** → CHẶN (`PLAN_DOWNGRADE_NOT_ALLOWED` 2072) |
+| **Q2** | **Tối đa 1 đơn PENDING/user** (partial unique `uk_payments_one_pending_per_user`). Cùng gói **+ cùng số tiền + cùng phương thức** → trả lại link cũ, **giữ nguyên `expiresAt`**. Khác (vd số ngày còn lại đổi làm đổi số tiền nâng cấp) → huỷ đơn cũ rồi tạo đơn mới |
 | **Q3** | `EXPIRED` + `CANCELLED` là trạng thái riêng, **không** gộp vào `FAILED` |
 | **Q4** | Bán **mọi gói** `isActive && price > 0` (kể cả gói admin tự tạo). `subscriptions` là nguồn sự thật; `User.plan` chỉ còn là **nhãn cache một chiều** |
 
-**Tiêu chí "hạ gói"** dùng chung một định nghĩa duy nhất: so `Plan.monthlyTokenLimit`,
-`null` = không giới hạn = cao nhất. FE khoá sẵn nút bằng **cùng** tiêu chí đó để user không bấm
-rồi mới ăn lỗi.
+**Tiêu chí "được đổi gói khi còn hạn"** (đổi 26/9, trước đây so `monthlyTokenLimit`): giá gói mới
+phải **cao hơn hẳn** giá gói đang dùng — gói tự mua so với `list_price` lúc mua, gói admin cấp so
+với giá hiện tại của gói. FE khoá sẵn nút theo giá hiện tại (gợi ý sớm); quyết định cuối cùng là
+báo giá của backend. `SubscriptionServiceImpl.isDowngrade` (đồng bộ nhãn `User.plan` khi sang kỳ)
+vẫn so hạn mức token — đó là chuyện khác, không phải quy tắc mua.
+
+### 4a. Trang "Xem lại đơn hàng" & khấu trừ khi nâng cấp (2026-09-26)
+
+**Không còn đường nào nhảy thẳng sang payOS.** Nút chọn gói ở Billing, bảng giá `/pricing` và
+landing đều mở `/billing/checkout?plan=<MÃ GÓI>` — trang riêng ngoài AppShell (không sidebar/topbar,
+vẫn cần đăng nhập). Trang gọi `GET /payments/quote` (chỉ đọc) và
+hiển thị 3 khối: gói đã chọn · tóm tắt đơn hàng · phương thức thanh toán. Đơn chỉ được tạo khi bấm
+"Thanh toán ngay"; gói hiện tại chỉ đổi khi tiền về (webhook/verify → `activatePaidPlan`).
+
+**Một công thức cho cả hai endpoint** — `util/CheckoutPricing` (hàm thuần, test đủ nhánh):
+
+```
+số ngày còn lại  = số ngày TRÒN từ bây giờ tới hạn cũ (làm tròn xuống)
+số ngày chu kỳ   = số ngày thật của chu kỳ kết thúc ở hạn cũ = days(hạn − N tháng, hạn)
+                   (tháng lịch, khớp plusMonths của activatePaidPlan — KHÔNG cố định 30)
+khấu trừ         = list_price gói cũ × còn lại / chu kỳ              (làm tròn xuống tới đồng)
+tổng             = (giá gói mới − khấu trừ) làm tròn xuống hàng nghìn
+làm tròn         = (giá gói mới − khấu trừ) − tổng                    (dòng riêng trên trang)
+hạn mới          = lúc trả tiền + 1 chu kỳ đầy đủ của gói mới (không cộng dồn phần còn lại)
+```
+
+| Tình huống | Loại đơn | Thu |
+|---|---|---|
+| Đang Free / gói cũ đã hết hạn | `NEW` | giá niêm yết (không làm tròn) |
+| Trùng gói đang còn hạn | `RENEW` | giá niêm yết, cộng dồn hạn |
+| Gói TỰ MUA còn hạn → gói giá cao hơn | `UPGRADE` | theo công thức trên |
+| Gói ADMIN cấp còn hạn → gói giá cao hơn | `NEW` | giá niêm yết, **không khấu trừ** (khách không trả tiền) |
+
+**"Giá gói cũ"** = `payments.list_price` của lần mua `PAID` gần nhất gói đó (giá niêm yết lúc mua,
+KHÔNG phải `amount` — đơn nâng cấp trả ít hơn giá niêm yết; KHÔNG phải giá hiện tại — admin có thể
+đổi giá sau). Đơn tạo trước 26/9 chưa có cột này → lùi về giá hiện tại của gói.
+
+**Hai lớp chặn — không bao giờ phát sinh đơn cần hoàn tiền** (hệ thống chưa có hoàn tiền):
+
+| Lớp | Điều kiện | Mã |
+|---|---|---|
+| 1 | Đổi sang gói khác khi còn hạn mà giá **không cao hơn** | 2072 `PLAN_DOWNGRADE_NOT_ALLOWED` |
+| 2 | Đơn nâng cấp có tổng ≤ 0 hoặc < `payment.min-amount` | 2120 `UPGRADE_CREDIT_EXCEEDS_PRICE` |
+| 2 | Đơn mua mới/gia hạn có giá < `payment.min-amount` | 2121 `PAYMENT_AMOUNT_BELOW_MINIMUM` |
+| — | Gia hạn một gói **không hết hạn** (sẽ biến nó thành có hạn) | 2124 `PLAN_ALREADY_PERMANENT` |
+
+Nâng từ gói chu kỳ dài (năm) sang gói tháng gần như luôn bị chặn — chấp nhận, không có logic riêng.
+`payment.min-amount` mặc định **2.000đ**: payOS không công bố mức tối thiểu (tài liệu chỉ ghi
+"số nguyên"), 2.000đ theo ví dụ SDK chính thức — **cần xác nhận với payOS lúc go-live** (§9).
+
+**Báo giá đổi giữa lúc xem và lúc bấm** (vd qua nửa đêm làm số ngày còn lại giảm 1): FE gửi
+`expectedAmount` = tổng vừa hiển thị; backend tính lại, lệch → 2122 `PAYMENT_QUOTE_CHANGED`, FE nạp
+lại báo giá. Không bao giờ thu một số tiền user chưa nhìn thấy.
+
+**Snapshot trên `payments`** (đều nullable): `order_type`, `payment_method`, `list_price`,
+`proration_credit`, `proration_remaining_days`, `proration_cycle_days`, `proration_rounding`,
+`from_plan_code`, `from_expires_at`. `order_type` + `payment_method` là cột enum → đã đăng ký
+`PaymentDataInitializer.ENUM_COLUMNS` (§11).
+
+**Phương thức thanh toán mở rộng được**: enum `PaymentMethod` (hiện chỉ `PAYOS_VIETQR`, chạy trên
+cổng `PAYOS` hoặc `MOCK`) — phương thức BẬT khi cổng đang cấu hình thuộc nhóm của nó; quote trả danh
+sách đang bật. FE: registry `config/paymentMethods.ts` (icon, nhãn, `proceed(order)` = bước tiếp
+theo). Thêm phương thức = thêm giá trị enum (+ bean `PaymentGatewayClient` nếu là cổng mới) + một mục
+registry; trang checkout không phải sửa.
+
+**Lưu ý hệ quả của "làm tròn ngày xuống"**: vừa mua Plus xong nâng lên Pro ngay thì còn 29/30 ngày
+(29 ngày 23 giờ làm tròn xuống) — khách mất giá trị ~1 ngày. Đúng quy tắc đã chốt.
 
 ### Điểm B — đơn `PROCESSING` không bao giờ bị huỷ
 
@@ -246,6 +315,7 @@ nhìn ra — bộ đếm này là tín hiệu duy nhất.
 |---|---|---|
 | `PAYMENT_GATEWAY` | `mock` | `mock` (dev) \| `payos` (thật) |
 | `PAYMENT_PENDING_TTL_MINUTES` | `15` | Hạn chờ thanh toán. **MỘT mốc duy nhất** cho cả đếm ngược phía user lẫn `expiredAt` gửi payOS |
+| `PAYMENT_MIN_AMOUNT` | `2000` | Số tiền nhỏ nhất (VND) được tạo đơn — dưới mức này bị chặn trước khi chạm cổng (§4a). Xác nhận với payOS lúc go-live |
 | `PAYMENT_GRACE_MINUTES` | `10` | Mỗi lần gặp link `PROCESSING` thì gia hạn thêm bấy nhiêu |
 | `PAYMENT_MAX_GRACE_ROUNDS` | `3` | Trần số vòng ân hạn; vượt → báo admin, đơn vẫn `PENDING` |
 | `PAYMENT_WEBHOOK_MAX_BODY_BYTES` | `16384` | Trần body webhook, kiểm trước khi parse |
@@ -296,7 +366,7 @@ trọn 9 luồng đã nghiệm thu:
 |---|---|---|
 | 1 | Free → mua PRO → thành công | ✅ gói đổi, hạn = now + 1 chu kỳ, `invoice_no` có, nhãn `User.plan` khớp |
 | 2 | Mua trùng gói | ✅ **cộng dồn** đúng 1 chu kỳ lên hạn cũ (Q1) |
-| 3 | Nâng gói PLUS → PRO | ✅ **thay thế**, hạn tính từ now, bỏ phần dư |
+| 3 | Nâng gói PLUS → PRO | ✅ **thay thế**, hạn tính từ now; thu `giá Pro − khấu trừ − làm tròn` (`order_type = UPGRADE`) |
 | 4 | Mua gói thấp hơn khi còn hạn | ✅ chặn đúng `PLAN_DOWNGRADE_NOT_ALLOWED` |
 | 5 | Tạo đơn rồi bỏ dở → hết TTL | ✅ đóng `EXPIRED` (không phải FAILED), user mua lại được ngay |
 | 6 | Timeout khi tạo link | ✅ đơn giữ `PENDING` + `reconcile_required`, job đối soát đóng đơn, **user không bị khoá khỏi việc mua** |
@@ -346,6 +416,9 @@ Mỗi dòng là một việc độc lập. Làm theo thứ tự.
 - [ ] **Trần `orderCode`.** Tạo một link thật với orderCode 15 chữ số. API từ chối → hạ xuống
       12 chữ số (chỉ sửa `ORDER_CODE_MIN`/`ORDER_CODE_BOUND` trong `PaymentServiceImpl`).
 - [ ] **Giới hạn khoảng `expiredAt`.** Xác nhận TTL 15 phút được chấp nhận.
+- [ ] **Số tiền tối thiểu payOS chấp nhận.** Tài liệu không công bố; `PAYMENT_MIN_AMOUNT` đang để
+      2.000đ (lớp chặn 2 của đơn nâng cấp — §4a). Tạo thử một link số tiền nhỏ; payOS từ chối thì
+      nâng biến này lên đúng mức của cổng.
 - [ ] **`description` tối đa bao nhiêu ký tự** khi TK ngân hàng **đã** liên kết payOS. Đang để
       mặc định an toàn 9 (`PAYOS_DESCRIPTION_MAX_LENGTH`).
 - [ ] **`PAID` hay `SUCCEEDED`.** SDK Go và trang tổng quan API của payOS mâu thuẫn nhau. Code
@@ -457,7 +530,7 @@ sinh ra** — áp cho cả 6 bộ lọc. `q` được trim, rỗng = không tìm
 ```
 backend/src/main/java/com/aima/
 ├── controller/
-│   ├── PaymentController.java            — 6 endpoint user + 1 endpoint mock (DEV-ONLY)
+│   ├── PaymentController.java            — 7 endpoint user (gồm /quote) + 1 endpoint mock (DEV-ONLY)
 │   ├── PayOSWebhookController.java        — public; hằng số WEBHOOK_ACK (§9 dòng đầu)
 │   └── AdminPaymentController.java        — 6 endpoint admin, @PreAuthorize cấp lớp
 ├── service/
@@ -468,12 +541,16 @@ backend/src/main/java/com/aima/
 │   └── Impl/{PayOSGatewayClientImpl, MockGatewayClientImpl}
 ├── scheduler/{PaymentReconcileJob, PaymentExpiryJob, SubscriptionExpiryJob}
 ├── util/PayOSSignature.java               — HMAC-SHA256 + mô phỏng Number.toString() của JS
+├── util/CheckoutPricing.java              — báo giá + khấu trừ nâng cấp + 2 lớp chặn (hàm thuần, §4a)
+├── enums/{PaymentOrderType, PaymentMethod}
 ├── config/{PaymentProperties, PayOSProperties, PayOSWebClientConfig, PaymentDataInitializer}
 └── mapper/{PaymentMapper, AdminPaymentMapper, PayOSMapper}
 
 frontend/src/
 ├── api/{payments.ts, adminPayments.ts}
-├── pages/app/{Billing.tsx, BillingReturn.tsx, BillingMock.tsx}
+├── pages/app/{Billing.tsx, BillingCheckout.tsx, BillingReturn.tsx, BillingMock.tsx}
+├── config/paymentMethods.ts               — registry phương thức thanh toán (§4a)
+├── components/billing/checkout/{SelectedPlanCard, OrderSummaryCard, PaymentMethodList}
 ├── pages/admin/Payments.tsx
 ├── components/billing/{useServerCountdown.ts, CurrentPlanCard, PendingOrderCard,
 │                       PlanChoiceGrid, PaymentHistory}

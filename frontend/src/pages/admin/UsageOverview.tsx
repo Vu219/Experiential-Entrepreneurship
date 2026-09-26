@@ -59,8 +59,8 @@ const RATE_TASKS: AiTaskCode[] = [
 ];
 const initialsOf = (name: string) => name.trim().split(/\s+/).map((w) => w[0]).slice(-2).join('').toUpperCase();
 
-/** Heatmap quá số ngày này thì gộp về 7 hàng thứ × 24 giờ (lưới theo ngày dài quá không đọc nổi). */
-const HEATMAP_MAX_DAY_ROWS = 31;
+/** Heatmap quá số ngày này thì gộp về 7 hàng thứ × 24 giờ — giữ lưới gọn 7 hàng như bản gốc. */
+const HEATMAP_MAX_DAY_ROWS = 7;
 
 const ddmm = (ymd: string) => `${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
 
@@ -99,7 +99,7 @@ export default function UsageOverview() {
   const [params, setParams] = useSearchParams();
   const rangeValue = usageRangeFromParams(params);
   const rangeKey = JSON.stringify(rangeValue);
-  // Khoảng tuỳ chọn đang nhập dở (thiếu/sai một đầu) → giữ khoảng hợp lệ gần nhất, không nạp lại.
+  // URL hỏng (khoảng tuỳ chỉnh thiếu/sai một đầu) → giữ khoảng hợp lệ gần nhất, không nạp lại.
   const [resolved, setResolved] = useState(() => resolveUsageRange(rangeValue) ?? resolveUsageRange({ preset: 'month' })!);
   useEffect(() => {
     const next = resolveUsageRange(usageRangeFromParams(params));

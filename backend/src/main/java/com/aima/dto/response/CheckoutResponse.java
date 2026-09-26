@@ -1,5 +1,6 @@
 package com.aima.dto.response;
 
+import com.aima.enums.PaymentMethod;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,4 +36,10 @@ public class CheckoutResponse {
     String planCode;
 
     Boolean reused;
+
+    /**
+     * Phương thức đã chọn — FE tra registry {@code config/paymentMethods.ts} để biết bước tiếp
+     * theo (payOS VietQR: chuyển sang {@code checkoutUrl}).
+     */
+    PaymentMethod paymentMethod;
 }

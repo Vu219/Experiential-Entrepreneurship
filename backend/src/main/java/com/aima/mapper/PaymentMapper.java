@@ -1,11 +1,14 @@
 package com.aima.mapper;
 
 import com.aima.dto.response.BillingOverviewResponse;
+import com.aima.dto.response.CheckoutQuoteResponse;
 import com.aima.dto.response.CheckoutResponse;
 import com.aima.dto.response.PaymentResponse;
 import com.aima.entity.Payment;
 import com.aima.entity.Plan;
 import com.aima.entity.Subscription;
+import com.aima.enums.PaymentMethod;
+import com.aima.util.CheckoutPricing;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -46,4 +49,36 @@ public interface PaymentMapper {
     BillingOverviewResponse toBillingOverview(Subscription subscription, Plan plan,
                                               PaymentResponse pendingPayment,
                                               LocalDateTime serverTime);
+
+    /**
+     * Báo giá cho trang "Xem lại đơn hàng". {@code currentPlan} null khi user đang Free; hai gói
+     * trùng tên thuộc tính nên mọi trường đều khai báo nguồn tường minh.
+     */
+    @Mapping(target = "planId", source = "plan.id")
+    @Mapping(target = "planCode", source = "plan.code")
+    @Mapping(target = "planNameVi", source = "plan.nameVi")
+    @Mapping(target = "planNameEn", source = "plan.nameEn")
+    @Mapping(target = "billingIntervalMonths", source = "plan.billingIntervalMonths")
+    @Mapping(target = "orderType", source = "quote.orderType")
+    @Mapping(target = "subtotal", source = "quote.subtotal")
+    @Mapping(target = "currentPlanCode", source = "currentPlan.code")
+    @Mapping(target = "currentPlanNameVi", source = "currentPlan.nameVi")
+    @Mapping(target = "currentPlanNameEn", source = "currentPlan.nameEn")
+    @Mapping(target = "currentPlanExpiresAt", source = "currentExpiresAt")
+    @Mapping(target = "oldListPrice", source = "quote.oldListPrice")
+    @Mapping(target = "prorationRemainingDays", source = "quote.proration.remainingDays")
+    @Mapping(target = "prorationCycleDays", source = "quote.proration.cycleDays")
+    @Mapping(target = "prorationCredit", source = "quote.proration.credit")
+    @Mapping(target = "roundingAmount",
+            expression = "java(quote.proration() == null ? 0L : quote.proration().rounding())")
+    @Mapping(target = "total", source = "quote.total")
+    @Mapping(target = "newExpiresAt", source = "quote.newExpiresAt")
+    @Mapping(target = "purchasable", expression = "java(quote.purchasable())")
+    @Mapping(target = "blockedCode",
+            expression = "java(quote.blockedBy() == null ? null : quote.blockedBy().getCode())")
+    @Mapping(target = "blockedMessage",
+            expression = "java(quote.blockedBy() == null ? null : quote.blockedBy().getMessage())")
+    CheckoutQuoteResponse toQuoteResponse(Plan plan, Plan currentPlan, LocalDateTime currentExpiresAt,
+                                          CheckoutPricing.Quote quote, List<PaymentMethod> paymentMethods,
+                                          LocalDateTime serverTime);
 }

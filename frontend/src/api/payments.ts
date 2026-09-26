@@ -12,6 +12,15 @@ export type { PaymentStatus, PaymentGateway } from './revenue';
 /** Vì sao user đang ở gói này — khác nhau ở chỗ có hạn hay không. */
 export type PlanSource = 'FREE' | 'PAYMENT' | 'ADMIN';
 
+/**
+ * Phương thức thanh toán — khớp enum `PaymentMethod` backend. Cách hiển thị + bước tiếp theo của
+ * từng phương thức nằm ở registry `config/paymentMethods.ts`.
+ */
+export type PaymentMethodCode = 'PAYOS_VIETQR';
+
+/** Mua mới / gia hạn (cộng dồn) / nâng cấp (khấu trừ giá trị còn lại). */
+export type OrderType = 'NEW' | 'RENEW' | 'UPGRADE';
+
 /** Ba nút của trang giả lập cổng (DEV-ONLY). */
 export type MockOutcome = 'success' | 'failed' | 'timeout';
 
@@ -72,6 +81,40 @@ export interface Checkout {
   planCode: string;
   /** true = đơn PENDING CŨ được dùng lại; expiresAt giữ nguyên mốc cũ, đừng cộng lại TTL. */
   reused: boolean;
+  paymentMethod: PaymentMethodCode | null;
+}
+
+/**
+ * Báo giá của trang "Xem lại đơn hàng" (`GET /payments/quote`) — backend tính, FE chỉ hiển thị.
+ * Luôn có `subtotal − prorationCredit − roundingAmount = total` (trường proration* chỉ có khi
+ * nâng cấp). Đơn bị chặn vẫn trả về, kèm `purchasable = false` + lý do.
+ */
+export interface CheckoutQuote {
+  planId: string;
+  planCode: string;
+  planNameVi: string;
+  planNameEn: string;
+  billingIntervalMonths: number;
+  orderType: OrderType;
+  subtotal: number;
+  /** Gói đang dùng — null khi đang Free / gói cũ đã hết hạn. */
+  currentPlanCode: string | null;
+  currentPlanNameVi: string | null;
+  currentPlanNameEn: string | null;
+  currentPlanExpiresAt: string | null;
+  oldListPrice: number | null;
+  prorationRemainingDays: number | null;
+  prorationCycleDays: number | null;
+  prorationCredit: number | null;
+  roundingAmount: number;
+  total: number;
+  /** Hạn dùng dự kiến nếu thanh toán ngay; mốc thật tính lại lúc tiền về. */
+  newExpiresAt: string | null;
+  purchasable: boolean;
+  blockedCode: number | null;
+  blockedMessage: string | null;
+  paymentMethods: PaymentMethodCode[];
+  serverTime: string;
 }
 
 export async function getBilling(): Promise<BillingOverview> {
@@ -98,8 +141,25 @@ export async function getPayment(paymentId: string): Promise<Payment> {
   return data.result;
 }
 
-export async function checkout(planId: string): Promise<Checkout> {
-  const { data } = await client.post<ApiResponse<Checkout>>('/payments/checkout', { planId });
+export async function getQuote(planId: string): Promise<CheckoutQuote> {
+  const { data } = await client.get<ApiResponse<CheckoutQuote>>('/payments/quote', { params: { planId } });
+  return data.result;
+}
+
+/**
+ * Tạo đơn — CHỈ gọi từ nút "Thanh toán ngay" của trang xem lại. `expectedAmount` là tổng user
+ * vừa thấy: backend tính lại, lệch thì trả lỗi PAYMENT_QUOTE_CHANGED (2122) thay vì thu số khác.
+ */
+export async function checkout(
+  planId: string,
+  paymentMethod: PaymentMethodCode,
+  expectedAmount: number,
+): Promise<Checkout> {
+  const { data } = await client.post<ApiResponse<Checkout>>('/payments/checkout', {
+    planId,
+    paymentMethod,
+    expectedAmount,
+  });
   return data.result;
 }
 

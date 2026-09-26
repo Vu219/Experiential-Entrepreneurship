@@ -1,21 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../auth/AuthContext';
 import PageContainer from '../../components/PageContainer';
 import ConfirmModal from '../../components/ConfirmModal';
-import { Loader } from '../../components/ui';
 import { useToast } from '../../components/toast/ToastProvider';
 import CurrentPlanCard from '../../components/billing/CurrentPlanCard';
 import PendingOrderCard from '../../components/billing/PendingOrderCard';
 import PlanChoiceGrid from '../../components/billing/PlanChoiceGrid';
+import BillingSkeleton from '../../components/billing/BillingSkeleton';
 import PaymentHistory from '../../components/billing/PaymentHistory';
 import { getPublicPlans, type PlanDto } from '../../api/plans';
 import {
   cancelPayment,
-  checkout,
   getBilling,
   listPayments,
-  rememberPendingPayment,
   type BillingOverview,
   type Payment,
 } from '../../api/payments';
@@ -30,19 +29,20 @@ const PAGE_SIZE = 10;
  * thật), KHÔNG lấy từ nhãn {@code user.plan} trong AuthContext: nhãn đó chỉ là cache một
  * chiều nên có thể lệch với gói thật (vd gói do admin tự tạo không có nhãn enum).</p>
  *
- * <p>Sau khi tạo đơn, FE nhớ {@code paymentId} rồi chuyển hẳn sang {@code checkoutUrl} của
- * cổng. Kết quả KHÔNG đọc từ query string lúc quay về — trang {@code /billing/return} gọi
- * endpoint verify để backend tự hỏi cổng.</p>
+ * <p>Chọn gói KHÔNG tạo đơn ngay: chuyển sang trang "Xem lại đơn hàng"
+ * ({@code /billing/checkout}), đơn chỉ được tạo khi bấm "Thanh toán ngay" ở đó. Kết quả thanh
+ * toán KHÔNG đọc từ query string lúc quay về — trang {@code /billing/return} gọi endpoint verify
+ * để backend tự hỏi cổng.</p>
  */
 export default function Billing() {
   const { t } = useApp();
   const { refreshUser } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [billing, setBilling] = useState<BillingOverview | null>(null);
   const [plans, setPlans] = useState<PlanDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busyPlanId, setBusyPlanId] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Payment | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
@@ -91,20 +91,8 @@ export default function Billing() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleBuy = async (plan: PlanDto) => {
-    setBusyPlanId(plan.id);
-    try {
-      const order = await checkout(plan.id);
-      // Nhớ đơn TRƯỚC khi rời trang: /billing/return cần paymentId để gọi verify, và query
-      // string payOS gắn vào return URL không có chữ ký nên không tin được.
-      rememberPendingPayment(order.paymentId);
-      window.location.assign(order.checkoutUrl);
-    } catch (e) {
-      toast.error((e as ApiError).message || t.blErrGeneric);
-      setBusyPlanId(null);
-      // Đơn có thể đã được tạo nhưng chưa lấy được link (đang đối soát) — nạp lại để thấy.
-      void loadBilling().catch(() => undefined);
-    }
+  const handleBuy = (plan: PlanDto) => {
+    navigate(`/billing/checkout?plan=${encodeURIComponent(plan.code)}`);
   };
 
   const handleCancel = async () => {
@@ -136,8 +124,8 @@ export default function Billing() {
 
   if (loading) {
     return (
-      <PageContainer>
-        <Loader />
+      <PageContainer role="status" aria-busy="true">
+        <BillingSkeleton />
       </PageContainer>
     );
   }
@@ -167,7 +155,7 @@ export default function Billing() {
             {t.blChoosePlan}
           </h2>
           <p style={{ margin: '0 0 14px', fontSize: 13.5, color: '#8a85a0' }}>{t.blChoosePlanSub}</p>
-          <PlanChoiceGrid plans={plans} billing={billing} busyPlanId={busyPlanId} onBuy={handleBuy} />
+          <PlanChoiceGrid plans={plans} billing={billing} onBuy={handleBuy} />
         </div>
       )}
 

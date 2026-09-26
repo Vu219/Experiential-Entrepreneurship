@@ -28,11 +28,11 @@ const STATUSES: PaymentStatus[] = [
 /**
  * Tab "Đơn hàng" của trang "Doanh thu & Đơn hàng" (trước là trang riêng /admin/payments — cùng
  * nguồn sổ cái `payments`: một dòng = một đơn = một lần thanh toán, nên gộp chung một trang).
- * Danh sách lọc theo KỲ của bộ lọc thời gian dùng chung (theo ngày đặt đơn); riêng hàng đợi
- * "cần đối soát" bỏ qua kỳ — việc tồn đọng phải thấy hết, kể cả đơn của kỳ trước.
+ * Danh sách VÀ ba thẻ số đều lọc theo KỲ của bộ lọc thời gian dùng chung (theo ngày đặt đơn;
+ * webhook theo thời điểm bị từ chối) — số trên thẻ khớp đúng danh sách khi bấm lọc.
  *
  * <p>Ba thẻ số ở đầu trang là <b>hàng đợi công việc</b>, không phải số liệu trang trí: đơn cần
- * đối soát tay, đơn đang chờ trả tiền, và webhook bị từ chối trong 24h. Bấm vào thẻ đầu là lọc
+ * đối soát tay, đơn đang chờ trả tiền, và webhook bị từ chối trong kỳ. Bấm vào thẻ đầu là lọc
  * ngay ra danh sách việc cần làm — bắt admin tự nhớ đi lọc mỗi ngày thì sớm muộn cũng có ngày
  * không ai lọc.</p>
  */
@@ -79,8 +79,8 @@ export default function OrdersTab({
           status: status || undefined,
           reconcileRequired: onlyReconcile ? true : undefined,
           q: q.trim() || undefined,
-          from: onlyReconcile ? undefined : from,
-          to: onlyReconcile ? undefined : to,
+          from,
+          to,
         },
         page,
         size
@@ -160,7 +160,7 @@ export default function OrdersTab({
               ? { color: '#dc2626', bg: '#fde8e8' }
               : { color: '#16a34a', bg: '#e8f8ee' }
           }
-          label={t.aoQueueWebhook}
+          label={`${t.aoQueueWebhook} · ${ddmm(from)} – ${ddmm(to)}`}
           hint={t.aoQueueWebhookHint}
           value={summary?.webhookRejected24h ?? 0}
         />
@@ -189,9 +189,6 @@ export default function OrdersTab({
               />
               {t.aoOnlyReconcile}
             </label>
-            {onlyReconcile && (
-              <span style={{ fontSize: 12, color: '#a39bbf' }}>{t.aoReconcileAllTime}</span>
-            )}
           </>
         }
       >
@@ -256,6 +253,8 @@ export default function OrdersTab({
     </>
   );
 }
+
+const ddmm = (ymd: string) => `${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
 
 const cellStyle = { padding: '12px 16px', fontSize: 13.5, color: '#4b4660' } as const;
 

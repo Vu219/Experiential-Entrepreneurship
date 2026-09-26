@@ -47,6 +47,8 @@ export const actionLabel = (lang: Lang, action: ActivityAction): string =>
     USER_DELETED: P(lang, 'Xóa người dùng', 'User deleted'),
     USER_PASSWORD_RESET: P(lang, 'Đặt lại mật khẩu người dùng', 'User password reset'),
     PLAN_CONFIG_UPDATED: P(lang, 'Sửa cấu hình gói', 'Plan config updated'),
+    LANDING_CONTENT_UPDATED: P(lang, 'Sửa nội dung Landing Page', 'Landing page content updated'),
+    LANDING_CONTENT_PUBLISHED: P(lang, 'Xuất bản Landing Page', 'Landing page published'),
     AI_CONFIG_UPDATED: P(lang, 'Sửa cấu hình AI', 'AI config updated'),
     API_VERSION_UPDATED: P(lang, 'Cập nhật version API', 'API version updated'),
     TOKENS_GRANTED: P(lang, 'Cấp thêm token', 'Tokens granted'),

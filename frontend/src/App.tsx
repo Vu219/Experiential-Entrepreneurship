@@ -22,6 +22,7 @@ const Trends = lazy(() => import("./pages/app/Trends.tsx"));
 const Brand = lazy(() => import("./pages/app/Brand.tsx"));
 const Billing = lazy(() => import("./pages/app/Billing.tsx"));
 const BillingReturn = lazy(() => import("./pages/app/BillingReturn.tsx"));
+const BillingCheckout = lazy(() => import("./pages/app/BillingCheckout.tsx"));
 const BillingMock = lazy(() => import("./pages/app/BillingMock.tsx"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -33,6 +34,7 @@ const AdminLogs = lazy(() => import("./pages/admin/Logs"));
 const AdminApiVersions = lazy(() => import("./pages/admin/ApiVersions"));
 const AdminRevenue = lazy(() => import("./pages/admin/Revenue"));
 const AdminPlans = lazy(() => import("./pages/admin/Plans"));
+const AdminLanding = lazy(() => import("./pages/admin/Landing"));
 const AdminUsage = lazy(() => import("./pages/admin/UsageOverview"));
 const AdminUserUsageDetail = lazy(() => import("./pages/admin/UserUsageDetail"));
 const AdminAiProviders = lazy(() => import("./pages/admin/AiProviders"));
@@ -89,6 +91,7 @@ const ADMIN_PAGE_IMPORTS = [
   () => import("./pages/admin/ApiVersions"),
   () => import("./pages/admin/Revenue"),
   () => import("./pages/admin/Plans"),
+  () => import("./pages/admin/Landing"),
   () => import("./pages/admin/UsageOverview"),
   () => import("./pages/admin/AiProviders"),
   () => import("./pages/admin/AiModels"),
@@ -150,6 +153,10 @@ export default function App() {
         <Route path="/forgot-password" element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />
         <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
         <Route path="/complete-profile" element={<CompleteProfilePage />} />
+        {/* Trang "Xem lại đơn hàng" — trang RIÊNG (không sidebar/topbar), cần đăng nhập. MỌI
+            đường mua gói đi qua đây, đơn chỉ tạo khi bấm "Thanh toán ngay". Query ?plan=<MÃ GÓI>
+            để landing/bảng giá dẫn thẳng tới. */}
+        <Route path="/billing/checkout" element={<ProtectedRoute><BillingCheckout /></ProtectedRoute>} />
 
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
@@ -186,6 +193,7 @@ export default function App() {
           <Route path="/admin/payments" element={<Navigate to="/admin/revenue?tab=orders" replace />} />
           <Route path="/admin/revenue" element={<AdminRevenue />} />
           <Route path="/admin/plans" element={<AdminPlans />} />
+          <Route path="/admin/landing" element={<AdminLanding />} />
           <Route path="/admin/usage" element={<AdminUsage />} />
           <Route path="/admin/usage/users/:id" element={<AdminUserUsageDetail />} />
           <Route path="/admin/ai/providers" element={<AdminAiProviders />} />

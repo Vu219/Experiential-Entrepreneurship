@@ -37,6 +37,8 @@ public class SecurityConfig {
             "/auth/login",
             "/auth/refresh",
             "/users/register",
+            "/users/register/verify",
+            "/users/register/resend-otp",
             "/auth/introspect",
             "/auth/logout",
             "/users/forgot-password",
@@ -46,6 +48,9 @@ public class SecurityConfig {
 
             // Gói dịch vụ cho landing page (card giá + bảng so sánh) — không cần đăng nhập.
             "/plans/public",
+
+            // Nội dung Landing Page đã xuất bản — không cần đăng nhập.
+            "/landing/public",
 
             // Meta OAuth callback: nền tảng redirect về (không có cookie auth) — userId lấy qua state.
             "/connections/*/callback",

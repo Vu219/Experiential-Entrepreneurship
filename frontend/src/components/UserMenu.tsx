@@ -7,8 +7,8 @@ import { useBreakpoint } from "../hooks/useBreakpoint";
 /**
  * Chip người dùng đã đăng nhập trên header. Hover (desktop) hoặc click để mở dropdown.
  * Dùng ở 2 nơi (một component để đồng nhất giao diện):
- *  - variant "landing" (mặc định): Hồ sơ / Bảng điều khiển / (Quản trị) / Đăng xuất; dòng phụ = email.
- *  - variant "app" (topbar trong ứng dụng): Trang chủ / Hồ sơ / Cài đặt / Đăng xuất;
+ *  - variant "landing" (mặc định): Hồ sơ / Gói & thanh toán / Bảng điều khiển / (Quản trị) / Đăng xuất; dòng phụ = email.
+ *  - variant "app" (topbar trong ứng dụng): Trang chủ / Hồ sơ / Gói & thanh toán / Cài đặt / Đăng xuất;
  *    dòng phụ = GÓI THẬT của user (Free/Plus/Pro — lấy từ /users/me, không hardcode).
  * Hỗ trợ: click ra ngoài đóng, Esc đóng (focus trả về nút mở), điều hướng bàn phím qua Tab.
  */
@@ -135,6 +135,7 @@ export default function UserMenu({ variant = "landing" }: { variant?: "landing" 
             ) : (
               <>
                 <MenuItem icon={<UserCircle size={17} />} label={t.navProfile} onClick={pick(() => go("profile"))} />
+                <MenuItem icon={<CreditCard size={17} />} label={t.navBilling} onClick={pick(() => go("billing"))} />
                 <MenuItem icon={<LayoutDashboard size={17} />} label={t.navDashboard} onClick={pick(() => go("dashboard"))} />
                 {role === "ADMIN" && <MenuItem icon={<Shield size={17} />} label={t.navAdmin} onClick={pick(() => go("admin"))} />}
               </>

@@ -115,7 +115,7 @@ class PaymentExpiryTest {
                 ((TransactionCallback<?>) inv.getArgument(0)).doInTransaction(mock(TransactionStatus.class)));
 
         PaymentProperties properties = new PaymentProperties(
-                PaymentGateway.PAYOS, 15, GRACE_MINUTES, MAX_GRACE_ROUNDS, 16384, 5, 10);
+                PaymentGateway.PAYOS, 15, GRACE_MINUTES, MAX_GRACE_ROUNDS, 16384, 5, 10, 2000);
 
         service = new PaymentServiceImpl(paymentRepository, mock(ActivityLogRepository.class),
                 mock(PlanRepository.class),

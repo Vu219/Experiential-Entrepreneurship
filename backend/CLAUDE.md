@@ -82,7 +82,7 @@ backend/
     ├── controller/
     │   ├── AuthenticationController.java    — POST /auth/{login,refresh,introspect,logout}, GET /auth/account-status
     │   ├── AccountController.java           — Single controller for ALL account management (user + admin, not split — see rule #1):
-    │   │                                       POST /users/register, GET /users, GET /users/{id}, GET /users/me, PUT /users/me, GET /users/me/profile,
+    │   │                                       POST /users/register (+ /register/verify, /register/resend-otp — OTP sign-up), GET /users, GET /users/{id}, GET /users/me, PUT /users/me, GET /users/me/profile,
     │   │                                       POST /users/{forgot-password,verify-otp,reset-password}, POST /users/me/change-password/{init,confirm},
     │   │                                       POST /users/me/deactivate-request (request delete), POST /users/me/restore (cancel delete)
     │   ├── BrandProfileController.java      — Brand profile CRUD (BR-01..BR-04)
@@ -93,6 +93,8 @@ backend/
     │   │   ├── IntrospectRequest.java
     │   │   ├── LogoutRequest.java           — body optional (access token blacklist only)
     │   │   ├── UserRegisterRequest.java
+    │   │   ├── RegisterVerifyRequest.java   — email + otpCode (sign-up step 2)
+    │   │   ├── RegisterResendOtpRequest.java — email (resend sign-up OTP)
     │   │   ├── UserRequest.java
     │   │   ├── UpdateProfileRequest.java    — fullName + phone + dateOfBirth + optional avatarUrl (complete-profile / edit; avatarUrl IGNOREd when null)
     │   │   ├── ForgotPasswordRequest.java / VerifyOtpRequest.java / ResetPasswordRequest.java
@@ -103,6 +105,7 @@ backend/
     │   └── response/
     │       ├── ApiResponse.java             — Universal response envelope {code, message, result}
     │       ├── AuthenticationResponse.java  — {token, authenticated}; refreshToken omitted from body
+    │       ├── RegisterOtpResponse.java     — email (lowercased) + expiresInSeconds + resendAfterSeconds (FE countdowns)
     │       ├── IntrospectResponse.java      — {valid}
     │       ├── MeResponse.java              — current user identity + profileCompleted + status + deletionDate (for the FE pending-delete banner)
     │       ├── DeleteAccountResponse.java   — status + deletionDate + daysRemaining + message (delete/restore result)
@@ -125,13 +128,14 @@ backend/
     │   ├── ErrorCode.java                   — Enum: code (int) + message (String) + HttpStatus
     │   └── GlobalExceptionHandler.java      — @ControllerAdvice: AppException, validation, AuthenticationException→401, AccessDeniedException→403, catch-all→500
     ├── mapper/                              — MapStruct (componentModel = "spring")
-    │   ├── UserMapper.java                  — UserRegisterRequest→User, User→UserResponse/MeResponse, UpdateProfileRequest→User & CompleteProfileRequest→User (@MappingTarget),
+    │   ├── UserMapper.java                  — toUser(email, fullName, password, phone) for OTP sign-up, User→UserResponse/MeResponse, UpdateProfileRequest→User & CompleteProfileRequest→User (@MappingTarget),
     │   │                                       User(+daysRemaining,message)→DeleteAccountResponse (delete/restore result; no separate DeleteAccountMapper)
     │   ├── AuthenticationMapper.java        — String token(+refresh)→AuthenticationResponse
     │   ├── OAuth2UserMapper.java            — OAuth2UserInfo→User + updateGoogleFields(@MappingTarget)
     │   └── BrandProfileMapper.java
     ├── repository/
-    │   ├── UserRepository.java              — findByEmail/findByUsername, existsByEmail/existsByUsername
+    │   ├── UserRepository.java              — findByEmail/findByUsername, existsByEmail/existsByUsername,
+    │   │                                       existsByEmailIgnoreCase + findFirstByEmailIgnoreCaseOrderByCreatedAtAsc (1 email = 1 account)
     │   ├── RoleRepository.java              — + findByRoleName(String)
     │   └── BrandProfileRepository.java
     └── service/
@@ -141,6 +145,7 @@ backend/
         ├── RefreshTokenService.java         — Interface: REFRESH token JTI tracking in Redis (rt:{jti}, user_rt:{userId}, logout_time:{email})
         ├── UserService.java                 — Interface
         ├── CustomOAuth2UserService.java     — Interface: Google profile → find/create User
+        ├── RegistrationService.java         — Interface: email/password sign-up in 2 steps (send OTP → verify → create + log in)
         ├── OtpService.java                  — Interface: OTP store/verify/markVerified/invalidate (Redis)
         ├── EmailService.java                — Interface: send OTP / password-reset emails
         ├── BrandProfileService.java         — Interface
@@ -152,7 +157,9 @@ backend/
             ├── JwtServiceImpl.java          — Nimbus JOSE implementation (MACSigner/MACVerifier, HS512)
             ├── RefreshTokenServiceImpl.java — StringRedisTemplate implementation
             ├── UserDetailsServiceImpl.java  — Spring UserDetailsService: load user by email
-            ├── CustomOAuth2UserServiceImpl.java — THE Google find/create path (uses OAuth2UserMapper)
+            ├── CustomOAuth2UserServiceImpl.java — Google find/create for NON-OIDC logins only — NOT invoked today (scope has `openid`
+            │                                       → Spring uses OidcUserService); the live path is OAuth2AuthenticationSuccessHandler
+            ├── RegistrationServiceImpl.java — OTP sign-up state in Redis (reg_pending/reg_otp/reg_otp_attempt/reg_otp_cooldown)
             ├── OtpServiceImpl.java          — Redis-backed OTP
             ├── BrevoEmailSender.java        — sends HTML email via Brevo Transactional Email API (HTTP/443, RestClient) — Render free tier blocks SMTP ports 25/465/587
             ├── EmailServiceImpl.java        — builds OTP / reset email bodies; delegates the actual send to BrevoEmailSender (no JavaMailSender/SMTP)
@@ -223,6 +230,14 @@ backend/
 >   FREE/PLUS/PRO bất biến (không sửa code/không xóa — mã 1983), giá trị ô = tick boolean HOẶC text.
 >   Seed idempotent `config/PlanDataInitializer` (@Order(4)). ErrorCodes 1980–1988. `MeResponse.plan`
 >   trả gói của user cho FE (header/sidebar upgrade card).
+> - **Landing Page CMS (2026-09-26)**: `controller/LandingContentController` (`GET /landing/public` — public,
+>   trong `PUBLIC_ENDPOINTS`, chỉ bản ĐÃ XUẤT BẢN) + `controller/LandingContentAdminController` (`/admin/landing`:
+>   list / `PUT /{key}` lưu nháp kèm `version` / `POST /{key}/publish` / `POST /publish` tất cả / `POST /{key}/discard`),
+>   `service/LandingContentService` (+`Impl`), `mapper/LandingSectionMapper`, `entity/LandingSection` (`draft_content` +
+>   `published_content` jsonb, `@Version`), `enums/LandingSectionKey` (khoá → schema), schema + Bean Validation ở
+>   `dto/landing/LandingContent` (records, chữ song ngữ `{vi,en}`; service convert JSON → record → validate → ghi lại
+>   JSON chuẩn hoá). Seed idempotent `config/init/LandingDataInitializer` (@Order(7)). ErrorCodes 2100–2102.
+>   "Chọn gói" KHÔNG nằm ở đây — vẫn là Plan Management.
 
 ---
 
@@ -367,17 +382,44 @@ because its `jti` is gone → 401.
 6. Set both tokens as HttpOnly cookies via `CookieUtils`.
 7. Return `{token, authenticated: true}` — no `refreshToken` in body.
 
-### Google OAuth2 Login — `GET /oauth2/authorization/google`
+### Google OAuth2 Login — `GET /oauth2/authorization/google` (same flow from /login and /register)
 1. Spring redirects to the Google consent screen.
 2. Google redirects to `/login/oauth2/code/google`.
-3. `CustomOAuth2UserServiceImpl.loadUser` loads the Google profile and **finds or creates** the local
-   `User` (links by email if existing; default role `"USER"`; password set to a random BCrypt hash;
-   `provider="GOOGLE"`). This is the single source of truth for Google user provisioning.
-4. `OAuth2AuthenticationSuccessHandler` takes the persisted `User` from `CustomOAuth2User`, issues
-   ACCESS + REFRESH tokens, sets cookies, and redirects to `FRONTEND_CALLBACK_URL?login=success`.
+3. Scope includes `openid`, so Spring uses its default **`OidcUserService`** — `CustomOAuth2UserServiceImpl`
+   (registered via `userInfoEndpoint.userService`) is **not** called for Google. The real find/create
+   happens in `OAuth2AuthenticationSuccessHandler`: email normalized to lowercase (`util/EmailNormalizer`),
+   looked up with `findFirstByEmailIgnoreCaseOrderByCreatedAtAsc`:
+   - **existing account** → link: set `googleId` (if null) + avatar (if null). **`provider` is kept as-is**
+     — never overwritten to `GOOGLE` (that used to turn email/password accounts into "Google users":
+     forced complete-profile + password reset, email locked for admins). If the account had no `googleId`
+     before, the redirect carries `&linked=1`.
+   - **new email** → create (`provider="GOOGLE"`, role `"USER"`, random BCrypt password, phone placeholder).
+4. Issue ACCESS + REFRESH tokens, set cookies, redirect to `FRONTEND_CALLBACK_URL?login=success[&linked=1]`.
 5. `OAuth2AuthenticationFailureHandler` redirects to `FRONTEND_CALLBACK_URL?error=<message>`.
 6. After redirect the FE just calls `GET /users/me` (cookies are already set). A first-time Google user
-   has `profileCompleted=false` (no phone/dateOfBirth) and is sent to the complete-profile screen.
+   has `profileCompleted=false` (no phone/dateOfBirth) and is sent to the complete-profile screen. The FE
+   shows "Email đã tồn tại, đã liên kết đăng nhập Google…" only when `linked=1` AND the button was pressed
+   on /register (origin kept in `sessionStorage`) — /login behaviour is unchanged.
+
+### Registration — email/password with OTP (2026-09-26)
+Account is created **only after** the email is verified. State lives in Redis (keys separate from the
+password-reset `pwd_otp:*`), config `otp.register.*`:
+1. `POST /users/register` (`UserRegisterRequest`) — email lowercased; exists (case-insensitive, Google or
+   email/password) → `EMAIL_EXISTED` 1003, no OTP. Else acquire the resend cooldown
+   (`reg_otp_cooldown:{email}` `SETNX` 60 s → `OTP_RESEND_TOO_SOON` 1079), store pending data
+   `reg_pending:{email}` (hash fullName / BCrypt password / phone, TTL 30 min) + `reg_otp:{email}` (BCrypt of a
+   `SecureRandom` 6-digit code, TTL 5 min), email it (`EmailService.sendRegisterOtpEmail`). Send failure →
+   OTP + cooldown removed so the user can retry immediately. Returns `RegisterOtpResponse`.
+2. `POST /users/register/resend-otp` — needs a pending registration (`REGISTRATION_SESSION_EXPIRED` 1080),
+   same cooldown; a new code replaces (invalidates) the old one and resets the wrong-attempt counter.
+3. `POST /users/register/verify` — wrong code → `REGISTER_OTP_INCORRECT` 1081; the 5th wrong attempt deletes the
+   code → `OTP_ATTEMPTS_EXCEEDED` 1072 (pending data kept → resend); missing/expired → `OTP_NOT_FOUND` 1060.
+   Correct code is **single-use**: only the request that deletes `reg_otp:{email}` proceeds. Re-check the email
+   (might have been taken via Google meanwhile → 1003, `saveAndFlush` unique violation also → 1003), create the
+   user (`UserMapper.toUser(email, fullName, password, phone)`, username = email, `provider` null →
+   "EMAIL", `profileCompleted=true`), clear all `reg_*` keys, log `ACCOUNT_REGISTERED`, then set the
+   same HttpOnly cookies as `/auth/login` (via `generateTokenForOAuth2User`).
+All three are public (`PUBLIC_ENDPOINTS`; `JwtAuthenticationFilter` already skips `/users/register*`).
 
 ### Refresh — `POST /auth/refresh` (public)
 1. Read refresh JWT from the HttpOnly cookie → `UNAUTHENTICATED` if missing.
@@ -697,6 +739,14 @@ tuyệt đối. Webhook payOS trả `code = "00"` nghĩa là *một lệnh chuy�
    đóng nhầm `FAILED` một đơn có thể đã tạo link thành công. 5xx/timeout = **không kết luận được**
    → giữ `PENDING` + `reconcile_required`.
 
+**Báo giá = `util/CheckoutPricing` — nguồn DUY NHẤT của số tiền** (2026-09-26). `GET /payments/quote`
+(trang "Xem lại đơn hàng", chỉ đọc) và `POST /payments/checkout` gọi cùng hàm; checkout nhận
+`expectedAmount` và từ chối 2122 nếu lệch. Đừng tính tiền ở chỗ khác. Hai lớp chặn không được gỡ vì
+hệ thống CHƯA có hoàn tiền: đổi gói khi còn hạn chỉ lên gói GIÁ cao hơn (2072), tổng phải ≥
+`payment.min-amount` (2120/2121). Khấu trừ nâng cấp dựa vào `payments.list_price` (giá niêm yết lúc
+mua) — mọi đường tạo đơn PAID mới phải ghi cột này. **ErrorCode** 2120–2124. Chi tiết:
+`docs/PAYMENT.md` §4a.
+
 **Trạng thái đơn**: `EXPIRED` (hết giờ) và `CANCELLED` (huỷ chủ động) **tách khỏi** `FAILED` có chủ
 đích — `FAILED` là vế duy nhất vào "tỉ lệ giao dịch thất bại", gộp lại sẽ thổi phồng chỉ số sức
 khoẻ cổng. Đơn cổng báo `PROCESSING` **tuyệt đối không huỷ**, chỉ gia hạn.
@@ -737,7 +787,8 @@ Timezone: APP_TIMEZONE (e.g. Asia/Ho_Chi_Minh)
 Host:    REDIS_HOST (default localhost) / Port: REDIS_PORT (default 6379) / Timeout: REDIS_TIMEOUT (default 2000ms)
 ```
 Used for: ACCESS token blacklist (`blacklist:{jti}`), REFRESH token tracking (`rt:{jti}`,
-`user_rt:{userId}`, `logout_time:{email}`), OTP state for password reset, and the social-connection
+`user_rt:{userId}`, `logout_time:{email}`), OTP state for password reset (`pwd_otp*:`) and sign-up
+(`reg_pending:`/`reg_otp:`/`reg_otp_attempt:`/`reg_otp_cooldown:` — see §4 "Registration"), and the social-connection
 OAuth CSRF state (`oauth_state:{state}` → `"{userId}|{platform}"`, short TTL). Run via `docker compose up -d`.
 
 ### `users` table — `User.java` (extends `BaseEntity`)
@@ -747,10 +798,10 @@ OAuth CSRF state (`oauth_state:{state}` → `"{userId}|{platform}"`, short TTL).
 | `user_name` | VARCHAR | unique, not null |
 | `password` | VARCHAR | BCrypt hash; **nullable** (Google users get a random hash, never log in by password) |
 | `full_name` | VARCHAR(100) | not null |
-| `email` | VARCHAR | unique, not null |
+| `email` | VARCHAR | unique, not null; new rows (sign-up + Google) stored **lowercase**, lookups for uniqueness are case-insensitive |
 | `phone` | VARCHAR | **nullable** (Google users may not provide one) |
 | `date_of_birth` | DATE | nullable; collected on the complete-profile screen |
-| `provider` | VARCHAR(20) | nullable; `"GOOGLE"` for OAuth2 users |
+| `provider` | VARCHAR(20) | nullable; `"GOOGLE"` only for accounts **created** by Google — linking Google to an email/password account keeps it null |
 | `google_id` | VARCHAR | unique, nullable |
 | `role_id` | UUID (FK→roles) | not null |
 | `status` | VARCHAR | `UserStatus` enum (`@Enumerated(STRING)`): `ACTIVE`, `LOCKED`, `PENDING_DELETE` |
@@ -857,6 +908,7 @@ SUPABASE_ANON_KEY                     # kept for reference; not used by the back
 JWT_ACCESS_TOKEN_EXPIRATION (3600s), JWT_REFRESH_TOKEN_EXPIRATION (604800s)
 REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_TIMEOUT, REDIS_SSL_ENABLED
 OTP_TTL_SECONDS (90), OTP_MAX_ATTEMPTS (5), OTP_VERIFIED_TTL_SECONDS (300)
+REGISTER_OTP_TTL_SECONDS (300), REGISTER_OTP_MAX_ATTEMPTS (5), REGISTER_OTP_RESEND_COOLDOWN_SECONDS (60), REGISTER_PENDING_TTL_SECONDS (1800)
 AUTH_COOKIE_NAME (refresh_token), AUTH_COOKIE_SECURE (false), AUTH_COOKIE_SAME_SITE (Lax), AUTH_COOKIE_PATH (/)
 ```
 

@@ -465,6 +465,16 @@ html {
 .social-item[data-social='youtube'] .social-tip {
   background: #ff0000;
 }
+.social-item[data-social='threads'] .social-fill,
+.social-item[data-social='threads'] .social-tip,
+.social-item[data-social='x'] .social-fill,
+.social-item[data-social='x'] .social-tip {
+  background: #111;
+}
+.social-item[data-social='website'] .social-fill,
+.social-item[data-social='website'] .social-tip {
+  background: #7c5cff;
+}
 
 /* ===== Bouncing-ball loader (auth/profile/data fetch waits) ===== */
 .loader {
@@ -885,6 +895,170 @@ html {
   transform: translateY(-6px);
   border-color: #e3d8f7 !important;
   box-shadow: 0 30px 50px -28px rgba(80, 40, 140, 0.55) !important;
+}
+
+/* "AIMA hoạt động thế nào?" (HowItWorks): ô số nghiêng + sáng khi hover thẻ; vệt sáng chạy dọc
+   vạch nối giữa các bước. Chỉ transform/opacity → compositor, không vẽ lại layout. */
+.hiw-num {
+  box-shadow: 0 12px 24px -12px rgba(139, 92, 246, 0.6);
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.35s ease;
+}
+.hiw-card:hover .hiw-num {
+  transform: scale(1.08) rotate(-6deg);
+  box-shadow: 0 16px 30px -10px rgba(139, 92, 246, 0.75);
+}
+.hiw-flow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 36%;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0), #8b5cf6 55%, #22d3ee 80%, rgba(34, 211, 238, 0));
+  opacity: 0;
+  transform: translateX(-100%);
+  animation: hiw-flow 2.6s cubic-bezier(0.45, 0, 0.3, 1) infinite;
+}
+@keyframes hiw-flow {
+  0% { transform: translateX(-100%); opacity: 0; }
+  15% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translateX(280%); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hiw-num { transition: none; }
+  .hiw-card:hover .hiw-num { transform: none; }
+  .hiw-flow { animation: none; display: none; }
+}
+
+/* "Một quy trình, trọn vẹn" (thẻ tính năng ở LandingPage): hover → vạch brand trên đỉnh chạy ra,
+   vệt sáng quét ngang thẻ, ô icon nghiêng + phóng nhẹ. Chỉ transform/opacity. */
+.feat-card {
+  position: relative;
+  overflow: hidden;
+}
+.feat-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--brand-gradient);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.feat-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.45) 50%, transparent 65%);
+  transform: translateX(-120%);
+}
+.feat-icon {
+  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.4s ease;
+}
+.feat-card:hover .feat-bar {
+  transform: scaleX(1);
+}
+.feat-card:hover .feat-sheen {
+  transform: translateX(120%);
+  transition: transform 0.9s ease;
+}
+.feat-card:hover .feat-icon {
+  transform: rotate(-8deg) scale(1.1);
+  box-shadow: 0 12px 24px -14px rgba(139, 92, 246, 0.55);
+}
+
+/* Header landing: trượt xuống khi vào trang, thanh tiến độ cuộn dọc đáy viên pill (scaleX do
+   LandingHeader cập nhật theo rAF), nút "Dùng thử" có vệt sáng lướt định kỳ. */
+@keyframes hdr-enter {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.hdr-enter {
+  animation: hdr-enter 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.hdr-progress {
+  position: absolute;
+  left: 28px;
+  right: 28px;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  pointer-events: none;
+  background: var(--brand-gradient);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: opacity 0.3s ease;
+  will-change: transform;
+}
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 45%;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: translateX(-120%) skewX(-20deg);
+  animation: btn-shine 4.5s ease-in-out 1.2s infinite;
+}
+@keyframes btn-shine {
+  0% { transform: translateX(-120%) skewX(-20deg); }
+  22%, 100% { transform: translateX(320%) skewX(-20deg); }
+}
+/* Hero landing: chấm badge "phát sóng", chữ gradient chuyển màu chậm + gạch chân tự vẽ.
+   Section hero dùng usePauseWhenOffscreen → animation lặp tự dừng khi cuộn đi (.anim-paused). */
+.hero-dot {
+  position: relative;
+}
+.hero-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: hero-ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes hero-ping {
+  0% { transform: scale(1); opacity: 0.7; }
+  80%, 100% { transform: scale(2.8); opacity: 0; }
+}
+.hero-grad {
+  position: relative;
+  display: inline-block;
+  /* background-clip:text chỉ tô trong khung hộp; line-height hẹp của h1 cắt dấu tiếng Việt chồng
+     cao (ộ, á) → nới padding để tô đủ nét, margin âm bù lại để không đẩy lệch bố cục. */
+  padding: 0.14em 0.06em 0.1em;
+  margin: -0.14em -0.06em -0.1em;
+  background-size: 220% 100%;
+  animation: hero-grad 7s ease-in-out infinite;
+}
+@keyframes hero-grad {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.hero-tilt {
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-dot::after, .hero-grad { animation: none; }
+  .hero-tilt { transition: none; transform: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feat-bar, .feat-icon { transition: none; }
+  .feat-card:hover .feat-icon { transform: none; }
+  .feat-sheen { display: none; }
+  .hdr-enter { animation: none; }
+  .btn-shine::after { animation: none; display: none; }
 }
 
 /* Clickable list card (strategy list) — gentler lift than .lift-card; selected state

@@ -111,6 +111,15 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, UUID> 
             """, nativeQuery = true)
     long countByActionSince(@Param("action") String action, @Param("since") LocalDateTime since);
 
+    /** Như {@link #countByActionSince} nhưng trong khoảng [from, to) — thẻ webhook theo kỳ đang lọc. */
+    @Query(value = """
+            select count(*) from activity_logs
+            where action = CAST(:action as varchar)
+              and created_at >= :from and created_at < :to
+            """, nativeQuery = true)
+    long countByActionBetween(@Param("action") String action, @Param("from") LocalDateTime from,
+                              @Param("to") LocalDateTime to);
+
     /**
      * Tổng quan quản trị (UI-10) — số user KHÁC NHAU có hoạt động mỗi ngày kể từ :from. Đây là
      * định nghĩa của thẻ "Hoạt động hôm nay": đếm NGƯỜI, không đếm số dòng log, nên một user

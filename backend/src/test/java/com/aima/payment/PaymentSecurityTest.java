@@ -5,6 +5,7 @@ import com.aima.dto.response.PaymentResponse;
 import com.aima.entity.Role;
 import com.aima.entity.User;
 import com.aima.enums.MockPaymentOutcome;
+import com.aima.enums.PaymentMethod;
 import com.aima.enums.UserPlan;
 import com.aima.enums.UserStatus;
 import com.aima.exception.AppException;
@@ -261,7 +262,9 @@ class PaymentSecurityTest {
         UUID planId = planRepository.findByCodeAndDeletedAtIsNull("PRO").orElseThrow().getId();
         try {
             return paymentService.checkout(owner.getEmail(),
-                    CheckoutRequest.builder().planId(planId).build()).getResult().getPaymentId();
+                    CheckoutRequest.builder().planId(planId).paymentMethod(PaymentMethod.PAYOS_VIETQR)
+                            .expectedAmount(paymentService.quote(owner.getEmail(), planId).getResult().getTotal())
+                            .build()).getResult().getPaymentId();
         } catch (AppException expected) {
             return paymentService.list(owner.getEmail(), null, null, null, 0, 1)
                     .getResult().getContent().getFirst().getId();

@@ -77,6 +77,11 @@ public enum ErrorCode {
     DOB_REQUIRED(1076, "Ngày sinh không được để trống", HttpStatus.BAD_REQUEST),
     INVALID_DOB(1077, "Ngày sinh phải là một ngày trong quá khứ", HttpStatus.BAD_REQUEST),
 
+    // ĐĂNG KÝ QUA OTP
+    OTP_RESEND_TOO_SOON(1079, "Bạn vừa yêu cầu mã OTP. Vui lòng đợi 60 giây trước khi gửi lại.", HttpStatus.TOO_MANY_REQUESTS),
+    REGISTRATION_SESSION_EXPIRED(1080, "Phiên đăng ký đã hết hạn. Vui lòng đăng ký lại.", HttpStatus.BAD_REQUEST),
+    REGISTER_OTP_INCORRECT(1081, "Mã OTP không chính xác. Vui lòng kiểm tra lại.", HttpStatus.BAD_REQUEST),
+
 
     // NOTIFICATION & FEEDBACK ERRORS
     NOTIFICATION_NOT_FOUND(1600, "Không tìm thấy thông báo", HttpStatus.NOT_FOUND),
@@ -310,7 +315,7 @@ public enum ErrorCode {
     PLAN_NOT_PURCHASABLE(2071, "Gói này hiện không bán — vui lòng chọn gói khác",
             HttpStatus.BAD_REQUEST),
     PLAN_DOWNGRADE_NOT_ALLOWED(2072,
-            "Bạn đang dùng gói cao hơn và còn hạn. Vui lòng chờ hết hạn gói hiện tại rồi mua gói này.",
+            "Chỉ nâng cấp được lên gói có giá cao hơn gói bạn đang dùng. Vui lòng chờ gói hiện tại hết hạn rồi mua gói này.",
             HttpStatus.BAD_REQUEST),
     PAYMENT_PENDING_EXISTS(2073,
             "Bạn đang có một đơn chờ thanh toán. Hoàn tất hoặc huỷ đơn đó trước khi tạo đơn mới.",
@@ -378,11 +383,37 @@ public enum ErrorCode {
     // subscriptions (nguồn sự thật) → nhãn và gói thật lệch nhau (bug 25/9).
     USER_PLAN_UPDATE_NOT_ALLOWED(2097,
             "Không đổi gói qua cập nhật tài khoản — dùng mục Gói dịch vụ", HttpStatus.BAD_REQUEST),
+    PAYMENT_SUMMARY_RANGE_INVALID(2098,
+            "Khoảng thời gian không hợp lệ — cần đủ từ ngày và đến ngày, từ ngày không sau đến ngày",
+            HttpStatus.BAD_REQUEST),
+
+    // Quản lý nội dung Landing Page — 2100+
+    LANDING_SECTION_NOT_FOUND(2100, "Không tìm thấy section Landing Page", HttpStatus.NOT_FOUND),
+    LANDING_CONTENT_INVALID(2101,
+            "Nội dung chưa hợp lệ — kiểm tra các ô bắt buộc (đủ cả tiếng Việt và tiếng Anh) và định dạng đường link",
+            HttpStatus.BAD_REQUEST),
+    LANDING_VERSION_CONFLICT(2102,
+            "Section này vừa được người khác cập nhật — tải lại trang để xem bản mới nhất", HttpStatus.CONFLICT),
 
     // Bộ lọc thời gian trang Token & hạn mức (admin usage) — 2110+
     USAGE_RANGE_INVALID(2110, "Khoảng thời gian không hợp lệ — cần đủ từ ngày và đến ngày, từ ngày không sau đến ngày",
             HttpStatus.BAD_REQUEST),
     USAGE_RANGE_TOO_LARGE(2111, "Khoảng thời gian quá dài — tối đa 366 ngày", HttpStatus.BAD_REQUEST),
+
+    // Trang "Xem lại đơn hàng" + khấu trừ khi nâng cấp gói — 2120+
+    UPGRADE_CREDIT_EXCEEDS_PRICE(2120,
+            "Giá trị còn lại của gói hiện tại gần bằng hoặc vượt giá gói mới nên không thể nâng cấp lúc này. Vui lòng chờ gói hiện tại hết hạn rồi mua gói này.",
+            HttpStatus.BAD_REQUEST),
+    PAYMENT_AMOUNT_BELOW_MINIMUM(2121,
+            "Số tiền thanh toán thấp hơn mức tối thiểu cổng thanh toán chấp nhận — vui lòng chọn gói khác",
+            HttpStatus.BAD_REQUEST),
+    PAYMENT_QUOTE_CHANGED(2122,
+            "Số tiền của đơn hàng vừa thay đổi (số ngày còn lại của gói hiện tại đã khác). Vui lòng xem lại đơn hàng rồi thanh toán.",
+            HttpStatus.CONFLICT),
+    PAYMENT_METHOD_NOT_SUPPORTED(2123, "Phương thức thanh toán này hiện chưa hỗ trợ — vui lòng chọn phương thức khác",
+            HttpStatus.BAD_REQUEST),
+    PLAN_ALREADY_PERMANENT(2124, "Gói hiện tại của bạn không có hạn dùng — không cần gia hạn",
+            HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

@@ -2,12 +2,17 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { Loader } from "../components/ui";
+import { consumeGoogleLinkedFromRegister } from "../api/auth";
+import { useToast } from "../components/toast/ToastProvider";
+import { useApp } from "../context/AppContext";
 
 export default function GoogleCallbackPage() {
   const { refreshUser } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [error, setError] = useState("");
+  const toast = useToast();
+  const { t } = useApp();
 
   useEffect(() => {
     const errorMsg = params.get("error");
@@ -16,6 +21,9 @@ export default function GoogleCallbackPage() {
       // hiển thị thông báo thân thiện, KHÔNG dùng banner "thành công" (notice).
       navigate("/login", { replace: true, state: { oauthError: errorMsg } });
       return;
+    }
+    if (consumeGoogleLinkedFromRegister(params)) {
+      toast.success(t.googleLinkedMsg, { title: t.googleLinkedTitle });
     }
     // Cookie HttpOnly đã được backend set trong lúc redirect.
     // Gọi /me để lấy danh tính rồi điều hướng theo trạng thái hồ sơ.

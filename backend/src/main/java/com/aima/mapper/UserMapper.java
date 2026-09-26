@@ -13,7 +13,6 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 import com.aima.dto.request.AdminCreateUserRequest;
 import com.aima.dto.request.AdminUpdateUserRequest;
 import com.aima.dto.request.UpdateProfileRequest;
-import com.aima.dto.request.UserRegisterRequest;
 import com.aima.dto.response.UserResponse;
 import com.aima.entity.User;
 
@@ -22,8 +21,12 @@ import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface UserMapper {
+    // Đăng ký qua OTP: dựng user từ thông tin chờ trong Redis (password đã là BCrypt).
+    // username = email; role/status/profileCompleted do service set.
     @Mapping(target = "username", source = "email")
-    User toUser(UserRegisterRequest request);
+    @Mapping(target = "email", source = "email")
+    @Mapping(target = "role", ignore = true)
+    User toUser(String email, String fullName, String password, String phone);
 
     // Admin tạo user: username = email; password/role/status do service set (role là String → Role nên ignore).
     @Mapping(target = "username", source = "email")

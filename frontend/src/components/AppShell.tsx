@@ -131,6 +131,7 @@ const PAGE_KEYS = {
   adminPayments: ['navAdminPayments', 'pageSubAdminPayments'],
   adminRevenue: ['navAdminRevenue', 'pageSubAdminRevenue'],
   adminPlans: ['navAdminPlans', 'pageSubAdminPlans'],
+  adminLanding: ['navAdminLanding', 'pageSubAdminLanding'],
   adminUsage: ['navAdminUsage', 'pageSubAdminUsage'],
   adminAiProviders: ['navAdminAiProviders', 'pageSubAdminAiProviders'],
   adminAiModels: ['navAdminAiModels', 'pageSubAdminAiModels'],

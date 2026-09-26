@@ -1,5 +1,5 @@
 import {
-  AlertTriangle, Code, Coins, DollarSign, Gauge, KeyRound, Package,
+  AlertTriangle, Code, LayoutTemplate, Coins, DollarSign, Gauge, KeyRound, Package,
   Route as RouteIcon, Server, Users, FileText, type LucideIcon,
 } from 'lucide-react';
 import { ICON } from '../data';
@@ -37,7 +37,10 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   },
   {
     labelKey: 'admGrpContent',
-    items: [{ key: 'adminPosts', labelKey: 'navAdminPosts', icon: AlertTriangle, roles: ADMIN_ONLY }],
+    items: [
+      { key: 'adminPosts', labelKey: 'navAdminPosts', icon: AlertTriangle, roles: ADMIN_ONLY },
+      { key: 'adminLanding', labelKey: 'navAdminLanding', icon: LayoutTemplate, roles: ADMIN_ONLY },
+    ],
   },
   {
     labelKey: 'admGrpBusiness',

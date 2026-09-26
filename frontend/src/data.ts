@@ -4,7 +4,7 @@ import { PLATFORM_BG, tagOf } from './theme';
 import {
   LayoutGrid, Sparkles, Calendar, BarChart3, TrendingUp, Star, User, Settings,
   Shield, Eye, Bell, LogOut, Heart,
-  Search, Lightbulb, PenLine, CalendarClock, Zap,
+  Zap,
 } from 'lucide-react';
 
 // ===== Semantic icon registry (Lucide) =====
@@ -24,30 +24,6 @@ export const ICON = {
 } as const;
 
 const P = (lang: Lang, vi: string, en: string) => (lang === 'en' ? en : vi);
-
-// ===== Landing flow cards =====
-const FLOW_ICONS = [Search, Lightbulb, PenLine, CalendarClock, BarChart3, Sparkles];
-export function flowCards(lang: Lang) {
-  const data: [string, string][] =
-    lang === 'en'
-      ? [
-          ['Trend research', 'AI scans industry trends and competitors in real time.'],
-          ['Idea suggestions', 'Topics, angles and formats tailored to your brand voice.'],
-          ['Content creation', 'Generate scripts, captions, hashtags & media per platform.'],
-          ['Schedule & auto-post', 'Smart scheduling and 24/7 auto publishing across platforms.'],
-          ['Collect data', 'Automatically measure the real performance of every post.'],
-          ['Analyze & optimize', 'Analyze results and optimize strategy for the next posts.'],
-        ]
-      : [
-          ['Nghiên cứu xu hướng', 'AI quét xu hướng theo ngành hàng và đối thủ theo thời gian thực.'],
-          ['Đề xuất ý tưởng', 'Gợi ý chủ đề, góc nhìn và định dạng phù hợp với thương hiệu của bạn.'],
-          ['Tạo nội dung', 'Tạo script, caption, hashtag và media tối ưu cho từng nền tảng.'],
-          ['Lên lịch & tự đăng', 'Lập lịch thông minh và tự động đăng bài 24/7 đa nền tảng.'],
-          ['Thu thập dữ liệu', 'Tự động đo lường hiệu quả thực tế của mỗi bài đăng.'],
-          ['Phân tích & tối ưu', 'Phân tích kết quả và tối ưu chiến lược cho các bài sau.'],
-        ];
-  return data.map((c, i) => ({ title: c[0], desc: c[1], icon: FLOW_ICONS[i] }));
-}
 
 // ===== Landing pricing plans =====
 // Dữ liệu gói giá đã chuyển sang src/config/plans.ts (một nguồn duy nhất cho

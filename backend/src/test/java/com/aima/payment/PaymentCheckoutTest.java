@@ -2,6 +2,7 @@ package com.aima.payment;
 
 import com.aima.config.PaymentProperties;
 import com.aima.dto.request.CheckoutRequest;
+import com.aima.dto.response.CheckoutQuoteResponse;
 import com.aima.dto.response.CheckoutResponse;
 import com.aima.entity.Payment;
 import com.aima.entity.Plan;
@@ -10,6 +11,8 @@ import com.aima.entity.User;
 import com.aima.enums.GatewayLinkStatus;
 import com.aima.enums.MockGatewayScenario;
 import com.aima.enums.PaymentGateway;
+import com.aima.enums.PaymentMethod;
+import com.aima.enums.PaymentOrderType;
 import com.aima.enums.PaymentStatus;
 import com.aima.enums.PlanSource;
 import com.aima.enums.SubscriptionStatus;
@@ -126,7 +129,7 @@ class PaymentCheckoutTest {
                 ((TransactionCallback<?>) inv.getArgument(0)).doInTransaction(mock(TransactionStatus.class)));
 
         PaymentProperties properties = new PaymentProperties(
-                PaymentGateway.MOCK, 15, 10, 3, 16384, 5, 10);
+                PaymentGateway.MOCK, 15, 10, 3, 16384, 5, 10, 2000);
 
         service = new PaymentServiceImpl(paymentRepository, mock(ActivityLogRepository.class),
                 planRepository, userRepository,
@@ -147,7 +150,13 @@ class PaymentCheckoutTest {
     }
 
     private CheckoutResponse checkout(Plan plan) {
-        return service.checkout(EMAIL, CheckoutRequest.builder().planId(plan.getId()).build()).getResult();
+        // User của lớp này mặc định đang Free → báo giá = đúng giá niêm yết.
+        return checkout(plan, plan.getPrice());
+    }
+
+    private CheckoutResponse checkout(Plan plan, long expectedAmount) {
+        return service.checkout(EMAIL, CheckoutRequest.builder().planId(plan.getId())
+                .paymentMethod(PaymentMethod.PAYOS_VIETQR).expectedAmount(expectedAmount).build()).getResult();
     }
 
     private Payment onlyOpenOrder() {
@@ -303,6 +312,7 @@ class PaymentCheckoutTest {
         Payment rival = Payment.builder()
                 .user(user).plan(proPlan).amount(proPlan.getPrice()).currency("VND")
                 .status(PaymentStatus.PENDING).gateway(PaymentGateway.MOCK)
+                .paymentMethod(PaymentMethod.PAYOS_VIETQR)
                 .gatewayTxnId("100000000000001").orderedAt(LocalDateTime.now())
                 .expiresAt(LocalDateTime.now().plusMinutes(15))
                 .checkoutUrl("http://localhost:3000/billing/mock/rival")
@@ -395,6 +405,97 @@ class PaymentCheckoutTest {
 
         assertEquals(ErrorCode.PLAN_DOWNGRADE_NOT_ALLOWED, ex.getErrorCode());
         assertTrue(store.isEmpty(), "Không được tạo đơn khi đã bị chặn");
+    }
+
+    /** User đang ở Plus TỰ MUA (giá niêm yết lúc mua 99.000), còn hạn tới {@code expiresAt}. */
+    private void currentlyOnPaidPlus(LocalDateTime expiresAt) {
+        Subscription sub = Subscription.builder()
+                .user(user).plan(plusPlan).status(SubscriptionStatus.ACTIVE)
+                .planSource(PlanSource.PAYMENT).planExpiresAt(expiresAt)
+                .currentPeriodStart(LocalDateTime.now()).currentPeriodEnd(LocalDateTime.now().plusMonths(1))
+                .build();
+        when(subscriptionRepository.findWithPlanByUserId(user.getId())).thenReturn(Optional.of(sub));
+        when(paymentRepository.findFirstByUser_IdAndPlan_IdAndStatusAndDeletedAtIsNullOrderByPaidAtDesc(
+                user.getId(), plusPlan.getId(), PaymentStatus.PAID))
+                .thenReturn(Optional.of(Payment.builder().listPrice(99_000L).build()));
+    }
+
+    @Test
+    void quote_upgrade_showsTheProrationAndCreatesNothing() {
+        currentlyOnPaidPlus(LocalDateTime.now().plusDays(10).plusHours(1));
+
+        CheckoutQuoteResponse quote = service.quote(EMAIL, proPlan.getId()).getResult();
+
+        assertTrue(quote.getPurchasable());
+        assertEquals(PaymentOrderType.UPGRADE, quote.getOrderType());
+        assertEquals("PLUS", quote.getCurrentPlanCode());
+        assertEquals(10, quote.getProrationRemainingDays());
+        assertEquals(99_000L, quote.getOldListPrice());
+        assertEquals(299_000L - quote.getProrationCredit() - quote.getRoundingAmount(), quote.getTotal());
+        assertEquals(0, quote.getTotal() % 1_000, "tổng làm tròn xuống tới hàng nghìn");
+        assertEquals(List.of(PaymentMethod.PAYOS_VIETQR), quote.getPaymentMethods());
+        verify(paymentRepository, never()).save(any());
+        verify(subscriptionService, never()).activatePaidPlan(any(), any(), any());
+    }
+
+    @Test
+    void checkout_upgrade_chargesTheQuotedAmountAndSnapshotsTheQuote() {
+        LocalDateTime plusExpiry = LocalDateTime.now().plusDays(10).plusHours(1);
+        currentlyOnPaidPlus(plusExpiry);
+        CheckoutQuoteResponse quote = service.quote(EMAIL, proPlan.getId()).getResult();
+
+        CheckoutResponse response = checkout(proPlan, quote.getTotal());
+
+        Payment saved = store.get(response.getPaymentId());
+        assertEquals(quote.getTotal(), saved.getAmount());
+        assertEquals(PaymentOrderType.UPGRADE, saved.getOrderType());
+        assertEquals(PaymentMethod.PAYOS_VIETQR, saved.getPaymentMethod());
+        assertEquals(299_000L, saved.getListPrice(), "giá niêm yết lúc mua — nguồn khấu trừ lần sau");
+        assertEquals(quote.getProrationCredit(), saved.getProrationCredit());
+        assertEquals(10, saved.getProrationRemainingDays());
+        assertEquals(quote.getRoundingAmount(), saved.getProrationRounding());
+        assertEquals("PLUS", saved.getFromPlanCode());
+        assertEquals(plusExpiry, saved.getFromExpiresAt());
+        // Gói hiện tại chỉ đổi khi tiền về — tạo đơn thôi thì không đụng tới.
+        verify(subscriptionService, never()).activatePaidPlan(any(), any(), any());
+    }
+
+    @Test
+    void checkout_expectedAmountDiffersFromTheQuote_isRejected() {
+        AppException ex = assertThrows(AppException.class, () -> checkout(proPlan, 298_000L));
+
+        assertEquals(ErrorCode.PAYMENT_QUOTE_CHANGED, ex.getErrorCode());
+        assertTrue(store.isEmpty());
+    }
+
+    @Test
+    void checkout_blockedUpgrade_failsWithTheReasonTheQuoteShows() {
+        // Plus 99.000 còn ~60 ngày (gia hạn chồng) → giá trị còn lại ~195.000 > giá gói mới 120.000.
+        Plan plusMax = plan("PLUS_MAX", 120_000L, 600_000L);
+        when(planRepository.findByIdAndDeletedAtIsNull(plusMax.getId())).thenReturn(Optional.of(plusMax));
+        currentlyOnPaidPlus(LocalDateTime.now().plusDays(60));
+
+        CheckoutQuoteResponse quote = service.quote(EMAIL, plusMax.getId()).getResult();
+        AppException ex = assertThrows(AppException.class, () -> checkout(plusMax, quote.getTotal()));
+
+        assertFalse(quote.getPurchasable());
+        assertEquals(ErrorCode.UPGRADE_CREDIT_EXCEEDS_PRICE.getCode(), quote.getBlockedCode());
+        assertEquals(ErrorCode.UPGRADE_CREDIT_EXCEEDS_PRICE, ex.getErrorCode());
+        assertTrue(store.isEmpty(), "không bao giờ tạo đơn ≤ 0");
+    }
+
+    @Test
+    void checkout_samePlanButTheAmountChanged_replacesTheOldPendingOrder() {
+        CheckoutResponse first = checkout(proPlan);           // lúc còn Free: 299.000
+        currentlyOnPaidPlus(LocalDateTime.now().plusDays(10).plusHours(1));
+        long upgradeTotal = service.quote(EMAIL, proPlan.getId()).getResult().getTotal();
+
+        CheckoutResponse second = checkout(proPlan, upgradeTotal);
+
+        assertNotEquals(first.getPaymentId(), second.getPaymentId(),
+                "link cũ mang số tiền cũ — dùng lại là bắt user trả khác con số vừa thấy");
+        assertEquals(PaymentStatus.CANCELLED, store.get(first.getPaymentId()).getStatus());
+        assertEquals(upgradeTotal, second.getAmount());
     }
 
     @Test

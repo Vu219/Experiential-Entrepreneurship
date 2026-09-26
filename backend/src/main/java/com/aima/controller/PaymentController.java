@@ -3,6 +3,7 @@ package com.aima.controller;
 import com.aima.dto.request.CheckoutRequest;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.BillingOverviewResponse;
+import com.aima.dto.response.CheckoutQuoteResponse;
 import com.aima.dto.response.CheckoutResponse;
 import com.aima.dto.response.PageResponse;
 import com.aima.dto.response.PaymentResponse;
@@ -44,9 +45,17 @@ public class PaymentController {
 
     PaymentService paymentService;
 
+    @GetMapping("/quote")
+    @Operation(summary = "Order review quote for a plan",
+            description = "Read-only: prices the order (upgrade credit, rounding, total) without creating anything. Blocked orders still return 200 with purchasable=false and the reason.")
+    public ApiResponse<CheckoutQuoteResponse> quote(@AuthenticationPrincipal UserDetails principal,
+                                                    @RequestParam UUID planId) {
+        return paymentService.quote(principal.getUsername(), planId);
+    }
+
     @PostMapping("/checkout")
     @Operation(summary = "Create a payment order and checkout link",
-            description = "Blocks downgrades while the current plan is still valid, and keeps at most one pending order per user: buying the same plan again returns the existing link untouched.")
+            description = "Re-prices the order server-side (rejects with PAYMENT_QUOTE_CHANGED if it differs from expectedAmount), only lets a still-valid plan move to a strictly more expensive one, and keeps at most one pending order per user.")
     public ApiResponse<CheckoutResponse> checkout(@AuthenticationPrincipal UserDetails principal,
                                                   @Valid @RequestBody CheckoutRequest request) {
         return paymentService.checkout(principal.getUsername(), request);

@@ -37,6 +37,13 @@ public record PaymentProperties(
         int webhookAlertThreshold,
 
         /** Cửa sổ đếm cảnh báo (phút); cũng là khoảng chờ tối thiểu giữa hai lần báo admin. */
-        long webhookAlertWindowMinutes
+        long webhookAlertWindowMinutes,
+
+        /**
+         * Số tiền nhỏ nhất (VND) được phép tạo đơn — lớp chặn 2 của {@code CheckoutPricing}. payOS
+         * không công bố mức tối thiểu (tài liệu chỉ ghi "số nguyên") nên để cấu hình được; đơn
+         * dưới mức này bị chặn TRƯỚC khi chạm cổng, không bao giờ phát sinh đơn ≤ 0.
+         */
+        long minAmount
 ) {
 }

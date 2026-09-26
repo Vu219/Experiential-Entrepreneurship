@@ -15,7 +15,6 @@ import org.springframework.data.domain.Pageable;
 import java.util.UUID;
 
 public interface UserService {
-    ApiResponse<UserResponse> registerUser(UserRegisterRequest request);
     ApiResponse<PageResponse<UserResponse>> getAllUsers(String q, UserStatus status, String role, UserPlan plan, Pageable pageable);
     ApiResponse<UserStatsResponse> getUserStats();
     ApiResponse<UserResponse> getUserById(UUID userId);

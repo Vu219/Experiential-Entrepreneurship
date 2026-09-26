@@ -65,11 +65,29 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public ApiResponse<AdminPaymentSummaryResponse> summary() {
-        long reconcile = paymentRepository.countByReconcileRequiredTrueAndDeletedAtIsNull();
-        long pending = paymentRepository.countByStatusAndDeletedAtIsNull(PaymentStatus.PENDING);
-        long rejected = activityLogRepository.countByActionSince(
-                ActivityAction.PAYMENT_WEBHOOK_REJECTED.name(), LocalDateTime.now().minusHours(24));
+    public ApiResponse<AdminPaymentSummaryResponse> summary(LocalDate from, LocalDate to) {
+        long reconcile;
+        long pending;
+        long rejected;
+        if (from == null && to == null) {
+            reconcile = paymentRepository.countByReconcileRequiredTrueAndDeletedAtIsNull();
+            pending = paymentRepository.countByStatusAndDeletedAtIsNull(PaymentStatus.PENDING);
+            rejected = activityLogRepository.countByActionSince(
+                    ActivityAction.PAYMENT_WEBHOOK_REJECTED.name(), LocalDateTime.now().minusHours(24));
+        } else {
+            if (from == null || to == null || to.isBefore(from)) {
+                throw new AppException(ErrorCode.PAYMENT_SUMMARY_RANGE_INVALID);
+            }
+            // Cùng mốc và cùng Specification với list() → số trên thẻ khớp đúng danh sách khi bấm lọc.
+            LocalDateTime start = from.atStartOfDay();
+            LocalDateTime end = to.plusDays(1).atStartOfDay();
+            reconcile = paymentRepository.count(PaymentSpecifications.adminSearch(
+                    null, null, true, start, end, null));
+            pending = paymentRepository.count(PaymentSpecifications.adminSearch(
+                    PaymentStatus.PENDING, null, null, start, end, null));
+            rejected = activityLogRepository.countByActionBetween(
+                    ActivityAction.PAYMENT_WEBHOOK_REJECTED.name(), start, end);
+        }
         AdminPaymentSummaryResponse result = adminPaymentMapper.toSummary(reconcile, pending, rejected);
         return ApiResponse.success("Lấy tổng quan đơn hàng thành công", result);
     }

@@ -52,8 +52,52 @@ export interface CompleteProfileRequest {
 // từ VITE_API_BASE_URL với đường dẫn endpoint OAuth2.
 export const GOOGLE_LOGIN_URL = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/google`;
 
-export async function register(request: RegisterRequest): Promise<void> {
-  await client.post<ApiResponse<unknown>>("/users/register", request);
+// Nút Google ở /register chỉ khác /login ở thông báo "đã liên kết": ghi nguồn trước khi rời trang,
+// callback đọc lại (một lần) cùng cờ `linked=1` backend gắn vào URL khi vừa liên kết tài khoản có sẵn.
+const GOOGLE_ORIGIN_KEY = "aima_google_origin";
+
+export function startGoogleAuth(origin: "login" | "register"): void {
+  try {
+    sessionStorage.setItem(GOOGLE_ORIGIN_KEY, origin);
+  } catch {
+    // sessionStorage bị chặn → chỉ mất thông báo "đã liên kết", đăng nhập vẫn chạy.
+  }
+  window.location.href = GOOGLE_LOGIN_URL;
+}
+
+/** true khi vừa liên kết Google vào tài khoản có sẵn từ nút ở trang Đăng ký. Đọc xong xoá cờ. */
+export function consumeGoogleLinkedFromRegister(params: URLSearchParams): boolean {
+  let origin: string | null = null;
+  try {
+    origin = sessionStorage.getItem(GOOGLE_ORIGIN_KEY);
+    sessionStorage.removeItem(GOOGLE_ORIGIN_KEY);
+  } catch {
+    return false;
+  }
+  return origin === "register" && params.get("linked") === "1";
+}
+
+// ----- Đăng ký email/mật khẩu (2 bước, OTP) -----
+// Bước 1: backend kiểm tra email trùng rồi gửi OTP — CHƯA tạo tài khoản.
+export interface RegisterOtpResult {
+  email: string;
+  expiresInSeconds: number;
+  resendAfterSeconds: number;
+}
+
+export async function register(request: RegisterRequest): Promise<RegisterOtpResult> {
+  const { data } = await client.post<ApiResponse<RegisterOtpResult>>("/users/register", request);
+  return data.result;
+}
+
+export async function resendRegisterOtp(email: string): Promise<RegisterOtpResult> {
+  const { data } = await client.post<ApiResponse<RegisterOtpResult>>("/users/register/resend-otp", { email });
+  return data.result;
+}
+
+// Bước 2: OTP đúng → backend tạo tài khoản + set cookie HttpOnly (đăng nhập luôn).
+export async function verifyRegister(email: string, otpCode: string): Promise<void> {
+  await client.post<ApiResponse<unknown>>("/users/register/verify", { email, otpCode });
 }
 
 // Backend chỉ set cookie HttpOnly và không trả user trong body, nên sau khi

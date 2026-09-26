@@ -43,11 +43,19 @@ export default function LandingHeader() {
 
   // Một listener duy nhất: cập nhật trạng thái cuộn (zustand) + section đang xem
   // (scroll-spy, chỉ có nghĩa trên Landing) để highlight link tương ứng trên header.
+  // Gộp theo rAF: đọc offsetTop ép tính layout — không làm việc đó ở MỌI sự kiện scroll.
+  // Thanh tiến độ cuộn dưới đáy header: ghi thẳng transform qua ref (không setState → không re-render mỗi frame).
+  const progressRef = useRef<HTMLSpanElement>(null);
+
   useEffect(() => {
     // Thứ tự PHẢI theo chiều tài liệu (offsetTop tăng dần) để scroll-spy chọn đúng.
     const SPY_IDS = ["home", "features", "pricing", "resources"];
-    const onScroll = () => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
       setScrolled(window.scrollY > 20);
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      if (progressRef.current) progressRef.current.style.transform = `scaleX(${max > 0 ? Math.min(1, window.scrollY / max) : 0})`;
       if (!onLanding) return;
       const pos = window.scrollY + 160; // bù cho header cố định
       let current = "home";
@@ -61,9 +69,15 @@ export default function LandingHeader() {
       }
       setActiveSection(current);
     };
-    onScroll();
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
   }, [setScrolled, onLanding]);
 
   // Khoá cuộn body khi menu mobile mở (overflow:hidden) để nền không trôi.
@@ -123,7 +137,11 @@ export default function LandingHeader() {
     return () => window.removeEventListener("resize", measureGlider);
   }, [measureGlider]);
 
+  // Đầu trang: header trong suốt rộng 1240px. Cuộn xuống: thu hai bên thành "cửa sổ nổi" dạng pill
+  // (cách mép trên 14px, viền + bóng). Nền pill TRẮNG ĐẶC — bản cũ rgba(.65)+blur làm nội dung
+  // cuộn phía sau lộ qua header.
   const innerStyle: CSSProperties = {
+    position: "relative",
     width: "100%",
     maxWidth: scrolled ? (isMobile ? "94%" : 1040) : 1240,
     margin: scrolled ? "14px auto 0" : "0 auto",
@@ -132,9 +150,7 @@ export default function LandingHeader() {
     alignItems: "center",
     justifyContent: "space-between",
     gap: 20,
-    background: scrolled ? "rgba(255,255,255,.65)" : "transparent",
-    backdropFilter: scrolled ? "blur(10px)" : "none",
-    WebkitBackdropFilter: scrolled ? "blur(10px)" : "none",
+    background: scrolled ? "#fff" : "transparent",
     border: `1px solid ${scrolled ? "#ece8f6" : "transparent"}`,
     borderRadius: scrolled ? 999 : 0,
     boxShadow: scrolled ? "0 16px 40px -20px rgba(80,40,140,.45)" : "none",
@@ -154,8 +170,10 @@ export default function LandingHeader() {
 
   return (
     <>
-      <div style={{ position: "fixed", top: 0, left: 0, width: "100%", zIndex: 100, display: "flex", justifyContent: "center", pointerEvents: "none", transition: "all .4s ease-in-out" }}>
+      <div className="hdr-enter" style={{ position: "fixed", top: 0, left: 0, width: "100%", zIndex: 100, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
         <header id="home-bar" style={innerStyle}>
+          {/* Thanh tiến độ cuộn dọc đáy viên pill (chỉ hiện khi đã cuộn) */}
+          <span ref={progressRef} aria-hidden className="hdr-progress" style={{ opacity: scrolled ? 1 : 0 }} />
           <a
             href="/"
             onClick={(e) => { e.preventDefault(); if (onLanding) window.scrollTo({ top: 0, behavior: "smooth" }); else go("landing"); closeMobile(); }}
@@ -206,7 +224,7 @@ export default function LandingHeader() {
               <>
                 {/* Nút Đăng nhập thống nhất một kiểu outline chữ ở mọi trạng thái header. */}
                 <button className="btn-outline" onClick={() => go("login")} style={{ ...outlineBtn, padding: scrolled ? "8px 18px" : "10px 22px", fontSize: scrolled ? 13 : 14 }}>{t.signIn}</button>
-                <button className="btn-grad" onClick={() => go("register")} style={gradientBtn(scrolled)}>{t.tryAima}</button>
+                <button className="btn-grad btn-shine" onClick={() => go("register")} style={gradientBtn(scrolled)}>{t.tryAima}</button>
               </>
             )}
           </div>

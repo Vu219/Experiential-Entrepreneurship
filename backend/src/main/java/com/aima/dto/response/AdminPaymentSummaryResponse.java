@@ -22,15 +22,19 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AdminPaymentSummaryResponse {
 
-    /** Đơn bật {@code reconcile_required} — lệch tiền, tiền về sau khi đóng, cổng trả lạ… */
+    /**
+     * Đơn bật {@code reconcile_required} — lệch tiền, tiền về sau khi đóng, cổng trả lạ… Có kỳ lọc thì
+     * chỉ đếm đơn ĐẶT trong kỳ (khớp danh sách đơn).
+     */
     long reconcileRequired;
 
-    /** Đơn còn chờ thanh toán ở thời điểm hiện tại. */
+    /** Đơn còn chờ thanh toán ở thời điểm hiện tại (có kỳ lọc: chỉ đơn đặt trong kỳ). */
     long pending;
 
     /**
-     * Số webhook payOS bị TỪ CHỐI trong 24h qua (đếm từ {@code activity_logs}, action
-     * {@code PAYMENT_WEBHOOK_REJECTED}).
+     * Số webhook payOS bị TỪ CHỐI trong 24h qua — hoặc trong đúng kỳ lọc khi truyền from/to (đếm từ
+     * {@code activity_logs}, action {@code PAYMENT_WEBHOOK_REJECTED}). Tên field giữ nguyên để không
+     * vỡ hợp đồng API.
      *
      * <p>{@code > 0} là dấu hiệu sớm của sự cố chữ ký: nếu quy ước của ta lệch thì 100% webhook
      * fail, khách trả tiền xong không được kích hoạt gói, mà KHÔNG đơn nào mang

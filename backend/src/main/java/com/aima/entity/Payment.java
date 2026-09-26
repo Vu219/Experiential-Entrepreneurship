@@ -1,6 +1,8 @@
 package com.aima.entity;
 
 import com.aima.enums.PaymentGateway;
+import com.aima.enums.PaymentMethod;
+import com.aima.enums.PaymentOrderType;
 import com.aima.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -167,6 +169,49 @@ public class Payment extends BaseEntity {
             columnDefinition = "boolean not null default false")
     @Builder.Default
     Boolean reconcileRequired = false;
+
+    // ---------------------------------------------------------------- báo giá lúc tạo đơn
+    // Chụp lại đúng các con số trang "Xem lại đơn hàng" đã hiển thị (CheckoutPricing). Tất cả
+    // nullable: bản ghi cũ / ghi tay / seed không có — ddl-auto thêm cột không cần DEFAULT.
+
+    /** Mua mới / gia hạn / nâng cấp. null = đơn tạo trước khi có trang xem lại. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "order_type", length = 20)
+    PaymentOrderType orderType;
+
+    /** Phương thức user chọn ở trang xem lại. null = đơn tạo trước khi có lựa chọn này. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method", length = 30)
+    PaymentMethod paymentMethod;
+
+    /**
+     * Giá NIÊM YẾT của gói tại lúc mua. Là "giá gói cũ" khi tính khấu trừ cho lần nâng cấp sau
+     * (user chốt 26/9) — không dùng {@link #amount} (đơn nâng cấp trả ít hơn giá niêm yết) và
+     * không dùng giá hiện tại trong {@code plans} (admin có thể đổi giá sau khi khách mua).
+     */
+    @Column(name = "list_price")
+    Long listPrice;
+
+    /** Số tiền khấu trừ từ gói cũ. null = đơn không khấu trừ. */
+    @Column(name = "proration_credit")
+    Long prorationCredit;
+
+    @Column(name = "proration_remaining_days")
+    Integer prorationRemainingDays;
+
+    @Column(name = "proration_cycle_days")
+    Integer prorationCycleDays;
+
+    /** Phần bị làm tròn xuống tới hàng nghìn (dòng "Làm tròn" trên trang tóm tắt). */
+    @Column(name = "proration_rounding")
+    Long prorationRounding;
+
+    /** Gói đang dùng lúc tạo đơn (mã snapshot, không FK — cùng lý do {@code SubscriptionHistory}). */
+    @Column(name = "from_plan_code", length = 50)
+    String fromPlanCode;
+
+    @Column(name = "from_expires_at")
+    LocalDateTime fromExpiresAt;
 
     /** Số hoá đơn hiển thị cho admin/khách (vd INV-000123). */
     @Column(name = "invoice_no", length = 50)

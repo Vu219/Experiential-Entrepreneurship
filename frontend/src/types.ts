@@ -33,6 +33,7 @@ export type Route =
   | 'adminPayments'
   | 'adminRevenue'
   | 'adminPlans'
+  | 'adminLanding'
   | 'adminUsage'
   | 'adminAiProviders'
   | 'adminAiModels'

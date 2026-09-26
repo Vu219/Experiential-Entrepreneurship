@@ -3,6 +3,8 @@ package com.aima.config;
 import com.aima.enums.ActivityAction;
 import com.aima.enums.NotificationType;
 import com.aima.enums.PaymentGateway;
+import com.aima.enums.PaymentMethod;
+import com.aima.enums.PaymentOrderType;
 import com.aima.enums.PaymentStatus;
 import com.aima.enums.PlanSource;
 import com.aima.enums.SubscriptionStatus;
@@ -54,6 +56,8 @@ public class PaymentDataInitializer implements CommandLineRunner {
     static final List<EnumColumn> ENUM_COLUMNS = List.of(
             new EnumColumn("payments", "status", PaymentStatus.class),
             new EnumColumn("payments", "gateway", PaymentGateway.class),
+            new EnumColumn("payments", "order_type", PaymentOrderType.class),
+            new EnumColumn("payments", "payment_method", PaymentMethod.class),
             new EnumColumn("subscriptions", "status", SubscriptionStatus.class),
             new EnumColumn("subscriptions", "plan_source", PlanSource.class),
             // Không thuộc hai bảng trên nhưng luồng thanh toán thêm giá trị mới và ghi vào:

@@ -180,15 +180,14 @@ export default function Revenue() {
   }, [filterKey, sort.field, sort.asc]);
   useEffect(() => { fetchTx(); }, [fetchTx]);
 
-  // ---- Badge hàng đợi đơn hàng (số trên nhãn tab + 3 thẻ của tab Đơn hàng) ----
+  // ---- Badge hàng đợi đơn hàng (số trên nhãn tab + 3 thẻ của tab Đơn hàng) — theo kỳ đang lọc ----
+  const orderRange = useMemo(() => filterDateRange(filter), [filter]);
   const [orderSummary, setOrderSummary] = useState<AdminPaymentSummary | null>(null);
   const loadOrderSummary = useCallback(() => {
     // Thẻ số hỏng không được chặn trang — bảng mới là thứ admin cần nhất.
-    getPaymentSummary().then(setOrderSummary).catch(() => undefined);
-  }, []);
+    getPaymentSummary(orderRange).then(setOrderSummary).catch(() => undefined);
+  }, [orderRange]);
   useEffect(() => { loadOrderSummary(); }, [loadOrderSummary]);
-
-  const orderRange = useMemo(() => filterDateRange(filter), [filter]);
 
   // ---- Export ----
   const download = (content: string, filename: string, mime: string) => {

@@ -27,8 +27,12 @@ import java.util.UUID;
  */
 public interface AdminPaymentService {
 
-    /** Ba con số hàng đợi công việc đặt đầu trang (đối soát · chờ trả · webhook bị từ chối 24h). */
-    ApiResponse<AdminPaymentSummaryResponse> summary();
+    /**
+     * Ba con số hàng đợi công việc đặt đầu trang (đối soát · chờ trả · webhook bị từ chối).
+     * {@code from}/{@code to} null = toàn bộ việc tồn + webhook 24h gần nhất; có khoảng (ngày đặt đơn,
+     * {@code to} bao gồm) = đếm trong đúng kỳ đó, khớp bộ lọc của danh sách đơn.
+     */
+    ApiResponse<AdminPaymentSummaryResponse> summary(LocalDate from, LocalDate to);
 
     /**
      * Danh sách đơn có lọc + phân trang. {@code reconcileRequired = true} là bộ lọc quan trọng

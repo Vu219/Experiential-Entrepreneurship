@@ -60,8 +60,9 @@ export interface AdminPaymentFilter {
   q?: string;
 }
 
-export async function getPaymentSummary(): Promise<AdminPaymentSummary> {
-  const { data } = await client.get<ApiResponse<AdminPaymentSummary>>('/admin/payments/summary');
+/** `range` (YYYY-MM-DD, `to` bao gồm) = đếm trong kỳ; bỏ trống = toàn bộ việc tồn + webhook 24h. */
+export async function getPaymentSummary(range?: { from: string; to: string }): Promise<AdminPaymentSummary> {
+  const { data } = await client.get<ApiResponse<AdminPaymentSummary>>('/admin/payments/summary', { params: range });
   return data.result;
 }
 

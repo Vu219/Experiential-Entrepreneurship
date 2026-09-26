@@ -1,6 +1,7 @@
 package com.aima.payment;
 
 import com.aima.dto.response.AdminPaymentResponse;
+import com.aima.dto.response.AdminPaymentSummaryResponse;
 import com.aima.dto.response.PageResponse;
 import com.aima.entity.Payment;
 import com.aima.entity.Plan;
@@ -10,6 +11,8 @@ import com.aima.enums.PaymentGateway;
 import com.aima.enums.PaymentStatus;
 import com.aima.enums.UserPlan;
 import com.aima.enums.UserStatus;
+import com.aima.exception.AppException;
+import com.aima.exception.ErrorCode;
 import com.aima.repository.PaymentRepository;
 import com.aima.repository.PaymentSpecifications;
 import com.aima.repository.PlanRepository;
@@ -154,6 +157,28 @@ class AdminPaymentSearchTest {
     void list_trimsSearch() {
         assertEquals(ids(list(null, null, null, null, null, tag)),
                 ids(list(null, null, null, null, null, "  " + tag + "  ")));
+    }
+
+    // ======================================================== 3 thẻ hàng đợi theo kỳ
+
+    /** Có kỳ lọc: thẻ đếm đúng tập đơn mà danh sách trả về với cùng kỳ (theo ngày đặt đơn). */
+    @Test
+    void summary_withRange_countsOnlyOrdersPlacedInThePeriod() {
+        AdminPaymentSummaryResponse s = adminPaymentService.summary(FROM, TO).getResult();
+
+        // Trong kỳ: A (PAID, cần đối soát) và B (PENDING); D/E nằm ngoài kỳ, DEL đã xoá mềm.
+        assertEquals(list(null, null, true, FROM, TO, null).getTotalElements(), s.getReconcileRequired());
+        assertEquals(1, s.getReconcileRequired());
+        assertEquals(1, s.getPending());
+        assertEquals(0, s.getWebhookRejected24h()); // không có webhook bị từ chối nào trong 2031
+    }
+
+    @Test
+    void summary_halfOpenOrReversedRange_isRejected() {
+        for (LocalDate[] r : new LocalDate[][] { {FROM, null}, {null, TO}, {TO, FROM} }) {
+            AppException ex = assertThrows(AppException.class, () -> adminPaymentService.summary(r[0], r[1]));
+            assertEquals(ErrorCode.PAYMENT_SUMMARY_RANGE_INVALID, ex.getErrorCode());
+        }
     }
 
     // ======================================================== không sinh mệnh đề cho null

@@ -8,6 +8,7 @@ import com.aima.enums.UserStatus;
 import com.aima.dto.response.DeleteAccountResponse;
 import com.aima.dto.response.MeResponse;
 import com.aima.dto.response.ProfileStatsResponse;
+import com.aima.dto.response.RegisterOtpResponse;
 import com.aima.dto.response.UserStatsResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -15,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +37,7 @@ import com.aima.dto.response.UserResponse;
 import com.aima.dto.response.UserSubscriptionResponse;
 import com.aima.dto.response.UserUsageResponse;
 import com.aima.service.ActivityLogService;
+import com.aima.service.RegistrationService;
 import com.aima.service.AdminSubscriptionService;
 import com.aima.service.TokenUsageService;
 import com.aima.service.UsageQueryService;
@@ -49,6 +52,7 @@ import java.util.UUID;
 @Tag(name = "Account", description = "Account management for both regular users and admins (registration, profile, password, deletion).")
 public class AccountController {
     UserService userService;
+    RegistrationService registrationService;
     AdminSubscriptionService adminSubscriptionService;
     TokenUsageService tokenUsageService;
     UsageQueryService usageQueryService;
@@ -56,16 +60,47 @@ public class AccountController {
 
     @PostMapping("/register")
     @Operation(
-            summary = "Register a new user account",
-            description = "Creates a new user after validating field constraints and email uniqueness. " +
-                    "The username is set to the email and the role defaults to USER."
+            summary = "Register step 1: validate + send OTP",
+            description = "Validates the payload and email uniqueness (case-insensitive, Google or email/password). " +
+                    "Does NOT create the account yet: stores the pending data (password BCrypt-hashed) in Redis and " +
+                    "emails a 6-digit OTP (valid 5 min, 60 s resend cooldown). Existing email → 1003 EMAIL_EXISTED."
     )
     @SecurityRequirements({})
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             content = @Content(schema = @Schema(implementation = UserRegisterRequest.class),
                     examples = @ExampleObject(value = SwaggerExamples.REGISTER_REQUEST)))
-    public ApiResponse<UserResponse> register(@Valid @RequestBody UserRegisterRequest request) {
-        return userService.registerUser(request);
+    public ApiResponse<RegisterOtpResponse> register(@Valid @RequestBody UserRegisterRequest request) {
+        return registrationService.startRegistration(request);
+    }
+
+    @PostMapping("/register/resend-otp")
+    @Operation(
+            summary = "Register: resend OTP",
+            description = "Issues a new OTP for a pending registration (old code is invalidated). " +
+                    "Rejected with 1079 within 60 s of the previous send; 1080 if the pending registration expired."
+    )
+    @SecurityRequirements({})
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            content = @Content(schema = @Schema(implementation = RegisterResendOtpRequest.class),
+                    examples = @ExampleObject(value = SwaggerExamples.REGISTER_RESEND_OTP_REQUEST)))
+    public ApiResponse<RegisterOtpResponse> resendRegisterOtp(@Valid @RequestBody RegisterResendOtpRequest request) {
+        return registrationService.resendOtp(request);
+    }
+
+    @PostMapping("/register/verify")
+    @Operation(
+            summary = "Register step 2: verify OTP → create account + log in",
+            description = "Correct OTP (single use) creates the account and sets the HttpOnly access/refresh cookies " +
+                    "(same as /auth/login). Wrong code → 1081; 5 wrong attempts burn the code (1072, request a new one); " +
+                    "expired/missing code → 1060."
+    )
+    @SecurityRequirements({})
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            content = @Content(schema = @Schema(implementation = RegisterVerifyRequest.class),
+                    examples = @ExampleObject(value = SwaggerExamples.REGISTER_VERIFY_REQUEST)))
+    public ApiResponse<UserResponse> verifyRegister(@Valid @RequestBody RegisterVerifyRequest request,
+                                                    HttpServletResponse response) {
+        return registrationService.verifyRegistration(request, response);
     }
 
     @GetMapping

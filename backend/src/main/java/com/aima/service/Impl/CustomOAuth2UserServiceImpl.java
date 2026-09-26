@@ -21,6 +21,7 @@ import com.aima.repository.RoleRepository;
 import com.aima.repository.UserRepository;
 import com.aima.security.CustomOAuth2User;
 import com.aima.service.CustomOAuth2UserService;
+import com.aima.util.EmailNormalizer;
 
 import java.util.Collections;
 import java.util.Map;
@@ -54,7 +55,7 @@ public class CustomOAuth2UserServiceImpl extends DefaultOAuth2UserService implem
     private OAuth2User processOAuth2User(OAuth2User oAuth2User) {
         Map<String, Object> attributes = oAuth2User.getAttributes();
 
-        String email = (String) attributes.get("email");
+        String email = EmailNormalizer.normalize((String) attributes.get("email"));
         Boolean emailVerified = (Boolean) attributes.get("email_verified");
 
         if (email == null || Boolean.FALSE.equals(emailVerified)) {
@@ -65,7 +66,7 @@ public class CustomOAuth2UserServiceImpl extends DefaultOAuth2UserService implem
         String name = (String) attributes.get("name");
         String picture = (String) attributes.get("picture");
 
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findFirstByEmailIgnoreCaseOrderByCreatedAtAsc(email)
                 .map(existing -> linkGoogleAccount(existing, googleId, picture))
                 .orElseGet(() -> createGoogleUser(email, googleId, name, picture));
 
@@ -75,14 +76,13 @@ public class CustomOAuth2UserServiceImpl extends DefaultOAuth2UserService implem
     private User linkGoogleAccount(User user, String googleId, String picture) {
         OAuth2UserInfo info = OAuth2UserInfo.builder()
                 .googleId(user.getGoogleId() == null ? googleId : null)
-                .provider(!"GOOGLE".equals(user.getProvider()) ? "GOOGLE" : null)
+                // Giữ nguyên provider cũ (không ghi đè thành GOOGLE) — cùng quy tắc OAuth2AuthenticationSuccessHandler.
                 .avatarUrl(picture != null && user.getAvatarUrl() == null ? picture : null)
                 .build();
 
         oauth2UserMapper.updateGoogleFields(info, user);
 
         boolean hasChanges = info.getGoogleId() != null
-                || info.getProvider() != null
                 || info.getAvatarUrl() != null;
 
         return hasChanges ? userRepository.save(user) : user;

@@ -34,6 +34,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
                                     @Param("status") UserStatus status);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
+
+    // "1 email = 1 tài khoản" không phân biệt hoa/thường: dữ liệu cũ có thể còn email viết hoa.
+    boolean existsByEmailIgnoreCase(String email);
+    // findFirst… (không phải findBy…) để không nổ nếu dữ liệu cũ lỡ có 2 bản khác hoa/thường.
+    Optional<User> findFirstByEmailIgnoreCaseOrderByCreatedAtAsc(String email);
     List<User> findAllByStatusAndDeletionDateLessThanEqual(UserStatus status, LocalDateTime now);
 
     // FR-80: admin tìm user theo tên/email + lọc trạng thái/vai trò/gói (tham số rỗng/null = bỏ qua —

@@ -77,28 +77,6 @@ public class UserServiceImpl implements UserService {
     static String GOOGLE_PLACEHOLDER = "GOOGLE_OAUTH2_USER";
 
     @Override
-    public ApiResponse<UserResponse> registerUser(UserRegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail()))
-            throw new AppException(ErrorCode.EMAIL_EXISTED);
-
-        User user = userMapper.toUser(request);
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-
-        Role role = roleRepository.findByRoleName("USER")
-                .orElseThrow(() -> new AppException(ErrorCode.DEFAULT_ROLE_NOT_FOUND));
-        user.setRole(role);
-
-        user.setStatus(UserStatus.ACTIVE);
-        user.setProfileCompleted(true);
-        User savedUser = userRepository.save(user);
-
-        activityLogService.record(ActivityLogService.Entry.of(
-                ActivityAction.ACCOUNT_REGISTERED, savedUser.getId(), savedUser.getEmail()));
-        UserResponse userResponse = userMapper.toResponse(savedUser);
-        return ApiResponse.success("Đăng ký tài khoản thành công", userResponse);
-    }
-
-    @Override
     @Transactional(readOnly = true)
     public ApiResponse<PageResponse<UserResponse>> getAllUsers(String q, UserStatus status, String role, UserPlan plan, Pageable pageable) {
         // FR-80: tìm theo tên/email + lọc trạng thái/vai trò/gói; ORDER BY nằm trong native query

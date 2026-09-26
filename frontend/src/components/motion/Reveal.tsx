@@ -5,7 +5,8 @@ import { motion, useReducedMotion, type Variants } from 'framer-motion';
 // Chỉ animate transform + opacity (GPU). `once:false` để cuộn lên/xuống đều re-animate.
 // prefers-reduced-motion → render tĩnh, không chuyển động.
 
-const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+/** Ease-out (quart-like) dùng chung cho mọi motion landing — DESIGN.md cấm easing nảy/đàn hồi. */
+export const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const VIEWPORT = { once: false, amount: 0.2 } as const;
 
 interface RevealProps {
@@ -16,9 +17,15 @@ interface RevealProps {
   y?: number;
   className?: string;
   style?: CSSProperties;
+  /**
+   * Chỉ animate lần đầu vào viewport. Dùng cho khối nằm dưới nội dung đổi chiều cao (vd CTA
+   * dưới FAQ): với once:false, khi FAQ giãn đẩy khối ra khỏi ngưỡng 20% nó sẽ fade-out rồi
+   * fade-in lại → nháy.
+   */
+  once?: boolean;
 }
 
-export function Reveal({ children, delay = 0, y = 24, className, style }: RevealProps) {
+export function Reveal({ children, delay = 0, y = 24, className, style, once = false }: RevealProps) {
   const reduced = useReducedMotion();
   if (reduced) {
     return (
@@ -34,7 +41,7 @@ export function Reveal({ children, delay = 0, y = 24, className, style }: Reveal
       initial={{ opacity: 0, y }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay, ease: EASE }}
-      viewport={VIEWPORT}
+      viewport={once ? { ...VIEWPORT, once: true } : VIEWPORT}
     >
       {children}
     </motion.div>

@@ -3,6 +3,7 @@ package com.aima.service;
 import com.aima.dto.request.CheckoutRequest;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.BillingOverviewResponse;
+import com.aima.dto.response.CheckoutQuoteResponse;
 import com.aima.dto.response.CheckoutResponse;
 import com.aima.dto.response.PageResponse;
 import com.aima.dto.response.PaymentResponse;
@@ -22,13 +23,21 @@ import java.util.UUID;
 public interface PaymentService {
 
     /**
+     * Báo giá cho trang "Xem lại đơn hàng" — CHỈ ĐỌC: không tạo đơn, không đụng gói hiện tại
+     * (user bỏ ngang trang này thì không có gì thay đổi). Cùng công thức với {@link #checkout}
+     * ({@code CheckoutPricing}); đơn bị chặn vẫn trả báo giá kèm lý do.
+     */
+    ApiResponse<CheckoutQuoteResponse> quote(String email, UUID planId);
+
+    /**
      * Tạo đơn + link thanh toán cho user đang đăng nhập.
      *
      * <p>Xử lý sẵn ba tình huống đã chốt:</p>
      * <ul>
-     *   <li><b>Q1</b> — mua gói thấp hơn khi còn hạn thì chặn.</li>
-     *   <li><b>Q2</b> — tối đa một đơn PENDING: cùng gói thì trả lại link cũ (giữ nguyên
-     *       {@code expiresAt}), khác gói thì huỷ đơn cũ rồi tạo đơn mới.</li>
+     *   <li><b>Q1</b> — tính lại báo giá phía server (khấu trừ khi nâng cấp); đơn bị chặn thì
+     *       ném đúng lý do, tổng lệch {@code expectedAmount} thì {@code PAYMENT_QUOTE_CHANGED}.</li>
+     *   <li><b>Q2</b> — tối đa một đơn PENDING: cùng gói + cùng số tiền + cùng phương thức thì
+     *       trả lại link cũ (giữ nguyên {@code expiresAt}), khác thì huỷ đơn cũ rồi tạo đơn mới.</li>
      *   <li><b>Tự chữa đơn treo</b> — đơn PENDING không có {@code checkoutUrl} (lần tạo link
      *       trước không kết luận được) sẽ được đối soát NGAY trong request này. Không có bước
      *       đó thì user bị khoá cứng khỏi việc mua: đơn cũ chiếm chỗ PENDING duy nhất mà lại

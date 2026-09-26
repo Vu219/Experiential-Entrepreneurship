@@ -136,7 +136,7 @@ class PaymentWebhookTest {
                 ((TransactionCallback<?>) inv.getArgument(0)).doInTransaction(mock(TransactionStatus.class)));
 
         PaymentProperties properties = new PaymentProperties(
-                PaymentGateway.PAYOS, 15, 10, 3, 16384, ALERT_THRESHOLD, 10);
+                PaymentGateway.PAYOS, 15, 10, 3, 16384, ALERT_THRESHOLD, 10, 2000);
 
         service = new PaymentServiceImpl(paymentRepository, activityLogRepository,
                 planRepository, userRepository,

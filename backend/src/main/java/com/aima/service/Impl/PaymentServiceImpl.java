@@ -4,6 +4,7 @@ import com.aima.config.PaymentProperties;
 import com.aima.dto.request.CheckoutRequest;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.BillingOverviewResponse;
+import com.aima.dto.response.CheckoutQuoteResponse;
 import com.aima.dto.response.CheckoutResponse;
 import com.aima.dto.response.PageResponse;
 import com.aima.dto.response.PaymentResponse;
@@ -17,7 +18,10 @@ import com.aima.enums.GatewayLinkStatus;
 import com.aima.enums.MockPaymentOutcome;
 import com.aima.enums.NotificationType;
 import com.aima.enums.PaymentGateway;
+import com.aima.enums.PaymentMethod;
 import com.aima.enums.PaymentStatus;
+import com.aima.enums.PlanSource;
+import com.aima.enums.UserPlan;
 import com.aima.enums.UserStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
@@ -33,6 +37,7 @@ import com.aima.service.PaymentGatewayClient;
 import com.aima.service.PaymentService;
 import com.aima.service.SubscriptionService;
 import com.aima.service.SystemLogService;
+import com.aima.util.CheckoutPricing;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
@@ -52,6 +57,7 @@ import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -184,7 +190,7 @@ public class PaymentServiceImpl implements PaymentService {
         // Hai vòng: vòng 2 chỉ chạy khi insert đơn mới đụng partial unique (H2) — nghĩa là một
         // luồng song song vừa tạo đơn PENDING. Vòng sau sẽ thấy đơn đó và đi nhánh Q2.
         for (int attempt = 1; attempt <= 2; attempt++) {
-            CheckoutContext ctx = inTransaction(() -> loadAndValidate(email, request.getPlanId()));
+            CheckoutContext ctx = inTransaction(() -> loadAndValidate(email, request));
 
             if (ctx.openOrderId() != null) {
                 CheckoutResponse reused = resolveOpenOrder(ctx);
@@ -244,46 +250,106 @@ public class PaymentServiceImpl implements PaymentService {
         return null;
     }
 
-    /** tx1 — nạp user/gói, kiểm Q1, tìm đơn checkout đang mở. */
-    private CheckoutContext loadAndValidate(String email, UUID planId) {
+    /** tx1 — nạp user/gói, tính lại báo giá (Q1), tìm đơn checkout đang mở. */
+    private CheckoutContext loadAndValidate(String email, CheckoutRequest request) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        Plan plan = planRepository.findByIdAndDeletedAtIsNull(planId)
-                .orElseThrow(() -> new AppException(ErrorCode.PLAN_NOT_PURCHASABLE));
-
-        // Q4: bán MỌI gói đang bật và có giá — kể cả gói admin tự tạo.
-        if (!Boolean.TRUE.equals(plan.getIsActive()) || plan.getPrice() == null || plan.getPrice() <= 0) {
-            throw new AppException(ErrorCode.PLAN_NOT_PURCHASABLE);
+        Plan plan = requirePurchasable(request.getPlanId());
+        PaymentMethod method = request.getPaymentMethod();
+        if (method == null || !method.runsOn(activeGateway())) {
+            throw new AppException(ErrorCode.PAYMENT_METHOD_NOT_SUPPORTED);
         }
-        requireNotDowngrade(user, plan);
+
+        PricedOrder priced = price(user, plan, LocalDateTime.now());
+        CheckoutPricing.Quote quote = priced.quote();
+        if (!quote.purchasable()) {
+            throw new AppException(quote.blockedBy());
+        }
+        // Không bao giờ thu một số tiền user chưa nhìn thấy trên trang xem lại.
+        if (request.getExpectedAmount() == null || request.getExpectedAmount() != quote.total()) {
+            throw new AppException(ErrorCode.PAYMENT_QUOTE_CHANGED);
+        }
 
         UUID openOrderId = paymentRepository
                 .findOpenOrder(user.getId(), PaymentStatus.PENDING, CHECKOUT_GATEWAYS)
                 .map(Payment::getId)
                 .orElse(null);
-        return new CheckoutContext(user.getId(), plan.getId(), plan.getCode(), plan.getPrice(), openOrderId);
+        return new CheckoutContext(user.getId(), plan.getId(), plan.getCode(), quote, method,
+                priced.currentPlan() == null ? null : priced.currentPlan().getCode(),
+                priced.currentExpiresAt(), openOrderId);
+    }
+
+    @Override
+    public ApiResponse<CheckoutQuoteResponse> quote(String email, UUID planId) {
+        CheckoutQuoteResponse result = inTransaction(() -> {
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+            Plan plan = requirePurchasable(planId);
+            LocalDateTime now = LocalDateTime.now();
+            PricedOrder priced = price(user, plan, now);
+            return paymentMapper.toQuoteResponse(plan, priced.currentPlan(), priced.currentExpiresAt(),
+                    priced.quote(), enabledMethods(), now);
+        });
+        return ApiResponse.success("Lấy báo giá đơn hàng thành công", result);
+    }
+
+    /** Q4: bán MỌI gói đang bật và có giá — kể cả gói admin tự tạo. */
+    private Plan requirePurchasable(UUID planId) {
+        Plan plan = planRepository.findByIdAndDeletedAtIsNull(planId)
+                .orElseThrow(() -> new AppException(ErrorCode.PLAN_NOT_PURCHASABLE));
+        if (!Boolean.TRUE.equals(plan.getIsActive()) || plan.getPrice() == null || plan.getPrice() <= 0) {
+            throw new AppException(ErrorCode.PLAN_NOT_PURCHASABLE);
+        }
+        return plan;
     }
 
     /**
-     * Q1 — chặn mua gói THẤP HƠN khi gói hiện tại còn hạn. Dùng lại đúng tiêu chí "hạ gói" của
-     * subscription (so {@code monthlyTokenLimit}); không đẻ tiêu chí thứ hai.
+     * Báo giá một đơn — nguồn DUY NHẤT của con số cho cả trang xem lại lẫn checkout. Đọc gói
+     * hiện hành từ {@code subscriptions} rồi giao toàn bộ quy tắc cho {@link CheckoutPricing}.
+     *
+     * <p>"Giá gói cũ" của gói tự mua = {@code list_price} của lần mua gần nhất (user chốt 26/9);
+     * đơn cũ chưa có cột này thì lùi về giá hiện tại của gói. Gói admin cấp không khấu trừ nên
+     * giá hiện tại chỉ dùng cho lớp chặn "phải lên gói đắt hơn".</p>
      */
-    private void requireNotDowngrade(User user, Plan target) {
+    private PricedOrder price(User user, Plan target, LocalDateTime now) {
+        CheckoutPricing.Target wanted = new CheckoutPricing.Target(target.getCode(), target.getPrice(),
+                cycleMonths(target));
         Subscription subscription = subscriptionRepository.findWithPlanByUserId(user.getId()).orElse(null);
-        if (subscription == null || subscription.getPlanExpiresAt() == null
-                || !subscription.getPlanExpiresAt().isAfter(LocalDateTime.now())) {
-            return;
+        if (subscription == null) {
+            return new PricedOrder(CheckoutPricing.quote(wanted, null, now, paymentProperties.minAmount()),
+                    null, null);
         }
-        Plan current = subscription.getPlan();
-        if (current.getCode().equals(target.getCode())) {
-            return;
-        }
-        Long currentLimit = current.getMonthlyTokenLimit();
-        Long targetLimit = target.getMonthlyTokenLimit();
-        boolean downgrade = targetLimit != null && (currentLimit == null || targetLimit < currentLimit);
-        if (downgrade) {
-            throw new AppException(ErrorCode.PLAN_DOWNGRADE_NOT_ALLOWED);
-        }
+
+        Plan currentPlan = subscription.getPlan();
+        boolean free = UserPlan.FREE.name().equals(currentPlan.getCode());
+        long currentPrice = currentPlan.getPrice() == null ? 0L : currentPlan.getPrice();
+        long listPrice = subscription.getPlanSource() == PlanSource.PAYMENT
+                ? paymentRepository.findFirstByUser_IdAndPlan_IdAndStatusAndDeletedAtIsNullOrderByPaidAtDesc(
+                        user.getId(), currentPlan.getId(), PaymentStatus.PAID)
+                    .map(Payment::getListPrice)
+                    .orElse(currentPrice)
+                : currentPrice;
+        LocalDateTime expiresAt = subscription.getPlanExpiresAt();
+        CheckoutPricing.Current current = new CheckoutPricing.Current(currentPlan.getCode(), free,
+                listPrice, cycleMonths(currentPlan), subscription.getPlanSource(), expiresAt);
+
+        CheckoutPricing.Quote quote = CheckoutPricing.quote(wanted, current, now, paymentProperties.minAmount());
+        boolean active = !free && (expiresAt == null || expiresAt.isAfter(now));
+        return active
+                ? new PricedOrder(quote, currentPlan, expiresAt)
+                : new PricedOrder(quote, null, null);
+    }
+
+    /** Chu kỳ gói (tháng) — cùng quy tắc {@code SubscriptionServiceImpl.billingMonths}. */
+    private static int cycleMonths(Plan plan) {
+        Short months = plan.getBillingIntervalMonths();
+        return months == null || months <= 0 ? 1 : months;
+    }
+
+    /** Phương thức đang bật = chạy được trên cổng đang cấu hình. */
+    private List<PaymentMethod> enabledMethods() {
+        PaymentGateway gateway = activeGateway();
+        return Arrays.stream(PaymentMethod.values()).filter(m -> m.runsOn(gateway)).toList();
     }
 
     /**
@@ -314,13 +380,24 @@ public class PaymentServiceImpl implements PaymentService {
             return null;
         }
 
-        if (open.planId().equals(ctx.planId())) {
-            // Q2 — cùng gói: trả lại ĐÚNG link cũ, giữ nguyên expiresAt (không cộng lại TTL).
+        if (sameOrder(open, ctx)) {
+            // Q2 — cùng đơn: trả lại ĐÚNG link cũ, giữ nguyên expiresAt (không cộng lại TTL).
             return inTransaction(() -> toResponse(open.id(), true));
         }
-        // Q2 — khác gói: huỷ đơn cũ rồi tạo đơn mới.
+        // Q2 — khác gói / số tiền / phương thức: huỷ đơn cũ rồi tạo đơn mới.
         closeLinkSafely(open.id(), REASON_REPLACED);
         return null;
+    }
+
+    /**
+     * Đơn PENDING cũ có dùng lại được không. Không chỉ so gói: số tiền của đơn nâng cấp đổi theo
+     * số ngày còn lại, nên link cũ mang số tiền cũ phải bị thay — nếu không user sẽ trả khác con
+     * số vừa thấy trên trang xem lại.
+     */
+    private static boolean sameOrder(OpenOrder open, CheckoutContext ctx) {
+        return open.planId().equals(ctx.planId())
+                && open.amount() != null && open.amount() == ctx.quote().total()
+                && open.paymentMethod() == ctx.paymentMethod();
     }
 
     /**
@@ -363,7 +440,7 @@ public class PaymentServiceImpl implements PaymentService {
         String recovered = view.order().checkoutUrl();
         if (recovered != null && !recovered.isBlank()) {
             inTransaction(() -> healCheckoutUrl(open.id(), recovered, view.order().linkId()));
-            if (open.planId().equals(ctx.planId())) {
+            if (sameOrder(open, ctx)) {
                 return inTransaction(() -> toResponse(open.id(), true));
             }
             closeLinkSafely(open.id(), REASON_REPLACED);
@@ -383,11 +460,23 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new AppException(ErrorCode.PLAN_NOT_PURCHASABLE));
 
         LocalDateTime now = LocalDateTime.now();
+        CheckoutPricing.Quote quote = ctx.quote();
+        CheckoutPricing.Proration proration = quote.proration();
         Payment payment = Payment.builder()
                 .user(user)
                 .plan(plan)
-                .amount(plan.getPrice())
+                // Số tiền của BÁO GIÁ đã kiểm ở tx1 — không đọc lại plan.getPrice().
+                .amount(quote.total())
                 .currency("VND")
+                .orderType(quote.orderType())
+                .paymentMethod(ctx.paymentMethod())
+                .listPrice(quote.subtotal())
+                .prorationCredit(proration == null ? null : proration.credit())
+                .prorationRemainingDays(proration == null ? null : proration.remainingDays())
+                .prorationCycleDays(proration == null ? null : proration.cycleDays())
+                .prorationRounding(proration == null ? null : proration.rounding())
+                .fromPlanCode(ctx.fromPlanCode())
+                .fromExpiresAt(ctx.fromExpiresAt())
                 .status(PaymentStatus.PENDING)
                 .gateway(activeGateway())
                 .gatewayTxnId(nextOrderCode())
@@ -499,7 +588,8 @@ public class PaymentServiceImpl implements PaymentService {
         OpenOrder open = inTransaction(() -> {
             Payment payment = requireOwned(email, paymentId);
             return new OpenOrder(payment.getId(), payment.getStatus(), payment.getGatewayTxnId(),
-                    payment.getCheckoutUrl(), payment.getPlan().getId());
+                    payment.getCheckoutUrl(), payment.getPlan().getId(), payment.getAmount(),
+                    payment.getPaymentMethod());
         });
 
         if (open.status() == PaymentStatus.PENDING) {
@@ -1061,7 +1151,7 @@ public class PaymentServiceImpl implements PaymentService {
     private OpenOrder readOpenOrder(UUID paymentId) {
         return paymentRepository.findById(paymentId)
                 .map(p -> new OpenOrder(p.getId(), p.getStatus(), p.getGatewayTxnId(),
-                        p.getCheckoutUrl(), p.getPlan().getId()))
+                        p.getCheckoutUrl(), p.getPlan().getId(), p.getAmount(), p.getPaymentMethod()))
                 .orElse(null);
     }
 
@@ -1283,13 +1373,18 @@ public class PaymentServiceImpl implements PaymentService {
 
     // ================================================================== kiểu nội bộ
 
-    private record CheckoutContext(UUID userId, UUID planId, String planCode, long amount,
-                                   UUID openOrderId) {
+    private record CheckoutContext(UUID userId, UUID planId, String planCode, CheckoutPricing.Quote quote,
+                                   PaymentMethod paymentMethod, String fromPlanCode,
+                                   LocalDateTime fromExpiresAt, UUID openOrderId) {
+    }
+
+    /** Báo giá + gói đang dùng (null khi Free/hết hạn) để hiển thị trên trang xem lại. */
+    private record PricedOrder(CheckoutPricing.Quote quote, Plan currentPlan, LocalDateTime currentExpiresAt) {
     }
 
     /** Ảnh chụp đơn để dùng NGOÀI transaction — không mang entity đã detach đi lang thang. */
     private record OpenOrder(UUID id, PaymentStatus status, String orderCode, String checkoutUrl,
-                             UUID planId) {
+                             UUID planId, Long amount, PaymentMethod paymentMethod) {
     }
 
     /** Chỉ hai giá trị cần mang ra NGOÀI transaction cho luồng cổng giả lập. */

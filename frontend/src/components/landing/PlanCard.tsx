@@ -1,4 +1,5 @@
 import { Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../auth/AuthContext';
 import { BRAND_GLOW } from '../../theme';
@@ -17,11 +18,17 @@ interface PlanCardProps {
 export default function PlanCard({ plan: p, stacked, popularLabel }: PlanCardProps) {
   const { go, brandGradient } = useApp();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const featured = !!p.featured;
 
-  // Đã đăng nhập thì "đăng ký tài khoản" là vô nghĩa — đưa thẳng sang trang mua gói.
-  // Gói miễn phí không có gì để mua nên vẫn về bảng điều khiển.
-  const target = !user ? 'register' : p.priceValue > 0 ? 'billing' : 'dashboard';
+  // Đã đăng nhập thì "đăng ký tài khoản" là vô nghĩa — gói trả tiền mở thẳng trang "Xem lại đơn
+  // hàng" của gói đó (không có ngoại lệ nhảy thẳng sang cổng thanh toán). Gói miễn phí không có
+  // gì để mua nên vẫn về bảng điều khiển.
+  const choose = () => {
+    if (!user) go('register');
+    else if (p.priceValue > 0) navigate(`/billing/checkout?plan=${encodeURIComponent(p.id.toUpperCase())}`);
+    else go('dashboard');
+  };
 
   // Viền gradient bằng kỹ thuật 2 lớp background (padding-box trắng + border-box gradient).
   const ringStyle = featured
@@ -79,7 +86,7 @@ export default function PlanCard({ plan: p, stacked, popularLabel }: PlanCardPro
       </div>
       <button
         className="btn-grad"
-        onClick={() => go(target)}
+        onClick={choose}
         style={{
           width: '100%',
           marginTop: 24,

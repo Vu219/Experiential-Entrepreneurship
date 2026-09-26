@@ -116,6 +116,17 @@ public final class SwaggerExamples {
               "phone": "0901234567"
             }""";
 
+    public static final String REGISTER_VERIFY_REQUEST = """
+            {
+              "email": "john.doe@gmail.com",
+              "otpCode": "123456"
+            }""";
+
+    public static final String REGISTER_RESEND_OTP_REQUEST = """
+            {
+              "email": "john.doe@gmail.com"
+            }""";
+
     public static final String REGISTER_RESPONSE = """
             {
               "code": 200,

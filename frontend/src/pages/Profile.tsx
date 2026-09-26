@@ -14,6 +14,7 @@ import { useToast } from '../components/toast/ToastProvider';
 import { withToast } from '../utils/toastFlow';
 import PageContainer from '../components/PageContainer';
 import RecentActivityCard from '../components/profile/RecentActivityCard';
+import ProfileSkeleton from '../components/profile/ProfileSkeleton';
 
 
 const fieldLabel = { display: 'block', fontSize: 12, fontWeight: 700, color: '#574f6e', marginBottom: 7 } as const;
@@ -182,6 +183,16 @@ export default function Profile() {
     }
   };
 
+  // Lần tải đầu: khung xương cả trang như các tab khác (hai ô số của card danh tính là phần
+  // duy nhất phải chờ API — form đã có sẵn từ /users/me).
+  if (statsLoading) {
+    return (
+      <PageContainer role="status" aria-busy="true">
+        <ProfileSkeleton contentMax={CONTENT_MAX} />
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer>
       {/* Khối nội dung hẹp + căn giữa (xem CONTENT_MAX): phần dư chia đều hai bên nên trang
@@ -252,18 +263,14 @@ export default function Profile() {
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, fontWeight: 700, color: '#7c3aed', background: '#f3edff', borderRadius: 999, padding: '5px 13px' }}>
               ★ {user?.plan === 'PRO' ? t.planPro : user?.plan === 'PLUS' ? t.planPlus : t.planFree}
             </div>
-            {/* Số THẬT từ GET /users/me/stats — chưa tải xong thì hiện khung xương, lỗi thì "—",
+            {/* Số THẬT từ GET /users/me/stats — lúc tải cả trang hiện ProfileSkeleton, lỗi thì "—",
                 tuyệt đối không rơi về số mẫu (người dùng sẽ tưởng đó là số liệu của mình). */}
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
               {[[stats?.postsPublished, t.stPosts], [stats?.totalReach, t.stTotalReach]].map(([v, l], i) => (
                 <div key={i} style={{ flex: 1, border: '1px solid #efeaf8', borderRadius: 13, padding: 13 }}>
-                  {statsLoading ? (
-                    <span className="sk" style={{ display: 'block', width: 52, height: 20, borderRadius: 6, margin: '2px auto 3px' }} />
-                  ) : (
-                    <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: '#211c38' }}>
-                      {typeof v === 'number' ? formatCompactNumber(v) : '—'}
-                    </div>
-                  )}
+                  <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: '#211c38' }}>
+                    {typeof v === 'number' ? formatCompactNumber(v) : '—'}
+                  </div>
                   <div style={{ fontSize: 11, color: '#a59fbb' }}>{l}</div>
                 </div>
               ))}

@@ -87,6 +87,14 @@ otp:
   max-attempts: ${OTP_MAX_ATTEMPTS:5}
   # Thời gian giữ cờ "đã verify OTP" để cho phép đặt lại mật khẩu (giây).
   verified-ttl-seconds: ${OTP_VERIFIED_TTL_SECONDS:300}
+  # OTP xác thực email khi đăng ký (key Redis riêng reg_*, tách khỏi OTP mật khẩu).
+  register:
+    ttl-seconds: ${REGISTER_OTP_TTL_SECONDS:300}
+    max-attempts: ${REGISTER_OTP_MAX_ATTEMPTS:5}
+    # Thời gian chờ tối thiểu giữa 2 lần gửi mã (chống spam).
+    resend-cooldown-seconds: ${REGISTER_OTP_RESEND_COOLDOWN_SECONDS:60}
+    # Thời gian giữ thông tin đăng ký đang chờ xác thực (gồm cả các lần gửi lại).
+    pending-ttl-seconds: ${REGISTER_PENDING_TTL_SECONDS:1800}
 
 brevo:
   api-key: ${BREVO_API_KEY}
@@ -162,6 +170,9 @@ payment:
   # Hạn chờ thanh toán của một đơn PENDING. Dùng CHUNG cho đếm ngược phía user và expiredAt
   # gửi payOS — một mốc duy nhất, tính lúc tạo đơn.
   pending-ttl-minutes: ${PAYMENT_PENDING_TTL_MINUTES:15}
+  # Số tiền nhỏ nhất (VND) được tạo đơn. payOS không công bố mức tối thiểu — 2.000đ là mức an
+  # toàn theo ví dụ SDK chính thức; đơn nâng cấp sau khấu trừ dưới mức này bị chặn.
+  min-amount: ${PAYMENT_MIN_AMOUNT:2000}
   # Đơn cổng báo PROCESSING (tiền đang chuyển dở) KHÔNG được huỷ. Mỗi lần gặp thì gia hạn
   # thêm bấy nhiêu phút và kiểm lại vòng sau.
   grace-minutes: ${PAYMENT_GRACE_MINUTES:10}

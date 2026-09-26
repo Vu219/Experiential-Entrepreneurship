@@ -54,6 +54,18 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
+    public void sendRegisterOtpEmail(String toEmail, String otpCode, String fullName, long validMinutes) {
+        String htmlContent = buildOtpEmail(
+                fullName,
+                "Cảm ơn bạn đã <b>đăng ký tài khoản</b> " + BRAND_NAME + ". Nhập mã dưới đây để xác thực email và hoàn tất đăng ký.",
+                otpCode,
+                "Mã có hiệu lực trong " + validMinutes + " phút và chỉ dùng được 1 lần.",
+                "Nếu bạn không đăng ký tài khoản " + BRAND_NAME + ", vui lòng bỏ qua email này."
+        );
+        sendHtmlEmail(toEmail, "Mã OTP xác thực đăng ký - " + BRAND_NAME, htmlContent);
+    }
+
+    @Override
     public void sendAccountSetupSuccessEmail(String toEmail, String fullName, LocalDateTime setupTime) {
         String htmlContent = buildAccountSetupEmail(fullName, toEmail, setupTime);
         sendHtmlEmail(toEmail, "Thiết lập tài khoản thành công - " + BRAND_NAME, htmlContent);

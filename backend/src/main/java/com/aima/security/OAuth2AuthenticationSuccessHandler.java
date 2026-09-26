@@ -20,6 +20,7 @@ import com.aima.enums.UserStatus;
 import com.aima.repository.RoleRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.AuthenticationService;
+import com.aima.util.EmailNormalizer;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.io.IOException;
@@ -63,12 +64,16 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 picture  = oAuth2User.getAttribute("picture");
             }
 
-            final String fEmail    = email;
+            // 1 email = 1 tài khoản: so khớp không phân biệt hoa/thường, tài khoản mới lưu chữ thường.
+            final String fEmail    = EmailNormalizer.normalize(email);
             final String fGoogleId = googleId;
             final String fName     = name;
             final String fPicture  = picture;
 
-            var user = userRepository.findByEmail(email)
+            var existingUser = userRepository.findFirstByEmailIgnoreCaseOrderByCreatedAtAsc(fEmail);
+            // Tài khoản email/mật khẩu có sẵn, lần đầu gắn Google → FE hiện thông báo "đã liên kết".
+            boolean linked = existingUser.isPresent() && existingUser.get().getGoogleId() == null;
+            var user = existingUser
                     .map(existing -> updateIfNeeded(existing, fGoogleId, fPicture))
                     .orElseGet(() -> createGoogleUser(fEmail, fGoogleId, fName, fPicture));
 
@@ -83,7 +88,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             cookieUtils.addAccessTokenCookie(response, authResponse.getToken());
             cookieUtils.addRefreshTokenCookie(response, authResponse.getRefreshToken());
 
-            String redirectUrl = frontendCallbackUrl + "?login=success";
+            String redirectUrl = frontendCallbackUrl + "?login=success" + (linked ? "&linked=1" : "");
             getRedirectStrategy().sendRedirect(request, response, redirectUrl);
 
         } catch (Exception e) {
@@ -116,10 +121,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             user.setGoogleId(googleId);
             updated = true;
         }
-        if (!"GOOGLE".equals(user.getProvider())) {
-            user.setProvider("GOOGLE");
-            updated = true;
-        }
+        // Giữ nguyên provider cũ: ghi đè thành GOOGLE làm tài khoản email/mật khẩu bị coi là
+        // user Google (bắt complete-profile + đặt lại mật khẩu, khoá đổi email).
         if (picture != null && user.getAvatarUrl() == null) {
             user.setAvatarUrl(picture);
             updated = true;

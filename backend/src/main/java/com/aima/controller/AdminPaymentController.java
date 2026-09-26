@@ -53,9 +53,13 @@ public class AdminPaymentController {
 
     @GetMapping("/payments/summary")
     @Operation(summary = "Work-queue counters for the orders page",
-            description = "Orders awaiting manual reconciliation, orders still pending, and payOS webhooks rejected in the last 24h.")
-    public ApiResponse<AdminPaymentSummaryResponse> summary() {
-        return adminPaymentService.summary();
+            description = "Orders awaiting manual reconciliation, orders still pending, and payOS webhooks rejected. "
+                    + "Without from/to: all open work + webhooks rejected in the last 24h. With from/to (order date, "
+                    + "to inclusive): the same three counters scoped to that period, matching the orders list filter.")
+    public ApiResponse<AdminPaymentSummaryResponse> summary(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return adminPaymentService.summary(from, to);
     }
 
     @GetMapping("/payments")

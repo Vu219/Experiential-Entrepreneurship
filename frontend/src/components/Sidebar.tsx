@@ -179,7 +179,8 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
   // variant "app") — sidebar không còn khối mục đáy.
   const navGroups = isAdminArea ? adminGroups : appGroups;
 
-  const itemBase = (active: boolean): CSSProperties => ({
+  /** `nested` = mục con trong nhóm thu gọn của khu quản trị: chữ nhạt/nhỏ hơn header nhóm cha. */
+  const itemBase = (active: boolean, nested = false): CSSProperties => ({
     display: 'flex',
     alignItems: 'center',
     gap: 12,
@@ -190,18 +191,18 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
     borderRadius: 12,
     padding: isMobile ? '9px 12px' : collapsed ? '11px 0' : '11px 13px',
     justifyContent: !isMobile && collapsed ? 'center' : 'flex-start',
-    fontSize: 14,
-    fontWeight: 600,
+    fontSize: nested ? 13.5 : 14,
+    fontWeight: nested && !active ? 500 : 600,
     cursor: 'pointer',
     textAlign: 'left',
     background: active ? brandGradient : 'transparent',
-    color: active ? '#fff' : '#5b5670',
+    color: active ? '#fff' : nested ? '#7d7894' : '#5b5670',
     boxShadow: active ? '0 12px 24px -14px rgba(139,92,246,.8)' : 'none',
   });
 
   const springConfig = { mass: 0.1, stiffness: 200, damping: 15 };
 
-    const renderItem = (n: Item) => {
+    const renderItem = (n: Item, nested = false) => {
       // Wizard tạo nội dung (/create/new) vẫn highlight mục "Tạo nội dung".
       const active = route === n.key || (n.key === 'create' && route === 'createWizard');
       return (
@@ -212,7 +213,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
             if (isMobile && setMobileMenuOpen) setMobileMenuOpen(false);
           }}
           title={collapsed ? n.label : undefined}
-          style={itemBase(active)}
+          style={itemBase(active, nested)}
           whileHover={{
             y: isMobile ? 0 : -2,
             x: isMobile ? 0 : (collapsed ? 0 : 3),
@@ -225,7 +226,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
           whileTap={{ scale: 0.98 }}
           transition={{ type: 'spring', ...springConfig }}
         >
-          <Icon icon={n.icon} stroke={active ? '#fff' : '#9b94b5'} />
+          <Icon icon={n.icon} stroke={active ? '#fff' : nested ? '#b3adc8' : '#9b94b5'} />
           {(!collapsed || isMobile) && <span style={{ flex: 1, textAlign: 'left' }}>{n.label}</span>}
           {(!collapsed || isMobile) && n.badge && <span style={{ background: brandGradient, color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 999, padding: '2px 8px' }}>{n.badge}</span>}
         </motion.button>
@@ -285,8 +286,12 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
   // Khi thu gọn, nhãn nhóm ẩn — thay bằng đường kẻ ngang mờ 24px căn giữa để vẫn
   // thấy cấu trúc nhóm (không hiện trước nhóm đầu tiên).
   const collapsedDivider: CSSProperties = { width: 24, height: 1, background: 'rgba(90,80,120,.18)', margin: '12px auto', flex: 'none', transition: 'opacity .2s ease' };
+  // Nhãn nhóm là cấp CHA → đậm hơn mục con bên trong (mục con dùng itemBase(…, nested) nhạt hơn).
+  // Dùng chung cho nhãn tĩnh của sidebar app và header thu gọn được của khu quản trị.
+  const parentLabelStyle: CSSProperties = { ...sectionLabelStyle, fontWeight: 800, letterSpacing: '.05em', color: '#3f3a55' };
   const groupHeaderStyle: CSSProperties = {
-    ...sectionLabelStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+    ...parentLabelStyle,
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
     width: '100%', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
   };
 
@@ -296,8 +301,9 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
     if (collapsed || !g.id || !g.label) {
       return (
         <>
-          {!collapsed && g.label && <div style={sectionLabelStyle}>{g.label}</div>}
-          {g.items.map(renderItem)}
+          {!collapsed && g.label && <div style={parentLabelStyle}>{g.label}</div>}
+          {/* Có nhãn nhóm (và không ở chế độ chỉ-icon) → mục là cấp con, chữ nhạt hơn nhãn. */}
+          {g.items.map((n) => renderItem(n, !collapsed && !!g.label))}
         </>
       );
     }
@@ -306,12 +312,12 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
     return (
       <>
         <button type="button" onClick={() => setGroupOpen(g.id!, !open)} aria-expanded={open} aria-controls={panelId} style={groupHeaderStyle}>
-          <span>{g.label}</span>
+          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.label}</span>
           <ChevronRight size={14} strokeWidth={2.2} aria-hidden style={{ flex: 'none', transform: `rotate(${open ? 90 : 0}deg)`, transition: 'transform .2s ease' }} />
         </button>
         <GroupCollapse id={panelId} open={open}>
           <div style={{ display: 'flex', flexDirection: 'column', gap, paddingTop: gap }}>
-            {g.items.map(renderItem)}
+            {g.items.map((n) => renderItem(n, true))}
           </div>
         </GroupCollapse>
       </>

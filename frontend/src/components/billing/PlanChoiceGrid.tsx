@@ -9,45 +9,38 @@ import type { BillingOverview } from '../../api/payments';
  * Lưới gói bán được. Chỉ gói `isActive && price > 0` — gói Free không có gì để mua.
  *
  * <p>Nhãn nút phản ánh ĐÚNG việc backend sẽ làm (Q1): trùng gói đang còn hạn thì
- * <b>cộng dồn</b> thêm một chu kỳ, gói cao hơn thì <b>thay thế</b>, gói thấp hơn khi gói hiện
- * tại còn hạn thì backend CHẶN — nên ở đây khoá luôn nút cho khỏi bấm rồi nhận lỗi.</p>
+ * <b>cộng dồn</b> thêm một chu kỳ, gói ĐẮT HƠN thì <b>nâng cấp</b> (khấu trừ phần còn lại), gói
+ * không đắt hơn khi gói hiện tại còn hạn thì backend CHẶN — nên ở đây khoá luôn nút. Bấm nút chỉ
+ * mở trang "Xem lại đơn hàng"; con số và mọi quyết định chặn cuối cùng do backend báo giá.</p>
  */
 export default function PlanChoiceGrid({
   plans,
   billing,
-  busyPlanId,
   onBuy,
 }: {
   plans: PlanDto[];
   billing: BillingOverview;
-  busyPlanId: string | null;
   onBuy: (plan: PlanDto) => void;
 }) {
   const { t, lang, brandGradient } = useApp();
   const { isMobile, isTablet } = useBreakpoint();
   const cols = isMobile ? 1 : isTablet ? 2 : 3;
 
-  // "Còn hạn" là điều kiện duy nhất khiến backend chặn mua gói thấp hơn; hết hạn rồi thì
-  // mua gói nào cũng được.
+  // "Còn hạn" là điều kiện duy nhất khiến backend chặn đổi sang gói không đắt hơn; hết hạn rồi
+  // thì mua gói nào cũng được.
   const planStillValid = !!billing.planExpiresAt;
-  const currentQuota = billing.monthlyTokenLimit;
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 16 }}>
       {plans.map((plan) => {
         const isCurrent = plan.code === billing.planCode;
-        // Cùng tiêu chí "hạ gói" với backend: so hạn mức token, null = không giới hạn = cao nhất.
-        const lower =
-          planStillValid &&
-          !isCurrent &&
-          plan.tokenQuota !== null &&
-          (currentQuota === null || plan.tokenQuota < currentQuota);
+        // Cùng tiêu chí với backend (user chốt 26/9): đổi gói khi còn hạn chỉ được lên gói ĐẮT
+        // HƠN. `billing.price` là giá hiện tại của gói — backend so với giá niêm yết lúc mua,
+        // nên đây chỉ là gợi ý sớm; trang xem lại mới là nơi báo chặn chính xác.
+        const lower = planStillValid && !isCurrent && plan.price <= billing.price;
 
-        const busy = busyPlanId === plan.id;
-        // Không dùng icon spinner riêng: dự án chưa có class xoay dùng chung, thêm keyframes
-        // mới cho một nút là thừa — đổi nhãn nút là đủ rõ.
-        const label = busy ? t.blLoading : lower ? t.blDowngradeLocked : isCurrent ? t.blRenew : t.blUpgrade;
-        const disabled = lower || busy || busyPlanId !== null;
+        const label = lower ? t.blDowngradeLocked : isCurrent ? t.blRenew : t.blUpgrade;
+        const disabled = lower;
 
         return (
           <div

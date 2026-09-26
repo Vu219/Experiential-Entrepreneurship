@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { CalendarClock, Coins, Infinity as InfinityIcon } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
@@ -30,37 +30,39 @@ export default function CurrentPlanCard({ billing }: { billing: BillingOverview 
       ? t.blPerCycle.replace('{n}', String(billing.billingIntervalMonths))
       : t.blPerMonth;
 
-  const facts = (
-    <>
+  const facts = [
+    <Fact
+      key="expires"
+      icon={<CalendarClock size={16} strokeWidth={1.8} />}
+      label={t.blExpiresOn}
+      value={billing.planExpiresAt ? formatDateVN(billing.planExpiresAt) : t.blNoExpiry}
+      muted={!billing.planExpiresAt}
+    />,
+    <Fact
+      key="reset"
+      icon={<CalendarClock size={16} strokeWidth={1.8} />}
+      label={t.blQuotaReset}
+      value={formatDateVN(billing.currentPeriodEnd)}
+    />,
+    <Fact
+      key="limit"
+      icon={<InfinityIcon size={16} strokeWidth={1.8} />}
+      label={t.blTokenLimit}
+      value={
+        billing.monthlyTokenLimit === null
+          ? t.blUnlimited
+          : billing.monthlyTokenLimit.toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN')
+      }
+    />,
+    billing.planStartedAt && (
       <Fact
+        key="started"
         icon={<CalendarClock size={16} strokeWidth={1.8} />}
-        label={t.blExpiresOn}
-        value={billing.planExpiresAt ? formatDateVN(billing.planExpiresAt) : t.blNoExpiry}
-        muted={!billing.planExpiresAt}
+        label={t.blStartedOn}
+        value={formatDateVN(billing.planStartedAt)}
       />
-      <Fact
-        icon={<CalendarClock size={16} strokeWidth={1.8} />}
-        label={t.blQuotaReset}
-        value={formatDateVN(billing.currentPeriodEnd)}
-      />
-      <Fact
-        icon={<InfinityIcon size={16} strokeWidth={1.8} />}
-        label={t.blTokenLimit}
-        value={
-          billing.monthlyTokenLimit === null
-            ? t.blUnlimited
-            : billing.monthlyTokenLimit.toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN')
-        }
-      />
-      {billing.planStartedAt && (
-        <Fact
-          icon={<CalendarClock size={16} strokeWidth={1.8} />}
-          label={t.blStartedOn}
-          value={formatDateVN(billing.planStartedAt)}
-        />
-      )}
-    </>
-  );
+    ),
+  ];
 
   const header = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
@@ -96,14 +98,18 @@ export default function CurrentPlanCard({ billing }: { billing: BillingOverview 
     </div>
   );
 
-  // Desktop: một hàng duy nhất, các cột dàn đều hết chiều ngang card.
+  // Desktop: một hàng duy nhất, các cột dàn đều hết chiều ngang card, ngăn bởi đường kẻ dọc mờ.
   if (isDesktop) {
+    const columns = [header, ...facts, badge].filter(Boolean);
     return (
       <Card>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px 24px' }}>
-          {header}
-          {facts}
-          {badge}
+          {columns.map((col, i) => (
+            <Fragment key={i}>
+              {i > 0 && <span aria-hidden style={{ width: 1, alignSelf: 'stretch', background: '#ece8f6' }} />}
+              {col}
+            </Fragment>
+          ))}
         </div>
       </Card>
     );

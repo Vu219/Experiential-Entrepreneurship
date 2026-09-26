@@ -82,6 +82,9 @@ public enum ActivityAction {
     USER_DELETED(ActivityActionGroup.ADMIN),
     USER_PASSWORD_RESET(ActivityActionGroup.ADMIN),
     PLAN_CONFIG_UPDATED(ActivityActionGroup.ADMIN),
+    LANDING_CONTENT_UPDATED(ActivityActionGroup.ADMIN),
+    /** Tách khỏi UPDATED để lần xuất bản ngay sau khi lưu nháp không bị dedup 60s nuốt mất. */
+    LANDING_CONTENT_PUBLISHED(ActivityActionGroup.ADMIN),
     AI_CONFIG_UPDATED(ActivityActionGroup.ADMIN),
     API_VERSION_UPDATED(ActivityActionGroup.ADMIN),
     TOKENS_GRANTED(ActivityActionGroup.ADMIN),

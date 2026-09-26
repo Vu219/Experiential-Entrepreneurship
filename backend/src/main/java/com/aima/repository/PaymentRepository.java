@@ -195,6 +195,13 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID>, JpaSpec
     Optional<Payment> findByGatewayTxnIdAndDeletedAtIsNull(String gatewayTxnId);
 
     /**
+     * Lần mua đã thanh toán gần nhất của một gói — nguồn {@code list_price} (giá niêm yết lúc
+     * mua) làm "giá gói cũ" khi tính khấu trừ nâng cấp.
+     */
+    Optional<Payment> findFirstByUser_IdAndPlan_IdAndStatusAndDeletedAtIsNullOrderByPaidAtDesc(
+            UUID userId, UUID planId, PaymentStatus status);
+
+    /**
      * Khoá dòng đơn để xử lý kết quả cổng. {@code PESSIMISTIC_WRITE} là thứ làm
      * {@code applyGatewayResult} idempotent TUYỆT ĐỐI: webhook, job đối soát và nút "kiểm tra
      * lại" của user có thể ập tới cùng lúc — kiểm trạng thái phải diễn ra BÊN TRONG khoá, chứ

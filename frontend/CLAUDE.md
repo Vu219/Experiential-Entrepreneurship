@@ -33,6 +33,8 @@ src/
 ├── api/
 │   ├── apiClient.ts      — axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL }) + interceptor
 │   ├── auth.ts           — register/login/logout/getProfile/OTP/completeProfile + GOOGLE_LOGIN_URL;
+│   │                       Đăng ký 2 bước: register (gửi OTP, CHƯA tạo tài khoản) → verifyRegister (tạo + set cookie) / resendRegisterOtp;
+│   │                       startGoogleAuth(origin) ghi nguồn vào sessionStorage, consumeGoogleLinkedFromRegister đọc cờ linked=1 (chỉ báo khi đi từ /register).
 │   │                       changePasswordInit/Confirm, requestDeleteAccount/restoreAccount (dùng ở trang Hồ sơ).
 │   │                       updateProfile nhận thêm avatarUrl (tuỳ chọn); uploadAvatar(file) → POST /files/avatar trả URL công khai.
 │   │                       User có thêm status + deletionDate (banner chờ xóa) + avatarUrl. Nút Đăng xuất trong Hồ sơ chỉ hiện ở mobile/tablet.
@@ -41,8 +43,13 @@ src/
 │   │                       checkout/cancel/verify + applyMockOutcome (DEV-ONLY) + 3 helper nhớ
 │   │                       paymentId ở sessionStorage cho trang /billing/return. PaymentStatus/
 │   │                       PaymentGateway RE-EXPORT từ revenue.ts (một nguồn cho cùng enum BE).
-│   │                       Trang: pages/app/{Billing,BillingReturn,BillingMock}.tsx +
-│   │                       components/billing/*. Đếm ngược hạn thanh toán tính theo `serverTime`
+│   │                       Trang: pages/app/{Billing,BillingCheckout,BillingReturn,BillingMock}.tsx +
+│   │                       components/billing/*. MỌI nút chọn gói → /billing/checkout?plan=<MÃ>
+│   │                       ("Xem lại đơn hàng": getQuote chỉ đọc; checkout(planId, method,
+│   │                       expectedAmount) chỉ gọi từ nút "Thanh toán ngay"). FE KHÔNG tự tính tiền —
+│   │                       hiển thị nguyên văn báo giá. Phương thức thanh toán: registry
+│   │                       config/paymentMethods.ts (thêm phương thức = thêm một mục).
+│   │                       Đếm ngược hạn thanh toán tính theo `serverTime`
 │   │                       trong response (KHÔNG theo đồng hồ máy) — xem useServerCountdown.ts;
 │   │                       về 0 thì GỌI LẠI API lấy trạng thái thật, không tự coi là đã huỷ.
 │   ├── adminPayments.ts  — quản trị ĐƠN HÀNG (/admin/payments): summary 3 badge hàng đợi +
@@ -54,6 +61,11 @@ src/
 │   ├── plans.ts          — gói dịch vụ từ DB: GET /plans/public (landing/pricing) + CRUD /admin/plans;
 │   │                       map payload BE → shape UI (PricingPlan/ComparisonGroup). hooks/usePublicPlans
 │   │                       cache 1 lần gọi/phiên, fallback config/plans.ts (hardcode cũ) khi API lỗi.
+│   ├── landing.ts        — nội dung Landing từ DB: GET /landing/public + /admin/landing (lưu nháp → xuất bản);
+│   │                       type schema các section (chữ song ngữ L10n) + helper `tr(text, lang)`.
+│   │                       hooks/useLandingContent cache 1 lần gọi/phiên, fallback config/landingDefaults.ts
+│   │                       (dựng từ chuỗi i18n) khi API lỗi. Admin: pages/admin/Landing.tsx +
+│   │                       components/admin/landing/*; validate ở validations/landingValidation.ts.
 │   └── trendResearch.ts  — start/poll/list/deleteTrends phiên Trend Research (async job, NFR-04);
 │                           input có `strategyId` + `articleCount` (1–20) ngoài brand/platform.
 │                           Trang Trends GỘP tối đa 3 phiên COMPLETED gần nhất MỖI nền tảng

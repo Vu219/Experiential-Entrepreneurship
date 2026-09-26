@@ -13,6 +13,8 @@ import com.aima.enums.ActivityAction;
 import com.aima.enums.GatewayLinkStatus;
 import com.aima.enums.MockGatewayScenario;
 import com.aima.enums.MockPaymentOutcome;
+import com.aima.enums.PaymentMethod;
+import com.aima.enums.PaymentOrderType;
 import com.aima.enums.PaymentStatus;
 import com.aima.enums.PlanSource;
 import com.aima.enums.UserPlan;
@@ -127,10 +129,17 @@ class PaymentEndToEndTest {
 
     private UUID createOrder(User user, String planCode) {
         CheckoutResponse order = paymentService
-                .checkout(user.getEmail(), CheckoutRequest.builder().planId(plan(planCode).getId()).build())
+                .checkout(user.getEmail(), CheckoutRequest.builder().planId(plan(planCode).getId())
+                        .paymentMethod(PaymentMethod.PAYOS_VIETQR)
+                        .expectedAmount(quotedTotal(user, planCode)).build())
                 .getResult();
         assertNotNull(order.getCheckoutUrl(), "đơn mới phải có link thanh toán");
         return order.getPaymentId();
+    }
+
+    /** Tổng tiền trang "Xem lại đơn hàng" hiển thị — đúng con số FE gửi kèm lúc checkout. */
+    private long quotedTotal(User user, String planCode) {
+        return paymentService.quote(user.getEmail(), plan(planCode).getId()).getResult().getTotal();
     }
 
     private BillingOverviewResponse billing(User user) {
@@ -214,11 +223,17 @@ class PaymentEndToEndTest {
         LocalDateTime plusExpiry = expiryOf(user);
 
         LocalDateTime before = LocalDateTime.now();
-        buyAndPay(user, "PRO");
+        UUID upgradeId = buyAndPay(user, "PRO");
         LocalDateTime proExpiry = expiryOf(user);
 
         assertEquals("PRO", billing(user).getPlanCode());
-        // Thay thế: hạn tính từ BÂY GIỜ, bỏ phần dư của gói cũ (nên phải NHỎ HƠN hạn cộng dồn).
+        // Nâng cấp khi Plus còn hạn → khấu trừ giá trị còn lại, thu ÍT hơn giá niêm yết Pro.
+        Payment upgrade = paymentRepository.findById(upgradeId).orElseThrow();
+        assertEquals(PaymentOrderType.UPGRADE, upgrade.getOrderType());
+        assertTrue(upgrade.getProrationCredit() > 0);
+        assertEquals(plan("PRO").getPrice() - upgrade.getProrationCredit() - upgrade.getProrationRounding(),
+                upgrade.getAmount());
+        // Thay thế: hạn tính lại từ BÂY GIỜ (phần dư của gói cũ đã quy thành tiền khấu trừ).
         assertTrue(proExpiry.isBefore(plusExpiry.plusMonths(1)));
         assertTrue(proExpiry.isAfter(before.plusMonths(1).minusMinutes(5)));
         assertTrue(proExpiry.isBefore(before.plusMonths(1).plusMinutes(5)));

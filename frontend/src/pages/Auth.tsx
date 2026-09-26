@@ -9,10 +9,14 @@ import { useAuth } from '../auth/AuthContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { GradIcon } from '../components/ui';
 import AimaScene from '../components/AimaScene';
-import { register as apiRegister, GOOGLE_LOGIN_URL, type User } from '../api/auth';
+import {
+  register as apiRegister, resendRegisterOtp, verifyRegister, startGoogleAuth, consumeGoogleLinkedFromRegister,
+  type User,
+} from '../api/auth';
+import type { ApiError } from '../api/apiClient';
 import PasswordStrengthBar from '../components/PasswordStrengthBar';
 import { passwordValid, generateStrongPassword } from '../validations/password';
-import { validEmail, passwordsMatch } from '../validations/authValidation';
+import { validEmail, passwordsMatch, otpValid } from '../validations/authValidation';
 import { useToast } from '../components/toast/ToastProvider';
 import type { AuthForm, AuthErrors } from '../types';
 
@@ -29,6 +33,17 @@ const inputWrap = (error?: string): CSSProperties => ({
 const inputStyle: CSSProperties = { flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 15, padding: '14px 0', color: '#241f3a' };
 const labelStyle: CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', color: '#574f6e', marginBottom: 8 };
 const errStyle: CSSProperties = { minHeight: 18, fontSize: 12.5, color: '#e23d6e', marginTop: 5 };
+const noticeStyle: CSSProperties = { fontSize: 13, color: '#16a34a', background: '#e8f8ee', border: '1px solid #cdeed8', borderRadius: 10, padding: '10px 13px', marginBottom: 16 };
+const linkBtn: CSSProperties = { background: 'none', border: 'none', padding: 0, color: '#8b5cf6', fontWeight: 700, fontSize: 14, cursor: 'pointer' };
+
+// ErrorCode backend ở bước OTP đăng ký.
+const EMAIL_EXISTED = 1003;
+const OTP_NOT_FOUND = 1060;          // hết hạn / đã dùng
+const OTP_ATTEMPTS_EXCEEDED = 1072;  // sai 5 lần → mã bị huỷ
+const OTP_RESEND_TOO_SOON = 1079;    // chưa hết 60s chờ gửi lại
+const REGISTRATION_SESSION_EXPIRED = 1080;
+
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 const MailIcon = () => <Mail size={18} color="#a39bbf" strokeWidth={1.7} />;
 const LockIcon = () => <Lock size={18} color="#a39bbf" strokeWidth={1.7} />;
@@ -59,10 +74,28 @@ export default function Auth() {
   const [pwFocused, setPwFocused] = useState(false);
   const [notice, setNotice] = useState<string>((location.state as { notice?: string } | null)?.notice ?? '');
   const toast = useToast();
+  // Đăng ký 2 bước: form → nhập OTP (tài khoản chỉ được tạo khi OTP đúng).
+  const [regStep, setRegStep] = useState<'form' | 'otp'>('form');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [otpLeft, setOtpLeft] = useState(0);
+  const [resendLeft, setResendLeft] = useState(0);
+  const [resending, setResending] = useState(false);
+
+  // Đếm ngược hiệu lực mã + thời gian chờ gửi lại (1 nhịp/giây cho cả hai).
+  useEffect(() => {
+    if (otpLeft <= 0 && resendLeft <= 0) return;
+    const id = setTimeout(() => {
+      setOtpLeft((s) => Math.max(0, s - 1));
+      setResendLeft((s) => Math.max(0, s - 1));
+    }, 1000);
+    return () => clearTimeout(id);
+  }, [otpLeft, resendLeft]);
 
   const switchRoute = (r: 'login' | 'register') => {
     setErrors({});
     setNotice('');
+    setRegStep('form');
     setF(s => ({ ...s, password: '', confirm: '' }));
     go(r);
   };
@@ -80,6 +113,7 @@ export default function Auth() {
     const params = new URLSearchParams(location.search);
     const stateError = (location.state as { oauthError?: string } | null)?.oauthError;
     if (params.get('login') === 'success') {
+      if (consumeGoogleLinkedFromRegister(params)) toast.success(t.googleLinkedMsg, { title: t.googleLinkedTitle });
       setSubmitting(true);
       refreshUser().then((me) => {
         if (me) navigate(me.profileCompleted ? '/dashboard' : '/complete-profile', { replace: true });
@@ -164,24 +198,87 @@ export default function Auth() {
     setErrors(er);
     if (Object.keys(er).length > 0) return;
     setSubmitting(true);
+    setNotice('');
     try {
-      await apiRegister({ fullName: f.name, email: f.email, password: f.password });
-      const me = await authLogin(f.email, f.password);
-      afterAuth(me);
+      const sent = await apiRegister({ fullName: f.name.trim(), email: f.email.trim(), password: f.password });
+      openOtpStep(sent.expiresInSeconds, sent.resendAfterSeconds, t.regOtpSent);
     } catch (err) {
-      const msg = (err as Error).message;
-      if (/tồn tại|taken|exist|already|sử dụng/i.test(msg)) {
+      const { code, message } = err as ApiError;
+      if (code === EMAIL_EXISTED) setErrors({ email: 'taken' });
+      // Mã của lần bấm trước vẫn còn hiệu lực → vào thẳng bước nhập mã thay vì báo lỗi.
+      else if (code === OTP_RESEND_TOO_SOON) openOtpStep(0, 60, t.regOtpAlreadySent);
+      else toast.error(message, { title: 'Đăng ký thất bại' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const openOtpStep = (expiresIn: number, resendIn: number, msg: string) => {
+    setRegStep('otp');
+    setOtpCode('');
+    setOtpError('');
+    setOtpLeft(expiresIn);
+    setResendLeft(resendIn);
+    setNotice(msg);
+  };
+
+  const backToRegisterForm = (msg = '') => {
+    setRegStep('form');
+    setOtpCode('');
+    setOtpError('');
+    setOtpLeft(0);
+    setNotice(msg);
+  };
+
+  const submitOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode) return setOtpError(t.errOtpReq);
+    if (!otpValid(otpCode)) return setOtpError(t.errOtpBad);
+    setSubmitting(true);
+    setOtpError('');
+    try {
+      await verifyRegister(f.email.trim(), otpCode);
+      const me = await refreshUser();
+      toast.success(t.regSuccessMsg, { title: t.regSuccessTitle });
+      if (me) afterAuth(me);
+    } catch (err) {
+      const { code, message } = err as ApiError;
+      if (code === OTP_ATTEMPTS_EXCEEDED || code === OTP_NOT_FOUND) {
+        // Mã đã bị huỷ/hết hạn → buộc gửi mã mới.
+        setOtpCode('');
+        setOtpLeft(0);
+        setOtpError(code === OTP_ATTEMPTS_EXCEEDED ? t.regOtpBurned : t.regOtpExpired);
+      } else if (code === REGISTRATION_SESSION_EXPIRED) {
+        backToRegisterForm(t.regSessionExpired);
+      } else if (code === EMAIL_EXISTED) {
+        backToRegisterForm();
         setErrors({ email: 'taken' });
       } else {
-        setErrors({ email: msg });
+        setOtpError(message);
       }
     } finally {
       setSubmitting(false);
     }
   };
 
-  const googleLogin = () => {
-    window.location.href = GOOGLE_LOGIN_URL;
+  const resendOtp = async () => {
+    if (resendLeft > 0 || resending) return;
+    setResending(true);
+    setOtpError('');
+    try {
+      const sent = await resendRegisterOtp(f.email.trim());
+      setOtpCode('');
+      setOtpLeft(sent.expiresInSeconds);
+      setResendLeft(sent.resendAfterSeconds);
+      setNotice(t.regOtpResent);
+    } catch (err) {
+      const { code, message } = err as ApiError;
+      if (code === REGISTRATION_SESSION_EXPIRED) backToRegisterForm(t.regSessionExpired);
+      else if (code === OTP_RESEND_TOO_SOON) setResendLeft((s) => Math.max(s, 60));
+      else setOtpError(message);
+    } finally {
+      setResending(false);
+    }
   };
 
   const btnPrimary: CSSProperties = { width: '100%', border: 'none', borderRadius: 13, padding: 16, fontWeight: 700, fontSize: 15, letterSpacing: '.05em', color: '#fff', background: brandGradient, boxShadow: '0 16px 30px -12px rgba(139,92,246,.6)', cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.75 : 1 };
@@ -234,7 +331,7 @@ export default function Auth() {
             <div style={{ maxWidth: 400, width: '100%', margin: '0 auto', padding: isMobile ? 0 : '8px 0' }}>
               <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: lang === 'vi' ? (isMobile ? 25 : 32) : (isMobile ? 30 : 40), margin: 0, letterSpacing: '-.02em', whiteSpace: 'nowrap' }}>{t.loginTitle}</h2>
               <p style={{ fontSize: 15, color: '#6b6680', margin: '8px 0 30px' }}>{t.loginSub}</p>
-              {notice && <div style={{ fontSize: 13, color: '#16a34a', background: '#e8f8ee', border: '1px solid #cdeed8', borderRadius: 10, padding: '10px 13px', marginBottom: 16 }}>{notice}</div>}
+              {notice && <div style={noticeStyle}>{notice}</div>}
               <form onSubmit={submitLogin}>
                 <label style={labelStyle}>EMAIL</label>
                 <div style={inputWrap(errors.email)}>
@@ -274,18 +371,19 @@ export default function Auth() {
                 <span style={{ fontSize: 13, color: '#8a85a0' }}>{t.orSignIn}</span>
                 <div style={{ flex: 1, height: 1, background: '#ece8f5' }} />
               </div>
-              <SocialBtn onClick={googleLogin} label={t.googleSignIn} icon={<GoogleIcon />} />
+              <SocialBtn onClick={() => startGoogleAuth('login')} label={t.googleSignIn} icon={<GoogleIcon />} />
               <div style={{ textAlign: 'center', fontSize: 14, color: '#6b6680', marginTop: 26 }}>
                 {t.noAccount} <span onClick={() => switchRoute('register')} style={{ color: '#8b5cf6', fontWeight: 700, cursor: 'pointer' }}>{t.signUpNow}</span>
               </div>
             </div>
           )}
 
-          {route === 'register' && (
+          {route === 'register' && regStep === 'form' && (
             <div style={{ maxWidth: 400, width: '100%', margin: '0 auto' }}>
               <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 34, margin: 0, letterSpacing: '-.01em' }}>{t.regTitle}</h2>
               <p style={{ fontSize: 14.5, color: '#6b6680', margin: '8px 0 22px' }}>{t.regSub}</p>
-              <form onSubmit={submitRegister}>
+              {notice && <div style={noticeStyle}>{notice}</div>}
+              <form onSubmit={submitRegister} noValidate>
                 <label style={labelStyle}>{t.lName}</label>
                 <div style={inputWrap(errors.name)}>
                   <UserIcon />
@@ -293,17 +391,17 @@ export default function Auth() {
                 </div>
                 <div style={errStyle}>{errors.name}</div>
 
-                <label style={labelStyle}>EMAIL</label>
+                <label htmlFor="reg-email" style={labelStyle}>EMAIL <span aria-hidden="true" style={{ color: '#e23d6e' }}>*</span></label>
                 <div style={inputWrap(errors.email)}>
                   <MailIcon />
-                  <input autoFocus name="email" value={f.email} onChange={onField} type="email" placeholder={t.phEmail} style={inputStyle} />
+                  <input id="reg-email" autoFocus name="email" value={f.email} onChange={onField} type="email" aria-required="true" aria-invalid={!!errors.email} placeholder={t.phEmail} style={inputStyle} />
                 </div>
                 <div style={errStyle}>
                   {errors.email === 'taken' ? (
                     <span style={{ color: '#e23d6e' }}>
-                      {lang === 'vi' ? 'Email này đã được sử dụng — ' : "That email's taken — "}
+                      {t.regEmailTaken} —{' '}
                       <span onClick={() => switchRoute('login')} style={{ color: '#8b5cf6', textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }}>
-                        {lang === 'vi' ? 'bạn muốn đăng nhập?' : 'want to log in?'}
+                        {t.regWantLogin}
                       </span>
                     </span>
                   ) : errors.email}
@@ -348,8 +446,63 @@ export default function Auth() {
                   ) : t.signUp}
                 </button>
               </form>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '26px 0 20px' }}>
+                <div style={{ flex: 1, height: 1, background: '#ece8f5' }} />
+                <span style={{ fontSize: 13, color: '#8a85a0' }}>{t.orSignUp}</span>
+                <div style={{ flex: 1, height: 1, background: '#ece8f5' }} />
+              </div>
+              <SocialBtn onClick={() => startGoogleAuth('register')} label={t.googleSignUp} icon={<GoogleIcon />} />
               <div style={{ textAlign: 'center', fontSize: 14, color: '#6b6680', marginTop: 20 }}>
                 {t.haveAccount} <span onClick={() => switchRoute('login')} style={{ color: '#8b5cf6', fontWeight: 700, cursor: 'pointer' }}>{t.signInNow}</span>
+              </div>
+            </div>
+          )}
+
+          {route === 'register' && regStep === 'otp' && (
+            <div style={{ maxWidth: 400, width: '100%', margin: '0 auto' }}>
+              <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 34, margin: 0, letterSpacing: '-.01em' }}>{t.regOtpTitle}</h2>
+              <p style={{ fontSize: 14.5, lineHeight: 1.55, color: '#6b6680', margin: '8px 0 22px' }}>
+                {t.regOtpSub} <b style={{ color: '#241f3a', wordBreak: 'break-all' }}>{f.email.trim().toLowerCase()}</b>
+              </p>
+              {notice && <div style={noticeStyle} role="status">{notice}</div>}
+              <form onSubmit={submitOtp} noValidate>
+                <label htmlFor="reg-otp" style={labelStyle}>{t.regOtpLabel} <span aria-hidden="true" style={{ color: '#e23d6e' }}>*</span></label>
+                <div style={inputWrap(otpError)}>
+                  <LockIcon />
+                  <input
+                    id="reg-otp" autoFocus name="otp" value={otpCode} inputMode="numeric" autoComplete="one-time-code" maxLength={6}
+                    aria-required="true" aria-invalid={!!otpError} placeholder={t.regOtpPh}
+                    onChange={(e) => { setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError(''); }}
+                    style={{ ...inputStyle, letterSpacing: otpCode ? '.4em' : undefined, fontWeight: otpCode ? 700 : undefined }}
+                  />
+                </div>
+                <div style={errStyle} role="alert">{otpError}</div>
+                <div style={{ minHeight: 18, fontSize: 13, color: '#6b6680', margin: '2px 0 18px' }}>
+                  {otpLeft > 0 ? <>{t.regOtpExpiresIn} <b style={{ color: '#241f3a', fontVariantNumeric: 'tabular-nums' }}>{mmss(otpLeft)}</b></> : null}
+                </div>
+                <button type="submit" disabled={submitting} style={btnPrimary}>
+                  {submitting ? (
+                    <div className="dots-container">
+                      <div className="dot"></div>
+                      <div className="dot"></div>
+                      <div className="dot"></div>
+                    </div>
+                  ) : t.regOtpVerify}
+                </button>
+              </form>
+              <div style={{ textAlign: 'center', fontSize: 14, color: '#6b6680', marginTop: 22 }}>
+                {t.regOtpNoCode}{' '}
+                {resendLeft > 0 ? (
+                  <span style={{ color: '#a39bbf', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{t.regOtpResendIn} {resendLeft}s</span>
+                ) : (
+                  <button type="button" onClick={resendOtp} disabled={resending} style={{ ...linkBtn, opacity: resending ? 0.6 : 1 }}>{t.regOtpResend}</button>
+                )}
+              </div>
+              <div style={{ textAlign: 'center', marginTop: 14 }}>
+                <button type="button" onClick={() => backToRegisterForm()} style={{ ...linkBtn, display: 'inline-flex', alignItems: 'center', gap: 5, color: '#6b6680', fontWeight: 600 }}>
+                  <ChevronLeft size={16} strokeWidth={1.8} />
+                  {t.regOtpBack}
+                </button>
               </div>
             </div>
           )}

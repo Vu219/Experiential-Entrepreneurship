@@ -4,33 +4,31 @@ import { useReducedMotion } from 'framer-motion';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Reveal, RevealGroup, RevealItem } from '../motion/Reveal';
+import { useLandingContent } from '../../hooks/useLandingContent';
+import { tr } from '../../api/landing';
 
-// FAQ accordion — panel mở/đóng bằng CSS grid-template-rows 0fr ↔ 1fr (transition
-// thuần, KHÔNG animate height nên không đo layout đồng bộ / không reflow từng frame
-// như framer height:auto trước đây). Icon xoay bằng transform. Dùng chung Landing + /pricing.
+// FAQ accordion (nội dung từ admin) — panel mở/đóng bằng CSS grid-template-rows 0fr ↔ 1fr:
+// không cần JS đo chiều cao như framer height:auto trước đây. Vẫn là animation LAYOUT (mỗi
+// frame tính lại vị trí phần bên dưới) — chấp nhận được vì ngắn (220ms) và các section phía
+// dưới rẻ để vẽ lại (CTA không dùng filter blur, không Reveal lặp lại). Dùng chung Landing + /pricing.
 export default function FaqSection() {
-  const { t } = useApp();
+  const { lang } = useApp();
+  const { faq } = useLandingContent();
   const { isMobile } = useBreakpoint();
   const reduced = useReducedMotion();
   const [open, setOpen] = useState<number | null>(0);
 
-  const faqs: [string, string][] = [
-    [t.faqQ1, t.faqA1],
-    [t.faqQ2, t.faqA2],
-    [t.faqQ3, t.faqA3],
-    [t.faqQ4, t.faqA4],
-  ];
 
   return (
     <section id="faq" className="scroll-anchor" style={{ maxWidth: 760, margin: '0 auto', padding: isMobile ? '10px 18px 56px' : '10px 28px 80px', contain: 'layout' }}>
       <Reveal>
         <div style={{ textAlign: 'center', margin: '0 auto 32px' }}>
-          <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 30 : 38, letterSpacing: '-.02em', margin: 0, color: '#171327' }}>{t.faqTitle}</h2>
-          <p style={{ fontSize: 17, color: '#5b5670', margin: '12px 0 0' }}>{t.faqSub}</p>
+          <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 30 : 38, letterSpacing: '-.02em', margin: 0, color: '#171327' }}>{tr(faq.title, lang)}</h2>
+          <p style={{ fontSize: 17, color: '#5b5670', margin: '12px 0 0' }}>{tr(faq.subtitle, lang)}</p>
         </div>
       </Reveal>
       <RevealGroup style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {faqs.map(([q, a], i) => {
+        {faq.items.map((item, i) => {
           const isOpen = open === i;
           return (
             <RevealItem key={i} y={16}>
@@ -42,7 +40,7 @@ export default function FaqSection() {
                   onClick={() => setOpen(isOpen ? null : i)}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', padding: isMobile ? '16px 18px' : '18px 22px' }}
                 >
-                  <span style={{ fontWeight: 700, fontSize: 15.5, color: '#211c38', fontFamily: "'Plus Jakarta Sans'" }}>{q}</span>
+                  <span style={{ fontWeight: 700, fontSize: 15.5, color: '#211c38', fontFamily: "'Plus Jakarta Sans'" }}>{tr(item.question, lang)}</span>
                   <ChevronDown size={18} color="#7c3aed" strokeWidth={2.2} style={{ flex: 'none', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .3s ease' }} />
                 </button>
                 <div
@@ -65,7 +63,7 @@ export default function FaqSection() {
                       transition: reduced ? undefined : 'opacity .18s ease-out',
                     }}
                   >
-                    <p style={{ fontSize: 14.5, lineHeight: 1.6, color: '#5b5670', margin: 0, padding: isMobile ? '0 18px 16px' : '0 22px 20px' }}>{a}</p>
+                    <p style={{ fontSize: 14.5, lineHeight: 1.6, color: '#5b5670', margin: 0, padding: isMobile ? '0 18px 16px' : '0 22px 20px' }}>{tr(item.answer, lang)}</p>
                   </div>
                 </div>
               </div>
