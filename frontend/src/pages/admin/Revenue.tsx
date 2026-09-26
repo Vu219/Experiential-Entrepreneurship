@@ -12,6 +12,7 @@ import RevenueFilterBar from '../../components/admin/revenue/RevenueFilterBar';
 import SparklineCard from '../../components/admin/revenue/SparklineCard';
 import RevenueChart, { type RevenueChartMode } from '../../components/admin/revenue/RevenueChart';
 import PlanDonut from '../../components/admin/revenue/PlanDonut';
+import ForecastCard from '../../components/admin/revenue/ForecastCard';
 import TransactionsTable, { type TxnSort } from '../../components/admin/revenue/TransactionsTable';
 import OrdersTab from '../../components/admin/revenue/OrdersTab';
 import { formatVND } from '../../api/admin';
@@ -483,19 +484,7 @@ export default function Revenue() {
                   </SectionCard>
 
                   {forecast && (
-                    <SparklineCard
-                      label={t.revForecast} value={formatVND(forecast.projected)}
-                      deltaPct={forecast.deltaPct} comparisonLabel={t.revVsPrevMonth}
-                      sparkline={forecast.sparkline}
-                      footer={
-                        <div style={{ fontSize: 11.5, color: '#a59fbb', marginTop: 12, lineHeight: 1.5 }}>
-                          {t.revForecastNote
-                            .replace('{actual}', formatVND(forecast.actualSoFar))
-                            .replace('{elapsed}', String(forecast.daysElapsed))
-                            .replace('{total}', String(forecast.daysInMonth))}
-                        </div>
-                      }
-                    />
+                    <ForecastCard forecast={forecast} />
                   )}
                 </div>
               </div>

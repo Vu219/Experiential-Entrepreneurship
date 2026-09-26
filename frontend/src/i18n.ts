@@ -895,6 +895,8 @@ export const STRINGS = {
     // panel phải
     revPlanMix: 'Cơ cấu gói dịch vụ', revForecast: 'Doanh thu dự kiến tháng này',
     revForecastNote: 'Ước tính tuyến tính từ {actual} thực thu trong {elapsed}/{total} ngày đã qua.',
+    revForecastCollected: 'Đã thu', revForecastDaysLeft: 'Còn {n} ngày', revForecastPrevMonth: 'Tháng trước',
+    revForecastDay: 'Ngày {d}',
     // rỗng / lỗi
     revNoData: 'Chưa có dữ liệu', revNoDataPeriod: 'Kỳ này chưa có giao dịch nào',
     revNoTransactions: 'Không có giao dịch nào khớp bộ lọc',
@@ -1916,6 +1918,8 @@ export const STRINGS = {
     revStatusExpired: 'Expired', revStatusCancelled: 'Cancelled',
     revPlanMix: 'Plan mix', revForecast: 'Projected revenue this month',
     revForecastNote: 'Linear estimate from {actual} collected over {elapsed}/{total} days elapsed.',
+    revForecastCollected: 'Collected', revForecastDaysLeft: '{n} days left', revForecastPrevMonth: 'Last month',
+    revForecastDay: 'Day {d}',
     revNoData: 'No data yet', revNoDataPeriod: 'No transactions in this period',
     revNoTransactions: 'No transactions match the filter',
     revExportTooLarge: '{n} rows exceed the 50,000 limit — narrow the filter and export again.',

@@ -7,8 +7,8 @@ import { SPARK_TONES, type SparkTone } from './chartTokens';
 
 /**
  * Thẻ số liệu của trang Doanh thu: nhãn + giá trị + badge % và một sparkline nền canh giữa mép phải.
- * DÙNG CHUNG cho cả 3 thẻ KPI lẫn thẻ "Doanh thu dự kiến" — mọi chỗ cần sparkline trong trang
- * này phải đi qua đây, đừng dựng lại chart ở component khác. Bản thân đường sparkline do
+ * DÙNG CHUNG cho 3 thẻ KPI — sparkline KPI trong trang này phải đi qua đây. Thẻ "Doanh thu dự
+ * kiến" có chart lũy kế + dự kiến riêng ở `ForecastCard`. Bản thân đường sparkline do
  * `components/Sparkline` vẽ (dùng chung với thẻ số liệu Bảng điều khiển).
  *
  * Kích thước hoàn toàn theo % của card (không px cứng) nên thẻ co giãn được theo breakpoint.
