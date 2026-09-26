@@ -31,7 +31,6 @@ const AdminPosts = lazy(() => import("./pages/admin/Posts"));
 const AdminSystem = lazy(() => import("./pages/admin/SystemStatus"));
 const AdminLogs = lazy(() => import("./pages/admin/Logs"));
 const AdminApiVersions = lazy(() => import("./pages/admin/ApiVersions"));
-const AdminPayments = lazy(() => import("./pages/admin/Payments"));
 const AdminRevenue = lazy(() => import("./pages/admin/Revenue"));
 const AdminPlans = lazy(() => import("./pages/admin/Plans"));
 const AdminUsage = lazy(() => import("./pages/admin/UsageOverview"));
@@ -88,7 +87,6 @@ const ADMIN_PAGE_IMPORTS = [
   () => import("./pages/admin/SystemStatus"),
   () => import("./pages/admin/Logs"),
   () => import("./pages/admin/ApiVersions"),
-  () => import("./pages/admin/Payments"),
   () => import("./pages/admin/Revenue"),
   () => import("./pages/admin/Plans"),
   () => import("./pages/admin/UsageOverview"),
@@ -184,7 +182,8 @@ export default function App() {
           <Route path="/admin/system" element={<AdminSystem />} />
           <Route path="/admin/logs" element={<AdminLogs />} />
           <Route path="/admin/api-versions" element={<AdminApiVersions />} />
-          <Route path="/admin/payments" element={<AdminPayments />} />
+          {/* Trang Đơn hàng đã gộp thành tab của Doanh thu & Đơn hàng — giữ link/bookmark/thông báo cũ. */}
+          <Route path="/admin/payments" element={<Navigate to="/admin/revenue?tab=orders" replace />} />
           <Route path="/admin/revenue" element={<AdminRevenue />} />
           <Route path="/admin/plans" element={<AdminPlans />} />
           <Route path="/admin/usage" element={<AdminUsage />} />

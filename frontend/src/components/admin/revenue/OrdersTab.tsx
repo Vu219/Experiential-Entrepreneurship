@@ -1,52 +1,70 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CircleAlert, Clock, ShieldAlert } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
-import { useBreakpoint } from '../../hooks/useBreakpoint';
-import PageContainer from '../../components/PageContainer';
-import AdminListPage, { DataTable, SearchInput, type ListState } from '../../components/admin/AdminListPage';
-import Pagination from '../../components/admin/Pagination';
-import StatusBadge from '../../components/admin/StatusBadge';
-import PaymentDetailModal from '../../components/admin/PaymentDetailModal';
-import { useToast } from '../../components/toast/ToastProvider';
-import { formatVND } from '../../api/admin';
-import { paymentStatusMeta, type PaymentStatus } from '../../api/revenue';
-import { formatDateTimeVN } from '../../utils/format';
+import { useApp } from '../../../context/AppContext';
+import { useBreakpoint } from '../../../hooks/useBreakpoint';
+import AdminListPage, { DataTable, SearchInput, type ListState } from '../AdminListPage';
+import Pagination from '../Pagination';
+import StatusBadge from '../StatusBadge';
+import FilterMenu from '../FilterMenu';
+import PaymentDetailModal from '../PaymentDetailModal';
+import { useToast } from '../../toast/ToastProvider';
+import { formatVND } from '../../../api/admin';
+import { paymentStatusMeta, type PaymentStatus } from '../../../api/revenue';
+import { formatDateTimeVN } from '../../../utils/format';
 import {
   cancelAdminPayment,
   getAdminPayment,
-  getPaymentSummary,
   listAdminPayments,
   markAdminPaymentPaid,
   type AdminPayment,
   type AdminPaymentSummary,
-} from '../../api/adminPayments';
-import type { ApiError } from '../../api/apiClient';
+} from '../../../api/adminPayments';
+import type { ApiError } from '../../../api/apiClient';
 
 const STATUSES: PaymentStatus[] = [
   'PENDING', 'PAID', 'FAILED', 'EXPIRED', 'CANCELLED', 'REFUNDED', 'PARTIALLY_REFUNDED',
 ];
 
 /**
- * Trang "Đơn hàng & thanh toán" của khu Quản trị.
+ * Tab "Đơn hàng" của trang "Doanh thu & Đơn hàng" (trước là trang riêng /admin/payments — cùng
+ * nguồn sổ cái `payments`: một dòng = một đơn = một lần thanh toán, nên gộp chung một trang).
+ * Danh sách lọc theo KỲ của bộ lọc thời gian dùng chung (theo ngày đặt đơn); riêng hàng đợi
+ * "cần đối soát" bỏ qua kỳ — việc tồn đọng phải thấy hết, kể cả đơn của kỳ trước.
  *
  * <p>Ba thẻ số ở đầu trang là <b>hàng đợi công việc</b>, không phải số liệu trang trí: đơn cần
  * đối soát tay, đơn đang chờ trả tiền, và webhook bị từ chối trong 24h. Bấm vào thẻ đầu là lọc
  * ngay ra danh sách việc cần làm — bắt admin tự nhớ đi lọc mỗi ngày thì sớm muộn cũng có ngày
  * không ai lọc.</p>
  */
-export default function AdminPayments() {
+export default function OrdersTab({
+  from,
+  to,
+  status,
+  onStatusChange,
+  summary,
+  onSummaryStale,
+}: {
+  /** Kỳ đang xem, YYYY-MM-DD, `to` bao gồm cả ngày đó. */
+  from: string;
+  to: string;
+  /** Trạng thái nằm trên URL (trang dùng chung cho export). */
+  status: PaymentStatus | '';
+  onStatusChange: (status: PaymentStatus | '') => void;
+  /** 3 badge hàng đợi — trang giữ để hiện số trên nhãn tab. */
+  summary: AdminPaymentSummary | null;
+  /** Gọi sau thao tác ghi để trang nạp lại badge. */
+  onSummaryStale: () => void;
+}) {
   const { t, lang } = useApp();
   const { isDesktop } = useBreakpoint();
   const toast = useToast();
 
-  const [summary, setSummary] = useState<AdminPaymentSummary | null>(null);
   const [rows, setRows] = useState<AdminPayment[]>([]);
   const [state, setState] = useState<ListState>('loading');
   const [page, setPage] = useState(0);
   const [pageCount, setPageCount] = useState(1);
   const [size, setSize] = useState(20);
 
-  const [status, setStatus] = useState<PaymentStatus | ''>('');
   const [onlyReconcile, setOnlyReconcile] = useState(false);
   const [q, setQ] = useState('');
 
@@ -61,6 +79,8 @@ export default function AdminPayments() {
           status: status || undefined,
           reconcileRequired: onlyReconcile ? true : undefined,
           q: q.trim() || undefined,
+          from: onlyReconcile ? undefined : from,
+          to: onlyReconcile ? undefined : to,
         },
         page,
         size
@@ -71,23 +91,16 @@ export default function AdminPayments() {
     } catch {
       setState('error');
     }
-  }, [status, onlyReconcile, q, page, size]);
-
-  const loadSummary = useCallback(async () => {
-    try {
-      setSummary(await getPaymentSummary());
-    } catch {
-      // Thẻ số hỏng không được chặn bảng — bảng mới là thứ admin cần nhất.
-    }
-  }, []);
+  }, [status, onlyReconcile, q, page, size, from, to]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  // Đổi kỳ ở thanh lọc chung → kết quả khác hẳn, quay về trang đầu.
   useEffect(() => {
-    void loadSummary();
-  }, [loadSummary]);
+    setPage(0);
+  }, [from, to]);
 
   const openDetail = async (row: AdminPayment) => {
     try {
@@ -104,7 +117,8 @@ export default function AdminPayments() {
     try {
       const updated = await action(selected.id, reason);
       setSelected(await getAdminPayment(updated.id));
-      await Promise.all([load(), loadSummary()]);
+      await load();
+      onSummaryStale();
       toast.success(t.aoDone);
     } catch (e) {
       toast.error((e as ApiError).message);
@@ -119,7 +133,7 @@ export default function AdminPayments() {
   };
 
   return (
-    <PageContainer>
+    <>
       <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3, 1fr)' : '1fr', gap: 14 }}>
         <QueueCard
           icon={<CircleAlert size={18} strokeWidth={1.9} />}
@@ -137,7 +151,7 @@ export default function AdminPayments() {
           hint={t.aoQueuePendingHint}
           value={summary?.pending ?? 0}
           active={status === 'PENDING'}
-          onClick={() => resetPage(() => setStatus((v) => (v === 'PENDING' ? '' : 'PENDING')))}
+          onClick={() => resetPage(() => onStatusChange(status === 'PENDING' ? '' : 'PENDING'))}
         />
         <QueueCard
           icon={<ShieldAlert size={18} strokeWidth={1.9} />}
@@ -159,18 +173,14 @@ export default function AdminPayments() {
         toolbar={
           <>
             <SearchInput value={q} onChange={(v) => resetPage(() => setQ(v))} placeholder={t.aoSearchPh} />
-            <select
+            <FilterMenu
+              label={t.revStatusFilter}
+              allLabel={t.aoAllStatuses}
+              clearLabel={t.revStatusClear}
               value={status}
-              onChange={(e) => resetPage(() => setStatus(e.target.value as PaymentStatus | ''))}
-              style={selectStyle}
-            >
-              <option value="">{t.aoAllStatuses}</option>
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {paymentStatusMeta(lang, s).label}
-                </option>
-              ))}
-            </select>
+              options={STATUSES.map((s) => [s, paymentStatusMeta(lang, s).label])}
+              onChange={(v) => resetPage(() => onStatusChange(v as PaymentStatus | ''))}
+            />
             <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: '#6b6680' }}>
               <input
                 type="checkbox"
@@ -179,6 +189,9 @@ export default function AdminPayments() {
               />
               {t.aoOnlyReconcile}
             </label>
+            {onlyReconcile && (
+              <span style={{ fontSize: 12, color: '#a39bbf' }}>{t.aoReconcileAllTime}</span>
+            )}
           </>
         }
       >
@@ -240,16 +253,11 @@ export default function AdminPayments() {
           onMarkPaid={(reason) => void runAction(markAdminPaymentPaid, reason)}
         />
       )}
-    </PageContainer>
+    </>
   );
 }
 
 const cellStyle = { padding: '12px 16px', fontSize: 13.5, color: '#4b4660' } as const;
-
-const selectStyle = {
-  borderRadius: 10, padding: '8px 12px', border: '1px solid #ece8f6', background: '#f4f2fb',
-  fontSize: 13.5, color: '#241f3a', outline: 'none', cursor: 'pointer',
-} as const;
 
 function QueueCard({
   icon,

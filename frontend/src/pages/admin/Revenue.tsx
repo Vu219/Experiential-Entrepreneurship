@@ -1,21 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BarChart3, Download, Printer, ShoppingBag, Wallet } from 'lucide-react';
+import { ArrowRight, BarChart3, Download, Printer, ShoppingBag, Wallet } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Card, Icon, Loader } from '../../components/ui';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { useToast } from '../../components/toast/ToastProvider';
 import SectionCard from '../../components/admin/SectionCard';
-import Pagination from '../../components/admin/Pagination';
 import { FilterSelect } from '../../components/admin/AdminListPage';
-import FilterMenu from '../../components/admin/FilterMenu';
 import PageContainer from '../../components/PageContainer';
 import RevenueFilterBar from '../../components/admin/revenue/RevenueFilterBar';
 import SparklineCard from '../../components/admin/revenue/SparklineCard';
 import RevenueChart, { type RevenueChartMode } from '../../components/admin/revenue/RevenueChart';
 import PlanDonut from '../../components/admin/revenue/PlanDonut';
 import TransactionsTable, { type TxnSort } from '../../components/admin/revenue/TransactionsTable';
+import OrdersTab from '../../components/admin/revenue/OrdersTab';
 import { formatVND } from '../../api/admin';
+import { getPaymentSummary, type AdminPaymentSummary } from '../../api/adminPayments';
 import {
   countRevenueTransactions, exportRevenue, getRevenueForecast, getRevenuePlanBreakdown,
   getRevenueSummary, getRevenueTimeseries, getRevenueTransactions,
@@ -24,11 +24,16 @@ import {
   type RevenueTransaction,
 } from '../../api/revenue';
 
-// Trang admin "Quản lý doanh thu" — nối BE THẬT (/admin/revenue, sổ cái `payments`).
-// Bộ lọc đồng bộ lên URL query để reload/chia sẻ link giữ nguyên trạng thái.
+// Trang admin "Doanh thu & Đơn hàng" — nối BE THẬT, cùng nguồn sổ cái `payments`.
+// Tab Tổng quan (KPI, chart, cơ cấu gói, dự kiến, vài giao dịch mới nhất) và tab Đơn hàng
+// (?tab=orders — hàng đợi + danh sách + thao tác tay; link cũ /admin/payments chuyển về đây).
+// Hai tab dùng chung bộ lọc kỳ; bộ lọc đồng bộ lên URL để reload/chia sẻ link giữ nguyên trạng thái.
 
 const EXPORT_ROW_LIMIT = 50_000;
-const PAGE_SIZES: [string, string][] = [['10', '10'], ['20', '20'], ['50', '50']];
+/** Tab Tổng quan chỉ xem nhanh vài giao dịch mới nhất — danh sách đầy đủ ở tab Đơn hàng. */
+const PREVIEW_ROWS = 5;
+
+type Tab = 'overview' | 'orders';
 
 type Load = 'loading' | 'error' | 'ok';
 
@@ -36,6 +41,28 @@ type Load = 'loading' | 'error' | 'ok';
 function defaultFilter(): RevenueFilter {
   const now = new Date();
   return { granularity: 'DAY', year: now.getFullYear(), month: now.getMonth() + 1 };
+}
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/** Kỳ của bộ lọc → khoảng ngày YYYY-MM-DD (`to` bao gồm) cho API danh sách đơn hàng. */
+function filterDateRange(f: RevenueFilter): { from: string; to: string } {
+  switch (f.granularity) {
+    case 'DAY': {
+      const last = new Date(f.year!, f.month!, 0).getDate();
+      return { from: `${f.year}-${pad2(f.month!)}-01`, to: `${f.year}-${pad2(f.month!)}-${pad2(last)}` };
+    }
+    case 'MONTH':
+      return { from: `${f.year}-01-01`, to: `${f.year}-12-31` };
+    case 'HALF_YEAR':
+      return f.half === 2
+        ? { from: `${f.year}-07-01`, to: `${f.year}-12-31` }
+        : { from: `${f.year}-01-01`, to: `${f.year}-06-30` };
+    case 'YEAR':
+      return { from: `${f.fromYear}-01-01`, to: `${f.toYear}-12-31` };
+    case 'CUSTOM':
+      return { from: f.from!, to: f.to! };
+  }
 }
 
 /** Đọc bộ lọc từ URL; tham số hỏng/thiếu thì rơi về mặc định thay vì để BE báo lỗi 2038. */
@@ -75,23 +102,22 @@ export default function Revenue() {
 
   // ---- Trạng thái bộ lọc (nguồn sự thật là URL) ----
   const filter = useMemo(() => filterFromParams(params), [params]);
+  const tab: Tab = params.get('tab') === 'orders' ? 'orders' : 'overview';
+  // Trạng thái lọc của tab Đơn hàng — nằm trên URL vì export ở thanh trên cũng áp theo nó.
   const status = (params.get('status') as PaymentStatus | null) ?? undefined;
-  const page = Number(params.get('page') ?? '1');
-  const size = Number(params.get('size') ?? '10');
   const sort: TxnSort = {
     field: params.get('sortField') === 'amount' ? 'amount' : 'date',
     asc: params.get('sortDir') === 'asc',
   };
   const chartMode: RevenueChartMode = params.get('chart') === 'cumulative' ? 'cumulative' : 'daily';
 
-  /** Ghi state lên URL. Đổi bộ lọc luôn kéo trang về 1 (kết quả đã khác hoàn toàn). */
-  const patchParams = useCallback((patch: Record<string, string | undefined>, resetPage = false) => {
+  /** Ghi state lên URL. */
+  const patchParams = useCallback((patch: Record<string, string | undefined>) => {
     const next = new URLSearchParams(params);
     Object.entries(patch).forEach(([key, value]) => {
       if (value === undefined || value === '') next.delete(key);
       else next.set(key, value);
     });
-    if (resetPage) next.delete('page');
     setParams(next, { replace: true });
   }, [params, setParams]);
 
@@ -105,7 +131,7 @@ export default function Revenue() {
       toYear: next.toYear?.toString(),
       from: next.from,
       to: next.to,
-    }, true);
+    });
   }, [patchParams]);
 
   // ---- Dữ liệu khối trên (KPI + chart + donut + dự kiến) ----
@@ -134,28 +160,36 @@ export default function Revenue() {
   }, [filterKey]);
   useEffect(() => { fetchCore(); }, [fetchCore]);
 
-  // ---- Bảng giao dịch (phân trang/sắp xếp server-side) ----
+  // ---- Vài giao dịch mới nhất của kỳ (tab Tổng quan; sắp xếp server-side) ----
   const [txLoad, setTxLoad] = useState<Load>('loading');
   const [rows, setRows] = useState<RevenueTransaction[]>([]);
-  const [pageCount, setPageCount] = useState(0);
   const [total, setTotal] = useState(0);
 
   const fetchTx = useCallback(() => {
     setTxLoad('loading');
     getRevenueTransactions(filter, {
-      status,
-      page: Math.max(page - 1, 0),
-      size,
+      page: 0,
+      size: PREVIEW_ROWS,
       sort: `${sort.field},${sort.asc ? 'asc' : 'desc'}`,
     })
       .then((p) => {
-        setRows(p.rows); setPageCount(p.pageCount); setTotal(p.total);
+        setRows(p.rows); setTotal(p.total);
         setTxLoad('ok');
       })
       .catch(() => setTxLoad('error'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterKey, status, page, size, sort.field, sort.asc]);
+  }, [filterKey, sort.field, sort.asc]);
   useEffect(() => { fetchTx(); }, [fetchTx]);
+
+  // ---- Badge hàng đợi đơn hàng (số trên nhãn tab + 3 thẻ của tab Đơn hàng) ----
+  const [orderSummary, setOrderSummary] = useState<AdminPaymentSummary | null>(null);
+  const loadOrderSummary = useCallback(() => {
+    // Thẻ số hỏng không được chặn trang — bảng mới là thứ admin cần nhất.
+    getPaymentSummary().then(setOrderSummary).catch(() => undefined);
+  }, []);
+  useEffect(() => { loadOrderSummary(); }, [loadOrderSummary]);
+
+  const orderRange = useMemo(() => filterDateRange(filter), [filter]);
 
   // ---- Export ----
   const download = (content: string, filename: string, mime: string) => {
@@ -205,16 +239,6 @@ export default function Revenue() {
     PREV_RANGE: t.revVsPrevRange,
   };
 
-  const statusOptions: [string, string][] = [
-    ['PAID', t.revStatusPaid],
-    ['PENDING', t.revStatusPending],
-    ['FAILED', t.revStatusFailed],
-    ['EXPIRED', t.revStatusExpired],
-    ['CANCELLED', t.revStatusCancelled],
-    ['REFUNDED', t.revStatusRefunded],
-    ['PARTIALLY_REFUNDED', t.revStatusPartial],
-  ];
-
   const granularityOptions: [string, string][] = [
     ['DAY', t.revModeDay], ['MONTH', t.revModeMonth],
     ['HALF_YEAR', t.revModeHalf], ['YEAR', t.revModeYear],
@@ -255,6 +279,10 @@ export default function Revenue() {
   const chartForecast = forecast && filter.granularity === 'DAY'
     && forecast.month === `${filter.year}-${String(filter.month).padStart(2, '0')}` ? forecast : null;
 
+  // Nhãn chế độ "từng bucket" theo đúng đơn vị bucket BE trả (ngày / tháng / năm).
+  const bucketModeLabel = filter.granularity === 'YEAR' ? t.revModeYear
+    : filter.granularity === 'MONTH' || filter.granularity === 'HALF_YEAR' ? t.revModeMonth : t.revModeDay;
+
   const modeBtn = (mode: RevenueChartMode, label: string) => {
     const active = chartMode === mode;
     return (
@@ -273,8 +301,33 @@ export default function Revenue() {
   const txnSpark = series?.points.map((p) => p.transactions) ?? [];
   const avgSpark = series?.points.map((p) => (p.transactions > 0 ? Math.round(p.revenue / p.transactions) : 0)) ?? [];
 
+  const tabBtn = (key: Tab, label: string, badge?: number) => {
+    const active = tab === key;
+    return (
+      <button key={key} onClick={() => patchParams({ tab: key === 'overview' ? undefined : key })} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 7,
+        border: '1px solid', borderColor: active ? 'transparent' : '#ece8f6', background: active ? brandGradient : '#fff',
+        color: active ? '#fff' : '#5b5670', borderRadius: 9, padding: '7px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+      }}>
+        {label}
+        {!!badge && (
+          <span style={{
+            minWidth: 20, height: 20, padding: '0 6px', borderRadius: 999, fontSize: 11.5, fontWeight: 800,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            background: active ? 'rgba(255,255,255,.25)' : '#fdf0dc', color: active ? '#fff' : '#d97706',
+          }}>{badge}</span>
+        )}
+      </button>
+    );
+  };
+
   return (
     <PageContainer>
+      <div className="no-print" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {tabBtn('overview', t.revTabOverview)}
+        {tabBtn('orders', t.revTabOrders, orderSummary?.reconcileRequired)}
+      </div>
+
       {/* B — Thanh lọc thời gian + export (ẩn khi in) */}
       <div className="no-print" style={{
         display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between',
@@ -287,7 +340,18 @@ export default function Revenue() {
         </div>
       </div>
 
-      {coreLoad === 'loading' ? loadingBox(220)
+      {tab === 'orders' && (
+        <OrdersTab
+          from={orderRange.from}
+          to={orderRange.to}
+          status={status ?? ''}
+          onStatusChange={(v) => patchParams({ status: v || undefined })}
+          summary={orderSummary}
+          onSummaryStale={loadOrderSummary}
+        />
+      )}
+
+      {tab === 'overview' && (coreLoad === 'loading' ? loadingBox(220)
         : coreLoad === 'error' ? errorBox(fetchCore)
           : summary && series && (
             <>
@@ -333,7 +397,7 @@ export default function Revenue() {
                 action={
                   <div className="no-print" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <div role="group" style={{ display: 'flex', gap: 2, padding: 4, borderRadius: 10, background: '#f4f2fb' }}>
-                      {modeBtn('daily', t.revChartDaily)}
+                      {modeBtn('daily', bucketModeLabel)}
                       {modeBtn('cumulative', t.revChartCumulative)}
                     </div>
                     <FilterSelect
@@ -370,13 +434,12 @@ export default function Revenue() {
                   flush
                   title={t.revTransactions}
                   action={
-                    <div className="no-print" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <FilterMenu label={t.revStatusFilter} allLabel={t.revStatusAll} clearLabel={t.revStatusClear}
-                        value={status ?? ''} options={statusOptions}
-                        onChange={(v) => patchParams({ status: v || undefined }, true)} />
-                      <FilterSelect value={String(size)} options={PAGE_SIZES}
-                        onChange={(v) => patchParams({ size: v }, true)} />
-                    </div>
+                    <button className="no-print" onClick={() => patchParams({ tab: 'orders' })} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4, border: 'none', background: 'none',
+                      padding: 0, fontSize: 13, fontWeight: 700, color: '#7c3aed', cursor: 'pointer', whiteSpace: 'nowrap',
+                    }}>
+                      {t.revViewAllOrders} <ArrowRight size={15} strokeWidth={2.2} />
+                    </button>
                   }
                 >
                   {txLoad === 'loading' ? <div style={{ padding: '20px 0' }}><Loader label={t.listLoading} /></div>
@@ -395,13 +458,9 @@ export default function Revenue() {
                             <TransactionsTable rows={rows} sort={sort}
                               onSortChange={(next) => patchParams({
                                 sortField: next.field, sortDir: next.asc ? 'asc' : 'desc',
-                              }, true)} />
-                            <div className="no-print" style={{ padding: '0 16px 16px' }}>
-                              <div style={{ fontSize: 12.5, color: '#8a85a0', marginTop: 12 }}>
-                                {t.revTotalCount.replace('{n}', total.toLocaleString('vi-VN'))}
-                              </div>
-                              <Pagination page={page} pageCount={pageCount}
-                                onChange={(p) => patchParams({ page: String(p) })} />
+                              })} />
+                            <div className="no-print" style={{ padding: '12px 16px 16px', fontSize: 12.5, color: '#8a85a0' }}>
+                              {t.revTotalCount.replace('{n}', total.toLocaleString('vi-VN'))}
                             </div>
                           </>
                         )}
@@ -441,7 +500,7 @@ export default function Revenue() {
                 </div>
               </div>
             </>
-          )}
+          ))}
     </PageContainer>
   );
 }

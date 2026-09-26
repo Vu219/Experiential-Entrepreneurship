@@ -623,12 +623,12 @@ export const STRINGS = {
     // Nhãn nhóm sidebar khu Quản trị
     admGrpContent: 'VẬN HÀNH NỘI DUNG', admGrpBusiness: 'NGƯỜI DÙNG & DOANH THU', admGrpSystem: 'HỆ THỐNG',
     navAdminOverview: 'Tổng quan', navAdminUsers: 'Quản lý người dùng', navAdminPosts: 'Bài đăng lỗi & bị từ chối',
-    navAdminSystem: 'Trạng thái hệ thống', navAdminLogs: 'Log hệ thống', navAdminApi: 'Version API nền tảng', navAdminRevenue: 'Quản lý doanh thu',
+    navAdminSystem: 'Trạng thái hệ thống', navAdminLogs: 'Log hệ thống', navAdminApi: 'Version API nền tảng', navAdminRevenue: 'Doanh thu & Đơn hàng',
     navAdminPlans: 'Quản lý gói',
     // page subtitles
     pageSubAdminUsers: 'Quản lý tài khoản người dùng', pageSubAdminPosts: 'Bài đăng lỗi & bị nền tảng từ chối',
     pageSubAdminSystem: 'Tình trạng dịch vụ thời gian thực', pageSubAdminLogs: 'Nhật ký lỗi hệ thống',
-    pageSubAdminApi: 'Phiên bản API các nền tảng', pageSubAdminRevenue: 'Doanh thu & gói dịch vụ',
+    pageSubAdminApi: 'Phiên bản API các nền tảng', pageSubAdminRevenue: 'Doanh thu, cơ cấu gói và hàng đợi đơn hàng',
     pageSubAdminPlans: 'Gói dịch vụ & bảng so sánh hiển thị trên landing',
     pageSubAdminUsage: 'Giám sát token tiêu thụ đối chiếu hạn mức gói',
 
@@ -869,7 +869,8 @@ export const STRINGS = {
     // doanh thu (/admin/revenue — nguồn: sổ cái payments)
     revTotal: 'Tổng doanh thu', revOrders: 'Số giao dịch', revAvg: 'Giá trị TB/giao dịch',
     revChart: 'Doanh thu theo thời gian', revTransactions: 'Giao dịch gần đây', revAddPlan: 'Thêm gói',
-    revChartDaily: 'Theo ngày', revChartCumulative: 'Lũy kế', revChartInBucket: 'Trong kỳ',
+    revTabOverview: 'Tổng quan', revTabOrders: 'Đơn hàng', revViewAllOrders: 'Xem tất cả đơn hàng',
+    revChartCumulative: 'Lũy kế', revChartInBucket: 'Trong kỳ',
     revChartProjected: 'Dự kiến',
     // chế độ lọc thời gian
     revModeDay: 'Theo ngày', revModeMonth: 'Theo tháng', revModeHalf: 'Theo nửa năm',
@@ -1054,6 +1055,7 @@ export const STRINGS = {
     aoQueueWebhookHint: 'Khác 0 là dấu hiệu sớm của sự cố chữ ký — kiểm tra ngay.',
     aoSearchPh: 'Tìm theo hoá đơn, mã đơn hoặc email…',
     aoAllStatuses: 'Mọi trạng thái', aoOnlyReconcile: 'Chỉ đơn cần đối soát',
+    aoReconcileAllTime: 'Hàng đợi đối soát hiện đơn ở mọi thời điểm, không theo kỳ.',
   },
   en: {
     nHome: 'Home', nFeatures: 'Features', nPricing: 'Pricing', nResources: 'Resources',
@@ -1653,11 +1655,11 @@ export const STRINGS = {
     // Admin sidebar group labels
     admGrpContent: 'CONTENT OPERATIONS', admGrpBusiness: 'USERS & REVENUE', admGrpSystem: 'SYSTEM',
     navAdminOverview: 'Overview', navAdminUsers: 'User management', navAdminPosts: 'Failed & rejected posts',
-    navAdminSystem: 'System status', navAdminLogs: 'System logs', navAdminApi: 'Platform API versions', navAdminRevenue: 'Revenue',
+    navAdminSystem: 'System status', navAdminLogs: 'System logs', navAdminApi: 'Platform API versions', navAdminRevenue: 'Revenue & orders',
     navAdminPlans: 'Plan management',
     pageSubAdminUsers: 'Manage user accounts', pageSubAdminPosts: 'Failed & platform-rejected posts',
     pageSubAdminSystem: 'Real-time service health', pageSubAdminLogs: 'System error logs',
-    pageSubAdminApi: 'Platform API versions', pageSubAdminRevenue: 'Revenue & plans',
+    pageSubAdminApi: 'Platform API versions', pageSubAdminRevenue: 'Revenue, plan mix and the order queue',
     pageSubAdminPlans: 'Service plans & landing comparison table',
     pageSubAdminUsage: 'Token consumption monitored against plan quotas',
 
@@ -1890,7 +1892,8 @@ export const STRINGS = {
     // revenue (/admin/revenue — source: payments ledger)
     revTotal: 'Total revenue', revOrders: 'Transactions', revAvg: 'Avg / transaction',
     revChart: 'Revenue over time', revTransactions: 'Recent transactions', revAddPlan: 'Add plan',
-    revChartDaily: 'Per period', revChartCumulative: 'Cumulative', revChartInBucket: 'This period',
+    revTabOverview: 'Overview', revTabOrders: 'Orders', revViewAllOrders: 'View all orders',
+    revChartCumulative: 'Cumulative', revChartInBucket: 'This period',
     revChartProjected: 'Projected',
     revModeDay: 'By day', revModeMonth: 'By month', revModeHalf: 'By half-year',
     revModeYear: 'By year', revModeCustom: 'Custom range',
@@ -2061,6 +2064,7 @@ export const STRINGS = {
     aoQueueWebhookHint: 'Anything above zero is an early sign of a signature problem — check it now.',
     aoSearchPh: 'Search by invoice, order code or email…',
     aoAllStatuses: 'All statuses', aoOnlyReconcile: 'Only orders needing reconciliation',
+    aoReconcileAllTime: 'The reconciliation queue shows orders from any date, ignoring the period.',
   },
 } as const;
 
