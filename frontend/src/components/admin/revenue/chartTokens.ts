@@ -1,15 +1,20 @@
 /**
  * Màu cho chart doanh thu. Phải khai báo dạng mã màu rời (không dùng `brandGradient` của
  * theme) vì gradient SVG cần từng stop tường minh, còn brandGradient là chuỗi CSS. Giữ tất cả
- * ở một chỗ để chart cột, donut và sparkline luôn cùng bảng màu.
+ * ở một chỗ để chart doanh thu, donut và sparkline luôn cùng bảng màu.
  */
 
-/** Gradient cột: xanh (đáy) → tím (đỉnh), lấy theo dải màu thương hiệu. */
-export const BAR_GRADIENT_FROM = '#8b5cf6';
-export const BAR_GRADIENT_TO = '#46d6ec';
+/** Đường + vùng tô chart doanh thu (tím brand). */
+export const AREA_STROKE = '#8b5cf6';
 
-/** Màu doanh thu ÂM (hoàn tiền lớn hơn doanh số trong bucket) — không dùng gradient. */
-export const BAR_NEGATIVE = '#ef4444';
+/** Đường dự kiến nét đứt cho các ngày chưa tới của tháng hiện tại. */
+export const PROJECTION_STROKE = '#a78bfa';
+
+/** Nền vùng "ngày chưa tới" — đủ nhạt để không lấn đường thực thu. */
+export const FUTURE_FILL = '#f7f5fc';
+
+/** Màu doanh thu ÂM (hoàn tiền lớn hơn doanh số trong bucket). */
+export const REVENUE_NEGATIVE = '#ef4444';
 
 export const GRID_LINE = '#f1eef8';
 export const AXIS_TEXT = '#a59fbb';

@@ -869,6 +869,8 @@ export const STRINGS = {
     // doanh thu (/admin/revenue — nguồn: sổ cái payments)
     revTotal: 'Tổng doanh thu', revOrders: 'Số giao dịch', revAvg: 'Giá trị TB/giao dịch',
     revChart: 'Doanh thu theo thời gian', revTransactions: 'Giao dịch gần đây', revAddPlan: 'Thêm gói',
+    revChartDaily: 'Theo ngày', revChartCumulative: 'Lũy kế', revChartInBucket: 'Trong kỳ',
+    revChartProjected: 'Dự kiến',
     // chế độ lọc thời gian
     revModeDay: 'Theo ngày', revModeMonth: 'Theo tháng', revModeHalf: 'Theo nửa năm',
     revModeYear: 'Theo năm', revModeCustom: 'Khoảng tuỳ chỉnh',
@@ -1887,6 +1889,8 @@ export const STRINGS = {
     // revenue (/admin/revenue — source: payments ledger)
     revTotal: 'Total revenue', revOrders: 'Transactions', revAvg: 'Avg / transaction',
     revChart: 'Revenue over time', revTransactions: 'Recent transactions', revAddPlan: 'Add plan',
+    revChartDaily: 'Per period', revChartCumulative: 'Cumulative', revChartInBucket: 'This period',
+    revChartProjected: 'Projected',
     revModeDay: 'By day', revModeMonth: 'By month', revModeHalf: 'By half-year',
     revModeYear: 'By year', revModeCustom: 'Custom range',
     revMonthPrefix: 'Month', revHalf1: 'First half (Jan–Jun)', revHalf2: 'Second half (Jul–Dec)',

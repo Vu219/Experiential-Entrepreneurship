@@ -11,7 +11,7 @@ import { FilterSelect } from '../../components/admin/AdminListPage';
 import PageContainer from '../../components/PageContainer';
 import RevenueFilterBar from '../../components/admin/revenue/RevenueFilterBar';
 import SparklineCard from '../../components/admin/revenue/SparklineCard';
-import RevenueChart from '../../components/admin/revenue/RevenueChart';
+import RevenueChart, { type RevenueChartMode } from '../../components/admin/revenue/RevenueChart';
 import PlanDonut from '../../components/admin/revenue/PlanDonut';
 import TransactionsTable, { type TxnSort } from '../../components/admin/revenue/TransactionsTable';
 import { formatVND } from '../../api/admin';
@@ -81,6 +81,7 @@ export default function Revenue() {
     field: params.get('sortField') === 'amount' ? 'amount' : 'date',
     asc: params.get('sortDir') === 'asc',
   };
+  const chartMode: RevenueChartMode = params.get('chart') === 'cumulative' ? 'cumulative' : 'daily';
 
   /** Ghi state lên URL. Đổi bộ lọc luôn kéo trang về 1 (kết quả đã khác hoàn toàn). */
   const patchParams = useCallback((patch: Record<string, string | undefined>, resetPage = false) => {
@@ -250,6 +251,23 @@ export default function Revenue() {
     </button>
   );
 
+  // Đường dự kiến chỉ có nghĩa khi chart đang vẽ đúng các ngày của tháng hiện tại.
+  const chartForecast = forecast && filter.granularity === 'DAY'
+    && forecast.month === `${filter.year}-${String(filter.month).padStart(2, '0')}` ? forecast : null;
+
+  const modeBtn = (mode: RevenueChartMode, label: string) => {
+    const active = chartMode === mode;
+    return (
+      <button onClick={() => patchParams({ chart: mode === 'daily' ? undefined : mode })} style={{
+        border: 'none', borderRadius: 8, padding: '0 12px', height: 30, fontSize: 12.5, fontWeight: 700,
+        cursor: 'pointer', background: active ? '#fff' : 'transparent', color: active ? '#7c3aed' : '#8a85a0',
+        boxShadow: active ? '0 2px 8px -3px rgba(80,40,140,.35)' : 'none',
+      }}>
+        {label}
+      </button>
+    );
+  };
+
   // Sparkline của 3 thẻ KPI lấy từ chuỗi timeseries đã tải (không gọi thêm API).
   const revenueSpark = series?.points.map((p) => p.revenue) ?? [];
   const txnSpark = series?.points.map((p) => p.transactions) ?? [];
@@ -313,7 +331,11 @@ export default function Revenue() {
               <SectionCard
                 title={t.revChart}
                 action={
-                  <div className="no-print">
+                  <div className="no-print" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div role="group" style={{ display: 'flex', gap: 2, padding: 4, borderRadius: 10, background: '#f4f2fb' }}>
+                      {modeBtn('daily', t.revChartDaily)}
+                      {modeBtn('cumulative', t.revChartCumulative)}
+                    </div>
                     <FilterSelect
                       value={filter.granularity === 'CUSTOM' ? 'DAY' : filter.granularity}
                       options={granularityOptions}
@@ -335,7 +357,7 @@ export default function Revenue() {
                   ? emptyBox(t.revNoDataPeriod)
                   : (
                     <div className="h-[240px] sm:h-[280px] xl:h-[320px]">
-                      <RevenueChart points={series.points} />
+                      <RevenueChart points={series.points} mode={chartMode} forecast={chartForecast} />
                     </div>
                   )}
               </SectionCard>
