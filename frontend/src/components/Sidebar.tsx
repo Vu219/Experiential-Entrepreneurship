@@ -6,6 +6,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
 import { adminNavGroupsFor } from '../config/adminNav';
+import type { UserRole } from '../api/admin';
 import { getTokenUsage, type TokenUsage } from '../api/auth';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useUiStore } from '../store/useUiStore';
@@ -20,8 +21,32 @@ interface Item {
   badge?: string;
 }
 
+interface NavGroup {
+  /** Có id = nhóm thu gọn được (chỉ nhóm có nhãn của sidebar admin); id dùng làm khóa localStorage. */
+  id?: string;
+  label?: string;
+  items: Item[];
+}
+
 /** Key sessionStorage: user tắt card "Nâng cấp Pro" CHỈ trong phiên hiện tại — phiên sau card hiện lại. */
 const UPGRADE_CARD_HIDDEN_KEY = 'aima.upgradeCardHidden';
+
+/** Key localStorage: nhóm nào của sidebar admin đang mở ({ [labelKey]: true }). Mặc định mọi nhóm đóng. */
+const ADMIN_OPEN_GROUPS_KEY = 'aima.adminNavOpenGroups';
+
+function readOpenGroups(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(ADMIN_OPEN_GROUPS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Nhóm (có nhãn) chứa route đang mở — nhóm đó phải tự mở để user không mất phương hướng. */
+function activeAdminGroupId(route: Route, role: UserRole | undefined): string | undefined {
+  return adminNavGroupsFor(role).find((g) => g.labelKey && g.items.some((i) => i.key === route))?.labelKey;
+}
 
 /** Rút gọn số token cho thanh usage: 1000 → 1K, 100000 → 100K, 1000000 → 1M. */
 const fmtTokens = (n: number) =>
@@ -36,6 +61,24 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
   const { isMobile } = useBreakpoint();
   const { sidebarCollapsed, toggleSidebar, autoCollapse, toggleAutoCollapse, setSidebarCollapsed, profileOrigin } = useUiStore();
   const [hover, setHover] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const stored = readOpenGroups();
+    const active = activeAdminGroupId(route, user?.role);
+    return active ? { ...stored, [active]: true } : stored;
+  });
+  const setGroupOpen = (id: string, open: boolean) => {
+    setOpenGroups((prev) => {
+      const next = { ...prev, [id]: open };
+      try { localStorage.setItem(ADMIN_OPEN_GROUPS_KEY, JSON.stringify(next)); } catch { /* storage bị chặn: chỉ mất phần ghi nhớ */ }
+      return next;
+    });
+  };
+  // Điều hướng sang trang con của một nhóm đang đóng → mở nhóm đó (vẫn cho đóng lại bằng tay).
+  useEffect(() => {
+    const active = activeAdminGroupId(route, user?.role);
+    if (active && !openGroups[active]) setGroupOpen(active, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route, user?.role]);
   // Card "Nâng cấp Pro": chỉ user gói FREE thấy; tắt bằng sessionStorage (không dùng localStorage)
   // để phiên sau (mở lại tab/trình duyệt) card hiện lại bình thường. Xử lý hoàn toàn phía FE.
   const [upgradeHidden, setUpgradeHidden] = useState(() => sessionStorage.getItem(UPGRADE_CARD_HIDDEN_KEY) === '1');
@@ -100,7 +143,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
   // Sidebar app chia CỤM (đồng bộ style nhãn nhóm với sidebar admin — UI refactor mục 3).
   // "Token & mức dùng" không còn ở đây — đã thành tab trong Cài đặt (mục 7), lối vào là
   // widget token ở đáy sidebar + dropdown avatar.
-  const appGroups: { label?: string; items: Item[] }[] = [
+  const appGroups: NavGroup[] = [
     {
       label: t.secMain,
       items: [
@@ -127,7 +170,8 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
   // `config/adminNav.ts` — cùng bản đồ đó nuôi khối "Lối tắt quản trị" trên trang Tổng quan,
   // nên hai nơi không thể lệch route/nhãn. Ở đây chỉ dịch labelKey sang chuỗi theo ngôn ngữ
   // đang bật và lọc theo vai trò của user hiện tại.
-  const adminGroups: { label?: string; items: Item[] }[] = adminNavGroupsFor(user?.role).map((g) => ({
+  const adminGroups: NavGroup[] = adminNavGroupsFor(user?.role).map((g) => ({
+    id: g.labelKey,
     label: g.labelKey ? t[g.labelKey] : undefined,
     items: g.items.map((n) => ({ key: n.key, label: t[n.labelKey], icon: n.icon })),
   }));
@@ -241,6 +285,38 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
   // Khi thu gọn, nhãn nhóm ẩn — thay bằng đường kẻ ngang mờ 24px căn giữa để vẫn
   // thấy cấu trúc nhóm (không hiện trước nhóm đầu tiên).
   const collapsedDivider: CSSProperties = { width: 24, height: 1, background: 'rgba(90,80,120,.18)', margin: '12px auto', flex: 'none', transition: 'opacity .2s ease' };
+  const groupHeaderStyle: CSSProperties = {
+    ...sectionLabelStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+    width: '100%', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+  };
+
+  // Nhãn + danh sách mục của một nhóm. Nhóm có id → header bấm được để mở/đóng; ở chế độ
+  // icon-only (collapsed) KHÔNG có header nên luôn hiện icon mọi mục như cũ.
+  const renderGroupBody = (g: NavGroup, gap: number) => {
+    if (collapsed || !g.id || !g.label) {
+      return (
+        <>
+          {!collapsed && g.label && <div style={sectionLabelStyle}>{g.label}</div>}
+          {g.items.map(renderItem)}
+        </>
+      );
+    }
+    const open = !!openGroups[g.id];
+    const panelId = `sb-group-${g.id}`;
+    return (
+      <>
+        <button type="button" onClick={() => setGroupOpen(g.id!, !open)} aria-expanded={open} aria-controls={panelId} style={groupHeaderStyle}>
+          <span>{g.label}</span>
+          <ChevronRight size={14} strokeWidth={2.2} aria-hidden style={{ flex: 'none', transform: `rotate(${open ? 90 : 0}deg)`, transition: 'transform .2s ease' }} />
+        </button>
+        <GroupCollapse id={panelId} open={open}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap, paddingTop: gap }}>
+            {g.items.map(renderItem)}
+          </div>
+        </GroupCollapse>
+      </>
+    );
+  };
 
   // Nút thu gọn/mở rộng: vùng ăn click là HÌNH VUÔNG 40×40 trong suốt (button cha) —
   // hình tròn 30px chỉ là lớp hiển thị bên trong (pointerEvents none). Trước đây button
@@ -292,10 +368,9 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
       )}
       <div className="sb-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 3, paddingTop: 8 }}>
       {navGroups.map((g, gi) => (
-        <nav key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 'none', marginTop: gi === 0 ? 0 : collapsed ? 0 : 12 }}>
-          {!collapsed && g.label && <div style={sectionLabelStyle}>{g.label}</div>}
+        <nav key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 'none', marginTop: gi === 0 ? 0 : collapsed ? 0 : g.id ? 4 : 12 }}>
           {collapsed && gi > 0 && <div style={collapsedDivider} aria-hidden />}
-          {g.items.map(renderItem)}
+          {renderGroupBody(g, 3)}
         </nav>
       ))}
 
@@ -372,8 +447,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
       {isAdminArea && backBtn}
       {navGroups.map((g, gi) => (
         <div key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {g.label && <div style={sectionLabelStyle}>{g.label}</div>}
-          {g.items.map(renderItem)}
+          {renderGroupBody(g, 8)}
         </div>
       ))}
       {!isAdminArea && isAdmin && adminPortalBtn}
@@ -489,5 +563,27 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
         </div>
       )}
     </aside>
+  );
+}
+
+/**
+ * Khung mở/đóng mượt (height + opacity). Chỉ cắt overflow trong lúc animate / khi đóng —
+ * mở xong thì overflow visible để hiệu ứng hover nhấc nút lên không bị mép khung cắt.
+ * Đóng hẳn thì visibility hidden để các nút bên trong không nhận Tab.
+ */
+function GroupCollapse({ id, open, children }: { id: string; open: boolean; children: ReactNode }) {
+  const [animating, setAnimating] = useState(false);
+  return (
+    <motion.div
+      id={id}
+      initial={false}
+      animate={open ? { height: 'auto', opacity: 1 } : { height: 0, opacity: 0 }}
+      transition={{ duration: 0.24, ease: [0.4, 0, 0.2, 1] }}
+      onAnimationStart={() => setAnimating(true)}
+      onAnimationComplete={() => setAnimating(false)}
+      style={{ overflow: open && !animating ? 'visible' : 'hidden', visibility: !open && !animating ? 'hidden' : 'visible', flex: 'none' }}
+    >
+      {children}
+    </motion.div>
   );
 }
