@@ -9,5 +9,10 @@ public enum PublishErrorType {
     /** Lỗi vĩnh viễn (token hết hạn, tham số sai, thiếu quyền) — KHÔNG retry. */
     PERMANENT,
     /** Vi phạm chính sách nền tảng (SEC-06, BR-07) — KHÔNG retry, lưu mã lỗi gốc, báo user. */
-    POLICY_VIOLATION
+    POLICY_VIOLATION,
+    /**
+     * Lỗi nội bộ của AIMA, không đến từ nền tảng (LazyInitializationException, NPE, giải mã token...) —
+     * KHÔNG retry: chạy lại cũng chết đúng chỗ đó. Worker log ERROR kèm stacktrace để sửa code.
+     */
+    INTERNAL
 }

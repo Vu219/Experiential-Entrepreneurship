@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -32,6 +33,7 @@ public class PaymentExpiryJob {
     PaymentService paymentService;
 
     @Scheduled(fixedDelayString = "${payment.expiry-interval-ms:60000}")
+    @SchedulerLock(name = "payment-expiry", lockAtMostFor = "PT5M", lockAtLeastFor = "PT20S")
     public void run() {
         try {
             paymentService.expireOverdueOrders();

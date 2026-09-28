@@ -1,11 +1,15 @@
 package com.aima.config;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.Arrays;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -14,7 +18,19 @@ import java.util.concurrent.ThreadPoolExecutor;
  * để không tranh chấp tài nguyên với các @Async khác (nếu có sau này).
  */
 @Configuration
-public class AsyncConfig {
+@Slf4j
+public class AsyncConfig implements AsyncConfigurer {
+
+    /**
+     * Lưới an toàn cuối cho mọi {@code @Async void}: exception lọt khỏi worker mặc định chỉ được
+     * Spring log ở mức thấp, dễ trôi mất — log ERROR đủ stacktrace + tên method + tham số (thường là
+     * jobId, không chứa token). Worker vẫn phải tự catch để cập nhật trạng thái job (rule #28e).
+     */
+    @Override
+    public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
+        return (ex, method, params) -> log.error("[Async] {}.{}({}) ném exception không được xử lý",
+                method.getDeclaringClass().getSimpleName(), method.getName(), Arrays.toString(params), ex);
+    }
 
     @Bean(name = "contentGenerationExecutor")
     public Executor contentGenerationExecutor() {

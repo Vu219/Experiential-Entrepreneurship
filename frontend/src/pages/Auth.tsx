@@ -375,6 +375,7 @@ export default function Auth() {
               <div style={{ textAlign: 'center', fontSize: 14, color: '#6b6680', marginTop: 26 }}>
                 {t.noAccount} <span onClick={() => switchRoute('register')} style={{ color: '#8b5cf6', fontWeight: 700, cursor: 'pointer' }}>{t.signUpNow}</span>
               </div>
+              <LegalLinks t={t} />
             </div>
           )}
 
@@ -432,7 +433,7 @@ export default function Auth() {
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 13, color: '#574f6e', cursor: 'pointer', margin: '4px 0 16px', lineHeight: 1.4 }}>
                   <input type="checkbox" checked={agree} onChange={() => { setAgree((v) => !v); setErrors(er => ({ ...er, agree: agree ? t.errAgree : undefined })); }} style={{ width: 16, height: 16, marginTop: 1, accentColor: '#8b5cf6', flex: 'none' }} />
                   <span>
-                    {t.agreePre} <span style={{ color: '#8b5cf6', fontWeight: 600 }}>"{t.terms}"</span> {t.and} <span style={{ color: '#8b5cf6', fontWeight: 600 }}>"{t.privacy}"</span>
+                    {t.agreePre} <a href="/terms" target="_blank" rel="noopener noreferrer" className="link-underline" style={legalInlineLink}>"{t.terms}"</a> {t.and} <a href="/privacy" target="_blank" rel="noopener noreferrer" className="link-underline" style={legalInlineLink}>"{t.privacy}"</a>
                   </span>
                 </label>
                 {errors.agree && <div style={{ ...errStyle, margin: '-12px 0 4px' }}>{errors.agree}</div>}
@@ -455,6 +456,7 @@ export default function Auth() {
               <div style={{ textAlign: 'center', fontSize: 14, color: '#6b6680', marginTop: 20 }}>
                 {t.haveAccount} <span onClick={() => switchRoute('login')} style={{ color: '#8b5cf6', fontWeight: 700, cursor: 'pointer' }}>{t.signInNow}</span>
               </div>
+              <LegalLinks t={t} />
             </div>
           )}
 
@@ -532,6 +534,20 @@ export default function Auth() {
         </div>
       </div>
     </>
+  );
+}
+
+// Link trang pháp lý dưới form đăng nhập/đăng ký — mở tab mới để không mất dữ liệu đang nhập.
+const legalInlineLink: CSSProperties = { color: '#8b5cf6', fontWeight: 600, textDecoration: 'none' };
+
+function LegalLinks({ t }: { t: { terms: string; privacy: string; ftDataDeletion: string } }) {
+  const style: CSSProperties = { fontSize: 12.5, color: '#8a85a0', textDecoration: 'none' };
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 16, marginTop: 18 }}>
+      <a href="/terms" target="_blank" rel="noopener noreferrer" className="link-underline" style={style}>{t.terms}</a>
+      <a href="/privacy" target="_blank" rel="noopener noreferrer" className="link-underline" style={style}>{t.privacy}</a>
+      <a href="/data-deletion" target="_blank" rel="noopener noreferrer" className="link-underline" style={style}>{t.ftDataDeletion}</a>
+    </div>
   );
 }
 

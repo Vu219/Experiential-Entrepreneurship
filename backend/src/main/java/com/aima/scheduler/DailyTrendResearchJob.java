@@ -3,19 +3,23 @@ package com.aima.scheduler;
 import com.aima.entity.BrandProfile;
 import com.aima.entity.ContentStrategy;
 import com.aima.entity.TrendResearchSession;
+import com.aima.entity.User;
 import com.aima.enums.Platform;
 import com.aima.enums.ResearchStatus;
 import com.aima.enums.StrategyStatus;
+import com.aima.exception.AppException;
 import com.aima.mapper.TrendResearchMapper;
 import com.aima.repository.BrandProfileRepository;
 import com.aima.repository.ContentStrategyRepository;
 import com.aima.repository.TrendResearchSessionRepository;
+import com.aima.repository.UserRepository;
 import com.aima.service.TokenUsageService;
 import com.aima.service.TrendResearchWorkerService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -39,8 +43,10 @@ public class DailyTrendResearchJob {
     TrendResearchMapper trendResearchMapper;
     TrendResearchWorkerService trendResearchWorkerService;
     TokenUsageService tokenUsageService;
+    UserRepository userRepository;
 
     @Scheduled(cron = "0 0 2 * * *")
+    @SchedulerLock(name = "daily-trend-research", lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
     public void run() {
         List<BrandProfile> brands = brandProfileRepository.findByIsActiveTrueAndDeletedAtIsNull();
         if (brands.isEmpty()) {
@@ -73,9 +79,12 @@ public class DailyTrendResearchJob {
                 brand.getUser().getId(), List.of(ResearchStatus.PENDING, ResearchStatus.RUNNING))) {
             return false; // đã có phiên đang chạy cho user này
         }
+        // Nạp lại User: brand.getUser() là proxy lazy của một session đã đóng (job không có
+        // transaction) — checkQuota đọc user.getPlan() trên đó là LazyInitializationException.
+        User user = userRepository.findById(brand.getUser().getId()).orElseThrow();
         try {
-            tokenUsageService.checkQuota(brand.getUser());
-        } catch (Exception e) {
+            tokenUsageService.checkQuota(user);
+        } catch (AppException e) {
             log.info("[DailyTrendResearch] Bỏ qua hồ sơ {} — user hết hạn mức token tháng", brand.getId());
             return false; // cùng chính sách chặn với "Research ngay"
         }

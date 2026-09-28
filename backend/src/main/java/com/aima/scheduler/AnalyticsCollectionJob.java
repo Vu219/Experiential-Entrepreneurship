@@ -4,6 +4,8 @@ import com.aima.entity.ContentVersion;
 import com.aima.entity.Post;
 import com.aima.entity.PostAnalytics;
 import com.aima.enums.ContentLifecycle;
+import com.aima.enums.Platform;
+import com.aima.exception.AppException;
 import com.aima.mapper.PostAnalyticsMapper;
 import com.aima.repository.PostRepository;
 import com.aima.service.MetaApiClient;
@@ -11,11 +13,14 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * FR-59/BR-09: thu thập số liệu bài đã đăng tại các mốc 24h / 48h / 7 ngày sau khi đăng.
@@ -34,48 +39,67 @@ public class AnalyticsCollectionJob {
     PostRepository postRepository;
     MetaApiClient metaApiClient;
     PostAnalyticsMapper postAnalyticsMapper;
+    TransactionTemplate transactionTemplate;
 
     @Scheduled(fixedDelay = 3_600_000) // mỗi giờ
+    @SchedulerLock(name = "analytics-collection", lockAtMostFor = "PT50M", lockAtLeastFor = "PT1M")
     public void run() {
         LocalDateTime now = LocalDateTime.now();
         for (int milestone : MILESTONE_HOURS) {
-            List<Post> due = postRepository.findDueForAnalytics(milestone, now.minusHours(milestone));
+            List<UUID> due = postRepository.findDueForAnalytics(milestone, now.minusHours(milestone));
             if (due.isEmpty()) {
                 continue;
             }
             log.info("[AnalyticsCollection] Mốc {}h: {} bài cần thu thập", milestone, due.size());
-            for (Post post : due) {
-                collect(post, milestone);
+            for (UUID postId : due) {
+                collect(postId, milestone);
             }
         }
     }
 
-    private void collect(Post post, int milestone) {
+    /** Giá trị cần cho lời gọi Meta — chụp trong transaction, dùng ngoài (không giữ entity/proxy). */
+    private record MetricsTarget(Platform platform, String platformPostId, String accessToken) {
+        @Override
+        public String toString() { // không để token lọt vào log
+            return "MetricsTarget[" + platform + ", " + platformPostId + "]";
+        }
+    }
+
+    private void collect(UUID postId, int milestone) {
         try {
-            // HTTP trước, không transaction (rule #24) — token page/user lấy từ kết nối của lịch.
-            MetaApiClient.MetaPostMetrics metrics = metaApiClient.getPostMetrics(
-                    post.getPlatformName(),
-                    post.getPlatformPostId(),
-                    post.getSchedule().getPlatformAccount().getAccessToken());
+            MetricsTarget target = transactionTemplate.execute(tx -> {
+                Post post = postRepository.findForAnalytics(postId).orElseThrow();
+                return new MetricsTarget(post.getPlatformName(), post.getPlatformPostId(),
+                        post.getSchedule().getPlatformAccount().getAccessToken());
+            });
 
-            PostAnalytics analytics =
-                    postAnalyticsMapper.toAnalytics(post, metrics, milestone, LocalDateTime.now());
-            post.getPostAnalytics().add(analytics);
+            // HTTP ngoài transaction (rule #24) — token page/user lấy từ kết nối của lịch.
+            MetaApiClient.MetaPostMetrics metrics =
+                    metaApiClient.getPostMetrics(target.platform(), target.platformPostId(), target.accessToken());
 
-            // FR-55: Posted → Analyzing khi bắt đầu có số liệu (version + item).
-            ContentVersion version = post.getSchedule().getContentVersion();
-            if (version.getStatus() == ContentLifecycle.POSTED) {
-                version.setStatus(ContentLifecycle.ANALYZING);
-            }
-            if (version.getContentItem().getStatus() == ContentLifecycle.POSTED) {
-                version.getContentItem().setStatus(ContentLifecycle.ANALYZING);
-            }
-
-            postRepository.save(post); // cascade lưu bản ghi analytics
-            log.info("[AnalyticsCollection] Đã thu mốc {}h cho bài {} ({})",
-                    milestone, post.getId(), post.getPlatformName());
+            transactionTemplate.executeWithoutResult(tx -> saveSnapshot(postId, milestone, metrics));
+            log.info("[AnalyticsCollection] Đã thu mốc {}h cho bài {} ({})", milestone, postId, target.platform());
+        } catch (AppException e) {
+            // Lỗi phía Meta (token, quyền, bài đã xoá...) — lần quét sau tự thử lại.
+            log.warn("[AnalyticsCollection] Bỏ qua bài {} mốc {}h: {}", postId, milestone, e.getMessage());
         } catch (Exception e) {
-            log.warn("[AnalyticsCollection] Bỏ qua bài {} mốc {}h: {}", post.getId(), milestone, e.getMessage());
+            // Lỗi code (lazy proxy, NPE...) — log đủ stacktrace thay vì một dòng warn dễ bỏ sót.
+            log.error("[AnalyticsCollection] Lỗi nội bộ khi thu bài {} mốc {}h", postId, milestone, e);
+        }
+    }
+
+    private void saveSnapshot(UUID postId, int milestone, MetaApiClient.MetaPostMetrics metrics) {
+        Post post = postRepository.findForAnalytics(postId).orElseThrow();
+        PostAnalytics analytics = postAnalyticsMapper.toAnalytics(post, metrics, milestone, LocalDateTime.now());
+        post.getPostAnalytics().add(analytics); // cascade lưu bản ghi analytics khi commit
+
+        // FR-55: Posted → Analyzing khi bắt đầu có số liệu (version + item).
+        ContentVersion version = post.getSchedule().getContentVersion();
+        if (version.getStatus() == ContentLifecycle.POSTED) {
+            version.setStatus(ContentLifecycle.ANALYZING);
+        }
+        if (version.getContentItem().getStatus() == ContentLifecycle.POSTED) {
+            version.getContentItem().setStatus(ContentLifecycle.ANALYZING);
         }
     }
 }

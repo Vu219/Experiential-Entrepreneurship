@@ -40,8 +40,10 @@ import java.time.LocalDateTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Payment extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
+    // NULL = đơn đã ẨN DANH HOÁ khi chủ tài khoản bị xoá cứng (AccountPurgeService): chứng từ
+    // doanh thu được giữ (số tiền, gói, mốc thời gian, mã cổng) nhưng không còn liên kết người mua.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     User user;

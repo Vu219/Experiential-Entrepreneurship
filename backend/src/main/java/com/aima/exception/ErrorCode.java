@@ -126,6 +126,10 @@ public enum ErrorCode {
     TOKEN_REFRESH_FAILED(1825, "Làm mới token thất bại. Vui lòng kết nối lại.", HttpStatus.BAD_REQUEST),
     META_API_ERROR(1826, "Lỗi khi gọi API nền tảng. Vui lòng thử lại sau.", HttpStatus.BAD_GATEWAY),
     CONNECTION_VALIDATION_FAILED(1827, "Kiểm tra kết nối thất bại", HttpStatus.BAD_REQUEST),
+    META_MISSING_PERMISSIONS(1828, "Bạn chưa cấp đủ quyền quản lý và đăng bài lên Trang. Vui lòng liên kết lại và chọn đủ quyền.", HttpStatus.BAD_REQUEST),
+    META_TOKEN_INVALID(1829, "Token nền tảng đã hết hạn hoặc bị thu hồi. Vui lòng kết nối lại.", HttpStatus.BAD_REQUEST),
+    INVALID_SIGNED_REQUEST(1833, "signed_request không hợp lệ", HttpStatus.BAD_REQUEST),
+    DATA_DELETION_REQUEST_NOT_FOUND(1834, "Không tìm thấy yêu cầu xóa dữ liệu", HttpStatus.NOT_FOUND),
 
     // PLATFORM API VERSION (ADMIN) ERRORS
     VERSION_REQUIRED(1830, "Version không được để trống", HttpStatus.BAD_REQUEST),
@@ -174,6 +178,8 @@ public enum ErrorCode {
     SCHEDULE_NOT_FOUND(1939, "Không tìm thấy lịch đăng bài", HttpStatus.NOT_FOUND),
     SCHEDULE_NOT_EDITABLE(1940, "Lịch đăng ở trạng thái này không thể cập nhật", HttpStatus.BAD_REQUEST),
     SCHEDULE_NOT_CANCELLABLE(1941, "Chỉ hủy được lịch chưa đăng bài", HttpStatus.BAD_REQUEST),
+    SCHEDULING_BLOCKED_PENDING_DELETE(1942, "Tài khoản đang chờ xóa nên không thể lên lịch hoặc kích hoạt lại bài. Hãy khôi phục tài khoản trước.", HttpStatus.BAD_REQUEST),
+    SCHEDULE_TARGET_NOT_PAGE(1943, "Facebook chỉ cho phép đăng lên Trang, vui lòng chọn một Trang", HttpStatus.BAD_REQUEST),
 
     // PERFORMANCE ANALYSIS ERRORS (FR-59..FR-62)
     POST_NOT_FOUND(1946, "Không tìm thấy bài đăng", HttpStatus.NOT_FOUND),
@@ -386,6 +392,7 @@ public enum ErrorCode {
     PAYMENT_SUMMARY_RANGE_INVALID(2098,
             "Khoảng thời gian không hợp lệ — cần đủ từ ngày và đến ngày, từ ngày không sau đến ngày",
             HttpStatus.BAD_REQUEST),
+    USER_HAS_PENDING_PAYMENT(2099, "Tài khoản còn đơn thanh toán đang chờ — hãy hủy hoặc đợi đơn kết thúc rồi mới xóa tài khoản", HttpStatus.CONFLICT),
 
     // Quản lý nội dung Landing Page — 2100+
     LANDING_SECTION_NOT_FOUND(2100, "Không tìm thấy section Landing Page", HttpStatus.NOT_FOUND),

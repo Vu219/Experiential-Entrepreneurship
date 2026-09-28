@@ -29,7 +29,9 @@ import org.springframework.util.StringUtils;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.HexFormat;
+import java.util.Set;
 
 /**
  * Webhook Meta (SEC-06/EX-02): thông báo vi phạm SAU khi đăng. Không có custom content filter —
@@ -43,6 +45,8 @@ import java.util.HexFormat;
 public class MetaWebhookServiceImpl implements MetaWebhookService {
 
     static final String SUBSCRIBE_MODE = "subscribe";
+    // Giá trị value.item của feed webhook ứng với chính bài viết (không phải comment/reaction/share).
+    static final Set<String> REMOVED_POST_ITEMS = Set.of("status", "post");
     static final String SIGNATURE_PREFIX = "sha256=";
     static final String LOG_MODULE = "webhook.meta";
     static final int LOG_BODY_MAX = 2000;
@@ -89,9 +93,10 @@ public class MetaWebhookServiceImpl implements MetaWebhookService {
                 JsonNode value = change.path("value");
                 String platformPostId = value.path("post_id").asText(null);
                 String verb = value.path("verb").asText("");
-                // Chỉ phản ứng khi bài bị GỠ khỏi nền tảng — các verb khác (add/edited/reaction...)
-                // không phải tín hiệu vi phạm.
-                if (platformPostId == null || !"remove".equalsIgnoreCase(verb)) {
+                String item = value.path("item").asText("");
+                // Chỉ phản ứng khi chính BÀI bị gỡ (item status/post). Xoá comment/reaction cũng
+                // mang post_id + verb=remove nhưng bài vẫn còn — không được đánh FAILED.
+                if (platformPostId == null || !"remove".equalsIgnoreCase(verb) || !REMOVED_POST_ITEMS.contains(item)) {
                     continue;
                 }
                 postRepository.findByPlatformPostIdAndDeletedAtIsNull(platformPostId)
@@ -122,21 +127,22 @@ public class MetaWebhookServiceImpl implements MetaWebhookService {
                 post.getId());
     }
 
-    // Meta ký POST bằng HMAC-SHA256(app secret, raw body). Thiếu secret/chữ ký → chấp nhận ở dev,
-    // production bật META_APP_SECRET + đăng ký webhook thì luôn có chữ ký.
+    // Meta ký POST bằng HMAC-SHA256(app secret, raw body). Endpoint public → thiếu secret hoặc
+    // thiếu chữ ký đều TỪ CHỐI (trước đây chấp nhận, cho phép giả event gỡ bài của người khác).
     private boolean isSignatureValid(String rawBody, String signature) {
         String appSecret = metaProperties.facebook() == null ? null : metaProperties.facebook().appSecret();
-        if (!StringUtils.hasText(appSecret) || !StringUtils.hasText(signature)) {
-            return true;
-        }
-        if (!signature.startsWith(SIGNATURE_PREFIX)) {
+        if (!StringUtils.hasText(appSecret) || !StringUtils.hasText(signature)
+                || !signature.startsWith(SIGNATURE_PREFIX)) {
             return false;
         }
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(appSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-            String expected = HexFormat.of().formatHex(mac.doFinal(rawBody.getBytes(StandardCharsets.UTF_8)));
-            return expected.equalsIgnoreCase(signature.substring(SIGNATURE_PREFIX.length()));
+            byte[] expected = mac.doFinal(rawBody.getBytes(StandardCharsets.UTF_8));
+            byte[] provided = HexFormat.of().parseHex(signature.substring(SIGNATURE_PREFIX.length()));
+            return MessageDigest.isEqual(expected, provided); // constant-time
+        } catch (IllegalArgumentException e) {
+            return false; // chữ ký không phải hex hợp lệ
         } catch (Exception e) {
             log.error("[Webhook] Không kiểm tra được chữ ký", e);
             return false;

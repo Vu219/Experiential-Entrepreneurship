@@ -1,7 +1,6 @@
 package com.aima.service.Impl;
 
-import com.aima.entity.ContentVersion;
-import com.aima.entity.PlatformAccount;
+import com.aima.dto.publish.PublishTarget;
 import com.aima.enums.Platform;
 import com.aima.service.MetaApiClient;
 import com.aima.service.PlatformPublisher;
@@ -28,8 +27,7 @@ public class ThreadsPublisherImpl implements PlatformPublisher {
     }
 
     @Override
-    public MetaApiClient.MetaPostResult publish(PlatformAccount account, ContentVersion version) {
-        String message = buildMessage(version);
-        return metaApiClient.publishThreadsPost(account.getAccessToken(), message);
+    public MetaApiClient.MetaPostResult publish(PublishTarget target) {
+        return metaApiClient.publishThreadsPost(target.accessToken(), target.message());
     }
 }

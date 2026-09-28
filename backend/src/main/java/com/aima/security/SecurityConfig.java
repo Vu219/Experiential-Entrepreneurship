@@ -2,6 +2,7 @@ package com.aima.security;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -25,6 +26,7 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 import com.aima.service.CustomOAuth2UserService;
 
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -59,6 +61,12 @@ public class SecurityConfig {
             // + chữ ký X-Hub-Signature-256 (POST), không có cookie auth.
             "/webhooks/meta",
 
+            // Meta Data Deletion + Deauthorize Callback: server Meta gọi, xác thực bằng signed_request.
+            // GET /meta/data-deletion/{code}: trang công khai /data-deletion tra cứu trạng thái.
+            "/meta/data-deletion",
+            "/meta/data-deletion/*",
+            "/meta/deauthorize",
+
             // Webhook payOS: payOS gọi từ server của họ nên không có cookie/JWT. Xác thực bằng
             // HMAC-SHA256 trên object `data`; endpoint luôn trả 200 để payOS không retry.
             "/webhooks/payos",
@@ -79,6 +87,11 @@ public class SecurityConfig {
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
     private final PasswordEncoder passwordEncoder;
+
+    // app.cors.allowed-origins (env CORS_ALLOWED_ORIGINS): dev mặc định localhost/ngrok/vercel...,
+    // profile production chỉ domain chính thức. Thiếu cấu hình → danh sách rỗng = chặn hết (fail-closed).
+    @Value("${app.cors.allowed-origins:}")
+    private List<String> allowedOrigins;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
@@ -123,16 +136,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(Arrays.asList(
-                "http://localhost:*",
-                "https://localhost:*",
-                "http://127.0.0.1:*",
-                "https://*.ngrok-free.app",
-                "https://*.up.railway.app",
-                "https://*.vercel.app",
-                "https://aima-marketing.id.vn",
-                "https://*.aima-marketing.id.vn"
-        ));
+        config.setAllowedOriginPatterns(allowedOrigins);
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(Arrays.asList("*"));
         config.setExposedHeaders(Arrays.asList("Authorization", "Content-Disposition"));

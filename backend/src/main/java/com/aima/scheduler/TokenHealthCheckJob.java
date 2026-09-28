@@ -13,6 +13,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -35,6 +36,7 @@ public class TokenHealthCheckJob {
     NotificationService notificationService;
 
     @Scheduled(cron = "0 0 2 * * *")
+    @SchedulerLock(name = "token-health-check", lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
     public void run() {
         LocalDateTime now = LocalDateTime.now();
         List<PlatformAccount> expiring = accountRepository
@@ -49,7 +51,7 @@ public class TokenHealthCheckJob {
 
         for (PlatformAccount account : expiring) {
             try {
-                metaOAuthService.refresh(account);
+                metaOAuthService.refresh(account.getId());
                 log.info("[TokenHealthCheck] Đã refresh token kết nối {}", account.getId());
             } catch (Exception e) {
                 log.warn("[TokenHealthCheck] Refresh thất bại cho {} -> EXPIRED: {}", account.getId(), e.getMessage());

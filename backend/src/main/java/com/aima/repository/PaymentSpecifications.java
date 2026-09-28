@@ -54,7 +54,8 @@ public final class PaymentSpecifications {
         if (search != null) {
             String pattern = "%" + escapeLike(search.toLowerCase()) + "%";
             specs.add((root, query, cb) -> {
-                Join<Payment, User> user = root.join("user", JoinType.INNER);
+                // LEFT: đơn đã ẩn danh hoá (user NULL) vẫn phải tìm được theo mã đơn / mã cổng.
+                Join<Payment, User> user = root.join("user", JoinType.LEFT);
                 return cb.or(
                         cb.like(cb.lower(root.get("invoiceNo")), pattern, LIKE_ESCAPE),
                         cb.like(cb.lower(root.get("gatewayTxnId")), pattern, LIKE_ESCAPE),

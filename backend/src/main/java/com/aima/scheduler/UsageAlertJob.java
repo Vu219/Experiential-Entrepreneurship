@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +23,7 @@ public class UsageAlertJob {
     UsageAlertService usageAlertService;
 
     @Scheduled(fixedDelay = 5 * 60 * 1000, initialDelay = 3 * 60 * 1000)
+    @SchedulerLock(name = "usage-alert", lockAtMostFor = "PT4M", lockAtLeastFor = "PT30S")
     public void scan() {
         try {
             usageAlertService.runDetection();

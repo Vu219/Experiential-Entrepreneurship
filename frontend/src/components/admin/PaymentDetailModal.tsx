@@ -59,7 +59,7 @@ export default function PaymentDetailModal({
         <span style={{ fontSize: 17, fontWeight: 800, color: '#1b1730' }}>{formatVND(payment.amount)}</span>
       </div>
 
-      <Row label={t.aoBuyer} value={`${payment.userFullName ?? '—'} · ${payment.userEmail}`} />
+      <Row label={t.aoBuyer} value={payment.userEmail ? `${payment.userFullName ?? '—'} · ${payment.userEmail}` : t.payDeletedAccount} />
       <Row label={t.blColPlan} value={lang === 'en' ? payment.planNameEn : payment.planNameVi} />
       <Row label={t.aoGateway} value={payment.gateway} />
       <Row label={t.aoOrderCode} value={payment.gatewayTxnId ?? '—'} mono />

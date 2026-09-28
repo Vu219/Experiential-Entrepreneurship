@@ -7,6 +7,7 @@ import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,6 +63,7 @@ public class LogRetentionJob {
     int usageErrorDays;
 
     @Scheduled(cron = "0 30 3 * * *")
+    @SchedulerLock(name = "log-retention", lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
     @Transactional
     public void purge() {
         purgeActivityLogs();

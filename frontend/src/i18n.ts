@@ -265,6 +265,12 @@ export const STRINGS = {
     ftNewsDone: '✓ Đã đăng ký! Hẹn gặp bạn ở bản tin tới.', ftNewsInvalid: 'Email chưa hợp lệ, bạn kiểm tra lại nhé.',
     ftEmailPh: 'Email của bạn', ftSubscribe: 'Đăng ký',
     ftTerms: 'Điều khoản', ftPrivacy: 'Chính sách bảo mật', ftCookie: 'Cookie',
+    ftDataDeletion: 'Xoá dữ liệu',
+    lgNavLabel: 'Trang pháp lý', lgUpdated: 'Cập nhật lần cuối', lgContact: 'Liên hệ',
+    lgStatusTitle: 'Trạng thái yêu cầu xoá dữ liệu', lgStatusLoading: 'Đang tra cứu…', lgStatusNotFound: 'Không tìm thấy yêu cầu với mã xác nhận này.',
+    lgStatusCode: 'Mã xác nhận', lgStatusState: 'Trạng thái', lgStatusDone: 'Đã hoàn tất',
+    lgStatusRequestedAt: 'Thời điểm yêu cầu', lgStatusCompletedAt: 'Hoàn tất lúc',
+    lgStatusConnections: 'Kết nối đã xoá', lgStatusSchedules: 'Bài đã lên lịch được tạm giữ',
     ftRights: '© 2026 AIMA · AI Marketing Automation',
     // generic actions
     save: 'Lưu thay đổi', saved: '✓ Đã lưu', cancel: 'Huỷ', connect: 'Kết nối', connected: 'Đã kết nối', regenerate: 'Tạo lại', use: 'Sử dụng', notConnected: 'Chưa kết nối',
@@ -591,6 +597,8 @@ export const STRINGS = {
     seTokenValid: 'Còn hiệu lực', seTokenExpired: 'Hết hạn', seDaysLeft: 'Còn {n} ngày', seExpiredAgo: 'Hết hạn {n} ngày trước',
     // toast kết nối MXH (tab Kết nối)
     seConnOk: 'Kết nối tài khoản thành công!', seConnFail: 'Kết nối thất bại. Vui lòng thử lại.',
+    payDeletedAccount: 'Tài khoản đã xoá (đơn ẩn danh)',
+    seConnMissingPerms: 'Bạn chưa cấp đủ quyền quản lý và đăng bài lên Trang. Hãy kết nối lại và giữ nguyên các quyền được yêu cầu.',
     seConnStartFail: 'Không thể bắt đầu kết nối. Vui lòng thử lại.',
     seVerified: 'Đã kiểm tra kết nối.', seVerifyFail: 'Kiểm tra thất bại.',
     seRefreshed: 'Đã làm mới token.', seRefreshFail: 'Làm mới thất bại.',
@@ -837,6 +845,7 @@ export const STRINGS = {
     apReasonPolicyFallback: 'Nền tảng từ chối vì nội dung vi phạm chính sách.',
     apReasonTemporaryFallback: 'Lỗi kết nối tạm thời tới nền tảng — hệ thống sẽ thử lại.',
     apReasonPermanentFallback: 'Lỗi kết nối phiên làm việc với nền tảng — cần xử lý thủ công.',
+    apReasonInternalFallback: 'Lỗi nội bộ của AIMA (không đến từ nền tảng) — không tự thử lại, xem chi tiết kỹ thuật.',
     apReasonUnknown: 'Không xác định được nguyên nhân từ phản hồi của nền tảng.',
     apSeeMore: 'Xem thêm', apSeeLess: 'Thu gọn',
     // Bộ lọc nhanh
@@ -1379,6 +1388,12 @@ export const STRINGS = {
     ftNewsDone: "✓ Subscribed! See you in the next issue.", ftNewsInvalid: 'That email doesn’t look right — please check it.',
     ftEmailPh: 'Your email', ftSubscribe: 'Subscribe',
     ftTerms: 'Terms', ftPrivacy: 'Privacy Policy', ftCookie: 'Cookies',
+    ftDataDeletion: 'Data deletion',
+    lgNavLabel: 'Legal pages', lgUpdated: 'Last updated', lgContact: 'Contact',
+    lgStatusTitle: 'Data deletion request status', lgStatusLoading: 'Looking up…', lgStatusNotFound: 'No request found for this confirmation code.',
+    lgStatusCode: 'Confirmation code', lgStatusState: 'Status', lgStatusDone: 'Completed',
+    lgStatusRequestedAt: 'Requested at', lgStatusCompletedAt: 'Completed at',
+    lgStatusConnections: 'Connections removed', lgStatusSchedules: 'Scheduled posts put on hold',
     ftRights: '© 2026 AIMA · AI Marketing Automation',
     save: 'Save changes', saved: '✓ Saved', cancel: 'Cancel', connect: 'Connect', connected: 'Connected', regenerate: 'Regenerate', use: 'Use', notConnected: 'Not connected',
     // ===== Create content — layer 1: list =====
@@ -1693,6 +1708,8 @@ export const STRINGS = {
     seTokenValid: 'Valid', seTokenExpired: 'Expired', seDaysLeft: '{n} days left', seExpiredAgo: 'Expired {n} days ago',
     // social connection toasts (Connections tab)
     seConnOk: 'Account connected successfully!', seConnFail: 'Connection failed. Please try again.',
+    payDeletedAccount: 'Deleted account (anonymized order)',
+    seConnMissingPerms: 'Page management and publishing permissions were not granted. Please reconnect and keep all requested permissions.',
     seConnStartFail: 'Could not start connection. Please try again.',
     seVerified: 'Connection verified.', seVerifyFail: 'Verification failed.',
     seRefreshed: 'Token refreshed.', seRefreshFail: 'Refresh failed.',
@@ -1929,6 +1946,7 @@ export const STRINGS = {
     apReasonPolicyFallback: 'The platform rejected the post for a content policy breach.',
     apReasonTemporaryFallback: 'Temporary connection error with the platform — the system will retry.',
     apReasonPermanentFallback: 'Session connection error with the platform — needs manual handling.',
+    apReasonInternalFallback: 'Internal AIMA error (not from the platform) — not retried, see technical details.',
     apReasonUnknown: 'The platform response does not identify a cause.',
     apSeeMore: 'See more', apSeeLess: 'See less',
     // Quick filters

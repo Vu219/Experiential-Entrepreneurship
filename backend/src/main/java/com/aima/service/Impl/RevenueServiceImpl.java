@@ -412,7 +412,8 @@ public class RevenueServiceImpl implements RevenueService {
         txt.append("Doanh thu (net, uoc tinh tren cac dong da xuat): ").append(net).append(" VND\n\n");
         for (RevenueTransactionResponse row : rows) {
             txt.append("- ").append(row.getCode())
-                    .append(" | ").append(row.getUserName())
+                    // userName null = đơn ẩn danh hoá (người mua đã xoá tài khoản).
+                    .append(" | ").append(row.getUserName() == null ? "(tai khoan da xoa)" : row.getUserName())
                     .append(" | ").append(row.getPlanNameVi())
                     .append(" | ").append(row.getAmount()).append(' ').append(row.getCurrency())
                     .append(" | ").append(row.getStatus())

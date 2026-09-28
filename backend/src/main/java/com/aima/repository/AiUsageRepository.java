@@ -1,5 +1,6 @@
 package com.aima.repository;
 
+import org.springframework.data.jpa.repository.Modifying;
 import com.aima.entity.AiUsage;
 import com.aima.enums.AiProviderCode;
 import com.aima.enums.AiTaskCode;
@@ -299,4 +300,10 @@ public interface AiUsageRepository extends JpaRepository<AiUsage, UUID> {
 
         BigDecimal getEstimatedCost();
     }
+
+    // Xoá cứng tài khoản: giữ event (tổng chi phí/rollup chưa chốt ngày không bị hụt) nhưng cắt
+    // liên kết user + bỏ IP/User-Agent (PII). user NULL = sự kiện không còn gắn người dùng.
+    @Modifying(flushAutomatically = true)
+    @Query("update AiUsage a set a.user = null, a.clientIp = null, a.userAgent = null where a.user.id = :userId")
+    int detachUser(@Param("userId") UUID userId);
 }

@@ -286,7 +286,7 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
       // Clean URL
       setSearchParams({ tab: 'connections' }, { replace: true });
     } else if (error) {
-      toast.error(t.seConnFail);
+      toast.error(error === 'missing_permissions' ? t.seConnMissingPerms : t.seConnFail);
       setSearchParams({ tab: 'connections' }, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -339,8 +339,9 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
       // Refresh stats
       try { const st = await getConnectionStats(); setStats(st); } catch { /* ignore */ }
       toast.success(t.seDisconnected);
-    } catch {
-      toast.error(t.seDisconnectFail);
+    } catch (err) {
+      // Hiện message thật từ API (vd "Không tìm thấy kết nối"), chỉ dùng câu chung khi không có.
+      toast.error((err as Error).message || t.seDisconnectFail);
     } finally {
       setActionLoading((p) => ({ ...p, [id]: false }));
     }

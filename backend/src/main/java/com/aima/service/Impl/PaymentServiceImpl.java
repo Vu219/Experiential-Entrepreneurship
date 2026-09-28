@@ -981,6 +981,14 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private void activate(Payment payment, LocalDateTime now) {
+        if (payment.getUser() == null) {
+            // Đơn đã ẩn danh hoá (chủ tài khoản bị xoá cứng) — không còn ai để kích hoạt gói.
+            payment.setReconcileRequired(true);
+            log.error("[Payment] Đơn {} báo PAID nhưng tài khoản đã bị xoá — cần admin xử lý", payment.getId());
+            systemLogService.error(LOG_MODULE, "Đơn " + payment.getId()
+                    + " báo đã thu tiền nhưng tài khoản mua đã bị xoá — cần xử lý tay", null);
+            return;
+        }
         Subscription subscription =
                 subscriptionService.activatePaidPlan(payment.getUser(), payment.getPlan(), now);
         if (subscription == null) {
@@ -1256,7 +1264,8 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         Payment payment = paymentRepository.findDetailById(paymentId)
                 .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
-        if (!payment.getUser().getId().equals(user.getId())) {
+        // user NULL = đơn đã ẩn danh hoá — không thuộc về ai nữa.
+        if (payment.getUser() == null || !payment.getUser().getId().equals(user.getId())) {
             throw new AppException(ErrorCode.PAYMENT_ACCESS_DENIED);
         }
         return payment;

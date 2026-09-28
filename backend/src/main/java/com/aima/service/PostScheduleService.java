@@ -24,4 +24,15 @@ public interface PostScheduleService {
     ApiResponse<PostScheduleResponse> cancel(String email, UUID scheduleId);
 
     ApiResponse<GoldenHourResponse> suggestGoldenHours(Platform platform);
+
+    // ---- Nội bộ (không trả ApiResponse) — vòng đời tài khoản chờ xoá ----
+
+    /**
+     * User yêu cầu xoá tài khoản: mọi lịch SCHEDULED → ON_HOLD, và các bài đang chờ retry/chờ chạy
+     * bị huỷ job + lịch về ON_HOLD để KHÔNG tự đăng tiếp. Trả số lịch bị tạm giữ.
+     */
+    int holdAllForPendingDeletion(UUID userId);
+
+    /** Số lịch ON_HOLD của user — báo lại khi user khôi phục tài khoản để tự kích hoạt lại. */
+    int countOnHold(UUID userId);
 }

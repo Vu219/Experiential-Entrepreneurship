@@ -1,5 +1,8 @@
 package com.aima.mapper;
 
+import com.aima.dto.publish.PublishTarget;
+import com.aima.entity.ContentVersion;
+import com.aima.entity.PlatformAccount;
 import com.aima.entity.Post;
 import com.aima.entity.PostSchedule;
 import com.aima.entity.PostingJob;
@@ -47,4 +50,15 @@ public interface PostPublishMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "deletedAt", ignore = true)
     PublishResult toPublishResult(Post post, Boolean isSuccess, String responseCode, String responseMessage);
+
+    /** Chụp giá trị cho lời gọi nền tảng — gọi TRONG transaction (entity đã JOIN FETCH), dùng ngoài. */
+    @Mapping(target = "jobId", source = "job.id")
+    @Mapping(target = "postId", source = "job.post.id")
+    @Mapping(target = "platform", source = "version.platformName")
+    @Mapping(target = "accountId", source = "account.id")
+    @Mapping(target = "accountType", source = "account.accountType")
+    @Mapping(target = "platformAccountId", source = "account.platformAccountId")
+    @Mapping(target = "accountName", source = "account.accountName")
+    @Mapping(target = "accessToken", source = "account.accessToken")
+    PublishTarget toPublishTarget(PostingJob job, PlatformAccount account, ContentVersion version, String message);
 }

@@ -33,6 +33,9 @@ import java.util.UUID;
 @Slf4j
 public class PlatformConnectionServiceImpl implements PlatformConnectionService {
 
+    // Mã lỗi gắn vào ?error= của FE_OAUTH_ERROR_URL — FE (Settings.tsx) khớp nguyên văn.
+    static final String MISSING_PERMISSIONS_ERROR = "missing_permissions";
+
     MetaOAuthService metaOAuthService;
     PlatformAccountRepository accountRepository;
     UserRepository userRepository;
@@ -62,6 +65,15 @@ public class PlatformConnectionServiceImpl implements PlatformConnectionService 
             return UriComponentsBuilder.fromUriString(aimaProperties.oauth().frontendSuccessRedirect())
                     .replaceQueryParam("status", "success")
                     .build().toUriString();
+        } catch (AppException e) {
+            if (e.getErrorCode() == ErrorCode.META_MISSING_PERMISSIONS) {
+                // FE hiện thông báo riêng: user bỏ tick quyền Page trong dialog → cần liên kết lại.
+                return UriComponentsBuilder.fromUriString(aimaProperties.oauth().frontendErrorRedirect())
+                        .replaceQueryParam("error", MISSING_PERMISSIONS_ERROR)
+                        .build().toUriString();
+            }
+            log.error("[OAuth] Xử lý callback thất bại", e);
+            return aimaProperties.oauth().frontendErrorRedirect();
         } catch (Exception e) {
             log.error("[OAuth] Xử lý callback thất bại", e);
             return aimaProperties.oauth().frontendErrorRedirect();
@@ -93,7 +105,7 @@ public class PlatformConnectionServiceImpl implements PlatformConnectionService 
     @Override
     public ApiResponse<PlatformConnectionResponse> validateConnection(UUID id, String email) {
         PlatformAccount account = find(id, email);
-        PlatformAccount validated = metaOAuthService.validate(account);
+        PlatformAccount validated = metaOAuthService.validate(account.getId());
         PlatformConnectionResponse response = connectionMapper.toResponse(validated);
         return ApiResponse.success("Kiểm tra kết nối thành công", response);
     }
@@ -101,15 +113,15 @@ public class PlatformConnectionServiceImpl implements PlatformConnectionService 
     @Override
     public ApiResponse<PlatformConnectionResponse> refreshConnection(UUID id, String email) {
         PlatformAccount account = find(id, email);
-        PlatformAccount refreshed = metaOAuthService.refresh(account);
+        PlatformAccount refreshed = metaOAuthService.refresh(account.getId());
         PlatformConnectionResponse response = connectionMapper.toResponse(refreshed);
         return ApiResponse.success("Làm mới token thành công", response);
     }
 
     @Override
     public ApiResponse<Void> disconnect(UUID id, String email) {
-        PlatformAccount account = find(id, email);
-        metaOAuthService.disconnect(account);
+        // Chỉ truyền ID: lớp này không có transaction, entity load ở đây sẽ detached bên MetaOAuthService.
+        metaOAuthService.disconnect(currentUser(email).getId(), id);
         return ApiResponse.success("Đã ngắt kết nối tài khoản");
     }
 

@@ -1,0 +1,15 @@
+# Profile production — bật trên Render bằng SPRING_PROFILES_ACTIVE=production.
+# Chỉ chứa phần KHÁC môi trường dev; mọi cấu hình còn lại kế thừa application.yml.
+
+# Không công khai tài liệu API (danh sách endpoint + schema) trên môi trường thật.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+app:
+  cors:
+    # Chỉ domain chính thức — KHÔNG *.vercel.app / *.ngrok-free.app (ai cũng dựng được site ở đó
+    # và gọi API kèm cookie của người dùng). Ghi đè bằng CORS_ALLOWED_ORIGINS nếu cần.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://aima-marketing.id.vn,https://*.aima-marketing.id.vn}

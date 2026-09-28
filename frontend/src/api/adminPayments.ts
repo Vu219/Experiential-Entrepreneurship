@@ -8,8 +8,9 @@ import type { PaymentGateway, PaymentStatus } from './revenue';
 export interface AdminPayment {
   id: string;
   invoiceNo: string | null;
-  userId: string;
-  userEmail: string;
+  // null = đơn đã ẩn danh hoá (tài khoản người mua đã bị xoá cứng).
+  userId: string | null;
+  userEmail: string | null;
   userFullName: string | null;
   planId: string;
   planCode: string;

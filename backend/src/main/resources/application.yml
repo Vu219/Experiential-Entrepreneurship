@@ -105,6 +105,10 @@ brevo:
 app:
   frontend:
     base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
+  cors:
+    # Origin (pattern, phân tách dấu phẩy) được gọi API kèm cookie. Mặc định dev; profile
+    # production (application-production.yml) thu hẹp về domain chính thức.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:*,https://localhost:*,http://127.0.0.1:*,https://*.ngrok-free.app,https://*.up.railway.app,https://*.vercel.app,https://aima-marketing.id.vn,https://*.aima-marketing.id.vn}
   oauth2:
     frontend-callback-url: ${FRONTEND_CALLBACK_URL}
   auth:
@@ -127,6 +131,7 @@ meta:
     app-secret: ${META_FACEBOOK_APP_SECRET:}
     redirect-uri: ${META_FACEBOOK_REDIRECT_URI:}
     scopes: ${META_FACEBOOK_SCOPES:}
+    config-id: ${META_FACEBOOK_CONFIG_ID:}
 
   threads:
     app-id: ${META_THREADS_APP_ID:}
@@ -134,6 +139,9 @@ meta:
     redirect-uri: ${META_THREADS_REDIRECT_URI:}
     scopes: ${META_THREADS_SCOPES:}
   graph-base-url: ${META_GRAPH_BASE_URL:https://graph.facebook.com}
+  # Timeout mọi lời gọi Graph/Threads (giây) — xem MetaWebClientConfig.
+  connect-timeout-seconds: ${META_CONNECT_TIMEOUT_SECONDS:5}
+  response-timeout-seconds: ${META_RESPONSE_TIMEOUT_SECONDS:30}
   threads-base-url: ${META_THREADS_BASE_URL:https://graph.threads.net}
   # Bật appsecret_proof cho mọi request Meta (bắt buộc ở production).
   app-secret-proof-enabled: ${META_APP_SECRET_PROOF_ENABLED:false}

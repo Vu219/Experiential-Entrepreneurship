@@ -20,12 +20,15 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -161,6 +164,25 @@ public class MetaApiClientImpl implements MetaApiClient {
                 text(ig, "profile_picture_url")));
     }
 
+    @Override
+    public List<String> getGrantedPermissions(String userToken) {
+        Platform platform = Platform.FACEBOOK;
+        String version = versionService.getCurrentVersion(platform);
+        String url = withProof(UriComponentsBuilder.fromUriString(metaProperties.graphBaseUrl())
+                .pathSegment(version, "me", "permissions")
+                .queryParam("access_token", userToken), userToken, platform)
+                .toUriString();
+
+        JsonNode body = get(url, platform);
+        List<String> granted = new ArrayList<>();
+        for (JsonNode node : body.path("data")) {
+            if ("granted".equals(text(node, "status")) && text(node, "permission") != null) {
+                granted.add(text(node, "permission"));
+            }
+        }
+        return granted;
+    }
+
     // ---------- Profile / validate ----------
 
     @Override
@@ -213,18 +235,27 @@ public class MetaApiClientImpl implements MetaApiClient {
             log.info("[Meta] Threads không hỗ trợ revoke từ xa; bỏ qua revoke phía nền tảng.");
             return;
         }
-        String version = versionService.getCurrentVersion(platform);
-        String url = withProof(UriComponentsBuilder.fromUriString(metaProperties.graphBaseUrl())
-                .pathSegment(version, "me", "permissions")
-                .queryParam("access_token", token), token, platform)
-                .toUriString();
+        // Best-effort: token hết hạn (190), sai appsecret_proof, 4xx/5xx, timeout, lỗi mạng đều chỉ
+        // log — việc xoá kết nối local không được phụ thuộc Meta. Timeout riêng, ngắn hơn timeout chung.
         try {
-            webClient.delete().uri(url).retrieve().bodyToMono(JsonNode.class).block();
+            String version = versionService.getCurrentVersion(platform);
+            String url = withProof(UriComponentsBuilder.fromUriString(metaProperties.graphBaseUrl())
+                    .pathSegment(version, "me", "permissions")
+                    .queryParam("access_token", token), token, platform)
+                    .toUriString();
+            // Body {"success":true} đọc dạng String: WebClient decode bằng Jackson 3 nên KHÔNG hiểu kiểu
+            // com.fasterxml JsonNode (Jackson 2) → "Type definition error". Không cần nội dung body.
+            webClient.delete().uri(encodedUri(url)).retrieve().bodyToMono(String.class).timeout(REVOKE_TIMEOUT).block();
             log.info("[Meta] Đã revoke token (đã mask) trên {}", platform);
         } catch (WebClientResponseException e) {
-            log.warn("[Meta] Revoke token thất bại trên {}: {}", platform, e.getStatusCode());
+            log.warn("[Meta] Revoke token thất bại trên {} (bỏ qua): {} {}", platform, e.getStatusCode(),
+                    mask(e.getResponseBodyAsString()));
+        } catch (Exception e) {
+            log.warn("[Meta] Revoke token thất bại trên {} (bỏ qua): {}", platform, mask(String.valueOf(e.getMessage())));
         }
     }
+
+    static final Duration REVOKE_TIMEOUT = Duration.ofSeconds(5);
 
     // ---------- Post metrics (FR-59) ----------
 
@@ -398,34 +429,69 @@ public class MetaApiClientImpl implements MetaApiClient {
         return platform == Platform.THREADS ? metaProperties.threads() : metaProperties.facebook();
     }
 
+    /**
+     * Mọi URL ở lớp này dựng bằng {@code UriComponentsBuilder...toUriString()} — ĐÃ encode đúng một lần
+     * ({@code {}} → {@code %7B%7D}). Phải đưa vào WebClient dưới dạng {@link URI}: overload
+     * {@code uri(String)} coi chuỗi là URI template và encode LẦN HAI ({@code %7B} → {@code %257B}) →
+     * Graph trả code 2500 "Syntax error" cho field lồng nhau như {@code instagram_business_account{...}}.
+     */
+    private static URI encodedUri(String encodedUrl) {
+        // UriComponentsBuilder để nguyên '+' trong query (hợp lệ theo RFC 3986) nhưng server decode
+        // '+' thành dấu cách → token/proof có '+' tới Meta bị sai. toUriString() luôn encode dấu cách
+        // thành %20, nên mọi '+' còn lại trong query đều là '+' thật → %2B.
+        int queryStart = encodedUrl.indexOf('?');
+        if (queryStart >= 0 && encodedUrl.indexOf('+', queryStart) >= 0) {
+            encodedUrl = encodedUrl.substring(0, queryStart) + encodedUrl.substring(queryStart).replace("+", "%2B");
+        }
+        return URI.create(encodedUrl);
+    }
+
     private JsonNode get(String url, Platform platform) {
         log.debug("[Meta] GET {} ({})", mask(url), platform);
         try {
-            String raw = webClient.get().uri(url).retrieve().bodyToMono(String.class).block();
+            String raw = webClient.get().uri(encodedUri(url)).retrieve().bodyToMono(String.class).block();
             return parse(raw);
         } catch (WebClientResponseException e) {
             log.warn("[Meta] GET lỗi {} {}: {}", platform, e.getStatusCode(), mask(e.getResponseBodyAsString()));
-            throw new AppException(ErrorCode.META_API_ERROR);
+            throw toAppException(e);
         }
     }
 
     private JsonNode post(String url, Platform platform) {
         log.debug("[Meta] POST {} ({})", mask(url), platform);
         try {
-            String raw = webClient.post().uri(url).retrieve().bodyToMono(String.class).block();
+            String raw = webClient.post().uri(encodedUri(url)).retrieve().bodyToMono(String.class).block();
             return parse(raw);
         } catch (WebClientResponseException e) {
             log.warn("[Meta] POST lỗi {} {}: {}", platform, e.getStatusCode(), mask(e.getResponseBodyAsString()));
-            throw new AppException(ErrorCode.META_API_ERROR);
+            throw toAppException(e);
+        }
+    }
+
+    // Graph code 190 = token hết hạn/bị thu hồi → mã riêng để caller (validate) phân biệt với
+    // lỗi tạm thời (5xx, rate limit) vốn không được làm đổi trạng thái kết nối.
+    private AppException toAppException(WebClientResponseException e) {
+        return graphErrorCode(e) == TOKEN_INVALID_CODE
+                ? new AppException(ErrorCode.META_TOKEN_INVALID)
+                : new AppException(ErrorCode.META_API_ERROR);
+    }
+
+    private int graphErrorCode(WebClientResponseException e) {
+        try {
+            return objectMapper.readTree(e.getResponseBodyAsString()).path("error").path("code").asInt(-1);
+        } catch (Exception ignored) {
+            return -1; // body không phải JSON
         }
     }
 
     // POST form cho luồng đăng bài: KHÔNG gộp lỗi thành META_API_ERROR như get/post — parse body lỗi
     // của nền tảng và ném PublishException đã phân loại (FR-35/FR-37) để worker quyết định retry (FR-56).
     private JsonNode postFormForPublish(String url, MultiValueMap<String, String> form, Platform platform) {
-        log.debug("[Meta] POST(form) {} ({})", mask(url), platform);
+        // INFO (không phải debug): endpoint đăng bài là dấu vết duy nhất cho biết đã gọi Meta hay chưa.
+        // Token nằm trong form body, không nằm trên URL.
+        log.info("[Meta] Đăng bài {}: POST {}", platform, mask(url));
         try {
-            String raw = webClient.post().uri(url)
+            String raw = webClient.post().uri(encodedUri(url))
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .body(BodyInserters.fromFormData(form))
                     .retrieve()
@@ -435,14 +501,16 @@ public class MetaApiClientImpl implements MetaApiClient {
         } catch (WebClientResponseException e) {
             log.warn("[Meta] Đăng bài lỗi {} {}: {}", platform, e.getStatusCode(), mask(e.getResponseBodyAsString()));
             throw toPublishException(e);
-        } catch (PublishException e) {
-            throw e;
-        } catch (Exception e) {
-            // Lỗi mạng/timeout không có response — coi là tạm thời (FR-56: retry).
+        } catch (WebClientRequestException e) {
+            // Lỗi mạng không có response (connect/response timeout của Reactor Netty, DNS, connection
+            // reset) — tạm thời (FR-56: retry). Lỗi khác (vd body 200 không phải JSON) KHÔNG bị gộp vào
+            // đây: để lọt lên worker thành INTERNAL, tránh retry vô ích một lỗi không tự hết.
             log.warn("[Meta] Đăng bài thất bại (network) {}: {}", platform, e.getMessage());
-            throw new PublishException(PublishErrorType.TEMPORARY, "NETWORK", e.getMessage());
+            throw new PublishException(PublishErrorType.TEMPORARY, "NETWORK", e.getMessage(), e);
         }
     }
+
+    static final int TOKEN_INVALID_CODE = 190;
 
     // Mã lỗi Graph tạm thời: 1/2 (unknown/service), 4/17/32/613 (rate limit), 341 (application limit).
     private static final Set<Integer> TEMPORARY_GRAPH_CODES = Set.of(1, 2, 4, 17, 32, 341, 613);

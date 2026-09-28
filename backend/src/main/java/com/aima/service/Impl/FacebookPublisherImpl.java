@@ -1,7 +1,6 @@
 package com.aima.service.Impl;
 
-import com.aima.entity.ContentVersion;
-import com.aima.entity.PlatformAccount;
+import com.aima.dto.publish.PublishTarget;
 import com.aima.enums.Platform;
 import com.aima.enums.PlatformAccountType;
 import com.aima.enums.PublishErrorType;
@@ -30,13 +29,15 @@ public class FacebookPublisherImpl implements PlatformPublisher {
         return Platform.FACEBOOK;
     }
 
+    // Mã lỗi nội bộ khi kênh đích không phải Trang — lỗi vĩnh viễn, không gọi Meta, không retry.
+    static final String ACCOUNT_TYPE_CODE = "ACCOUNT_TYPE";
+    static final String USER_TARGET_MESSAGE = "Facebook chỉ cho phép đăng lên Trang, vui lòng chọn một Trang";
+
     @Override
-    public MetaApiClient.MetaPostResult publish(PlatformAccount account, ContentVersion version) {
-        if (account.getAccountType() != PlatformAccountType.PAGE) {
-            throw new PublishException(PublishErrorType.PERMANENT, "ACCOUNT_TYPE",
-                    "Facebook chỉ cho đăng qua Trang (Page) — vui lòng chọn một Page đã kết nối");
+    public MetaApiClient.MetaPostResult publish(PublishTarget target) {
+        if (target.accountType() != PlatformAccountType.PAGE) {
+            throw new PublishException(PublishErrorType.PERMANENT, ACCOUNT_TYPE_CODE, USER_TARGET_MESSAGE);
         }
-        String message = buildMessage(version);
-        return metaApiClient.publishPagePost(account.getPlatformAccountId(), account.getAccessToken(), message);
+        return metaApiClient.publishPagePost(target.platformAccountId(), target.accessToken(), target.message());
     }
 }

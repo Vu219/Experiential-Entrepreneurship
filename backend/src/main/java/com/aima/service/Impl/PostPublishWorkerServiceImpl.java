@@ -1,5 +1,6 @@
 package com.aima.service.Impl;
 
+import com.aima.dto.publish.PublishTarget;
 import com.aima.entity.ContentItem;
 import com.aima.entity.ContentVersion;
 import com.aima.entity.PlatformAccount;
@@ -63,10 +64,17 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
     // FR-71: mã lỗi media của chính hệ thống (InstagramPublisherImpl) — MVP chỉ đăng text.
     static final String MEDIA_REQUIRED_CODE = "IG_MEDIA_REQUIRED";
 
+    // Mã lỗi của job bị PostingDispatchJob vớt vì kẹt RUNNING quá lâu.
+    static final String STUCK_RUNNING_CODE = "STUCK_RUNNING";
+
+    // Mã lỗi của lỗi nội bộ (không đến từ nền tảng) — PublishErrorType.INTERNAL, không retry.
+    static final String INTERNAL_ERROR_CODE = "INTERNAL";
+
     PostingJobRepository jobRepository;
     PostScheduleRepository scheduleRepository;
     PostPublishMapper postPublishMapper;
     TransactionTemplate transactionTemplate;
+    TransactionTemplate readOnlyTransactionTemplate;
     NotificationService notificationService;
     SystemLogService systemLogService;
     ActivityLogService activityLogService;
@@ -84,6 +92,9 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         this.scheduleRepository = scheduleRepository;
         this.postPublishMapper = postPublishMapper;
         this.transactionTemplate = transactionTemplate;
+        // Cùng transaction manager, chỉ thêm cờ read-only cho bước nạp dữ liệu trước khi gọi nền tảng.
+        this.readOnlyTransactionTemplate = new TransactionTemplate(transactionTemplate.getTransactionManager());
+        this.readOnlyTransactionTemplate.setReadOnly(true);
         this.notificationService = notificationService;
         this.systemLogService = systemLogService;
         this.activityLogService = activityLogService;
@@ -94,49 +105,86 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
     @Override
     @Async("postPublishExecutor")
     public void process(UUID jobId) {
-        // Transaction ngắn 1: claim + chuyển pipeline sang POSTING (poller thấy ngay).
-        PublishTask task = transactionTemplate.execute(tx -> claimAndPrepare(jobId));
-        if (task == null) {
-            return;
-        }
-
+        boolean claimed = false;
+        String platformPostId = null;
         try {
-            PlatformPublisher publisher = publishers.get(task.platform());
-            if (publisher == null) {
-                throw new PublishException(PublishErrorType.PERMANENT, "NO_PUBLISHER",
-                        "Chưa hỗ trợ đăng bài cho nền tảng " + task.platform());
+            // Tx ngắn 1 (ghi): claim nguyên tử + chuyển pipeline sang POSTING (poller thấy ngay).
+            claimed = Boolean.TRUE.equals(transactionTemplate.execute(tx -> claimAndMarkPosting(jobId)));
+            if (!claimed) {
+                return;
             }
+            // Tx ngắn 2 (read-only): JOIN FETCH rồi chụp mọi giá trị cần dùng ra DTO bất biến —
+            // từ đây trở đi không đụng entity nào nữa (session đã đóng).
+            PublishTarget target = readOnlyTransactionTemplate.execute(tx -> loadTarget(jobId));
+            log.info("[PostPublish] Job {} bắt đầu đăng: post {}, {} kênh {} (platform_account {})",
+                    jobId, target.postId(), target.platform(), target.accountType(), target.accountId());
+
             // Gọi nền tảng NGOÀI transaction (rule #24).
-            MetaApiClient.MetaPostResult result = publisher.publish(task.account(), task.version());
+            MetaApiClient.MetaPostResult result = publisherFor(target.platform()).publish(target);
+            platformPostId = result.platformPostId();
+            log.info("[PostPublish] Job {} nền tảng đã nhận bài: post {} → platform post id {}",
+                    jobId, target.postId(), platformPostId);
+
+            // Tx ngắn 3 (ghi): lưu kết quả theo jobId.
             transactionTemplate.executeWithoutResult(tx -> saveSuccess(jobId, result));
         } catch (PublishException e) {
             log.warn("[PostPublish] Job {} thất bại [{} - mã {}]: {}",
                     jobId, e.getErrorType(), e.getResponseCode(), e.getMessage());
-            transactionTemplate.executeWithoutResult(tx -> saveFailure(jobId, e));
+            recordFailure(jobId, claimed, e);
         } catch (Exception e) {
-            // Không để thread worker chết im lặng (rule #28e) — lỗi lạ coi là tạm thời để còn retry.
-            log.error("[PostPublish] Job {} lỗi không lường trước", jobId, e);
-            PublishException wrapped =
-                    new PublishException(PublishErrorType.TEMPORARY, "UNEXPECTED", e.getMessage());
-            transactionTemplate.executeWithoutResult(tx -> saveFailure(jobId, wrapped));
+            // Lỗi không đến từ nền tảng (lazy proxy, NPE, giải mã token...) = lỗi code: chạy lại cũng
+            // chết đúng chỗ đó → INTERNAL, không retry, log ERROR đủ stacktrace (rule #28e).
+            log.error("[PostPublish] Job {} lỗi nội bộ (INTERNAL — không retry)", jobId, e);
+            recordFailure(jobId, claimed, internalError(e, platformPostId));
         }
     }
 
-    /** Dữ liệu cần cho cuộc gọi nền tảng — nạp sẵn trong transaction, dùng ngoài transaction. */
-    record PublishTask(Platform platform, PlatformAccount account, ContentVersion version) {
+    // Không bao giờ để job kẹt RUNNING vì lỗi ghi kết quả: log ERROR; nếu vẫn kẹt thì
+    // PostingDispatchJob.recoverStuckRunning vớt sau STUCK_RUNNING_AGE.
+    private void recordFailure(UUID jobId, boolean claimed, PublishException e) {
+        if (!claimed) {
+            // Claim chưa commit (vd DB chập chờn) → job vẫn PENDING/RETRYING, lần quét sau tự dispatch lại.
+            log.error("[PostPublish] Job {} lỗi trước khi claim — giữ nguyên trạng thái để dispatch lại", jobId, e);
+            return;
+        }
+        try {
+            transactionTemplate.executeWithoutResult(tx -> saveFailure(jobId, e));
+        } catch (Exception saveError) {
+            log.error("[PostPublish] Job {} không ghi được kết quả thất bại — job còn RUNNING tới khi bị vớt",
+                    jobId, saveError);
+        }
     }
 
-    private PublishTask claimAndPrepare(UUID jobId) {
+    private static PublishException internalError(Exception e, String platformPostId) {
+        String detail = e.getClass().getSimpleName() + ": " + e.getMessage();
+        String message = platformPostId == null
+                ? "Lỗi nội bộ khi đăng bài — " + detail
+                // Nền tảng ĐÃ nhận bài: ghi rõ để user/admin không lên lịch lại gây đăng trùng.
+                : "Nền tảng đã nhận bài (id " + platformPostId + ") nhưng lưu kết quả thất bại — " + detail;
+        return new PublishException(PublishErrorType.INTERNAL, INTERNAL_ERROR_CODE, message, e);
+    }
+
+    @Override
+    public void recoverStuck(UUID jobId, LocalDateTime startedBefore) {
+        transactionTemplate.executeWithoutResult(tx -> {
+            if (jobRepository.releaseStuck(jobId, startedBefore) == 0) {
+                return; // worker vừa ghi kết quả / instance khác đã vớt
+            }
+            // Không biết Meta đã nhận bài hay chưa (worker chết giữa chừng) → coi như lỗi tạm thời
+            // giống lỗi mạng (FR-56): retry theo lịch 5/15/30 phút, hết lượt thì FAILED + báo user.
+            log.warn("[PostPublish] Job {} kẹt RUNNING từ trước {} — ghi thất bại tạm thời để retry", jobId, startedBefore);
+            saveFailure(jobId, new PublishException(PublishErrorType.TEMPORARY, STUCK_RUNNING_CODE,
+                    "Tiến trình đăng bài bị gián đoạn (máy chủ khởi động lại) — hệ thống sẽ thử lại"));
+        });
+    }
+
+    private boolean claimAndMarkPosting(UUID jobId) {
         int claimed = jobRepository.claim(jobId, LocalDateTime.now());
         if (claimed == 0) {
             log.info("[PostPublish] Job {} đã được worker khác xử lý — bỏ qua", jobId);
-            return null;
+            return false;
         }
-        PostingJob job = jobRepository.findById(jobId).orElse(null);
-        if (job == null) {
-            return null;
-        }
-
+        PostingJob job = jobRepository.findById(jobId).orElseThrow();
         Post post = job.getPost();
         PostSchedule schedule = post.getSchedule();
         ContentVersion version = schedule.getContentVersion();
@@ -146,8 +194,26 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         schedule.setStatus(ScheduleStatus.POSTING);
         version.setStatus(ContentLifecycle.POSTING);
         version.getContentItem().setStatus(ContentLifecycle.POSTING);
+        return true;
+    }
 
-        return new PublishTask(version.getPlatformName(), schedule.getPlatformAccount(), version);
+    // Chạy trong transaction read-only: token được EncryptedStringConverter giải mã lúc nạp,
+    // lỗi giải mã nổ ở đây (→ INTERNAL) chứ không nổ giữa lúc gọi nền tảng.
+    private PublishTarget loadTarget(UUID jobId) {
+        PostingJob job = jobRepository.findForPublish(jobId).orElseThrow();
+        PostSchedule schedule = job.getPost().getSchedule();
+        ContentVersion version = schedule.getContentVersion();
+        String message = publisherFor(version.getPlatformName()).buildMessage(version);
+        return postPublishMapper.toPublishTarget(job, schedule.getPlatformAccount(), version, message);
+    }
+
+    private PlatformPublisher publisherFor(Platform platform) {
+        PlatformPublisher publisher = publishers.get(platform);
+        if (publisher == null) {
+            throw new PublishException(PublishErrorType.PERMANENT, "NO_PUBLISHER",
+                    "Chưa hỗ trợ đăng bài cho nền tảng " + platform);
+        }
+        return publisher;
     }
 
     private void saveSuccess(UUID jobId, MetaApiClient.MetaPostResult result) {
@@ -293,6 +359,15 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
                     platform + " yêu cầu ảnh/video khi đăng bài. Hãy dùng media prompt của bài để tự tạo"
                             + " ảnh/video và đăng thủ công trên nền tảng, hoặc lên lịch bài này cho"
                             + " Facebook/Threads (đăng dạng chữ).",
+                    post.getId());
+            return;
+        }
+        // Lỗi nội bộ: message gốc là chuỗi kỹ thuật (tên exception) — chỉ lưu cho admin, không đưa user.
+        if (e.getErrorType() == PublishErrorType.INTERNAL) {
+            notificationService.notify(account.getUser(), NotificationType.POST_FAILED,
+                    "Đăng bài thất bại do lỗi hệ thống",
+                    "Đăng lên " + platform + " (" + account.getAccountName() + ") thất bại do lỗi hệ thống của AIMA."
+                            + " Lỗi đã được ghi nhận cho quản trị viên; bạn có thể lên lịch đăng lại sau.",
                     post.getId());
             return;
         }

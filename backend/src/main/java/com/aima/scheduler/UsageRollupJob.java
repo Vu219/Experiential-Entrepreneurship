@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,6 +57,7 @@ public class UsageRollupJob {
      * triển khai) → backfill toàn bộ lịch sử event một lượt để Tổng quan/heatmap đọc đủ.
      */
     @Scheduled(fixedDelay = 10 * 60 * 1000, initialDelay = 2 * 60 * 1000)
+    @SchedulerLock(name = "usage-rollup-hourly", lockAtMostFor = "PT9M", lockAtLeastFor = "PT30S")
     @Transactional
     public void rollupHourly() {
         try {
@@ -89,6 +91,7 @@ public class UsageRollupJob {
      * còn thiếu event cuối ngày) tới hôm nay; bảng trống → backfill từ event cũ nhất một lượt.
      */
     @Scheduled(cron = "0 30 2 * * *")
+    @SchedulerLock(name = "usage-rollup-daily", lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
     @Transactional
     public void rollupDaily() {
         try {

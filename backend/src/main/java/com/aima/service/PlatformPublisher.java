@@ -1,7 +1,7 @@
 package com.aima.service;
 
+import com.aima.dto.publish.PublishTarget;
 import com.aima.entity.ContentVersion;
-import com.aima.entity.PlatformAccount;
 import com.aima.enums.Platform;
 
 import java.util.Arrays;
@@ -17,10 +17,16 @@ public interface PlatformPublisher {
 
     Platform platform();
 
-    /** Đăng một ContentVersion lên tài khoản đích; trả về id bài đăng trên nền tảng (FR-53/FR-54). */
-    MetaApiClient.MetaPostResult publish(PlatformAccount account, ContentVersion version);
+    /**
+     * Đăng lên tài khoản đích; trả về id bài đăng trên nền tảng (FR-53/FR-54). Chạy NGOÀI transaction
+     * nên chỉ nhận {@link PublishTarget} (giá trị đã chụp sẵn) — không nhận entity (proxy lazy).
+     */
+    MetaApiClient.MetaPostResult publish(PublishTarget target);
 
-    /** Nội dung bài đăng = caption đã định dạng + hashtag (CSV không '#' trong DB → "#a #b"). */
+    /**
+     * Nội dung bài đăng = caption đã định dạng + hashtag (CSV không '#' trong DB → "#a #b").
+     * Worker gọi TRONG transaction lúc dựng {@link PublishTarget}.
+     */
     default String buildMessage(ContentVersion version) {
         String caption = version.getFormattedCaption() == null ? "" : version.getFormattedCaption().trim();
         String hashtagCsv = version.getFormattedHashtag();

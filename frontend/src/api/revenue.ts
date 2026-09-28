@@ -128,9 +128,10 @@ export async function getRevenueTimeseries(filter: RevenueFilter): Promise<Reven
 export interface RevenueTransaction {
   id: string;
   code: string;
-  userId: string;
-  userName: string;
-  userEmail: string;
+  // null = đơn đã ẩn danh hoá (tài khoản người mua đã bị xoá cứng).
+  userId: string | null;
+  userName: string | null;
+  userEmail: string | null;
   userAvatarUrl?: string;
   planCode: string;
   planNameVi: string;

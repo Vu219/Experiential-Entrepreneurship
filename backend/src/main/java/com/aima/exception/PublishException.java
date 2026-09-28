@@ -17,7 +17,12 @@ public class PublishException extends RuntimeException {
     private final String responseCode;
 
     public PublishException(PublishErrorType errorType, String responseCode, String message) {
-        super(message);
+        this(errorType, responseCode, message, null);
+    }
+
+    /** Giữ {@code cause} để log hệ thống còn stacktrace gốc khi bọc một lỗi nội bộ. */
+    public PublishException(PublishErrorType errorType, String responseCode, String message, Throwable cause) {
+        super(message, cause);
         this.errorType = errorType;
         this.responseCode = responseCode;
     }

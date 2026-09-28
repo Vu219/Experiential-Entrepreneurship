@@ -6,6 +6,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -35,6 +36,7 @@ public class SubscriptionExpiryJob {
     SubscriptionService subscriptionService;
 
     @Scheduled(cron = "${payment.plan-expiry-cron:0 5 0 * * *}")
+    @SchedulerLock(name = "subscription-expiry", lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
     public void run() {
         LocalDateTime now = LocalDateTime.now();
         List<UUID> ids;

@@ -3,7 +3,11 @@ package com.aima.repository;
 import com.aima.entity.PostSchedule;
 import com.aima.enums.Platform;
 import com.aima.enums.ScheduleStatus;
+import com.aima.enums.UserStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -13,6 +17,13 @@ import java.util.UUID;
 
 @Repository
 public interface PostScheduleRepository extends JpaRepository<PostSchedule, UUID> {
+
+    // Chống đăng trùng khi chạy nhiều instance: chỉ MỘT UPDATE đổi được SCHEDULED → POSTING
+    // (row lock của Postgres tuần tự hoá hai UPDATE; cái sau thấy status đã đổi → 0 row).
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update PostSchedule s set s.status = com.aima.enums.ScheduleStatus.POSTING "
+            + "where s.id = :id and s.status = com.aima.enums.ScheduleStatus.SCHEDULED and s.deletedAt is null")
+    int claimForPosting(@Param("id") UUID id);
 
     // API-03/SEC-04: user chỉ thao tác trên lịch gắn với tài khoản nền tảng của mình.
     Optional<PostSchedule> findByIdAndPlatformAccount_User_IdAndDeletedAtIsNull(UUID id, UUID userId);
@@ -36,13 +47,13 @@ public interface PostScheduleRepository extends JpaRepository<PostSchedule, UUID
     boolean existsByContentVersion_ContentItem_IdAndStatusInAndDeletedAtIsNull(
             UUID contentItemId, List<ScheduleStatus> statuses);
 
-    // FR-52: các lịch đến hạn đăng (PostingDispatchJob quét mỗi phút).
-    List<PostSchedule> findByStatusAndScheduledTimeLessThanEqualAndDeletedAtIsNull(
-            ScheduleStatus status, LocalDateTime threshold);
-
     // FR-18b/FR-70: token hết hạn → các lịch SCHEDULED của tài khoản đó chuyển ON_HOLD.
     List<PostSchedule> findByPlatformAccount_IdAndStatusAndDeletedAtIsNull(UUID accountId, ScheduleStatus status);
 
     // FR-81: số lịch đang chờ đăng trên toàn hệ thống (trang System status của admin).
     long countByStatusAndDeletedAtIsNull(ScheduleStatus status);
+
+    // FR-52 + tài khoản chờ xoá: lịch đến hạn, BỎ user đang ở trạng thái loại trừ (PENDING_DELETE).
+    List<PostSchedule> findByStatusAndScheduledTimeLessThanEqualAndDeletedAtIsNullAndPlatformAccount_User_StatusNot(
+            ScheduleStatus status, LocalDateTime threshold, UserStatus excludedUserStatus);
 }

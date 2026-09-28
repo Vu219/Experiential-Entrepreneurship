@@ -38,6 +38,8 @@ import com.aima.repository.RoleRepository;
 import com.aima.repository.UserRepository;
 import com.aima.repository.projection.LifetimeStatsProjection;
 import com.aima.service.ActivityLogService;
+import com.aima.service.AccountPurgeService;
+import com.aima.service.PostScheduleService;
 import com.aima.service.StorageService;
 import com.aima.service.UserService;
 
@@ -68,6 +70,8 @@ public class UserServiceImpl implements UserService {
 
     UserMapper userMapper;
     ActivityLogService activityLogService;
+    AccountPurgeService accountPurgeService;
+    PostScheduleService postScheduleService;
 
     PasswordEncoder passwordEncoder;
     static int PASSWORD_CHANGE_COOLDOWN_DAYS = 7;
@@ -239,6 +243,8 @@ public class UserServiceImpl implements UserService {
         }
 
         String email = user.getEmail();
+        // Ẩn danh payments + dọn FK không cascade + hẹn revoke token Meta sau commit (cùng transaction).
+        accountPurgeService.prepareForHardDelete(userId);
         userRepository.delete(user);
         log.info("[Admin] {} XÓA CỨNG tài khoản {} ({}) + toàn bộ dữ liệu liên quan", adminEmail, userId, email);
         activityLogService.record(ActivityLogService.Entry.byActor(
@@ -551,11 +557,14 @@ public class UserServiceImpl implements UserService {
         user.setDeletionDate(deletionDate);
         user.setDeletionWarningSentAt(null); // yêu cầu mới → reset cờ cảnh báo 7 ngày
         userRepository.save(user);
+        // Dừng đăng bài ngay: lịch chờ → ON_HOLD (dispatcher cũng bỏ qua user PENDING_DELETE).
+        int held = postScheduleService.holdAllForPendingDeletion(user.getId());
 
         DeleteAccountResponse deleteAccountResponse = userMapper.toDeleteAccountResponse(user,
                 ChronoUnit.DAYS.between(now, deletionDate),
                 "Tài khoản sẽ bị xóa vĩnh viễn sau " + ACCOUNT_DELETION_GRACE_DAYS
-                        + " ngày. Bạn có thể khôi phục trước thời hạn này.");
+                        + " ngày. Bạn có thể khôi phục trước thời hạn này."
+                        + (held > 0 ? " " + held + " bài đã lên lịch được tạm giữ và sẽ không được đăng." : ""));
         activityLogService.record(ActivityLogService.Entry.of(
                 ActivityAction.ACCOUNT_DELETE_REQUESTED, user.getId(), user.getEmail()));
         return ApiResponse.success("Yêu cầu xóa tài khoản đã được ghi nhận", deleteAccountResponse);
@@ -573,9 +582,12 @@ public class UserServiceImpl implements UserService {
         user.setDeletionDate(null);
         user.setDeletionWarningSentAt(null); // khôi phục → xoá cờ cảnh báo để lần xóa sau lại cảnh báo
         userRepository.save(user);
+        // Lịch bị tạm giữ lúc yêu cầu xoá KHÔNG tự chạy lại — user chủ động "Kích hoạt lại" trong Lịch đăng.
+        int onHold = postScheduleService.countOnHold(user.getId());
 
         DeleteAccountResponse deleteAccountResponse = userMapper.toDeleteAccountResponse(user, null,
-                "Tài khoản của bạn đã được khôi phục và hoạt động bình thường.");
+                "Tài khoản của bạn đã được khôi phục và hoạt động bình thường."
+                        + (onHold > 0 ? " Có " + onHold + " bài đang tạm giữ — vào Lịch đăng và chọn \"Kích hoạt lại\" để đăng tiếp." : ""));
         activityLogService.record(ActivityLogService.Entry.of(
                 ActivityAction.ACCOUNT_RESTORED, user.getId(), user.getEmail()));
         return ApiResponse.success("Tài khoản đã được khôi phục thành công", deleteAccountResponse);

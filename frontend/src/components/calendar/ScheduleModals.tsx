@@ -68,7 +68,10 @@ export function CreateScheduleModal({ onClose, onCreated }: { onClose: () => voi
           }
         }
         setVersions(formatted);
-        setConnections(conns.filter((c) => c.connectionStatus === 'ACTIVE'));
+        // Facebook chỉ đăng được lên Trang — kết nối USER chỉ là gốc để lấy Trang, không phải kênh đích
+        // (BE cũng chặn: SCHEDULE_TARGET_NOT_PAGE 1943).
+        setConnections(conns.filter((c) => c.connectionStatus === 'ACTIVE'
+          && !(c.platform === 'FACEBOOK' && c.accountType !== 'PAGE')));
       } catch (e) {
         setError((e as Error).message);
       } finally {

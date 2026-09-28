@@ -14,11 +14,16 @@ public record MetaProperties(
         boolean appSecretProofEnabled,
         Webhook webhook
 ) {
+    /**
+     * {@code configId}: Facebook Login for Business configuration — có giá trị thì dialog dùng
+     * {@code config_id} (quyền khai trong cấu hình trên Meta App) thay cho {@code scope}.
+     */
     public record App(
             String appId,
             String appSecret,
             String redirectUri,
-            String scopes
+            String scopes,
+            String configId
     ) {
     }
 

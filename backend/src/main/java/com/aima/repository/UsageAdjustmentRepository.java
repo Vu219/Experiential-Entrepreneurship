@@ -1,5 +1,6 @@
 package com.aima.repository;
 
+import org.springframework.data.jpa.repository.Modifying;
 import com.aima.entity.UsageAdjustment;
 import com.aima.enums.UsageAdjustmentType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -99,4 +100,9 @@ public interface UsageAdjustmentRepository extends JpaRepository<UsageAdjustment
 
         Long getGranted();
     }
+
+    // Xoá cứng tài khoản (admin): điều chỉnh của user KHÁC vẫn giữ, bỏ FK tới admin thao tác.
+    @Modifying(flushAutomatically = true)
+    @Query("update UsageAdjustment a set a.actor = null where a.actor.id = :userId")
+    int clearActor(@Param("userId") UUID userId);
 }

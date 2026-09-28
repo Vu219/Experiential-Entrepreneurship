@@ -45,6 +45,10 @@ const AdminAiUsage = lazy(() => import("./pages/admin/AiUsage"));
 const GoogleCallbackPage = lazy(() => import("./pages/GoogleCallbackPage"));
 const CompleteProfilePage = lazy(() => import("./pages/CompleteProfilePage"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+// Trang pháp lý công khai (Meta App Review yêu cầu URL Privacy/Terms/Data deletion không cần đăng nhập).
+const PrivacyPage = lazy(() => import("./pages/legal/PrivacyPage"));
+const TermsPage = lazy(() => import("./pages/legal/TermsPage"));
+const DataDeletionPage = lazy(() => import("./pages/legal/DataDeletionPage"));
 
 // Fallback khi chunk trang đang tải — dùng .loader sẵn có (index.css), căn giữa viewport.
 function PageLoader() {
@@ -147,6 +151,9 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/data-deletion" element={<DataDeletionPage />} />
         <Route path="/login" element={<GuestRoute><Auth /></GuestRoute>} />
         <Route path="/register" element={<GuestRoute><Auth /></GuestRoute>} />
         <Route path="/logout" element={<Auth />} />

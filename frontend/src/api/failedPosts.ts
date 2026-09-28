@@ -4,7 +4,7 @@ import type { Platform } from "./brandProfile";
 // Trang "Bài lỗi & cần xử lý" (FR-35..FR-39) — trung tâm hồi phục bài của CHÍNH user.
 // Backend FailedPostController (/me/failed-posts). Khác admin (FR-82/83/84) và NotificationBell.
 
-export type PublishErrorType = "TEMPORARY" | "PERMANENT" | "POLICY_VIOLATION";
+export type PublishErrorType = "TEMPORARY" | "PERMANENT" | "POLICY_VIOLATION" | "INTERNAL";
 
 /** 3 tab: Tất cả / Vi phạm chính sách / Lỗi kỹ thuật (cách xử lý khác nhau). */
 export type FailedPostFilter = "ALL" | "POLICY" | "TECHNICAL";

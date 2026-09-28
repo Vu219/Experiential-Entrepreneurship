@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,7 @@ public class ApiVersionCheckJob {
     PlatformVersionService versionService;
 
     @Scheduled(cron = "0 0 3 * * MON")
+    @SchedulerLock(name = "api-version-check", lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
     public void run() {
         try {
             log.info("[ApiVersionCheck] Bắt đầu kiểm tra version API hàng tuần...");

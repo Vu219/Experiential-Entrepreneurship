@@ -11,18 +11,23 @@ import com.aima.entity.ContentItem;
 import com.aima.entity.ContentVersion;
 import com.aima.entity.PlatformAccount;
 import com.aima.entity.PostSchedule;
+import com.aima.entity.PostingJob;
 import com.aima.entity.User;
 import com.aima.enums.ActivityAction;
 import com.aima.enums.ConnectionStatus;
 import com.aima.enums.ContentLifecycle;
 import com.aima.enums.Platform;
+import com.aima.enums.PlatformAccountType;
+import com.aima.enums.PostingJobStatus;
 import com.aima.enums.ScheduleStatus;
+import com.aima.enums.UserStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.mapper.PostScheduleMapper;
 import com.aima.repository.ContentVersionRepository;
 import com.aima.repository.PlatformAccountRepository;
 import com.aima.repository.PostScheduleRepository;
+import com.aima.repository.PostingJobRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.ActivityLogService;
 import com.aima.service.AiServiceClient;
@@ -36,6 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +63,8 @@ public class PostScheduleServiceImpl implements PostScheduleService {
     ActivityLogService activityLogService;
 
     // FR-50: chỉ dời lịch khi chưa vào pipeline đăng (SCHEDULED) hoặc đang bị giữ (ON_HOLD, FR-18b).
+    static final String PENDING_DELETE_JOB_STOP_REASON = "Tạm dừng: tài khoản đang chờ xóa";
+
     static final Set<ScheduleStatus> EDITABLE_STATUSES =
             EnumSet.of(ScheduleStatus.SCHEDULED, ScheduleStatus.ON_HOLD);
 
@@ -77,12 +85,14 @@ public class PostScheduleServiceImpl implements PostScheduleService {
     PlatformAccountRepository platformAccountRepository;
     UserRepository userRepository;
     PostScheduleMapper postScheduleMapper;
+    PostingJobRepository postingJobRepository;
     AiServiceClient aiServiceClient;
 
     @Override
     @Transactional
     public ApiResponse<PostScheduleResponse> create(String email, PostScheduleRequest request) {
         User user = currentUser(email);
+        requireNotPendingDelete(user);
 
         ContentVersion version = contentVersionRepository
                 .findByIdAndContentItem_BrandProfile_User_IdAndDeletedAtIsNull(request.getContentVersionId(), user.getId())
@@ -100,6 +110,10 @@ public class PostScheduleServiceImpl implements PostScheduleService {
         }
         if (account.getPlatformName() != version.getPlatformName()) {
             throw new AppException(ErrorCode.SCHEDULE_PLATFORM_MISMATCH);
+        }
+        // Graph API không cho đăng lên trang cá nhân — kết nối Facebook USER chỉ là gốc để lấy Trang.
+        if (account.getPlatformName() == Platform.FACEBOOK && account.getAccountType() != PlatformAccountType.PAGE) {
+            throw new AppException(ErrorCode.SCHEDULE_TARGET_NOT_PAGE);
         }
 
         // 1-1 version↔schedule (cột content_version_id unique): lịch CANCELLED được tái sử dụng
@@ -130,6 +144,47 @@ public class PostScheduleServiceImpl implements PostScheduleService {
     }
 
     @Override
+    @Transactional
+    public int holdAllForPendingDeletion(UUID userId) {
+        List<PostSchedule> waiting = postScheduleRepository
+                .findByPlatformAccount_User_IdAndStatusAndDeletedAtIsNullOrderByScheduledTimeAsc(userId, ScheduleStatus.SCHEDULED);
+        waiting.forEach(s -> s.setStatus(ScheduleStatus.ON_HOLD));
+        int held = waiting.size();
+
+        // Bài đang giữa chu kỳ đăng (job PENDING chờ chạy / RETRYING chờ thử lại): dừng job, đưa lịch
+        // về ON_HOLD như lịch chờ thường — user kích hoạt lại thì dispatcher mở chu kỳ đăng mới.
+        LocalDateTime now = LocalDateTime.now();
+        for (PostingJob job : postingJobRepository.findInFlightByUser(userId,
+                List.of(PostingJobStatus.PENDING, PostingJobStatus.RETRYING))) {
+            job.setStatus(PostingJobStatus.FAILED);
+            job.setEndTime(now);
+            job.setErrorMessage(PENDING_DELETE_JOB_STOP_REASON);
+            PostSchedule schedule = job.getPost().getSchedule();
+            if (schedule.getStatus() == ScheduleStatus.POSTING) {
+                schedule.setStatus(ScheduleStatus.ON_HOLD);
+                schedule.getContentVersion().setStatus(ContentLifecycle.SCHEDULED);
+                schedule.getContentVersion().getContentItem().setStatus(ContentLifecycle.SCHEDULED);
+                held++;
+            }
+        }
+        return held;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countOnHold(UUID userId) {
+        return postScheduleRepository
+                .findByPlatformAccount_User_IdAndStatusAndDeletedAtIsNullOrderByScheduledTimeAsc(userId, ScheduleStatus.ON_HOLD)
+                .size();
+    }
+
+    private static void requireNotPendingDelete(User user) {
+        if (user.getStatus() == UserStatus.PENDING_DELETE) {
+            throw new AppException(ErrorCode.SCHEDULING_BLOCKED_PENDING_DELETE);
+        }
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public ApiResponse<List<PostScheduleResponse>> list(String email, ScheduleStatus status, Platform platform) {
         User user = currentUser(email);
@@ -150,6 +205,8 @@ public class PostScheduleServiceImpl implements PostScheduleService {
     @Transactional
     public ApiResponse<PostScheduleResponse> update(String email, UUID scheduleId, PostScheduleUpdateRequest request) {
         PostSchedule schedule = ownedSchedule(email, scheduleId);
+        // Tài khoản chờ xoá: không kích hoạt lại / dời lịch — khôi phục tài khoản trước.
+        requireNotPendingDelete(schedule.getPlatformAccount().getUser());
         if (!EDITABLE_STATUSES.contains(schedule.getStatus())) {
             throw new AppException(ErrorCode.SCHEDULE_NOT_EDITABLE);
         }

@@ -80,10 +80,10 @@ export default function TransactionsTable({
               <td style={{ ...td, fontWeight: 700, color: '#6b5ca8', fontSize: 12.5 }}>{r.code}</td>
               <td style={td}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Avatar url={r.userAvatarUrl} initials={initialsOf(r.userName)} gradient={brandGradient} />
+                  <Avatar url={r.userAvatarUrl} initials={initialsOf(r.userName ?? '?')} gradient={brandGradient} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 600 }}>{r.userName}</div>
-                    <div style={{ fontSize: 12, color: '#a59fbb' }}>{r.userEmail}</div>
+                    <div style={{ fontWeight: 600, color: r.userName ? undefined : '#8a85a0' }}>{r.userName ?? t.payDeletedAccount}</div>
+                    {r.userEmail && <div style={{ fontSize: 12, color: '#a59fbb' }}>{r.userEmail}</div>}
                   </div>
                 </div>
               </td>

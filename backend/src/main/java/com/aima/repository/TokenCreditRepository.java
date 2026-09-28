@@ -44,4 +44,9 @@ public interface TokenCreditRepository extends JpaRepository<TokenCredit, UUID> 
               and c.tokensConsumed + :amount <= c.tokensGranted
             """)
     int consumeAtomically(@Param("id") UUID id, @Param("amount") long amount, @Param("now") LocalDateTime now);
+
+    // Xoá cứng tài khoản: credit là số dư của CHÍNH user đó — không còn chủ thì không còn nghĩa.
+    @Modifying(flushAutomatically = true)
+    @Query("delete from TokenCredit c where c.user.id = :userId")
+    int deleteByUserId(@Param("userId") UUID userId);
 }

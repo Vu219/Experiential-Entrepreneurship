@@ -480,7 +480,9 @@ A raw `JwtException` not wrapped in an `AuthenticationException` still falls thr
 - **Token/OTP state:** none needed — Redis TTL expires `blacklist:{jti}`, `rt:{jti}` and OTP keys automatically.
 - **Account deletion:** `AccountDeletionScheduler` (`@EnableScheduling` on `AimaApplication`) runs daily at `00:00`
   (`@Scheduled(cron = "0 0 0 * * *")`) and **hard-deletes** users whose `status == PENDING_DELETE` and `deletionDate <= now`
-  (GDPR account deletion is the documented exception to soft-delete). Cascade on `User.brandProfiles` purges dependent rows.
+  (GDPR account deletion is the documented exception to soft-delete) — **one transaction per user** (`AccountPurgeService.prepareForHardDelete`
+  + delete), so a blocked user is skipped instead of rolling back the batch. Tests calling it directly must bypass the ShedLock proxy
+  (`AopTestUtils.getTargetObject`) — `lockAtLeastFor` silently skips a second call within a minute.
 
 ### In-app change password (authenticated, 2 endpoints)
 `POST /users/me/change-password/init` — verify current password + 7-day cool-down → email a 6-digit OTP (reuses `OtpService`).
@@ -488,8 +490,9 @@ A raw `JwtException` not wrapped in an `AuthenticationException` still falls thr
 The session is **not** revoked (unlike forgot-password reset). The FE verifies the OTP at an intermediate step by reusing public `POST /users/verify-otp` before submitting the new password.
 
 ### Account deletion (30-day grace)
-`POST /users/me/deactivate-request` — set `status = PENDING_DELETE`, `deletionDate = now + 30 days`; rejects if already pending or LOCKED.
-`POST /users/me/restore` — within the window, set `status = ACTIVE`, clear `deletionDate`; rejects if not pending.
+`POST /users/me/deactivate-request` — set `status = PENDING_DELETE`, `deletionDate = now + 30 days`; rejects if already pending or LOCKED. **Stops publishing immediately**: `PostScheduleService.holdAllForPendingDeletion` moves SCHEDULED schedules to `ON_HOLD` and stops in-flight PENDING/RETRYING posting jobs (their POSTING schedules → `ON_HOLD`); `PostingDispatchJob` queries also exclude `PENDING_DELETE` users; creating/updating schedules is rejected (`SCHEDULING_BLOCKED_PENDING_DELETE` 1942).
+`POST /users/me/restore` — within the window, set `status = ACTIVE`, clear `deletionDate`; rejects if not pending. Held schedules are **not** re-enabled automatically — the message tells the user how many are on hold; they "Kích hoạt lại" (PUT `/schedules/{id}`) themselves.
+**Hard delete** (purge + admin `DELETE /users/{id}`) MUST call `AccountPurgeService.prepareForHardDelete(userId)` in the same transaction before deleting the user: `payments`, `token_credits`, `ai_usage` and the admin "actor" FKs reference `users` **without** cascade, so a bare delete violates FKs. Payments are **anonymized** (`user_id` NULL — column made nullable by `PaymentDataInitializer` — and `raw_payload` cleared), token credits deleted, ai_usage detached (IP/UA cleared), actor FKs nulled, Meta tokens revoked after commit. A user with a PENDING payment cannot be hard-deleted (`USER_HAS_PENDING_PAYMENT` 2099; purge skips and retries next night). Any query that joins `Payment.user` must be a LEFT join or anonymized orders disappear.
 A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can restore.
 
 ### File / avatar storage (Supabase Storage)
@@ -506,7 +509,7 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 > `config/MetaWebClientConfig` (`metaWebClient` `WebClient` bean) + `config/AimaProperties`.
 
 **Components**
-- `MetaApiClient` / `MetaApiClientImpl` — the **only** wrapper around Meta HTTP (Graph + Threads), sync `.block()` (MVC app): token exchange, `getMe`, `getMyAccounts` (Pages), `getInstagramBusinessAccount`, `revokeToken`, `generateAppSecretProof`. Every log line **masks** tokens/secrets (`mask()`, NFR-06). API version is resolved per call from `PlatformVersionService` — **never hardcoded**.
+- `MetaApiClient` / `MetaApiClientImpl` — the **only** wrapper around Meta HTTP (Graph + Threads), sync `.block()` (MVC app): token exchange, `getMe`, `getMyAccounts` (Pages), `getInstagramBusinessAccount`, `revokeToken`, `generateAppSecretProof`. Every log line **masks** tokens/secrets (`mask()`, NFR-06). API version is resolved per call from `PlatformVersionService` — **never hardcoded**. URLs are built with `UriComponentsBuilder…toUriString()` (encoded once) and MUST reach WebClient through `encodedUri(url)` (a `URI`) — **never** `webClient…uri(String)`: that overload treats the string as a URI template and encodes it again (`{`→`%7B`→`%257B` → Graph code 2500 on nested fields like `instagram_business_account{…}`). Response bodies are read as `String` then parsed with the Jackson 2 `ObjectMapper` — WebClient's codecs are Jackson 3 and cannot decode `com.fasterxml…JsonNode`.
 - `MetaOAuthService` / `MetaOAuthServiceImpl` (`@Transactional`) — orchestrates the OAuth dance + persists `PlatformAccount`s: `buildAuthorizationUrl`, `handleCallback`, `validate`, `refresh`, `disconnect`.
 - `PlatformConnectionService` / `Impl` — the `ApiResponse<T>`-returning layer behind the thin controller (rule #22); scopes everything to the current user by email.
 - `PlatformConnectionMapper` (MapStruct) → `PlatformConnectionResponse` — **never** carries access/refresh tokens (SEC-03).
@@ -520,11 +523,18 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 | GET | `/connections/stats` | Totals: total / active / expired / error |
 | POST | `/connections/{id}/validate` | Ping `/me` → ACTIVE / REVOKED |
 | POST | `/connections/{id}/refresh` | Renew long-lived token (Page tokens just re-validate) |
-| DELETE | `/connections/{id}` | Revoke (root connection only) + soft-delete cascade to child Page/IG |
+| DELETE | `/connections/{id}` | Revoke (root connection only; **best-effort, after commit**, 5 s timeout `MetaApiClientImpl.REVOKE_TIMEOUT`, skipped when the connection is EXPIRED/REVOKED or `token_expired_at` has passed — a Meta error never fails the disconnect) + soft-delete cascade to child Page/IG; the subtree's SCHEDULED schedules → `ON_HOLD` (+ notification); access/refresh tokens are **wiped** from the soft-deleted rows |
+
+**Meta App Review callbacks** (`MetaDataDeletionController` → `MetaDataDeletionService`/`Impl`, all **public**, verified by `signed_request` = HMAC-SHA256 with the Facebook app secret, constant-time compare — `util/MetaSignedRequest`; invalid → `INVALID_SIGNED_REQUEST` 1833):
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/meta/data-deletion` | Form `signed_request`. `MetaOAuthService.deleteFacebookUserData(user_id)`: every root FB connection with that `platform_account_id` (any AIMA user) + Page/IG children → soft delete + token wipe, SCHEDULED → ON_HOLD. Saves `MetaDataDeletionRequest` (code + counts only — the Meta user id is deliberately **not** stored) and returns `{"url": "{app.frontend.base-url}/data-deletion?code=…", "confirmation_code": "…"}` (rule #3 exception (c)). DB only — no Meta call (the user already removed the app) |
+| GET | `/meta/data-deletion/{confirmationCode}` | Status for the public FE page `/data-deletion?code=` (`DATA_DELETION_REQUEST_NOT_FOUND` 1834) |
+| POST | `/meta/deauthorize` | Form `signed_request`. `revokeFacebookUser`: subtree → `REVOKED` (rows kept so a reconnect upserts them back to ACTIVE), SCHEDULED → ON_HOLD |
 
 **OAuth flow (Facebook/Instagram)**
-1. `authorize` → store `oauth_state:{state}` = `"{userId}|{platform}"` in Redis (TTL `aima.oauth.state-ttl-minutes`), return the FB `dialog/oauth` URL.
-2. Callback → validate+consume the Redis `state` (`INVALID_OAUTH_STATE` if missing) → `exchangeCodeForToken` → `getLongLivedUserToken` → `getMe`.
+1. `authorize` → store `oauth_state:{state}` = `"{userId}|{platform}"` in Redis (TTL `aima.oauth.state-ttl-minutes`), return the FB `dialog/oauth` URL. **Facebook Login for Business**: when `meta.facebook.config-id` (`META_FACEBOOK_CONFIG_ID`) is set the dialog sends `config_id` and **no** `scope`; empty → fallback to `scope` = `META_FACEBOOK_SCOPES`.
+2. Callback → validate+consume the Redis `state` (`INVALID_OAUTH_STATE` if missing) → `exchangeCodeForToken` → `getLongLivedUserToken` → **`getGrantedPermissions`** (`GET /me/permissions`, `status=granted` only) → `getMe`. Missing `pages_show_list` or `pages_manage_posts` (`MetaOAuthServiceImpl.REQUIRED_FACEBOOK_PERMISSIONS`) → `META_MISSING_PERMISSIONS` (1828), **nothing is saved**, and `PlatformConnectionServiceImpl` redirects to `FE_OAUTH_ERROR_URL` with `error=missing_permissions`. The `scopes` column stores the **granted** permissions, not the configured scope list.
 3. Upsert a **USER**-level `PlatformAccount`; then per FB **Page** (`getMyAccounts`) upsert a `PAGE` connection (child via `parentConnection`), and for each Page with a linked IG Business account upsert an **INSTAGRAM** `BUSINESS_ACCOUNT` connection (child of the Page). Instagram is discovered **through the Page** — there is no separate IG dialog.
 4. **Threads** uses its own `threads.net/oauth/authorize` dialog + `th_exchange_token` long-lived exchange → one `PERSONAL` connection.
 
@@ -534,12 +544,14 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 
 **Schedulers** (`scheduler/`, `@Scheduled`; all resilient — a per-item failure is logged, never crashes the job):
 - `TokenHealthCheckJob` — daily 02:00: refresh long-lived tokens expiring within 7 days; on failure → `EXPIRED` (FR-18a/b).
-- `TokenValidationJob` — every 6h: ping `/me` on a ~10% random sample of ACTIVE connections; platform rejection → `REVOKED`.
+- `TokenValidationJob` — every 6h: ping `/me` on a ~10% random sample of ACTIVE connections. `MetaOAuthServiceImpl.validate` sets `REVOKED` **only** on Graph code 190 (`MetaApiClientImpl` maps it to `META_TOKEN_INVALID` 1829); network errors / 5xx / rate limits keep the status and throw `CONNECTION_VALIDATION_FAILED` 1827.
+- **Account hard delete** (`AccountDeletionScheduler` purge + admin `UserServiceImpl.deleteUser`) calls `MetaOAuthService.revokeAllForUserAfterCommit(userId)`: root tokens are read before the delete and revoked on Meta in `afterCommit` (no HTTP inside the transaction; rollback → no revoke).
+- **All `@Scheduled` methods carry `@SchedulerLock`** (ShedLock 7, `config/SchedulerLockConfig`: table `shedlock` created at bean init, `usingDbTime`). A new scheduled job MUST get its own unique lock name, or it will run on every instance.
 - `ApiVersionCheckJob` — Mondays 03:00: refresh `latestVersion` from Meta's Graph changelog (jsoup).
 
 **Platform API version (admin-managed, not hardcoded)** — `PlatformVersionService` returns the current `vXX.Y` per platform from the `platform_api_versions` table (seeded FB/IG `v25.0`, Threads `v1.0` by `PlatformDataInitializer`), via a manual 5-min in-process cache (no cache manager) evicted on admin update. Admin endpoints under `/admin/api-versions` (`PlatformVersionAdminController`, `@PreAuthorize("hasRole('ADMIN')")`): list / `{platform}/history` / update (applies immediately) / check-now. Every `MetaApiClient` call resolves its version through this service.
 
-**Enums** — `Platform` (FACEBOOK/INSTAGRAM/THREADS), `PlatformAccountType` (USER/PAGE/BUSINESS_ACCOUNT/PERSONAL), `TokenType` (USER_TOKEN/PAGE_TOKEN/LONG_LIVED_USER_TOKEN; Page tokens don't expire → `tokenExpiredAt = null`), `ConnectionStatus` (ACTIVE/REVOKED/EXPIRED/ERROR/PENDING/ON_HOLD + legacy CONNECTED/DISCONNECTED — **do not rename**, rule #1). **ErrorCodes** 1820–1827 (connection) + 1830–1832 (version).
+**Enums** — `Platform` (FACEBOOK/INSTAGRAM/THREADS), `PlatformAccountType` (USER/PAGE/BUSINESS_ACCOUNT/PERSONAL), `TokenType` (USER_TOKEN/PAGE_TOKEN/LONG_LIVED_USER_TOKEN; Page tokens don't expire → `tokenExpiredAt = null`), `ConnectionStatus` (ACTIVE/REVOKED/EXPIRED/ERROR/PENDING/ON_HOLD + legacy CONNECTED/DISCONNECTED — **do not rename**, rule #1). **ErrorCodes** 1820–1829 (connection; 1828 `META_MISSING_PERMISSIONS`, 1829 `META_TOKEN_INVALID`) + 1830–1832 (version) + 1833–1834 (Meta callbacks: `INVALID_SIGNED_REQUEST`, `DATA_DELETION_REQUEST_NOT_FOUND`).
 
 ### Social-account avatars (Meta connections)
 > Distinct from the **user** avatar above (Supabase). This is `PlatformAccount.avatarUrl` for each connected
@@ -655,9 +667,15 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 > (`@Async("postPublishExecutor")`). Cùng tick còn: chạy các retry đến hạn và "vớt" job PENDING > 5 phút
 > (mất dispatch do crash). Mỗi item lỗi chỉ log + bỏ qua (resilient, rule #27).
 
-**Adapter đăng bài (NFR-09)** — `PlatformPublisher` (interface `service/`): `platform()` + `publish(account, version)`;
+**Adapter đăng bài (NFR-09)** — `PlatformPublisher` (interface `service/`): `platform()` + `publish(PublishTarget)`;
 worker giữ `Map<Platform, PlatformPublisher>` bơm từ `List<PlatformPublisher>` — thêm nền tảng = thêm bean, không sửa worker.
-- `FacebookPublisherImpl` — chỉ account type **PAGE** (Graph không cho đăng feed cá nhân) → `MetaApiClient.publishPagePost` (`POST /{v}/{page-id}/feed`, form body, page token).
+`PublishTarget` (`dto/publish/`, record bất biến: jobId/postId/platform/accountId/accountType/platformAccountId/accountName/
+accessToken đã giải mã/message; `toString` không in token) được chụp trong transaction **read-only** từ
+`PostingJobRepository.findForPublish` (JOIN FETCH post→schedule→platformAccount+contentVersion) qua
+`PostPublishMapper.toPublishTarget`. ⚠️ **Không bao giờ đưa entity ra khỏi transaction của worker** — trước 2026-09-28 worker trả
+proxy lazy `PlatformAccount` ra ngoài `TransactionTemplate`, publisher chạm vào là `LazyInitializationException` → luồng đăng
+chưa từng chạy được. Test chặn hồi quy: `PostPublishWorkerIntegrationTest` (KHÔNG `@Transactional` trên class — nó che lỗi lazy).
+- `FacebookPublisherImpl` — chỉ account type **PAGE** (Graph không cho đăng feed cá nhân; kênh USER → PERMANENT `ACCOUNT_TYPE`, không gọi Meta; tạo lịch vào USER bị chặn `SCHEDULE_TARGET_NOT_PAGE` 1943) → `MetaApiClient.publishPagePost` (`POST /{v}/{page-id}/feed`, form body, page token).
 - `ThreadsPublisherImpl` — `MetaApiClient.publishThreadsPost`: container `media_type=TEXT` → `threads_publish`.
 - `InstagramPublisherImpl` — **luôn** ném lỗi PERMANENT `IG_MEDIA_REQUIRED`: IG Content Publishing API bắt buộc image/video, MVP chỉ sinh media prompt (FR-29). Đây là hành vi đúng, không phải stub tạm.
 - Nội dung bài = `buildMessage(version)` (default method): formattedCaption + "\n\n" + hashtags CSV→"#a #b".
@@ -665,7 +683,13 @@ worker giữ `Map<Platform, PlatformPublisher>` bơm từ `List<PlatformPublishe
 **Phân loại lỗi (FR-37)** — publish dùng `postFormForPublish` trong `MetaApiClientImpl`: KHÔNG gộp thành `META_API_ERROR`
 mà parse body `{"error":{code,message,...}}` và ném **`PublishException`** (`exception/`, KHÔNG dùng cho luồng HTTP) mang
 `PublishErrorType` + mã lỗi **gốc** (FR-35): policy (code 368 / message chứa "policy") > tạm thời (5xx, network, rate-limit
-1/2/4/17/32/341/613) > còn lại PERMANENT (190 token, 100 tham số, 200-299 quyền). Lỗi network không có response → TEMPORARY.
+1/2/4/17/32/341/613) > còn lại PERMANENT (190 token, 100 tham số, 200-299 quyền). Lỗi network không có response
+(`WebClientRequestException`: connect/response timeout, reset) → TEMPORARY. Mọi exception KHÔNG đến từ nền tảng (lazy proxy,
+NPE, giải mã token, body 200 không phải JSON...) → worker ghi **`INTERNAL`** (mã `INTERNAL`, giữ cause, log ERROR đủ stacktrace,
+**không retry**, notification "lỗi hệ thống" không lộ chuỗi kỹ thuật). Worker bọc toàn bộ `process` — lỗi ghi kết quả chỉ log ERROR,
+job còn kẹt thì `recoverStuck` vớt; `AsyncConfig` có `AsyncUncaughtExceptionHandler` làm lưới cuối.
+
+**Chống đăng trùng khi nhiều instance** — `PostingDispatchJob.createPostAndJob` claim lịch bằng `PostScheduleRepository.claimForPosting` (UPDATE có điều kiện `SCHEDULED → POSTING`, 0 row = instance khác đã nhận → bỏ qua) TRƯỚC khi tạo Post/Job; cộng ShedLock trên chính job quét. Job kẹt `RUNNING` > 10 phút (worker chết giữa chừng) được vớt mỗi tick: `PostPublishWorkerService.recoverStuck` nhả có điều kiện (`PostingJobRepository.releaseStuck`) rồi ghi lỗi TẠM THỜI `STUCK_RUNNING` → retry theo FR-56 (đánh đổi: nếu Meta đã nhận bài trước khi worker chết thì lần retry có thể đăng lặp). Meta WebClient có timeout connect/response (`meta.connect-timeout-seconds`/`response-timeout-seconds`, mặc định 5/30s) nên job sống không kẹt tới mức này.
 
 **Worker & state machine (FR-55)** — claim **nguyên tử** qua `PostingJobRepository.claim` (`UPDATE ... SET RUNNING WHERE status IN
 (PENDING, RETRYING)`, đổi được 0 row = worker khác đã nhận — chống double-publish). Tx1: claim + cả pipeline (schedule/post/version/item)
@@ -881,8 +905,9 @@ Health:       {CONTEXT_PATH}/actuator/health
 **Frontend integration.** The frontend has **no dev proxy** — it calls this backend **directly** using
 the absolute base URL from its own `VITE_API_BASE_URL` env var (e.g. `http://localhost:8082/api/aima`;
 see `frontend/.env`). Cross-origin requests work because `SecurityConfig.corsConfigurationSource()`
-allows `http://localhost:*` (+ `*.vercel.app` etc.) **with credentials**, so the HttpOnly auth cookies
-flow in dev. When the API host/port/context-path changes, update the frontend's `VITE_API_BASE_URL`
+allows the patterns in `app.cors.allowed-origins` (env `CORS_ALLOWED_ORIGINS`; dev default `http://localhost:*`
++ ngrok/vercel/…, profile `production` only `aima-marketing.id.vn` + subdomains) **with credentials**, so the
+HttpOnly auth cookies flow. When the API host/port/context-path changes, update the frontend's `VITE_API_BASE_URL`
 (and add the deployed FE origin to the CORS allow-list if it isn't already matched).
 
 **Required `.env` variables** (see `.env.example`):
@@ -903,6 +928,10 @@ AI_SERVICE_BASE_URL (http://localhost:8000), AI_SERVICE_TIMEOUT_SECONDS (60)   #
 # Optional overrides (have defaults in application.yml):
 META_GRAPH_BASE_URL (https://graph.facebook.com), META_THREADS_BASE_URL (https://graph.threads.net)
 META_APP_SECRET_PROOF_ENABLED (false; set true in prod)
+META_FACEBOOK_CONFIG_ID (empty → scope fallback)       # Facebook Login for Business configuration id
+META_WEBHOOK_VERIFY_TOKEN, META_CONNECT_TIMEOUT_SECONDS (5), META_RESPONSE_TIMEOUT_SECONDS (30)
+SPRING_PROFILES_ACTIVE=production                      # prod: application-production.yml — Swagger/api-docs OFF, CORS = official domain only
+CORS_ALLOWED_ORIGINS                                   # comma-separated origin patterns; default per profile (app.cors.allowed-origins)
 OAUTH_STATE_TTL_MINUTES (10), FE_OAUTH_SUCCESS_URL, FE_OAUTH_ERROR_URL   # social-connection OAuth state TTL + FE redirect targets
 SUPABASE_ANON_KEY                     # kept for reference; not used by the backend
 JWT_ACCESS_TOKEN_EXPIRATION (3600s), JWT_REFRESH_TOKEN_EXPIRATION (604800s)
@@ -931,7 +960,7 @@ AUTH_COOKIE_NAME (refresh_token), AUTH_COOKIE_SECURE (false), AUTH_COOKIE_SAME_S
 
 2. **ErrorCode enum keys are validation message keys.** Every `@NotBlank(message="KEY")` maps directly to `ErrorCode.KEY`. Adding a new validation requires a matching `ErrorCode` entry. **The numeric `code` of each `ErrorCode` MUST be unique** — the FE distinguishes errors by `code`, so never reuse the same int across two constants (e.g. don't let a brand-profile and a file error both be `1700`).
 
-3. **Always use `ApiResponse<T>` as the return type** for every controller method. Never return raw types or `ResponseEntity` directly. *Two documented exceptions:* (a) `PlatformConnectionController.callback` returns `ResponseEntity<Void>` because it must 302-redirect the browser back to the FE (see §4 "Social Media Connection"); (b) `PayOSWebhookController.receive` returns `ResponseEntity<Object>` so the ack body payOS receives lives in the single constant `WEBHOOK_ACK` and can be switched to a bare `{"success": true}` in one line if payOS's `/confirm-webhook` rejects the envelope at go-live (the expected body is not documented by payOS). Do not add further exceptions. `ApiResponse` here means **only** our `com.aima.dto.response.ApiResponse` — never the Swagger annotation `io.swagger.v3.oas.annotations.responses.ApiResponse` (see the Swagger convention in §3). Import our `ApiResponse` directly so the return type is plain `ApiResponse<T>`, not a fully-qualified name.
+3. **Always use `ApiResponse<T>` as the return type** for every controller method. Never return raw types or `ResponseEntity` directly. *Two documented exceptions:* (a) `PlatformConnectionController.callback` returns `ResponseEntity<Void>` because it must 302-redirect the browser back to the FE (see §4 "Social Media Connection"); (b) `PayOSWebhookController.receive` returns `ResponseEntity<Object>` so the ack body payOS receives lives in the single constant `WEBHOOK_ACK` and can be switched to a bare `{"success": true}` in one line if payOS's `/confirm-webhook` rejects the envelope at go-live (the expected body is not documented by payOS); (c) `MetaDataDeletionController.requestDeletion` returns `MetaDataDeletionCallbackResponse` directly because Meta's Data Deletion Callback reads `url` + `confirmation_code` at the **top level** of the body — an envelope hides them and Meta treats the callback as failed. Do not add further exceptions. `ApiResponse` here means **only** our `com.aima.dto.response.ApiResponse` — never the Swagger annotation `io.swagger.v3.oas.annotations.responses.ApiResponse` (see the Swagger convention in §3). Import our `ApiResponse` directly so the return type is plain `ApiResponse<T>`, not a fully-qualified name.
 
 4. **`@JsonInclude(NON_NULL)` on `ApiResponse` is intentional.** Do not remove it; absent fields must be omitted from JSON output.
 

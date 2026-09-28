@@ -8,6 +8,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -29,6 +30,7 @@ public class TokenValidationJob {
     MetaOAuthService metaOAuthService;
 
     @Scheduled(cron = "0 0 */6 * * *")
+    @SchedulerLock(name = "token-validation", lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
     public void run() {
         List<PlatformAccount> active = new ArrayList<>(
                 accountRepository.findByConnectionStatusAndDeletedAtIsNull(ConnectionStatus.ACTIVE));
@@ -42,7 +44,7 @@ public class TokenValidationJob {
         log.info("[TokenValidation] Kiểm tra mẫu {}/{} kết nối ACTIVE.", sample.size(), active.size());
         for (PlatformAccount account : sample) {
             try {
-                metaOAuthService.validate(account);
+                metaOAuthService.validate(account.getId());
             } catch (Exception e) {
                 log.warn("[TokenValidation] Validate {} lỗi: {}", account.getId(), e.getMessage());
             }

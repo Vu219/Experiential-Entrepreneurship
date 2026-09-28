@@ -17,6 +17,7 @@ export default function LandingFooter() {
   const stacked = isMobile || isTablet;
   const { footer } = useLandingContent();
   const linkStyle = { cursor: 'pointer', fontSize: 14, color: '#6b6680', textDecoration: 'none' } as const;
+  const legalLinkStyle = { fontSize: 13, color: '#8a85a0', textDecoration: 'none' } as const;
 
   // Đăng ký nhận tin — chỉ xác nhận phía FE, chưa có endpoint newsletter.
   const [nlEmail, setNlEmail] = useState('');
@@ -109,8 +110,9 @@ export default function LandingFooter() {
             <span style={{ fontSize: 13, color: '#8a85a0' }}>{t.ftRights}</span>
           </div>
           <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <span className="link-underline" style={{ cursor: 'pointer', fontSize: 13, color: '#8a85a0' }}>{t.ftTerms}</span>
-            <span className="link-underline" style={{ cursor: 'pointer', fontSize: 13, color: '#8a85a0' }}>{t.ftPrivacy}</span>
+            <LandingLink href="/terms" className="link-underline" style={legalLinkStyle}>{t.ftTerms}</LandingLink>
+            <LandingLink href="/privacy" className="link-underline" style={legalLinkStyle}>{t.ftPrivacy}</LandingLink>
+            <LandingLink href="/data-deletion" className="link-underline" style={legalLinkStyle}>{t.ftDataDeletion}</LandingLink>
             <span className="link-underline" style={{ cursor: 'pointer', fontSize: 13, color: '#8a85a0' }}>{t.ftCookie}</span>
           </div>
         </div>

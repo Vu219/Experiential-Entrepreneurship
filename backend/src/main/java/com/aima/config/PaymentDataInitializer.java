@@ -7,6 +7,7 @@ import com.aima.enums.PaymentMethod;
 import com.aima.enums.PaymentOrderType;
 import com.aima.enums.PaymentStatus;
 import com.aima.enums.PlanSource;
+import com.aima.enums.PublishErrorType;
 import com.aima.enums.SubscriptionStatus;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -64,7 +65,9 @@ public class PaymentDataInitializer implements CommandLineRunner {
             // PAYMENT_* / SUBSCRIPTION_ADJUSTED (audit), PAYMENT_SUCCEEDED / PLAN_EXPIRED /
             // PAYMENT_WEBHOOK_ALERT (chuông thông báo).
             new EnumColumn("activity_logs", "action", ActivityAction.class),
-            new EnumColumn("notifications", "type", NotificationType.class));
+            new EnumColumn("notifications", "type", NotificationType.class),
+            // Worker đăng bài ghi INTERNAL (lỗi nội bộ, không retry) — giá trị thêm sau khi bảng đã tạo.
+            new EnumColumn("posting_jobs", "error_type", PublishErrorType.class));
 
     /** Mọi literal {@code 'X'} trong định nghĩa CHECK do {@code pg_get_constraintdef} trả về. */
     private static final Pattern QUOTED_LITERAL = Pattern.compile("'((?:[^']|'')*)'");
@@ -92,6 +95,10 @@ public class PaymentDataInitializer implements CommandLineRunner {
         for (EnumColumn column : ENUM_COLUMNS) {
             syncEnumCheck(column);
         }
+
+        // ===== payments.user_id nullable — giữ chứng từ ẩn danh khi xoá cứng tài khoản =====
+        // ddl-auto: update KHÔNG bao giờ nới NOT NULL đã có → phải tự bỏ. Idempotent trên PostgreSQL.
+        exec("ALTER TABLE payments ALTER COLUMN user_id DROP NOT NULL");
 
         // ===== payments — báo cáo doanh thu =====
         // Lối đi chính của MỌI query doanh thu: lọc status đã-thu-được-tiền + khoảng paid_at.

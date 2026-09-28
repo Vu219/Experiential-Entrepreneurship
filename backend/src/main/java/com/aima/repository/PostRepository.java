@@ -18,11 +18,17 @@ import java.util.UUID;
 public interface PostRepository extends JpaRepository<Post, UUID> {
 
     // FR-59: bài POSTED đã qua mốc :milestone giờ mà CHƯA có bản ghi analytics của mốc đó.
-    @Query("select p from Post p where p.status = com.aima.enums.PostStatus.POSTED and p.deletedAt is null "
+    // Chỉ trả id: AnalyticsCollectionJob không có transaction bao ngoài, entity trả về sẽ detached.
+    @Query("select p.id from Post p where p.status = com.aima.enums.PostStatus.POSTED and p.deletedAt is null "
             + "and p.publishedAt is not null and p.publishedAt <= :threshold "
             + "and not exists (select a from PostAnalytics a where a.post = p "
             + "and a.milestoneHours = :milestone and a.deletedAt is null)")
-    List<Post> findDueForAnalytics(@Param("milestone") int milestone, @Param("threshold") LocalDateTime threshold);
+    List<UUID> findDueForAnalytics(@Param("milestone") int milestone, @Param("threshold") LocalDateTime threshold);
+
+    // Nạp đủ đồ thị AnalyticsCollectionJob cần (token của kết nối + version/item để đổi trạng thái).
+    @Query("select p from Post p join fetch p.schedule s join fetch s.platformAccount "
+            + "join fetch s.contentVersion v join fetch v.contentItem where p.id = :id")
+    Optional<Post> findForAnalytics(@Param("id") UUID id);
 
     // API-03/SEC-04: bài đăng của user (qua schedule → platform account).
     Page<Post> findByStatusAndSchedule_PlatformAccount_User_IdAndDeletedAtIsNullOrderByPublishedAtDesc(

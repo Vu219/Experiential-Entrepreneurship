@@ -1,5 +1,6 @@
 package com.aima.service;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -9,4 +10,10 @@ import java.util.UUID;
 public interface PostPublishWorkerService {
 
     void process(UUID jobId);
+
+    /**
+     * Vớt job kẹt RUNNING (bắt đầu trước {@code startedBefore}): ghi thất bại TẠM THỜI rồi đi theo
+     * chính sách retry FR-56. Không @Async — chỉ thao tác DB, chạy ngay trên thread scheduler.
+     */
+    void recoverStuck(UUID jobId, LocalDateTime startedBefore);
 }

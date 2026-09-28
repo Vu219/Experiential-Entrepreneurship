@@ -84,6 +84,7 @@ const TYPE_REASON_KEY: Record<NonNullable<PublishErrorType>, keyof ApDict> = {
   POLICY_VIOLATION: 'apReasonPolicyFallback',
   TEMPORARY: 'apReasonTemporaryFallback',
   PERMANENT: 'apReasonPermanentFallback',
+  INTERNAL: 'apReasonInternalFallback',
 };
 
 /**

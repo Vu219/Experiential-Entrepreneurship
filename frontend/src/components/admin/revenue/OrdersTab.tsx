@@ -209,8 +209,8 @@ export default function OrdersTab({
               >
                 <td style={cellStyle}>{formatDateTimeVN(row.paidAt ?? row.orderedAt)}</td>
                 <td style={cellStyle}>
-                  <div style={{ fontWeight: 600, color: '#1b1730' }}>{row.userFullName ?? '—'}</div>
-                  <div style={{ fontSize: 12, color: '#8a85a0' }}>{row.userEmail}</div>
+                  <div style={{ fontWeight: 600, color: '#1b1730' }}>{row.userEmail ? (row.userFullName ?? '—') : t.payDeletedAccount}</div>
+                  {row.userEmail && <div style={{ fontSize: 12, color: '#8a85a0' }}>{row.userEmail}</div>}
                 </td>
                 <td style={cellStyle}>{lang === 'en' ? row.planNameEn : row.planNameVi}</td>
                 <td style={{ ...cellStyle, fontWeight: 700 }}>{formatVND(row.amount)}</td>

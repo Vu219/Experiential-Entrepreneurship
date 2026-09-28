@@ -5,17 +5,22 @@ import com.aima.enums.ActivityAction;
 import com.aima.config.AimaProperties;
 import com.aima.config.MetaProperties;
 import com.aima.entity.PlatformAccount;
+import com.aima.entity.PostSchedule;
 import com.aima.entity.User;
 import com.aima.enums.ConnectionStatus;
+import com.aima.enums.NotificationType;
 import com.aima.enums.Platform;
 import com.aima.enums.PlatformAccountType;
+import com.aima.enums.ScheduleStatus;
 import com.aima.enums.TokenType;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.repository.PlatformAccountRepository;
+import com.aima.repository.PostScheduleRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.MetaApiClient;
 import com.aima.service.MetaOAuthService;
+import com.aima.service.NotificationService;
 import com.aima.service.PlatformVersionService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +31,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Map;
@@ -54,8 +62,16 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
     AimaProperties aimaProperties;
     RedisTemplate<String, String> redisTemplate;
     ObjectMapper objectMapper;
+    PostScheduleRepository scheduleRepository;
+    NotificationService notificationService;
 
     private static final String STATE_PREFIX = "oauth_state:";
+
+    // Thiếu một trong hai → không liệt kê/đăng được lên Page → từ chối kết nối (missing_permissions).
+    static final List<String> REQUIRED_FACEBOOK_PERMISSIONS = List.of("pages_show_list", "pages_manage_posts");
+
+    // Giá trị ghi đè access_token khi kết nối bị xoá (cột NOT NULL, vẫn đi qua converter mã hoá).
+    static final String SCRUBBED_TOKEN = "";
 
     // ---------- Authorization URL ----------
 
@@ -81,11 +97,17 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
         // Facebook và Instagram đều dùng Facebook Login dialog (IG business gắn với FB Page).
         MetaProperties.App app = metaProperties.facebook();
         String version = versionService.getCurrentVersion(Platform.FACEBOOK);
-        return UriComponentsBuilder.fromUriString("https://www.facebook.com")
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString("https://www.facebook.com")
                 .pathSegment(version, "dialog", "oauth")
                 .queryParam("client_id", app.appId())
-                .queryParam("redirect_uri", app.redirectUri())
-                .queryParam("scope", app.scopes())
+                .queryParam("redirect_uri", app.redirectUri());
+        // Facebook Login for Business: quyền nằm trong cấu hình config_id → không gửi scope.
+        if (StringUtils.hasText(app.configId())) {
+            builder.queryParam("config_id", app.configId());
+        } else {
+            builder.queryParam("scope", app.scopes());
+        }
+        return builder
                 .queryParam("response_type", "code")
                 .queryParam("state", state)
                 .toUriString();
@@ -130,25 +152,50 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
 
         MetaApiClient.MetaTokenResult shortToken = metaApiClient.exchangeCodeForToken(Platform.FACEBOOK, code);
         MetaApiClient.MetaTokenResult longToken = metaApiClient.getLongLivedUserToken(Platform.FACEBOOK, shortToken.accessToken());
+
+        // Lưu quyền user THỰC SỰ cấp (user có thể bỏ tick trong dialog), không phải scope trong config.
+        List<String> granted = metaApiClient.getGrantedPermissions(longToken.accessToken());
+        List<String> missing = REQUIRED_FACEBOOK_PERMISSIONS.stream().filter(p -> !granted.contains(p)).toList();
+        if (!missing.isEmpty()) {
+            log.warn("[OAuth] User {} thiếu quyền Facebook bắt buộc {} — không lưu kết nối", user.getId(), missing);
+            throw new AppException(ErrorCode.META_MISSING_PERMISSIONS);
+        }
+        String grantedCsv = String.join(",", granted);
+
         MetaApiClient.MetaUser me = metaApiClient.getMe(Platform.FACEBOOK, longToken.accessToken());
 
         PlatformAccount userConn = upsert(user, Platform.FACEBOOK, me.id(),
                 me.name() != null ? me.name() : "Facebook User", me.username(), me.pictureUrl(),
                 PlatformAccountType.USER, TokenType.LONG_LIVED_USER_TOKEN,
                 longToken.accessToken(), null, expiry(longToken.expiresInSeconds()),
-                metaProperties.facebook().scopes(), null);
+                grantedCsv, null);
         created.add(userConn);
 
-        for (MetaApiClient.MetaPage page : metaApiClient.getMyAccounts(longToken.accessToken())) {
+        List<MetaApiClient.MetaPage> pages = metaApiClient.getMyAccounts(longToken.accessToken());
+        if (pages.isEmpty()) {
+            // Đủ quyền nhưng /me/accounts rỗng = user không chọn Trang nào trong dialog (Facebook Login
+            // for Business chỉ trả các Trang được cấp) → chỉ có kết nối USER, không đăng bài được.
+            log.warn("[OAuth] User {} kết nối Facebook nhưng Meta trả 0 Trang (/me/accounts rỗng) — chỉ lưu kết nối USER",
+                    user.getId());
+        }
+        for (MetaApiClient.MetaPage page : pages) {
             PlatformAccount pageConn = upsert(user, Platform.FACEBOOK, page.id(),
                     page.name(), null, null,
                     PlatformAccountType.PAGE, TokenType.PAGE_TOKEN,
                     page.accessToken(), null, null,
-                    metaProperties.facebook().scopes(), userConn);
+                    grantedCsv, userConn);
             created.add(pageConn);
 
-            Optional<MetaApiClient.MetaIgAccount> ig =
-                    metaApiClient.getInstagramBusinessAccount(page.id(), page.accessToken());
+            // Best-effort: Page vẫn được lưu (đăng Facebook được) dù không tra được IG Business —
+            // callback chỉ được thất bại ở bước đổi token / đọc quyền / /me/accounts.
+            Optional<MetaApiClient.MetaIgAccount> ig;
+            try {
+                ig = metaApiClient.getInstagramBusinessAccount(page.id(), page.accessToken());
+            } catch (Exception e) {
+                log.warn("[OAuth] Không lấy được Instagram Business của Page {} — bỏ qua IG, vẫn lưu Page: {}",
+                        page.id(), MetaApiClientImpl.mask(String.valueOf(e.getMessage())));
+                ig = Optional.empty();
+            }
             if (ig.isPresent()) {
                 MetaApiClient.MetaIgAccount account = ig.get();
                 PlatformAccount igConn = upsert(user, Platform.INSTAGRAM, account.id(),
@@ -156,7 +203,7 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
                         account.profilePictureUrl(),
                         PlatformAccountType.BUSINESS_ACCOUNT, TokenType.PAGE_TOKEN,
                         page.accessToken(), null, null,
-                        metaProperties.facebook().scopes(), pageConn);
+                        grantedCsv, pageConn);
                 created.add(igConn);
             }
         }
@@ -210,23 +257,31 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
     // ---------- Validate / Refresh / Disconnect ----------
 
     @Override
-    public PlatformAccount validate(PlatformAccount account) {
+    public PlatformAccount validate(UUID connectionId) {
+        PlatformAccount account = findConnection(connectionId);
         try {
             metaApiClient.getMe(account.getPlatformName(), account.getAccessToken());
             account.setConnectionStatus(ConnectionStatus.ACTIVE);
             account.setLastValidatedAt(LocalDateTime.now());
-        } catch (Exception e) {
-            log.warn("[OAuth] Validate kết nối {} thất bại: {}", account.getId(), e.getMessage());
+        } catch (AppException e) {
+            if (e.getErrorCode() != ErrorCode.META_TOKEN_INVALID) {
+                throw validationFailed(account, e);
+            }
+            // Chỉ Graph code 190 (token hết hạn/bị thu hồi) mới là bằng chứng kết nối đã mất.
+            log.warn("[OAuth] Kết nối {} bị nền tảng từ chối token (190) → REVOKED", account.getId());
             account.setConnectionStatus(ConnectionStatus.REVOKED);
+        } catch (Exception e) {
+            throw validationFailed(account, e);
         }
         return accountRepository.save(account);
     }
 
     @Override
-    public PlatformAccount refresh(PlatformAccount account) {
+    public PlatformAccount refresh(UUID connectionId) {
+        PlatformAccount account = findConnection(connectionId);
         // Page token không hết hạn → chỉ validate lại.
         if (account.getTokenType() == TokenType.PAGE_TOKEN) {
-            return validate(account);
+            return validate(connectionId);
         }
         try {
             MetaApiClient.MetaTokenResult refreshed =
@@ -244,33 +299,174 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
     }
 
     @Override
-    public void disconnect(PlatformAccount account) {
-        // Chỉ revoke ở kết nối gốc (user-level) để tránh revoke trùng cho từng Page.
-        if (account.getParentConnection() == null) {
-            try {
-                metaApiClient.revokeToken(account.getPlatformName(), account.getAccessToken());
-            } catch (Exception e) {
-                log.warn("[OAuth] Revoke token khi disconnect thất bại (vẫn soft delete): {}", e.getMessage());
-            }
+    public void disconnect(UUID userId, UUID connectionId) {
+        // Load lại TRONG transaction này (kèm user) — entity từ lớp gọi đã detached, đụng lazy proxy
+        // là LazyInitializationException. Mọi thứ đưa vào afterCommit chỉ là giá trị primitive.
+        PlatformAccount account = accountRepository.findWithUserByIdAndUserId(connectionId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.CONNECTION_NOT_FOUND));
+        // Chỉ revoke ở kết nối gốc (user-level) để tránh revoke trùng cho từng Page. Đọc token TRƯỚC
+        // khi scrub; gọi Meta sau commit để lỗi/treo phía Meta không rollback việc xoá local.
+        if (account.getParentConnection() == null && isRevocable(account)) {
+            Platform platform = account.getPlatformName();
+            String token = account.getAccessToken();
+            UUID accountId = account.getId();
+            runAfterCommit(() -> {
+                try {
+                    metaApiClient.revokeToken(platform, token);
+                } catch (Exception e) {
+                    log.warn("[OAuth] Revoke token khi disconnect {} thất bại (đã xoá local): {}",
+                            accountId, MetaApiClientImpl.mask(String.valueOf(e.getMessage())));
+                }
+            });
         }
         activityLogService.record(ActivityLogService.Entry.byActor(
                 ActivityAction.SOCIAL_DISCONNECTED, account.getUser().getEmail(),
                 "PlatformAccount", account.getId().toString(),
                 Map.of("platform", account.getPlatformName().name(),
                         "accountName", String.valueOf(account.getAccountName()))));
-        softDeleteCascade(account);
+        List<PlatformAccount> tree = subtree(account);
+        holdSchedules(account.getUser(), tree, "Bạn đã ngắt kết nối " + account.getAccountName()
+                + " trên " + account.getPlatformName() + ".");
+        softDeleteAndScrub(tree);
     }
 
-    private void softDeleteCascade(PlatformAccount account) {
-        for (PlatformAccount child : accountRepository.findByParentConnection_IdAndDeletedAtIsNull(account.getId())) {
-            softDeleteCascade(child);
+    @Override
+    public CleanupResult deleteFacebookUserData(String platformUserId) {
+        int connections = 0;
+        int held = 0;
+        for (PlatformAccount root : findFacebookRoots(platformUserId)) {
+            List<PlatformAccount> tree = subtree(root);
+            held += holdSchedules(root.getUser(), tree, "Theo yêu cầu xoá dữ liệu gửi từ Facebook, AIMA đã xoá kết nối "
+                    + root.getAccountName() + " cùng các Trang/tài khoản liên quan.");
+            softDeleteAndScrub(tree);
+            connections += tree.size();
         }
-        account.setDeletedAt(LocalDateTime.now());
-        account.setConnectionStatus(ConnectionStatus.DISCONNECTED);
-        accountRepository.save(account);
+        log.info("[OAuth] Data deletion Meta: xoá {} kết nối, tạm giữ {} lịch", connections, held);
+        return new CleanupResult(connections, held);
+    }
+
+    @Override
+    public CleanupResult revokeFacebookUser(String platformUserId) {
+        int connections = 0;
+        int held = 0;
+        for (PlatformAccount root : findFacebookRoots(platformUserId)) {
+            List<PlatformAccount> tree = subtree(root);
+            held += holdSchedules(root.getUser(), tree, "AIMA đã bị gỡ khỏi tài khoản Facebook " + root.getAccountName()
+                    + ", các kết nối liên quan không còn hiệu lực.");
+            for (PlatformAccount account : tree) {
+                account.setConnectionStatus(ConnectionStatus.REVOKED);
+                accountRepository.save(account);
+            }
+            connections += tree.size();
+        }
+        log.info("[OAuth] Deauthorize Meta: {} kết nối → REVOKED, tạm giữ {} lịch", connections, held);
+        return new CleanupResult(connections, held);
+    }
+
+    @Override
+    public void revokeAllForUserAfterCommit(UUID userId) {
+        // Đọc token (đã giải mã) NGAY: sau commit các dòng platform_accounts đã bị xoá cứng.
+        List<PlatformAccount> roots = accountRepository.findByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(userId)
+                .stream().filter(a -> a.getParentConnection() == null).toList();
+        List<Map.Entry<Platform, String>> tokens = roots.stream()
+                .map(a -> Map.entry(a.getPlatformName(), a.getAccessToken())).toList();
+        if (tokens.isEmpty()) {
+            return;
+        }
+        Runnable revokeAll = () -> tokens.forEach(t -> {
+            try {
+                metaApiClient.revokeToken(t.getKey(), t.getValue());
+            } catch (Exception e) {
+                log.warn("[OAuth] Revoke token khi xoá tài khoản {} thất bại (bỏ qua): {}", userId, e.getMessage());
+            }
+        });
+        runAfterCommit(revokeAll);
+    }
+
+    // Token đã hết hạn/bị thu hồi thì Meta chắc chắn trả 190 — không tốn một lượt gọi.
+    private static boolean isRevocable(PlatformAccount account) {
+        ConnectionStatus status = account.getConnectionStatus();
+        LocalDateTime expiredAt = account.getTokenExpiredAt();
+        return status != ConnectionStatus.EXPIRED && status != ConnectionStatus.REVOKED
+                && (expiredAt == null || expiredAt.isAfter(LocalDateTime.now()))
+                && StringUtils.hasText(account.getAccessToken());
+    }
+
+    // Gọi Meta NGOÀI transaction DB (rule #24) và chỉ khi việc xoá đã commit.
+    private static void runAfterCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    action.run();
+                }
+            });
+        } else {
+            action.run();
+        }
+    }
+
+    private PlatformAccount findConnection(UUID connectionId) {
+        return accountRepository.findByIdAndDeletedAtIsNull(connectionId)
+                .orElseThrow(() -> new AppException(ErrorCode.CONNECTION_NOT_FOUND));
+    }
+
+    private List<PlatformAccount> findFacebookRoots(String platformUserId) {
+        return accountRepository.findByPlatformNameAndAccountTypeAndPlatformAccountIdAndDeletedAtIsNull(
+                Platform.FACEBOOK, PlatformAccountType.USER, platformUserId);
+    }
+
+    /** Kết nối gốc + toàn bộ Page/IG con (đệ quy), gốc đứng đầu. */
+    private List<PlatformAccount> subtree(PlatformAccount root) {
+        List<PlatformAccount> tree = new ArrayList<>();
+        tree.add(root);
+        for (PlatformAccount child : accountRepository.findByParentConnection_IdAndDeletedAtIsNull(root.getId())) {
+            tree.addAll(subtree(child));
+        }
+        return tree;
+    }
+
+    // Soft delete (giữ bản ghi cho lịch/bài đã tham chiếu) nhưng XOÁ token: kết nối đã ngắt thì
+    // không còn lý do giữ credential, kể cả khi đã mã hoá (Threads không có revoke từ xa).
+    private void softDeleteAndScrub(List<PlatformAccount> accounts) {
+        LocalDateTime now = LocalDateTime.now();
+        for (PlatformAccount account : accounts) {
+            account.setDeletedAt(now);
+            account.setConnectionStatus(ConnectionStatus.DISCONNECTED);
+            account.setAccessToken(SCRUBBED_TOKEN);
+            account.setRefreshToken(null);
+            accountRepository.save(account);
+        }
+    }
+
+    /** Lịch SCHEDULED của các kết nối → ON_HOLD (FR-18b); báo user một lần nếu có lịch bị giữ. */
+    private int holdSchedules(User user, List<PlatformAccount> accounts, String reason) {
+        int held = 0;
+        for (PlatformAccount account : accounts) {
+            List<PostSchedule> waiting = scheduleRepository
+                    .findByPlatformAccount_IdAndStatusAndDeletedAtIsNull(account.getId(), ScheduleStatus.SCHEDULED);
+            waiting.forEach(s -> s.setStatus(ScheduleStatus.ON_HOLD));
+            scheduleRepository.saveAll(waiting);
+            held += waiting.size();
+        }
+        if (held > 0) {
+            notificationService.notify(user, NotificationType.RECONNECT_NEEDED,
+                    "Bài đã lên lịch được tạm giữ",
+                    reason + " " + held + " bài đã lên lịch được chuyển sang Tạm giữ (On Hold) — hãy kết nối lại"
+                            + " hoặc hủy các bài này trong Lịch đăng.",
+                    null);
+        }
+        return held;
     }
 
     // ---------- Helpers ----------
+
+    // Lỗi mạng/timeout/5xx/rate limit: KHÔNG đổi trạng thái kết nối (có thể chỉ là sự cố tạm thời).
+    private AppException validationFailed(PlatformAccount account, Exception cause) {
+        log.warn("[OAuth] Validate kết nối {} không kết luận được, giữ trạng thái {}: {}",
+                account.getId(), account.getConnectionStatus(), cause.getMessage());
+        return new AppException(ErrorCode.CONNECTION_VALIDATION_FAILED);
+    }
 
     private LocalDateTime expiry(Long expiresInSeconds) {
         return expiresInSeconds == null ? null : LocalDateTime.now().plusSeconds(expiresInSeconds);

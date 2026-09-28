@@ -21,6 +21,9 @@ public interface MetaApiClient {
     /** Instagram Business Account gắn với một Page (nếu có). */
     Optional<MetaIgAccount> getInstagramBusinessAccount(String pageId, String pageToken);
 
+    /** Quyền user THỰC SỰ đã cấp: GET /me/permissions, chỉ lấy status=granted. */
+    List<String> getGrantedPermissions(String userToken);
+
     /** Hồ sơ cơ bản của token hiện tại (dùng để validate). */
     MetaUser getMe(Platform platform, String token);
 

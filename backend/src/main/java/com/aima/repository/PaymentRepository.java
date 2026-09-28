@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -139,7 +140,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID>, JpaSpec
                    p.paidAt as paidAt, p.orderedAt as orderedAt,
                    p.refundedAmount as refundedAmount, p.refundedAt as refundedAt,
                    p.gateway as gateway, p.gatewayTxnId as gatewayTxnId
-            from Payment p join p.user u join p.plan pl
+            from Payment p left join p.user u join p.plan pl
             where p.deletedAt is null
               and (:status is null or p.status = :status)
               and (:planId is null or pl.id = :planId)
@@ -148,7 +149,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID>, JpaSpec
             """,
             countQuery = """
             select count(p)
-            from Payment p join p.user u join p.plan pl
+            from Payment p left join p.user u join p.plan pl
             where p.deletedAt is null
               and (:status is null or p.status = :status)
               and (:planId is null or pl.id = :planId)
@@ -174,7 +175,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID>, JpaSpec
                    p.paidAt as paidAt, p.orderedAt as orderedAt,
                    p.refundedAmount as refundedAmount, p.refundedAt as refundedAt,
                    p.gateway as gateway, p.gatewayTxnId as gatewayTxnId
-            from Payment p join p.user u join p.plan pl
+            from Payment p left join p.user u join p.plan pl
             where p.deletedAt is null
               and (:status is null or p.status = :status)
               and (:planId is null or pl.id = :planId)
@@ -301,7 +302,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID>, JpaSpec
     @Query("""
             select p from Payment p
             join fetch p.plan
-            join fetch p.user
+            left join fetch p.user
             where p.id = :id and p.deletedAt is null
             """)
     Optional<Payment> findDetailById(@Param("id") UUID id);
@@ -410,4 +411,18 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID>, JpaSpec
 
         String getGatewayTxnId();
     }
+
+    // ================================================================== xoá cứng tài khoản
+
+    /** Chặn xoá cứng khi còn đơn PENDING: cổng có thể báo PAID sau đó mà không còn ai để kích hoạt gói. */
+    boolean existsByUser_IdAndStatusAndDeletedAtIsNull(UUID userId, PaymentStatus status);
+
+    /**
+     * Ẩn danh hoá đơn của user sắp bị xoá cứng: cắt liên kết người mua + bỏ {@code rawPayload}
+     * (payload cổng chứa tên/số tài khoản người chuyển). Giữ số tiền, gói, mốc thời gian, mã
+     * cổng để doanh thu/đối soát không đổi.
+     */
+    @Modifying(flushAutomatically = true)
+    @Query("update Payment p set p.user = null, p.rawPayload = null where p.user.id = :userId")
+    int anonymizeByUserId(@Param("userId") UUID userId);
 }

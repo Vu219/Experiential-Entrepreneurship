@@ -322,7 +322,7 @@ export function timeAgo(lang: Lang, iso: string | null): string {
 
 export type PostProblemKind = 'rejected' | 'system';
 /** Khớp enum PublishErrorType phía backend. */
-export type PublishErrorType = 'TEMPORARY' | 'PERMANENT' | 'POLICY_VIOLATION';
+export type PublishErrorType = 'TEMPORARY' | 'PERMANENT' | 'POLICY_VIOLATION' | 'INTERNAL';
 /** Nền tảng trong scope MVP (CLAUDE.md §2) — cùng tag với PLATFORM_BG ở theme.ts. */
 export type AdminPostPlatform = 'FB' | 'IG' | 'TH';
 
