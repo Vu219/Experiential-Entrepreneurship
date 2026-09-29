@@ -127,16 +127,29 @@ public class AiServiceClientImpl implements AiServiceClient {
                     .bodyToMono(resultType)
                     .block(Duration.ofSeconds(properties.timeoutSeconds()));
         } catch (WebClientResponseException e) {
-            throw aiFailure(uri, e.getStatusCode() + ": " + e.getResponseBodyAsString(), e);
+            throw aiFailure(uri, e.getStatusCode() + ": " + e.getResponseBodyAsString(), e, ErrorCode.AI_SERVICE_ERROR);
         } catch (Exception e) {
-            throw aiFailure(uri, e.getMessage(), e);
+            // block(timeout) hết giờ → IllegalStateException bọc TimeoutException: AI chưa trả kịp.
+            ErrorCode code = isBlockTimeout(e) ? ErrorCode.AI_TIMEOUT : ErrorCode.AI_SERVICE_ERROR;
+            throw aiFailure(uri, e.getMessage(), e, code);
         }
     }
 
+    private static boolean isBlockTimeout(Throwable e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t instanceof java.util.concurrent.TimeoutException
+                    || (t instanceof IllegalStateException && t.getMessage() != null
+                        && t.getMessage().startsWith("Timeout on blocking read"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // NFR-11/FR-74: lỗi gọi AI service log console + lưu log hệ thống (trang Logs của admin) rồi mới ném.
-    private AppException aiFailure(String uri, String detail, Exception cause) {
-        log.warn("[AiService] POST {} lỗi: {}", uri, detail);
+    private AppException aiFailure(String uri, String detail, Exception cause, ErrorCode code) {
+        log.warn("[AiService] POST {} lỗi ({}): {}", uri, code, detail);
         systemLogService.error("ai.client", "POST " + uri + " lỗi: " + detail, cause);
-        return new AppException(ErrorCode.AI_SERVICE_ERROR);
+        return new AppException(code);
     }
 }

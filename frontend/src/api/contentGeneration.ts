@@ -95,6 +95,8 @@ export interface ContentGenerationJob {
   id: string;
   status: GenerationJobStatus;
   errorMessage: string | null;
+  /** Tên ErrorCode backend khi FAILED (vd "AI_TIMEOUT"). */
+  errorCode?: string | null;
   /** B2: kết quả job là MỘT bản nền tảng (present khi SUCCESS). */
   contentVersion: ContentVersionResponse | null;
 }
@@ -127,9 +129,15 @@ export interface ContentGenerationInput {
   regenerateFrom?: string;
 }
 
-// POST /content-items/generate
-export async function startContentGeneration(input: ContentGenerationInput): Promise<ContentGenerationJob> {
-  const { data } = await client.post<ApiResponse<ContentGenerationJob>>("/content-items/generate", input);
+// POST /content-items/generate — Idempotency-Key (UUID mỗi lần bấm): gửi lại cùng key, hoặc đã có job
+// PENDING/RUNNING cho cùng bài + nền tảng → backend trả lại job cũ thay vì gọi AI lần nữa.
+export async function startContentGeneration(
+  input: ContentGenerationInput,
+  idempotencyKey: string,
+): Promise<ContentGenerationJob> {
+  const { data } = await client.post<ApiResponse<ContentGenerationJob>>("/content-items/generate", input, {
+    headers: { "Idempotency-Key": idempotencyKey },
+  });
   return data.result;
 }
 

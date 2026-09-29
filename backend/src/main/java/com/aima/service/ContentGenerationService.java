@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public interface ContentGenerationService {
 
-    ApiResponse<ContentGenerationJobResponse> startGeneration(String email, ContentGenerationRequest request);
+    ApiResponse<ContentGenerationJobResponse> startGeneration(String email, ContentGenerationRequest request, String idempotencyKey);
 
     ApiResponse<ContentGenerationJobResponse> getJob(String email, UUID jobId);
 }

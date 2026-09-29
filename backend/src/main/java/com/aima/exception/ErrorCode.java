@@ -144,6 +144,8 @@ public enum ErrorCode {
     AI_SERVICE_ERROR(1904, "Lỗi khi gọi dịch vụ AI. Vui lòng thử lại sau.", HttpStatus.BAD_GATEWAY),
     CONTENT_ITEM_ID_REQUIRED(1905, "Thiếu mã bài nội dung để ghi bản nền tảng", HttpStatus.BAD_REQUEST),
     CONTENT_ITEM_NOT_DRAFT(1906, "Chỉ tạo bản nội dung vào bài đang ở trạng thái Nháp (DRAFT)", HttpStatus.BAD_REQUEST),
+    AI_TIMEOUT(1907, "Quá trình tạo nội dung mất nhiều thời gian hơn dự kiến, vui lòng thử lại.", HttpStatus.GATEWAY_TIMEOUT),
+    IDEMPOTENCY_KEY_INVALID(1944, "Idempotency-Key không hợp lệ (tối đa 64 ký tự)", HttpStatus.BAD_REQUEST),
 
     // TREND RESEARCH ERRORS
     ACTIVE_BRAND_PROFILE_REQUIRED(1910, "Cần có hồ sơ thương hiệu đang hoạt động trước khi nghiên cứu xu hướng", HttpStatus.BAD_REQUEST),

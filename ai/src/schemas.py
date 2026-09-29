@@ -7,6 +7,7 @@ Field names use snake_case; map to the DB columns on the backend side.
 
 from __future__ import annotations
 
+from datetime import datetime
 from enum import Enum
 from typing import List, Literal, Optional
 
@@ -53,6 +54,25 @@ class LlmConfig(BaseModel):
     primary: LlmSpec
     fallback: Optional[LlmSpec] = None
 
+    def chain(self) -> List[LlmSpec]:
+        """Models to try, in order: primary, then fallback."""
+        return [self.primary, *([self.fallback] if self.fallback else [])]
+
+
+class LlmAttempt(BaseModel):
+    """One model attempt of the fallback chain (llm.invoke_structured), reported to the
+    backend so it can track model health. ``outcome`` = "ok" or an ``errors`` kind;
+    ``cooldown_until`` (UTC) = until when the model should be skipped (None = no hint)."""
+
+    provider: str
+    model: str
+    outcome: str
+    http_status: Optional[int] = None
+    retry_after_seconds: Optional[float] = None
+    cooldown_until: Optional[datetime] = None
+    free_tier: bool = False
+    latency_ms: int = 0
+
 
 # ============================================================
 # Token accounting (real LLM usage returned to the backend)
@@ -71,6 +91,7 @@ class TokenUsage(BaseModel):
     input_tokens: int = 0
     output_tokens: int = 0
     cached_tokens: int = 0
+    attempts: List[LlmAttempt] = Field(default_factory=list)
 
     def response_fields(self) -> dict:
         """Kwargs for building a ``TokenAccounting`` response (tokens_used = total)."""
@@ -79,6 +100,7 @@ class TokenUsage(BaseModel):
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
             "cached_tokens": self.cached_tokens,
+            "llm_attempts": self.attempts,
         }
 
 
@@ -93,6 +115,8 @@ class TokenAccounting(BaseModel):
     input_tokens: int = 0
     output_tokens: int = 0
     cached_tokens: int = 0
+    # Fallback-chain trace (model health on the backend); backend ignores it if unknown.
+    llm_attempts: List[LlmAttempt] = Field(default_factory=list)
 
 
 # ============================================================

@@ -31,6 +31,9 @@ public class ContentGenerationJobResponse {
     @Schema(description = "Error message, present only when status is FAILED.")
     String errorMessage;
 
+    @Schema(description = "ErrorCode name when FAILED (e.g. AI_TIMEOUT) — FE maps it to a friendly message.")
+    String errorCode;
+
     @Schema(description = "B2: generated per-platform version, present only when status is SUCCESS.")
     ContentVersionResponse contentVersion;
 }

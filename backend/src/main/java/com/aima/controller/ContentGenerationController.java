@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,10 +34,14 @@ public class ContentGenerationController {
     // NFR-04: trả về job ngay lập tức, xử lý nền qua AI service.
     @PostMapping("/generate")
     @Operation(summary = "Start generating a content item",
-            description = "Starts an async job that calls the AI service; the strategy must be ACTIVE (BR-13).")
+            description = "Starts an async job that calls the AI service; the strategy must be ACTIVE (BR-13). "
+                    + "Optional Idempotency-Key header (UUID per click): a repeated key — or a job still "
+                    + "PENDING/RUNNING for the same item + platform — returns the existing job instead of a new one.")
     public ApiResponse<ContentGenerationJobResponse> start(@AuthenticationPrincipal UserDetails principal,
-                                                           @Valid @RequestBody ContentGenerationRequest request) {
-        return contentGenerationService.startGeneration(principal.getUsername(), request);
+                                                           @Valid @RequestBody ContentGenerationRequest request,
+                                                           @RequestHeader(value = "Idempotency-Key", required = false)
+                                                           String idempotencyKey) {
+        return contentGenerationService.startGeneration(principal.getUsername(), request, idempotencyKey);
     }
 
     @GetMapping("/jobs/{jobId}")

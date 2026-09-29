@@ -167,6 +167,7 @@ export default function CreateWizard() {
     if (err.code === ERR_CONTENT_ITEM_NOT_DRAFT) return t.cwGenItemNotDraft;
     if (err.code === ERR_CONTENT_ITEM_NOT_FOUND) return t.cwGenItemNotFound;
     if (err.code === ERR_CONTENT_ITEM_ID_REQUIRED) return t.cwGenItemMissing;
+    if (err.errorCode === 'AI_TIMEOUT') return t.cwGenTimeout;
     return err.message;
   };
 

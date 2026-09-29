@@ -7,7 +7,9 @@ import com.aima.repository.projection.StatusCountProjection;
 import com.aima.repository.projection.UserCountProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -23,6 +25,12 @@ public interface ContentItemRepository extends JpaRepository<ContentItem, UUID> 
 
     // API-03/SEC-04: user chỉ thao tác trên nội dung thuộc brand profile của mình.
     Optional<ContentItem> findByIdAndBrandProfile_User_IdAndDeletedAtIsNull(UUID id, UUID userId);
+
+    // Như trên nhưng khoá row (SELECT ... FOR UPDATE) tới hết transaction: tuần tự hoá việc tạo job
+    // generate trên CÙNG bài để kiểm tra chống trùng (idempotency key / job đang chạy) không bị race.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select c from ContentItem c where c.id = :id and c.brandProfile.user.id = :userId and c.deletedAt is null")
+    Optional<ContentItem> findOwnedForUpdate(@Param("id") UUID id, @Param("userId") UUID userId);
 
     // FR-87: thư viện nội dung — lọc status/platform/thương hiệu/ngành/khoảng ngày + tìm trong caption/script
     // (q rỗng / industry rỗng / param null = bỏ qua điều kiện, cùng mẫu BrandProfileRepository.search).

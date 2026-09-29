@@ -12,6 +12,8 @@ import com.aima.entity.ContentVersion;
 import com.aima.enums.AiTaskCode;
 import com.aima.enums.GenerationJobStatus;
 import com.aima.enums.NotificationType;
+import com.aima.exception.AppException;
+import com.aima.exception.ErrorCode;
 import com.aima.mapper.AiContentMapper;
 import com.aima.mapper.ContentItemMapper;
 import com.aima.repository.ContentGenerationJobRepository;
@@ -79,8 +81,10 @@ public class ContentGenerationWorkerServiceImpl implements ContentGenerationWork
         } catch (Exception e) {
             // AppException giờ truyền message của ErrorCode vào super(...) nên getMessage() luôn có nghĩa.
             String message = e.getMessage();
-            log.warn("[ContentGeneration] Job {} thất bại: {}", jobId, message, e);
-            transactionTemplate.executeWithoutResult(status -> saveFailure(jobId, message));
+            ErrorCode code = e instanceof AppException app && app.getErrorCode() != null
+                    ? app.getErrorCode() : ErrorCode.AI_SERVICE_ERROR;
+            log.warn("[ContentGeneration] Job {} thất bại ({}): {}", jobId, code, message, e);
+            transactionTemplate.executeWithoutResult(status -> saveFailure(jobId, code, message));
         }
     }
 
@@ -88,6 +92,11 @@ public class ContentGenerationWorkerServiceImpl implements ContentGenerationWork
         ContentGenerationJob job = jobRepository.findById(jobId).orElse(null);
         if (job == null) {
             log.warn("[ContentGeneration] Job {} không tồn tại khi bắt đầu xử lý", jobId);
+            return null;
+        }
+        if (job.getStatus() != GenerationJobStatus.PENDING) {
+            // Đã bị job dọn kẹt chốt FAILED trong lúc chờ hàng đợi executor — không chạy lại.
+            log.warn("[ContentGeneration] Job {} không còn PENDING ({}) — bỏ qua", jobId, job.getStatus());
             return null;
         }
         job.setStatus(GenerationJobStatus.RUNNING);
@@ -187,12 +196,13 @@ public class ContentGenerationWorkerServiceImpl implements ContentGenerationWork
         jobRepository.save(job);
     }
 
-    private void saveFailure(UUID jobId, String message) {
+    private void saveFailure(UUID jobId, ErrorCode code, String message) {
         ContentGenerationJob job = jobRepository.findById(jobId).orElse(null);
         if (job == null) {
             return;
         }
         job.setStatus(GenerationJobStatus.FAILED);
+        job.setErrorCode(code.name());
         job.setErrorMessage(message);
         jobRepository.save(job);
     }

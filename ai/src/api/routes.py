@@ -30,7 +30,7 @@ from ..agents import (
     trend_research,
 )
 from ..config import get_settings
-from ..llm import build_llm, use_llm_config
+from ..llm import LlmChainError, build_llm, use_llm_config
 from ..model_catalog import list_models
 from ..schemas import (
     AnalyzeRequest,
@@ -74,6 +74,13 @@ def _run(label: str, fn, arg):
     """Invoke an agent, mapping config/LLM failures to clean HTTP errors."""
     try:
         return fn(arg)
+    except LlmChainError as e:  # every model failed — classified code + trace for the backend
+        logger.warning("%s failed: %s after %d attempt(s)", label, e.error_code, len(e.attempts))
+        raise HTTPException(status_code=502, detail={
+            "error_code": e.error_code,
+            "message": f"{label} failed: {e.error_code}",
+            "attempts": [a.model_dump(mode="json") for a in e.attempts],
+        })
     except ValueError as e:  # missing API key / bad config
         logger.error("%s config error: %s", label, e)
         raise HTTPException(status_code=503, detail=str(e))

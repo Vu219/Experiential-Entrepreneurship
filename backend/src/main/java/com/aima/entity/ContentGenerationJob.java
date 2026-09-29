@@ -58,6 +58,15 @@ public class ContentGenerationJob extends BaseEntity {
     @Column(name = "error_message", columnDefinition = "text")
     String errorMessage;
 
+    /** Tên {@code ErrorCode} khi FAILED (vd AI_TIMEOUT) — FE map ra thông điệp thân thiện. */
+    @Column(name = "error_code", length = 40)
+    String errorCode;
+
+    /** Header Idempotency-Key của request tạo job (UUID sinh mỗi lần bấm) — bấm/gửi lại cùng key
+     *  trả job cũ thay vì gọi AI lần nữa. Tra theo key + chủ sở hữu (xem service). */
+    @Column(name = "idempotency_key", length = 64)
+    String idempotencyKey;
+
     /** IP/User-Agent client lúc user tạo job (X-Forwarded-For aware qua util RequestMeta) —
      *  null với job do hệ thống/scheduler tạo. Nguồn copy sang event usage (điều tra bất thường). */
     @Column(name = "client_ip", length = 45)

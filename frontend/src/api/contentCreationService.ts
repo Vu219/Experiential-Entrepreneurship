@@ -22,7 +22,7 @@ import {
   type RegenSectionName,
 } from "./contentGeneration";
 import { listTrendResearchSessions, getTrendResearchSession } from "./trendResearch";
-import type { PageResponse } from "./apiClient";
+import type { ApiError, PageResponse } from "./apiClient";
 import { useAppStore } from "../store/useAppStore";
 import { mockBrandVoice, placeholderImage, draftListTitle } from "../createData";
 
@@ -428,23 +428,42 @@ export async function createContentItem(strategyId: string, ideaId?: string): Pr
  * thái lỗi + "Thử lại" riêng nền tảng đó, không làm đứng wizard.
  */
 export async function generateVersion(input: GenerateVersionInput): Promise<ContentVersion> {
-  let job = await startContentGeneration({
-    strategyId: input.strategyId,
-    contentItemId: input.contentItemId,
-    platform: input.platform,
-    trendId: input.trendId,
-    ideaId: input.ideaId,
-    note: input.note,
-    regenerateFrom: input.regenerateFrom,
-  });
+  let job = await startContentGeneration(
+    {
+      strategyId: input.strategyId,
+      contentItemId: input.contentItemId,
+      platform: input.platform,
+      trendId: input.trendId,
+      ideaId: input.ideaId,
+      note: input.note,
+      regenerateFrom: input.regenerateFrom,
+    },
+    crypto.randomUUID(),
+  );
+  // Poll có backoff nhẹ (2s → 3s → 5s…) và trần tổng GENERATION_POLL_LIMIT_MS. Hết trần: dừng poll,
+  // báo AI_TIMEOUT — job vẫn có thể xong ở backend (kết quả được lưu, xem lại trong Thư viện nội dung).
+  const deadline = Date.now() + GENERATION_POLL_LIMIT_MS;
+  let round = 0;
   while (job.status === "PENDING" || job.status === "RUNNING") {
-    await delay(2000);
+    if (Date.now() >= deadline) {
+      throw generationError("AI_TIMEOUT", job.errorMessage);
+    }
+    await delay(POLL_BACKOFF_MS[Math.min(round++, POLL_BACKOFF_MS.length - 1)]);
     job = await getContentGenerationJob(job.id);
   }
   if (job.status !== "SUCCESS" || !job.contentVersion) {
-    throw new Error(job.errorMessage ?? "AI_SERVICE_ERROR");
+    throw generationError(job.errorCode ?? undefined, job.errorMessage);
   }
   return toContentVersion(job.contentVersion);
+}
+
+const GENERATION_POLL_LIMIT_MS = 3 * 60_000;
+const POLL_BACKOFF_MS = [2000, 3000, 5000];
+
+function generationError(errorCode: string | undefined, message: string | null): ApiError {
+  const err: ApiError = new Error(message ?? errorCode ?? "AI_SERVICE_ERROR");
+  err.errorCode = errorCode;
+  return err;
 }
 
 /**

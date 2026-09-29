@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     # LLM provider selection
     llm_provider: Literal["anthropic", "google"] = "anthropic"
     llm_max_tokens: int = 16000
+    # Fallback chain (llm.invoke_structured): per-HTTP-call timeout and the total budget
+    # of the whole chain. Keep the budget < backend AI_SERVICE_TIMEOUT_SECONDS.
+    llm_call_timeout_seconds: float = 25
+    llm_chain_budget_seconds: float = 45
 
     # Anthropic (Claude)
     anthropic_api_key: str | None = None

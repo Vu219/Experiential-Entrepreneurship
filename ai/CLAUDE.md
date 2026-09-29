@@ -30,7 +30,9 @@ ai/
     ├── llm.py               — LLM factory + routing: env default (cached) vs per-request
     │                           llm_config (ContextVar); invoke_structured() = the ONLY
     │                           way agents call the model (structured output + token usage
-    │                           + primary→fallback retry)
+    │                           + app-owned retry/fallback chain, SDK retries OFF)
+    ├── errors.py            — classify_error(): ONE provider-error classifier shared by the
+    │                           chain and test-connection (kinds → retry/fallback decisions)
     ├── model_catalog.py     — list provider models for admin "Cấu hình AI" sync
     ├── api/routes.py        — one endpoint per capability; internal-token guard
     ├── agents/
@@ -79,8 +81,8 @@ response = the domain response **plus `TokenAccounting`** fields (`tokens_used`,
   rollback path when the backend runs with `AI_CONFIG_FROM_DB=false`.
 - **DB-managed `llm_config`** — the backend injects `{primary, fallback}` specs (provider,
   model, api_key…) per request from its `ai_task_routing` table. Routes stash it in a
-  ContextVar (`use_llm_config`) so agent code never changes. `invoke_structured` tries the
-  primary and retries ONCE with the fallback on any failure.
+  ContextVar (`use_llm_config`) so agent code never changes. `invoke_structured` walks the
+  chain (primary → fallback) itself — see **Retry/fallback chain** below.
 - **Security (fail-closed):** any request carrying `llm_config`, plus `/test-connection` and
   `/list-models`, REQUIRES header `X-Internal-Token` == `AI_INTERNAL_TOKEN` (shared secret
   with the backend, compared with `secrets.compare_digest`). Token unset on this service ⇒
@@ -89,6 +91,20 @@ response = the domain response **plus `TokenAccounting`** fields (`tokens_used`,
 **`invoke_structured(schema, prompt, vars)`** is the single agent→LLM gateway: LangChain
 `with_structured_output(include_raw=True)` returns the typed pydantic result AND real token
 usage (`usage_metadata`, incl. cache reads) for the `TokenAccounting` response fields.
+
+**Retry/fallback chain (2026-09-29).** SDK retries are OFF (google-genai `attempts=1`,
+Anthropic `max_retries=0`; AFC disabled via `_GeminiChat`) — never re-enable them, they
+multiply calls (default was 6/model) and blow the backend timeout. Per `errors.classify_error`
+kind: `bad_request` stop · `invalid_key` skip the whole provider · `daily_quota_exhausted`
+next model (cooldown to 0:00 America/Los_Angeles) · `rate_limited` wait ≤5s once else next ·
+`provider_overloaded`/`network_error` one retry after ~1s then next · `invalid_response` next.
+Bounded by `LLM_CHAIN_BUDGET_SECONDS` (45) with `LLM_CALL_TIMEOUT_SECONDS` (25) per call —
+keep the budget below the backend's `AI_SERVICE_TIMEOUT_SECONDS` (90). Every step logs one
+line `llm[<req>] provider/model outcome action -> next <ms>`. Success responses carry
+`llm_attempts` (TokenAccounting); a failed chain → 502 `detail = {error_code, message,
+attempts}` with `error_code` ∈ AI_PROVIDER_OVERLOADED / AI_QUOTA_EXHAUSTED / AI_TIMEOUT /
+AI_BAD_REQUEST / AI_UNAVAILABLE. Model health (circuit breaker) is the BACKEND's job (Redis),
+fed by `attempts[].cooldown_until` — this service stays stateless.
 
 **Trend research pipeline** (`agents/trend_research.py`):
 1. `_collect_signal` fetches ALL sources **in parallel** (ThreadPoolExecutor): Facebook
@@ -135,6 +151,7 @@ amplifying noise. A failing/unsubscribed API is swallowed inside the connector (
 
 ```
 LLM_PROVIDER (anthropic|google), LLM_MAX_TOKENS (16000)
+LLM_CALL_TIMEOUT_SECONDS (25), LLM_CHAIN_BUDGET_SECONDS (45)   # chain limits, see §4
 ANTHROPIC_API_KEY, ANTHROPIC_MODEL (claude-sonnet-4-6)
 GOOGLE_API_KEY, GOOGLE_MODEL (gemini-2.5-pro)
 AI_SERVICE_HOST (0.0.0.0), AI_SERVICE_PORT (8000)
@@ -160,6 +177,7 @@ uv sync                                # install deps
 uv run uvicorn main:app --reload       # dev server on :8000 (hot reload)
 uv run python main.py                  # run (host/port from .env)
 uv run main.py                         # demo workflow (root CLAUDE.md)
+uv run pytest -q tests                 # unit tests (mocked providers, no network)
 ```
 
 **Backend integration.** The Spring backend reaches this service via `AI_SERVICE_BASE_URL`

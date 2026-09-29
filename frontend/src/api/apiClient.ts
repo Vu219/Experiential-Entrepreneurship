@@ -32,6 +32,8 @@ const client = axios.create({
 // để UI xử lý theo từng trường hợp. Vẫn là Error nên `.message` không đổi.
 export interface ApiError extends Error {
   code?: number;
+  /** Tên ErrorCode backend của job async thất bại (vd "AI_TIMEOUT") — không đến từ HTTP envelope. */
+  errorCode?: string;
 }
 
 client.interceptors.response.use(
