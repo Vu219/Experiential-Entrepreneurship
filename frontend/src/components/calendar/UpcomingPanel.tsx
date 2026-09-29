@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext.tsx';
 import { TONE_COLORS } from '../../statusTokens.ts';
 import type { PostSchedule, ScheduleStatus } from '../../api/schedules.ts';
 import { FILTERS, STATUS_TONE } from './statusMeta.ts';
-import AgendaView from './AgendaView.tsx';
+import ScheduleQueueList from './ScheduleQueueList.tsx';
 
 // Panel "Hàng đợi đăng bài" (cột phải, desktop/tablet — UI-07 redesign): pill tự động đăng,
 // banner lối vào trang Bài lỗi (chỉ hiện khi có bài lỗi — thẻ KPI "Thất bại" luôn là lối vào),
@@ -64,7 +64,23 @@ export function AutoPill({ count }: { count: number }) {
   );
 }
 
-export default function UpcomingPanel({ schedules, statusFilter, onStatusFilter, failedCount, onGoFailed, autoCount, selectedDay, onClearDay, busyId, confirmCancelId, onReschedule, onCancel, onEditContent }: {
+
+export default function UpcomingPanel({
+  schedules,
+  statusFilter,
+  onStatusFilter,
+  failedCount,
+  onGoFailed,
+  autoCount,
+  selectedDay,
+  onClearDay,
+  busyId,
+  confirmCancelId,
+  onReschedule,
+  onCancel,
+  onEditContent,
+  onSelectSchedule,
+}: {
   schedules: PostSchedule[];
   statusFilter: ScheduleStatus | 'ALL';
   onStatusFilter: (f: ScheduleStatus | 'ALL') => void;
@@ -78,35 +94,55 @@ export default function UpcomingPanel({ schedules, statusFilter, onStatusFilter,
   onReschedule: (s: PostSchedule) => void;
   onCancel: (s: PostSchedule) => void;
   onEditContent: () => void;
+  onSelectSchedule: (s: PostSchedule) => void;
 }) {
   const { t } = useApp();
   return (
-    <>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-        <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.schQueue}</div>
-        <AutoPill count={autoCount} />
-      </div>
-
-      {failedCount > 0 && (
-        <div style={{ marginBottom: 14 }}>
-          <FailedBanner count={failedCount} onClick={onGoFailed} />
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      {/* Header cố định của Hàng đợi (flex-shrink-0) */}
+      <div className="flex-shrink-0" style={{ flexShrink: 0, marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+          <div style={{ fontWeight: 800, fontSize: 16.5, color: '#211c38', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            {t.schQueue}
+          </div>
+          <AutoPill count={autoCount} />
         </div>
-      )}
 
-      <div style={{ marginBottom: 14 }}>
-        <StatusChips value={statusFilter} onChange={onStatusFilter} />
+        {failedCount > 0 && (
+          <div style={{ marginBottom: 10 }}>
+            <FailedBanner count={failedCount} onClick={onGoFailed} />
+          </div>
+        )}
+
+        <div>
+          <StatusChips value={statusFilter} onChange={onStatusFilter} />
+        </div>
       </div>
 
-      <AgendaView
-        schedules={schedules}
-        busyId={busyId}
-        confirmCancelId={confirmCancelId}
-        onReschedule={onReschedule}
-        onCancel={onCancel}
-        onEditContent={onEditContent}
-        selectedDay={selectedDay}
-        onClearDay={onClearDay}
-      />
-    </>
+      {/* Vùng danh sách bài viết cuộn nội bộ (flex-1 overflow-y-auto) */}
+      <div
+        className="flex-1 overflow-y-auto custom-scrollbar scrollbar-thin scrollbar-thumb-slate-200"
+        style={{
+          flex: '1 1 0%',
+          minHeight: 0,
+          overflowY: 'auto',
+          paddingRight: 6,
+          marginTop: 2,
+        }}
+      >
+        <ScheduleQueueList
+          schedules={schedules}
+          busyId={busyId}
+          confirmCancelId={confirmCancelId}
+          onReschedule={onReschedule}
+          onCancel={onCancel}
+          onEditContent={onEditContent}
+          selectedDay={selectedDay}
+          onClearDay={onClearDay}
+          onSelectSchedule={onSelectSchedule}
+        />
+      </div>
+    </div>
   );
 }
+

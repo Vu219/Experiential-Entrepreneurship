@@ -86,10 +86,36 @@ function Topbar({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen?: boolea
 
       {!isMobile && <PageHeading />}
       {!isMobile && (
-        <div style={{ flex: 1, minWidth: 140, display: 'flex', justifyContent: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f4f2fb', border: '1px solid #ece8f6', borderRadius: 12, padding: '9px 14px', flex: 1, maxWidth: sidebarOpen ? 440 : 600, transition: 'max-width .2s ease' }}>
-            <Search size={17} color="#a39bbf" strokeWidth={1.8} />
-            <input placeholder={t.searchPh} style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: '#241f3a', minWidth: 0 }} />
+        <div style={{ flex: '1 1 auto', minWidth: 260, display: 'flex', justifyContent: 'center' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              background: '#f4f2fb',
+              border: '1px solid #ece8f6',
+              borderRadius: 12,
+              padding: '9px 14px',
+              flex: '1 1 auto',
+              minWidth: 260,
+              maxWidth: sidebarOpen ? 460 : 600,
+              flexShrink: 0,
+              transition: 'max-width .2s ease',
+            }}
+          >
+            <Search size={17} color="#a39bbf" strokeWidth={1.8} style={{ flexShrink: 0 }} />
+            <input
+              placeholder={t.searchPh}
+              style={{
+                flex: 1,
+                border: 'none',
+                outline: 'none',
+                background: 'transparent',
+                fontSize: 14,
+                color: '#241f3a',
+                minWidth: 0,
+              }}
+            />
           </div>
         </div>
       )}

@@ -10,6 +10,7 @@ import SectionCard from '../../components/admin/SectionCard';
 import AiServiceStatusBadge from '../../components/admin/AiServiceStatusBadge';
 import AiStatusBanner from '../../components/admin/AiStatusBanner';
 import RouteHealthBadge, { ModelBlockHint } from '../../components/admin/RouteHealthBadge';
+import FallbackChainEditor from '../../components/admin/FallbackChainEditor';
 import Switch from '../../components/admin/Switch';
 import Pagination from '../../components/admin/Pagination';
 import { DataTable } from '../../components/admin/AdminListPage';
@@ -23,6 +24,7 @@ import {
   listAiModels,
   listAiProviders,
   listAiRouting,
+  modelBlockReason,
   updateAiModel,
   updateAiRouting,
   type AiCatalogModel,
@@ -65,17 +67,20 @@ const numOrNull = (s: string): number | null => (s.trim() === '' ? null : Number
 const MODELS_PAGE_SIZE = 10;
 
 /** Bản nháp một dòng định tuyến khi bật "Chỉnh nhanh" (số để dạng chuỗi cho input). */
-type RouteDraft = { primaryModelId: string; fallbackModelId: string; temp: string; maxTokens: string; enabled: boolean };
+type RouteDraft = { primaryModelId: string; fallbackModelIds: string[]; temp: string; maxTokens: string; enabled: boolean };
+/** Chuỗi dự phòng của routing theo thứ tự (dữ liệu cũ chưa có `fallbacks` → cột legacy). */
+const chainOf = (r: AiRoutingInfo): string[] =>
+  r.fallbacks?.length ? r.fallbacks.map((f) => f.modelId) : r.fallbackModelId ? [r.fallbackModelId] : [];
 const toDraft = (r: AiRoutingInfo): RouteDraft => ({
   primaryModelId: r.primaryModelId,
-  fallbackModelId: r.fallbackModelId ?? '',
+  fallbackModelIds: chainOf(r),
   temp: r.temperature != null ? String(r.temperature) : '',
   maxTokens: r.maxTokens != null ? String(r.maxTokens) : '',
   enabled: r.enabled,
 });
 const routeDirty = (r: AiRoutingInfo, d: RouteDraft): boolean =>
   d.primaryModelId !== r.primaryModelId
-  || (d.fallbackModelId || null) !== (r.fallbackModelId ?? null)
+  || d.fallbackModelIds.join() !== chainOf(r).join()
   || numOrNull(d.temp) !== (r.temperature ?? null)
   || numOrNull(d.maxTokens) !== (r.maxTokens ?? null)
   || d.enabled !== r.enabled;
@@ -112,7 +117,7 @@ export default function AiModels() {
   // Modal routing
   const [editingRoute, setEditingRoute] = useState<AiRoutingInfo | null>(null);
   const [rPrimary, setRPrimary] = useState('');
-  const [rFallback, setRFallback] = useState('');
+  const [rFallbacks, setRFallbacks] = useState<string[]>([]);
   const [rTemp, setRTemp] = useState('');
   const [rMaxTokens, setRMaxTokens] = useState('');
   const [rEnabled, setREnabled] = useState(true);
@@ -238,7 +243,7 @@ export default function AiModels() {
   const openEditRoute = (r: AiRoutingInfo) => {
     setEditingRoute(r);
     setRPrimary(r.primaryModelId);
-    setRFallback(r.fallbackModelId ?? '');
+    setRFallbacks(chainOf(r));
     setRTemp(r.temperature != null ? String(r.temperature) : '');
     setRMaxTokens(r.maxTokens != null ? String(r.maxTokens) : '');
     setREnabled(r.enabled);
@@ -251,7 +256,7 @@ export default function AiModels() {
     setModalError(null);
     updateAiRouting(editingRoute.id, {
       primaryModelId: rPrimary,
-      fallbackModelId: rFallback || null,
+      fallbackModelIds: rFallbacks,
       temperature: numOrNull(rTemp),
       maxTokens: numOrNull(rMaxTokens),
       enabled: rEnabled,
@@ -281,26 +286,26 @@ export default function AiModels() {
   const toggleSelect = (id: string) =>
     setSelected((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
-  /** Bulk: đặt model chính cho các hàng đã chọn; nếu dự phòng trùng model mới thì xóa dự phòng. */
+  /** Bulk: đặt model chính cho các hàng đã chọn; model đó bị bỏ khỏi chuỗi dự phòng của hàng. */
   const applyBulkPrimary = () => {
     if (!bulkPrimary) return;
     setDraft((prev) => {
       const next = { ...prev };
       selected.forEach((id) => {
         const d = next[id]; if (!d) return;
-        next[id] = { ...d, primaryModelId: bulkPrimary, fallbackModelId: d.fallbackModelId === bulkPrimary ? '' : d.fallbackModelId };
+        next[id] = { ...d, primaryModelId: bulkPrimary, fallbackModelIds: d.fallbackModelIds.filter((x) => x !== bulkPrimary) };
       });
       return next;
     });
   };
-  /** Bulk: đặt dự phòng ('' = Không dùng); bỏ qua hàng có model chính trùng model dự phòng mới. */
+  /** Bulk: thay CẢ chuỗi dự phòng bằng một model ('' = Không dùng); bỏ qua hàng có model chính trùng. */
   const applyBulkFallback = () => {
     setDraft((prev) => {
       const next = { ...prev };
       selected.forEach((id) => {
         const d = next[id]; if (!d) return;
         if (bulkFallback && d.primaryModelId === bulkFallback) return;
-        next[id] = { ...d, fallbackModelId: bulkFallback };
+        next[id] = { ...d, fallbackModelIds: bulkFallback ? [bulkFallback] : [] };
       });
       return next;
     });
@@ -316,7 +321,7 @@ export default function AiModels() {
         const d = draft[r.id];
         return updateAiRouting(r.id, {
           primaryModelId: d.primaryModelId,
-          fallbackModelId: d.fallbackModelId || null,
+          fallbackModelIds: d.fallbackModelIds,
           temperature: numOrNull(d.temp),
           maxTokens: numOrNull(d.maxTokens),
           enabled: d.enabled,
@@ -374,10 +379,9 @@ export default function AiModels() {
     ? filteredModels.slice((mPage - 1) * MODELS_PAGE_SIZE, mPage * MODELS_PAGE_SIZE)
     : filteredModels;
 
-  // Trần max tokens cho modal routing: min giữa trần model chính & dự phòng (nếu khai)
-  const rPrimaryModel = models.find((m) => m.id === rPrimary);
-  const rFallbackModel = models.find((m) => m.id === rFallback);
-  const rCaps = [rPrimaryModel?.maxTokens, rFallbackModel?.maxTokens].filter((v): v is number => v != null);
+  // Trần max tokens cho modal routing: min giữa trần model chính & cả chuỗi dự phòng (nếu khai)
+  const capOf = (id: string) => models.find((m) => m.id === id)?.maxTokens;
+  const rCaps = [rPrimary, ...rFallbacks].map(capOf).filter((v): v is number => v != null);
   const rCap = rCaps.length ? Math.min(...rCaps) : null;
   const rMaxTokensNum = numOrNull(rMaxTokens);
   const rCapExceeded = rCap != null && rMaxTokensNum != null && rMaxTokensNum > rCap;
@@ -404,10 +408,9 @@ export default function AiModels() {
     }
     return enabledModels;
   };
-  // Trần max tokens một hàng nháp = min giữa trần model chính & dự phòng (nếu khai)
+  // Trần max tokens một hàng nháp = min giữa trần model chính & cả chuỗi dự phòng (nếu khai)
   const rowCap = (d: RouteDraft): number | null => {
-    const caps = [models.find((m) => m.id === d.primaryModelId)?.maxTokens, models.find((m) => m.id === d.fallbackModelId)?.maxTokens]
-      .filter((v): v is number => v != null);
+    const caps = [d.primaryModelId, ...d.fallbackModelIds].map(capOf).filter((v): v is number => v != null);
     return caps.length ? Math.min(...caps) : null;
   };
 
@@ -519,7 +522,7 @@ export default function AiModels() {
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       <select
                         value={d.primaryModelId}
-                        onChange={(e) => patchDraft(r.id, { primaryModelId: e.target.value, fallbackModelId: d.fallbackModelId === e.target.value ? '' : d.fallbackModelId })}
+                        onChange={(e) => patchDraft(r.id, { primaryModelId: e.target.value, fallbackModelIds: d.fallbackModelIds.filter((x) => x !== e.target.value) })}
                         style={miniSelect}
                       >
                         {routeModelOptions(d.primaryModelId).map((m) => <option key={m.id} value={m.id}>{modelLabel(m)}</option>)}
@@ -528,13 +531,14 @@ export default function AiModels() {
                     </div>
                   </td>
                   <td style={editCell}>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <select value={d.fallbackModelId} onChange={(e) => patchDraft(r.id, { fallbackModelId: e.target.value })} style={miniSelect}>
-                        <option value="">{t.aiNoFallback}</option>
-                        {routeModelOptions(d.fallbackModelId).filter((m) => m.id !== d.primaryModelId).map((m) => <option key={m.id} value={m.id}>{modelLabel(m)}</option>)}
-                      </select>
-                      <ModelBlockHint reason={rs?.fallbackBlockReason ?? null} />
-                    </div>
+                    <FallbackChainEditor
+                      compact
+                      value={d.fallbackModelIds}
+                      onChange={(ids) => patchDraft(r.id, { fallbackModelIds: ids })}
+                      primaryId={d.primaryModelId}
+                      models={models}
+                      providers={providers}
+                    />
                   </td>
                   <td style={editCell}>
                     <input type="number" min={0} max={2} step="0.1" value={d.temp} onChange={(e) => patchDraft(r.id, { temp: e.target.value })} placeholder={t.aiProviderDefault} style={miniInput} />
@@ -560,15 +564,22 @@ export default function AiModels() {
                   <div style={{ fontSize: 11.5, color: '#a59fbb' }}>{r.primaryProviderCode}</div>
                 </td>
                 <td style={tdStyle}>
-                  {r.fallbackModelCode
+                  {chainOf(r).length > 0
                     ? (
-                      <>
-                        <div style={{ fontFamily: 'monospace', fontSize: 13 }}>
-                          {r.fallbackModelCode}
-                          <ModelBlockHint reason={rs?.fallbackBlockReason ?? null} />
-                        </div>
-                        <div style={{ fontSize: 11.5, color: '#a59fbb' }}>{r.fallbackProviderCode}</div>
-                      </>
+                      <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {chainOf(r).map((id, i) => {
+                          const m = models.find((x) => x.id === id);
+                          const reason = m ? modelBlockReason(m, providers) : 'MODEL_DELETED';
+                          return (
+                            <li key={id} style={{ fontFamily: 'monospace', fontSize: 13, opacity: reason ? 0.55 : 1 }}>
+                              <span style={{ color: '#a59fbb', fontSize: 11.5 }}>{i + 1}. </span>
+                              {m?.modelCode ?? r.fallbacks?.[i]?.modelCode ?? id}
+                              <span style={{ fontSize: 11.5, color: '#a59fbb' }}> · {m?.providerCode ?? r.fallbacks?.[i]?.providerCode}</span>
+                              <ModelBlockHint reason={reason} />
+                            </li>
+                          );
+                        })}
+                      </ol>
                     )
                     : <span style={{ color: '#a59fbb' }}>{t.aiNoFallback}</span>}
                 </td>
@@ -693,23 +704,20 @@ export default function AiModels() {
 
       {/* ===== Modal sửa định tuyến ===== */}
       {editingRoute && (
-        <Modal title={`${t.aiRoutingTitle} · ${aiTaskLabel(lang, editingRoute.taskCode)}`} maxWidth={460} onClose={() => setEditingRoute(null)}>
+        <Modal title={`${t.aiRoutingTitle} · ${aiTaskLabel(lang, editingRoute.taskCode)}`} maxWidth={520} onClose={() => setEditingRoute(null)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {modalError && (
               <div style={{ padding: '10px 14px', borderRadius: 8, background: '#fee2e2', color: '#dc2626', fontSize: 13, fontWeight: 600 }}>{modalError}</div>
             )}
             <div>
               <label style={labelStyle}>{t.aiColPrimary}</label>
-              <select value={rPrimary} onChange={(e) => setRPrimary(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+              <select value={rPrimary} onChange={(e) => { setRPrimary(e.target.value); setRFallbacks((prev) => prev.filter((x) => x !== e.target.value)); }} style={{ ...inputStyle, cursor: 'pointer' }}>
                 {enabledModels.map((m) => <option key={m.id} value={m.id}>{modelLabel(m)}</option>)}
               </select>
             </div>
             <div>
               <label style={labelStyle}>{t.aiColFallback}</label>
-              <select value={rFallback} onChange={(e) => setRFallback(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
-                <option value="">{t.aiNoFallback}</option>
-                {enabledModels.filter((m) => m.id !== rPrimary).map((m) => <option key={m.id} value={m.id}>{modelLabel(m)}</option>)}
-              </select>
+              <FallbackChainEditor value={rFallbacks} onChange={setRFallbacks} primaryId={rPrimary} models={models} providers={providers} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>

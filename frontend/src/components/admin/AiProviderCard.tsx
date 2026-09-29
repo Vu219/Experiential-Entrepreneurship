@@ -1,20 +1,26 @@
 import { type CSSProperties } from 'react';
-import { AlertTriangle, KeyRound, PlugZap, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CreditCard, KeyRound, PlugZap, RefreshCw, RotateCcw, Timer } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Card, Icon } from '../ui';
 import StatusBadge, { type Tone } from './StatusBadge';
 import Switch from './Switch';
 import { TONE_COLORS } from '../../statusTokens';
 import { providerVisual } from '../../pages/admin/aiProviderRegistry';
-import { fmtAiDateTime, type AiProviderInfo } from '../../api/adminAi';
+import {
+  aiFreeTierText, aiModelHealthLabel, aiModelHealthText, aiTestStatusText, aiTestTone, fmtAiDateTime,
+  type AiModelHealth, type AiProviderInfo,
+} from '../../api/adminAi';
 
-export type ProviderStatus = 'connected' | 'error' | 'pending' | 'nokey';
+/** limited = key hợp lệ nhưng nhà cung cấp tạm từ chối (quá tải / hết quota / rate limit) — vàng, KHÔNG đỏ. */
+export type ProviderStatus = 'connected' | 'limited' | 'error' | 'pending' | 'nokey';
 
 /** Trạng thái kết nối suy ra từ dữ liệu THẬT của provider (không có latency/expiry persisted). */
 export function providerStatus(p: AiProviderInfo): ProviderStatus {
   if (!p.apiKeyMasked) return 'nokey';
-  if (p.lastTestStatus === 'FAILED') return 'error';
-  if (p.lastTestStatus === 'SUCCESS' || p.modelCatalogSyncedAt) return 'connected';
+  const tone = aiTestTone(p.lastTestStatus);
+  if (tone === 'error') return 'error';
+  if (tone === 'limited') return 'limited';
+  if (tone === 'ok' || p.modelCatalogSyncedAt) return 'connected';
   return 'pending';
 }
 
@@ -28,28 +34,39 @@ const mK: CSSProperties = { fontSize: 10.5, fontWeight: 700, letterSpacing: '.04
 const mV: CSSProperties = { fontSize: 13.5, fontWeight: 700, color: '#2b2543', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
 const keyRowStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 11px', borderRadius: 10, background: '#f5f3fc', border: '1px solid #efeaf8', minWidth: 0 };
 const ribbonErr: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600, lineHeight: 1.35, padding: '8px 11px', borderRadius: 10, color: '#dc2626', background: '#fde8e8', border: '1px solid #f4cccc' };
+const ribbonWarn: CSSProperties = { ...ribbonErr, color: '#b45309', background: '#fdf6ea', border: '1px solid #f6e2c2' };
+const healthBox: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 7, padding: '9px 11px', borderRadius: 10, background: '#fdf6ea', border: '1px solid #f6e2c2' };
 const actBtn: CSSProperties = { border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '7px 10px', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, flex: 1, minWidth: 92 };
 
 export default function AiProviderCard({
-  provider, testing, syncing, busyToggle, onEdit, onTest, onSync, onToggle,
+  provider, testing, syncing, busyToggle, health, resetting, onEdit, onTest, onSync, onToggle, onResetHealth,
 }: {
   provider: AiProviderInfo;
   testing: boolean;
   syncing: boolean;
   busyToggle: boolean;
+  /** Các model của provider đang bị circuit breaker cho nghỉ. */
+  health: AiModelHealth[];
+  resetting: boolean;
+  onResetHealth: (p: AiProviderInfo) => void;
   onEdit: (p: AiProviderInfo) => void;
   onTest: (p: AiProviderInfo) => void;
   onSync: (p: AiProviderInfo) => void;
   onToggle: (p: AiProviderInfo, next: boolean) => void;
 }) {
-  const { t } = useApp();
+  const { t, lang } = useApp();
+  const hx = aiModelHealthText(lang);
+  const fx = aiFreeTierText(lang);
+  const freeTier = !!provider.freeTierDetectedAt;
+  const testText = provider.lastTestStatus ? aiTestStatusText(lang, provider.lastTestStatus, freeTier) : null;
   const v = providerVisual(provider.code);
   const status = providerStatus(provider);
   const noKey = !provider.apiKeyMasked;
 
   const meta: Record<ProviderStatus, { tone: Tone; label: string }> = {
     connected: { tone: 'success', label: t.aiStatusConnected },
-    error: { tone: 'danger', label: t.aiTestFail },
+    limited: { tone: 'warning', label: testText?.badge ?? t.aiStatusConnected },
+    error: { tone: 'danger', label: testText?.badge ?? t.aiTestFail },
     pending: { tone: 'info', label: t.aiStatusPending },
     nokey: { tone: 'warning', label: t.aiNoKey },
   };
@@ -86,10 +103,27 @@ export default function AiProviderCard({
         {provider.lastTestedAt && <span style={{ fontSize: 11.5, color: '#a59fbb' }}>{fmtAiDateTime(provider.lastTestedAt)}</span>}
       </div>
 
-      {status === 'error' && (
-        <div style={ribbonErr}>
+      {/* Đỏ chỉ khi key sai / không kết nối được; quá tải / hết quota = vàng (key vẫn hợp lệ) */}
+      {(status === 'error' || status === 'limited') && (
+        <div style={status === 'error' ? ribbonErr : ribbonWarn}>
           <AlertTriangle size={14} strokeWidth={2.2} style={{ flex: 'none' }} />
-          <span>{t.aiTestFail}{provider.lastTestedAt ? ` · ${fmtAiDateTime(provider.lastTestedAt)}` : ''}</span>
+          <span>{testText?.detail ?? t.aiTestFail}{provider.lastTestedAt ? ` · ${fmtAiDateTime(provider.lastTestedAt)}` : ''}</span>
+        </div>
+      )}
+
+      {/* Từng gặp 429 FreeTier — khuyên bật billing; nút reset xoá cờ (kể cả khi không còn model nào đang nghỉ) */}
+      {freeTier && (
+        <div style={{ ...healthBox, background: '#fdf1dd', borderColor: '#f3d9a8' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 12.5, fontWeight: 600, color: '#92400e', lineHeight: 1.4 }}>
+            <CreditCard size={14} strokeWidth={2.2} style={{ flex: 'none', marginTop: 2 }} />
+            <span>{fx.banner}</span>
+          </div>
+          <div style={{ fontSize: 11.5, color: '#a16207' }}>{fx.since(fmtAiDateTime(provider.freeTierDetectedAt))}</div>
+          {health.length === 0 && (
+            <button onClick={() => onResetHealth(provider)} disabled={resetting} style={{ ...opBtn(resetting, resetting), flex: 'none', alignSelf: 'flex-start' }}>
+              <Icon icon={RotateCcw} size={14} stroke="#b45309" />{resetting ? t.processing : hx.reset}
+            </button>
+          )}
         </div>
       )}
 
@@ -99,6 +133,25 @@ export default function AiProviderCard({
         <div style={metricCell}><span style={mK}>{t.aiMetricSynced}</span><span style={mV}>{provider.modelCatalogSyncedAt ? fmtAiDateTime(provider.modelCatalogSyncedAt) : '—'}</span></div>
         <div style={metricCell}><span style={mK}>{t.aiColTask}</span><span style={mV}>{provider.dependentTaskCount || '—'}</span></div>
       </div>
+
+      {/* Model đang tạm nghỉ (circuit breaker) + nút reset (vd sau khi bật billing) */}
+      {health.length > 0 && (
+        <div style={healthBox}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#b45309' }}>
+            <Timer size={13} strokeWidth={2.2} style={{ flex: 'none' }} />{hx.title}
+          </div>
+          {health.map((h) => (
+            <div key={h.model} style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+              <code style={{ fontFamily: 'monospace', fontSize: 12, color: '#3f3a55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.model}</code>
+              <span style={{ fontSize: 12, color: '#92400e' }}>{aiModelHealthLabel(lang, h)}</span>
+            </div>
+          ))}
+          <div style={{ fontSize: 11.5, color: '#a16207' }}>{hx.hint}</div>
+          <button onClick={() => onResetHealth(provider)} disabled={resetting} style={{ ...opBtn(resetting, resetting), flex: 'none', alignSelf: 'flex-start' }}>
+            <Icon icon={RotateCcw} size={14} stroke="#b45309" />{resetting ? t.processing : hx.reset}
+          </button>
+        </div>
+      )}
 
       {/* Masked key hoặc cảnh báo chưa có key */}
       {provider.apiKeyMasked ? (

@@ -30,8 +30,10 @@ from ..agents import (
     trend_research,
 )
 from ..config import get_settings
-from ..llm import LlmChainError, build_llm, use_llm_config
+from .. import errors
+from ..llm import LlmChainError, use_llm_config
 from ..model_catalog import list_models
+from ..model_catalog import probe as probe_models
 from ..schemas import (
     AnalyzeRequest,
     AnalyzeResult,
@@ -44,7 +46,6 @@ from ..schemas import (
     ListModelsRequest,
     ListModelsResult,
     LlmConfig,
-    LlmSpec,
     OptimizeRequest,
     OptimizeResult,
     RegeneratePartRequest,
@@ -162,30 +163,41 @@ def golden_hours(
 def test_connection(
     req: TestConnectionRequest,
 ) -> TestConnectionResult:
-    """Admin "Cấu hình AI": verify a provider API key with one minimal model call.
+    """Admin "Cấu hình AI": verify a provider API key WITHOUT generating anything —
+    Gemini ``GET /v1beta/models``, Anthropic ``GET /v1/models`` (one item).
 
+    The failure is classified by the SAME ``errors.classify_error`` as the model chain, so a
+    429/503 reads "key valid, provider busy/out of quota" instead of "connection failed".
     A wrong/expired key is a RESULT (success=False + redacted message), not a 5xx.
     """
 
-    spec = LlmSpec(
-        provider=req.provider,
-        model=req.model,
-        api_key=req.api_key,
-        max_tokens=16,  # minimal probe — keep the test call as cheap as possible
-    )
     start = time.perf_counter()
     try:
-        build_llm(spec).invoke("ping")
+        probe_models(req.provider, req.api_key.get_secret_value())
         latency_ms = int((time.perf_counter() - start) * 1000)
-        return TestConnectionResult(success=True, latency_ms=latency_ms)
+        return TestConnectionResult(success=True, status="OK", latency_ms=latency_ms)
     except Exception as e:  # noqa: BLE001 — every provider failure becomes a result
         latency_ms = int((time.perf_counter() - start) * 1000)
-        logger.warning("test-connection %s/%s failed: %s", req.provider, req.model, type(e).__name__)
+        info = errors.classify_error(e)
+        status = _TEST_STATUS.get(info.kind, "FAILED")
+        logger.warning("test-connection %s %s (%s)", req.provider, status, info.http_status or type(e).__name__)
         return TestConnectionResult(
             success=False,
+            status=status,
+            free_tier=info.free_tier,
             message=_redact(str(e), req.api_key.get_secret_value()),
             latency_ms=latency_ms,
         )
+
+
+# errors kind → backend AiTestStatus. bad_request / invalid_response → "FAILED".
+_TEST_STATUS = {
+    errors.INVALID_KEY: "INVALID_KEY",
+    errors.RATE_LIMITED: "RATE_LIMITED",
+    errors.DAILY_QUOTA_EXHAUSTED: "DAILY_QUOTA_EXHAUSTED",
+    errors.PROVIDER_OVERLOADED: "PROVIDER_OVERLOADED",
+    errors.NETWORK_ERROR: "NETWORK_ERROR",
+}
 
 
 def _redact(message: str, api_key: str) -> str:

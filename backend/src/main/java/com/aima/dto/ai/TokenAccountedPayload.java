@@ -16,4 +16,7 @@ public interface TokenAccountedPayload {
 
     /** Phần input đọc từ prompt cache (0/null nếu provider không báo). */
     Long getCachedTokens();
+
+    /** Vết từng model đã thử (llm_attempts) — null với AI service bản cũ. */
+    java.util.List<LlmAttemptPayload> getLlmAttempts();
 }

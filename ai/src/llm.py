@@ -55,6 +55,7 @@ MAX_RATE_LIMIT_WAIT_SECONDS = 5.0  # 429 with a longer retryDelay => next model 
 OVERLOAD_COOLDOWN_SECONDS = 60     # circuit-breaker hint for 5xx
 RATE_LIMIT_COOLDOWN_SECONDS = 60   # hint for 429 without retryDelay
 MIN_CALL_SECONDS = 2.0             # don't start a call with less budget than this
+MAX_BAD_REQUEST_FALLBACKS = 1      # 400 → at most one other model, then AI_BAD_REQUEST
 
 # Final error codes of a failed chain (mirrored by backend ErrorCode).
 AI_PROVIDER_OVERLOADED = "AI_PROVIDER_OVERLOADED"
@@ -183,7 +184,7 @@ def invoke_structured(
     """Run ``prompt`` through the model chain and return (typed result, token usage).
 
     Chain = per-request config (primary, fallback) or the env default alone. Per model:
-    - bad_request            → stop (the request itself is wrong; no fallback)
+    - bad_request            → next model ONCE; a second 400 stops (AI_BAD_REQUEST)
     - invalid_key            → skip every remaining model of that provider
     - daily_quota_exhausted  → next model (cooldown hint until the Pacific-midnight reset)
     - rate_limited           → wait retryDelay once if ≤5s, else next model
@@ -200,6 +201,7 @@ def invoke_structured(
     deadline = started + settings.llm_chain_budget_seconds
     attempts: List[LlmAttempt] = []
     dead_providers: set[str] = set()
+    bad_requests = 0
 
     for i, spec in enumerate(chain):
         if spec.provider in dead_providers:
@@ -226,7 +228,9 @@ def invoke_structured(
             except Exception as e:  # noqa: BLE001 — every failure is classified below
                 info = errors.classify_error(e)
                 attempts.append(_attempt(spec, info, t0))
-                action = _next_action(info, retried, deadline)
+                action = _next_action(info, retried, deadline, bad_requests)
+                if info.kind == errors.BAD_REQUEST:
+                    bad_requests += 1
                 nxt = _next_spec(chain, i, dead_providers | (
                     {spec.provider} if info.kind == errors.INVALID_KEY else set()))
                 _log_step(request_id, spec, info.kind, action, started,
@@ -252,10 +256,12 @@ def invoke_structured(
     raise LlmChainError(_final_error_code(attempts), attempts)
 
 
-def _next_action(info: errors.ErrorInfo, retried: bool, deadline: float) -> str:
+def _next_action(info: errors.ErrorInfo, retried: bool, deadline: float, bad_requests: int) -> str:
     """"stop" | "retry" | "fallback" for one classified failure."""
     if info.kind == errors.BAD_REQUEST:
-        return "stop"
+        # A 400 can be model-specific (unsupported schema/param) → try ONE other model;
+        # a second 400 means the request itself is wrong.
+        return "stop" if bad_requests >= MAX_BAD_REQUEST_FALLBACKS else "fallback"
     if retried:
         return "fallback"
     if info.kind in (errors.PROVIDER_OVERLOADED, errors.NETWORK_ERROR):
@@ -303,6 +309,8 @@ def _final_error_code(attempts: List[LlmAttempt]) -> str:
         return AI_QUOTA_EXHAUSTED
     if kinds and kinds <= {errors.NETWORK_ERROR}:
         return AI_TIMEOUT
+    if kinds == {errors.BAD_REQUEST}:
+        return AI_BAD_REQUEST  # 400 then end of chain
     return AI_UNAVAILABLE
 
 

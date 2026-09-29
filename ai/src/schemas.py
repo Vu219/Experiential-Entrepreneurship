@@ -52,11 +52,24 @@ class LlmConfig(BaseModel):
     """
 
     primary: LlmSpec
+    # Legacy single fallback (backend before the multi-model chain). The new backend sends
+    # BOTH (fallback = fallbacks[0]); `fallbacks` wins whenever it is non-empty.
     fallback: Optional[LlmSpec] = None
+    # Ordered fallback chain (ai_task_routing_fallback.position), already stripped of
+    # models the backend's circuit breaker is resting.
+    fallbacks: List[LlmSpec] = Field(default_factory=list)
 
     def chain(self) -> List[LlmSpec]:
-        """Models to try, in order: primary, then fallback."""
-        return [self.primary, *([self.fallback] if self.fallback else [])]
+        """Models to try, in order: primary, then fallbacks (or the legacy fallback).
+        A model listed twice is tried once (first position wins)."""
+        rest = self.fallbacks or ([self.fallback] if self.fallback else [])
+        chain: List[LlmSpec] = []
+        seen: set[tuple[str, str]] = set()
+        for spec in (self.primary, *rest):
+            if (spec.provider, spec.model) not in seen:
+                seen.add((spec.provider, spec.model))
+                chain.append(spec)
+        return chain
 
 
 class LlmAttempt(BaseModel):
@@ -528,17 +541,24 @@ class GoldenHourResponse(BaseModel):
 
 
 class TestConnectionRequest(BaseModel):
-    """Mirrors backend dto/ai/TestConnectionPayload. Always requires the internal token."""
+    """Mirrors backend dto/ai/TestConnectionPayload. Always requires the internal token.
+    ``model`` is kept for payload compatibility; the probe lists models (no generation)."""
 
     provider: Literal["anthropic", "google"]
-    model: str
+    model: Optional[str] = None
     api_key: SecretStr
 
 
 class TestConnectionResult(BaseModel):
-    """A wrong/expired key is a RESULT (success=False + redacted message), not an HTTP error."""
+    """A wrong/expired key is a RESULT (success=False + redacted message), not an HTTP error.
+
+    ``status`` (backend AiTestStatus): OK | INVALID_KEY | RATE_LIMITED | DAILY_QUOTA_EXHAUSTED |
+    PROVIDER_OVERLOADED | NETWORK_ERROR | FAILED (anything else). Quota/overload mean the KEY
+    is valid. ``success`` = status == OK (kept for older backends)."""
 
     success: bool
+    status: str = "OK"
+    free_tier: bool = False
     message: Optional[str] = None
     latency_ms: Optional[int] = None
 

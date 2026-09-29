@@ -12,6 +12,7 @@ import Pagination from '../../components/admin/Pagination';
 import { DataTable } from '../../components/admin/AdminListPage';
 import {
   aiAuditActionLabel,
+  aiFallbackText,
   aiTaskLabel,
   fmtAiDateTime,
   getAiAudit,
@@ -174,7 +175,13 @@ export default function AiUsage() {
                   <td style={tdMuted}>{fmtAiDateTime(r.createdAt)}</td>
                   <td style={tdStyle}>{r.userEmail ?? t.aiSystemActor}</td>
                   <td style={tdStyle}>{aiTaskLabel(lang, r.taskCode)}</td>
-                  <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 13 }}>{r.modelCode}</td>
+                  <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 13 }}>
+                    {r.modelCode}
+                    {/* Model dự phòng đã trả lời thay model chính — chi phí tính theo model này */}
+                    {r.routedModelCode && r.routedModelCode !== r.modelCode && (
+                      <div style={{ fontSize: 11.5, color: '#b45309', fontFamily: 'inherit' }}>{aiFallbackText(lang).answeredBy(r.routedModelCode)}</div>
+                    )}
+                  </td>
                   <td style={tdStyle}>{fmtTokens(r.totalTokens)}</td>
                   <td style={tdMuted}>{fmtUsd(r.estimatedCost)}</td>
                 </tr>

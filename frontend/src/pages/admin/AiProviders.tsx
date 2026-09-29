@@ -10,8 +10,9 @@ import AiStatusBanner from '../../components/admin/AiStatusBanner';
 import AiProviderCard, { providerStatus, type ProviderStatus } from '../../components/admin/AiProviderCard';
 import { useToast } from '../../components/toast/ToastProvider';
 import {
-  getAiStatus, listAiProviders, syncAiProviderModels, testAiProvider, updateAiProvider, fmtAiDateTime,
-  type AiEffectiveStatus, type AiProviderInfo, type AiTestResult,
+  getAiStatus, listAiModelHealth, listAiProviders, resetAiModelHealth, syncAiProviderModels, testAiProvider,
+  updateAiProvider, fmtAiDateTime, aiModelHealthText, aiTestStatusText, aiTestTone,
+  type AiEffectiveStatus, type AiModelHealth, type AiProviderInfo, type AiTestResult,
 } from '../../api/adminAi';
 import PageContainer from '../../components/PageContainer';
 
@@ -37,18 +38,20 @@ const addHint: CSSProperties = {
   background: 'transparent', border: '1px dashed #ded7ee', borderRadius: 8, padding: '6px 10px', cursor: 'not-allowed',
 };
 
-type FilterKey = 'all' | 'connected' | 'error' | 'pending' | 'nokey' | 'off';
+type FilterKey = 'all' | 'connected' | 'limited' | 'error' | 'pending' | 'nokey' | 'off';
 type SortKey = 'status' | 'name' | 'models' | 'synced';
-const STATUS_RANK: Record<ProviderStatus, number> = { connected: 0, pending: 1, nokey: 2, error: 3 };
+const STATUS_RANK: Record<ProviderStatus, number> = { connected: 0, pending: 1, limited: 2, nokey: 3, error: 4 };
 
 export default function AiProviders() {
-  const { t, brandGradient } = useApp();
+  const { t, lang, brandGradient } = useApp();
   const toast = useToast();
   const [load, setLoad] = useState<'loading' | 'error' | 'ok'>('loading');
   const [rows, setRows] = useState<AiProviderInfo[]>([]);
   const [status, setStatus] = useState<AiEffectiveStatus | null>(null);
   const [testing, setTesting] = useState<Set<string>>(new Set());
   const [syncing, setSyncing] = useState<Set<string>>(new Set());
+  const [health, setHealth] = useState<AiModelHealth[]>([]);
+  const [resetting, setResetting] = useState<Set<string>>(new Set());
   const [bulk, setBulk] = useState(false);
 
   // Toolbar (chỉ hiện khi > 4 provider)
@@ -72,6 +75,8 @@ export default function AiProviders() {
     Promise.all([listAiProviders(), getAiStatus()])
       .then(([r, s]) => { setRows(r); setStatus(s); setLoad('ok'); })
       .catch(() => setLoad('error'));
+    // Trạng thái model là phụ — lỗi (vd Redis) không được làm hỏng trang.
+    listAiModelHealth().then(setHealth).catch(() => setHealth([]));
   };
   useEffect(fetchProviders, []);
 
@@ -97,8 +102,11 @@ export default function AiProviders() {
     mark(setTesting, p.id, true);
     testAiProvider(p.id)
       .then((r) => {
-        if (r.status === 'SUCCESS') toast.success(`${t.aiTestOk}${r.latencyMs != null ? ` · ${r.latencyMs}ms` : ''}`);
-        else toast.error(r.message || t.aiTestFail, { title: t.aiTestFail });
+        const tone = aiTestTone(r.status);
+        const text = aiTestStatusText(lang, r.status, r.freeTier || !!p.freeTierDetectedAt);
+        if (tone === 'ok') toast.success(`${t.aiTestOk}${r.latencyMs != null ? ` · ${r.latencyMs}ms` : ''}`);
+        else if (tone === 'limited') toast.warning(text.detail, { title: text.badge });
+        else toast.error(r.status === 'FAILED' && r.message ? r.message : text.detail, { title: text.badge });
         fetchProviders();
       })
       .catch((e: Error) => toast.error(e.message))
@@ -111,6 +119,17 @@ export default function AiProviders() {
       .then((updated) => { replaceRow(updated); toast.success(t.aiSyncOk); })
       .catch((e: Error) => toast.error(e.message))
       .finally(() => mark(setSyncing, p.id, false));
+  };
+
+  const runResetHealth = (p: AiProviderInfo) => {
+    mark(setResetting, p.id, true);
+    resetAiModelHealth(p.id)
+      .then((n) => {
+        toast.success(aiModelHealthText(lang).resetDone(n));
+        listAiModelHealth().then(setHealth).catch(() => {});
+      })
+      .catch((e: Error) => toast.error(e.message))
+      .finally(() => mark(setResetting, p.id, false));
   };
 
   const setEnabled = (p: AiProviderInfo, enabled: boolean) => {
@@ -143,7 +162,7 @@ export default function AiProviders() {
     setBulk(true); setTesting(new Set(targets.map((p) => p.id)));
     Promise.allSettled(targets.map((p) => testAiProvider(p.id)))
       .then((res) => {
-        const ok = res.filter((r) => r.status === 'fulfilled' && (r.value as AiTestResult).status === 'SUCCESS').length;
+        const ok = res.filter((r) => r.status === 'fulfilled' && aiTestTone((r.value as AiTestResult).status) === 'ok').length;
         toast.success(t.aiTestAllDone.replace('{n}', String(ok)));
         fetchProviders();
       })
@@ -185,6 +204,7 @@ export default function AiProviders() {
   const FILTERS: { key: FilterKey; label: string }[] = [
     { key: 'all', label: t.filterAll },
     { key: 'connected', label: t.aiStatusConnected },
+    { key: 'limited', label: lang === 'en' ? 'Limited' : 'Tạm giới hạn' },
     { key: 'error', label: t.aiFilterError },
     { key: 'pending', label: t.aiStatusPending },
     { key: 'nokey', label: t.aiNoKey },
@@ -278,6 +298,9 @@ export default function AiProviders() {
                   testing={testing.has(p.id)}
                   syncing={syncing.has(p.id)}
                   busyToggle={busy}
+                  health={health.filter((h) => h.provider === p.code.toLowerCase())}
+                  resetting={resetting.has(p.id)}
+                  onResetHealth={runResetHealth}
                   onEdit={openEdit}
                   onTest={runTest}
                   onSync={runSync}

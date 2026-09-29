@@ -2,6 +2,8 @@ package com.aima.mapper;
 
 import com.aima.dto.ai.CatalogModelPayload;
 import com.aima.dto.ai.LlmConfigPayload;
+import com.aima.dto.response.AiModelHealthResponse;
+import com.aima.service.AiModelHealthService;
 import com.aima.dto.ai.LlmSpecPayload;
 import com.aima.dto.ai.TokenAccountedPayload;
 import com.aima.dto.request.AiModelCreateRequest;
@@ -13,6 +15,7 @@ import com.aima.dto.response.AiConfigAuditResponse;
 import com.aima.dto.response.AiEffectiveStatusResponse;
 import com.aima.dto.response.AiModelResponse;
 import com.aima.dto.response.AiProviderResponse;
+import com.aima.dto.response.AiRoutingFallbackResponse;
 import com.aima.dto.response.AiRouteStatusResponse;
 import com.aima.dto.response.AiRoutingResponse;
 import com.aima.dto.response.AiUsageByModelResponse;
@@ -23,6 +26,7 @@ import com.aima.entity.AiConfigAudit;
 import com.aima.entity.AiModel;
 import com.aima.entity.AiProvider;
 import com.aima.entity.AiTaskRouting;
+import com.aima.entity.AiTaskRoutingFallback;
 import com.aima.entity.AiUsage;
 import com.aima.entity.User;
 import com.aima.enums.AiConfigAction;
@@ -93,14 +97,21 @@ public interface AiConfigMapper {
     @Mapping(target = "fallbackModelId", source = "fallbackModel.id")
     @Mapping(target = "fallbackModelCode", source = "fallbackModel.modelCode")
     @Mapping(target = "fallbackProviderCode", source = "fallbackModel.provider.code")
+    @Mapping(target = "fallbacks", source = "fallbacks")
     AiRoutingResponse toRoutingResponse(AiTaskRouting routing);
+
+    @Mapping(target = "modelId", source = "model.id")
+    @Mapping(target = "modelCode", source = "model.modelCode")
+    @Mapping(target = "providerCode", source = "model.provider.code")
+    AiRoutingFallbackResponse toRoutingFallbackResponse(AiTaskRoutingFallback fallback);
 
     List<AiRoutingResponse> toRoutingResponseList(List<AiTaskRouting> routings);
 
     /**
      * PUT = thay toàn bộ tham số (temperature/maxTokens null là XÓA — không dùng IGNORE);
-     * primaryModel/fallbackModel do service lookup và set.
+     * primaryModel/fallbackModel/fallbacks do service lookup và set.
      */
+    @Mapping(target = "fallbacks", ignore = true)
     void updateRouting(AiRoutingUpdateRequest request, @MappingTarget AiTaskRouting routing);
 
     // ===== Effective status (một nguồn sự thật — tính ở AiConfigServiceImpl) =====
@@ -135,7 +146,23 @@ public interface AiConfigMapper {
     @Mapping(target = "maxTokens", source = "routing.maxTokens")
     LlmSpecPayload toLlmSpec(AiModel model, AiTaskRouting routing);
 
-    LlmConfigPayload toLlmConfig(LlmSpecPayload primary, LlmSpecPayload fallback);
+    /**
+     * llm_config từ model chính + chuỗi dự phòng; {@code fallback} (legacy, AI service cũ) luôn
+     * = phần tử đầu của {@code fallbacks} — điểm dựng DUY NHẤT để hai trường không lệch nhau.
+     */
+    default LlmConfigPayload toLlmConfig(LlmSpecPayload primary, List<LlmSpecPayload> fallbacks) {
+        List<LlmSpecPayload> chain = fallbacks == null ? List.of() : List.copyOf(fallbacks);
+        return LlmConfigPayload.builder()
+                .primary(primary)
+                .fallbacks(chain)
+                .fallback(chain.isEmpty() ? null : chain.get(0))
+                .build();
+    }
+
+    // Circuit breaker (Redis) → trang admin providers.
+    AiModelHealthResponse toModelHealthResponse(AiModelHealthService.Entry entry);
+
+    List<AiModelHealthResponse> toModelHealthResponseList(List<AiModelHealthService.Entry> entries);
 
     // ===== Usage (ai_usage) =====
 
@@ -152,6 +179,7 @@ public interface AiConfigMapper {
     @Mapping(target = "inputTokens", source = "result.inputTokens")
     @Mapping(target = "outputTokens", source = "result.outputTokens")
     @Mapping(target = "cachedTokens", source = "result.cachedTokens")
+    @Mapping(target = "routedModelCode", ignore = true) // service set sau (model chính theo routing)
     AiUsage toUsage(User user, AiUsageService.AiCallContext context, TokenAccountedPayload result,
                     AiProviderCode providerCode, String modelCode, Long totalTokens,
                     AiUsageStatus status, Long latencyMs, Long billableUnits,

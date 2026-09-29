@@ -64,8 +64,8 @@ export const cardStyle: CSSProperties = {
   minWidth: 0,
 };
 
-export function Card({ children, style }: { children: ReactNode; style?: CSSProperties }) {
-  return <div style={{ ...cardStyle, ...style }}>{children}</div>;
+export function Card({ children, style, className }: { children: ReactNode; style?: CSSProperties; className?: string }) {
+  return <div className={className} style={{ ...cardStyle, ...style }}>{children}</div>;
 }
 
 /** White brand glyphs drawn on the colored platform chip (no hover effect). */

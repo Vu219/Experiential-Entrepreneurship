@@ -5,12 +5,14 @@ import com.aima.entity.AiModel;
 import com.aima.entity.AiModelPriceCatalog;
 import com.aima.entity.AiProvider;
 import com.aima.entity.AiTaskRouting;
+import com.aima.entity.AiTaskRoutingFallback;
 import com.aima.enums.AiConfigAction;
 import com.aima.enums.AiProviderCode;
 import com.aima.enums.AiTaskCode;
 import com.aima.repository.AiModelPriceCatalogRepository;
 import com.aima.repository.AiModelRepository;
 import com.aima.repository.AiProviderRepository;
+import com.aima.repository.AiTaskRoutingFallbackRepository;
 import com.aima.repository.AiTaskRoutingRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +36,9 @@ import java.util.stream.Collectors;
  *       admin dán key + bật qua UI.</li>
  *   <li>1 model mặc định mỗi provider (khớp default của ai/src/config.py).</li>
  *   <li>Routing mặc định cho đủ 6 task: primary = model Anthropic (khớp LLM_PROVIDER=anthropic
- *       mặc định của AI service), fallback = model Google, max_tokens 16000 (= LLM_MAX_TOKENS).</li>
+ *       mặc định của AI service), chuỗi dự phòng = [model Google], max_tokens 16000 (= LLM_MAX_TOKENS).</li>
+ *   <li>Migration chuỗi dự phòng: routing cũ chỉ có {@code fallback_model_id} → thêm dòng
+ *       {@code ai_task_routing_fallback} position 0 (idempotent — chỉ routing chưa có dòng nào).</li>
  *   <li>Partial unique index (WHERE deleted_at IS NULL) — JPA không khai báo được.</li>
  * </ul>
  * Idempotent theo từng row. Dùng cách này thay Flyway/Liquibase vì dự án đang dùng
@@ -76,6 +80,7 @@ public class AiConfigDataInitializer implements CommandLineRunner {
     AiProviderRepository providerRepository;
     AiModelRepository modelRepository;
     AiTaskRoutingRepository routingRepository;
+    AiTaskRoutingFallbackRepository fallbackRepository;
     AiModelPriceCatalogRepository priceCatalogRepository;
     AiConfigProperties properties;
     JdbcTemplate jdbcTemplate;
@@ -91,9 +96,42 @@ public class AiConfigDataInitializer implements CommandLineRunner {
         AiModel googleModel = seedModel(google, defaultIfBlank(seed.googleModel(), DEFAULT_GOOGLE_MODEL));
 
         seedRouting(anthropicModel, googleModel);
+        migrateLegacyFallbacks();
         seedPriceCatalog();
         createPartialUniqueIndexes();
         refreshAuditActionCheck();
+        widenTestStatusColumn();
+    }
+
+    /**
+     * Routing có {@code fallback_model_id} (dữ liệu trước chuỗi nhiều model) nhưng chưa có dòng
+     * nào ở {@code ai_task_routing_fallback} → chuyển thành position 0. Idempotent: sau lần đầu
+     * mọi routing đều đã có dòng (hoặc không có dự phòng) nên không làm gì. Cột legacy được giữ
+     * nguyên (luôn = position 0) để rollback backend cũ vẫn chạy.
+     */
+    private void migrateLegacyFallbacks() {
+        for (AiTaskRouting routing : routingRepository.findAllWithModels()) {
+            if (routing.getFallbackModel() == null || fallbackRepository.existsByRouting(routing)) {
+                continue;
+            }
+            fallbackRepository.save(AiTaskRoutingFallback.builder()
+                    .routing(routing).model(routing.getFallbackModel()).position(0).build());
+            log.info("[AiConfigInit] Chuyển fallback {} của routing {} thành chuỗi dự phòng (position 0)",
+                    routing.getFallbackModel().getModelCode(), routing.getTaskCode());
+        }
+    }
+
+    /**
+     * {@code last_test_status} tạo với varchar(20) nhưng AiTestStatus mới có giá trị 21 ký tự
+     * (DAILY_QUOTA_EXHAUSTED) — {@code ddl-auto: update} không nới độ dài cột. CHECK constraint
+     * của cột do PaymentDataInitializer.ENUM_COLUMNS đồng bộ. Idempotent (nới lại cùng kiểu).
+     */
+    private void widenTestStatusColumn() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE ai_providers ALTER COLUMN last_test_status TYPE varchar(30)");
+        } catch (Exception e) {
+            log.warn("[AiConfigInit] Nới cột ai_providers.last_test_status bỏ qua: {}", e.getMessage());
+        }
     }
 
     /**
@@ -162,6 +200,8 @@ public class AiConfigDataInitializer implements CommandLineRunner {
                     .maxTokens(DEFAULT_MAX_TOKENS)
                     .enabled(true)
                     .build();
+            routing.getFallbacks().add(AiTaskRoutingFallback.builder()
+                    .routing(routing).model(fallbackModel).position(0).build());
             routingRepository.save(routing);
             log.info("[AiConfigInit] Seeded routing {} → {} (fallback {})",
                     task, primaryModel.getModelCode(), fallbackModel.getModelCode());

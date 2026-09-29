@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
  * Chốt FAILED (mã {@code AI_TIMEOUT}) các job tạo nội dung kẹt ở PENDING/RUNNING — quét mỗi phút.
  *
  * <p>Job chỉ kẹt khi worker chết giữa chừng (server restart/deploy): một lượt chạy bình thường
- * tối đa ~{@code AI_SERVICE_TIMEOUT_SECONDS} (90s). Không chốt thì chống trùng theo
+ * tối đa ~{@code AI_SERVICE_TIMEOUT_SECONDS} (100s). Không chốt thì chống trùng theo
  * (bài, nền tảng) sẽ trả mãi job chết đó và user không tạo lại được.</p>
  *
  * <p>Worker vẫn về muộn sau khi bị chốt? {@code saveSuccess} ghi đè SUCCESS — kết quả không mất;

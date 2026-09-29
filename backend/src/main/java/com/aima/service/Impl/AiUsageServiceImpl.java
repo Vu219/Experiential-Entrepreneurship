@@ -1,5 +1,6 @@
 package com.aima.service.Impl;
 
+import com.aima.dto.ai.LlmAttemptPayload;
 import com.aima.dto.ai.TokenAccountedPayload;
 import com.aima.entity.AiUsage;
 import com.aima.entity.User;
@@ -36,8 +37,10 @@ public class AiUsageServiceImpl implements AiUsageService {
 
     static final BigDecimal ONE_MILLION = BigDecimal.valueOf(1_000_000);
 
-    /** Đường env (config DB không hiệu lực) — backend không biết model thật sự chạy. */
+    /** Đường env (config DB không hiệu lực) + AI service không trả llm_attempts — không biết model. */
     static final String UNKNOWN_MODEL_CODE = "UNKNOWN";
+
+    static final String OUTCOME_OK = "ok";
 
     AiUsageRepository usageRepository;
     UserRepository userRepository;
@@ -72,9 +75,14 @@ public class AiUsageServiceImpl implements AiUsageService {
                 return; // cuộc gọi không tiêu token (endpoint không chạm LLM) — không có gì để ghi
             }
 
-            AiRuntimeConfigService.ActiveModel model = runtimeConfigService.getActiveModel(context.taskCode());
+            // Model chính theo routing (null = đường env); model tính tiền = model THỰC SỰ trả lời
+            // (attempt "ok" — có thể là dự phòng), không có vết thì coi như model chính.
+            AiRuntimeConfigService.ActiveModel routed = runtimeConfigService.getActiveModel(context.taskCode());
+            AiRuntimeConfigService.ActiveModel answered = answeredModel(result);
+            AiRuntimeConfigService.ActiveModel model = answered != null ? answered : routed;
             AiProviderCode providerCode = model == null ? AiProviderCode.UNKNOWN : model.providerCode();
             String modelCode = model == null ? UNKNOWN_MODEL_CODE : model.modelCode();
+            String routedModelCode = routed == null ? null : routed.modelCode();
 
             long total;
             long billable;
@@ -83,7 +91,7 @@ public class AiUsageServiceImpl implements AiUsageService {
             if (status == AiUsageStatus.SUCCESS) {
                 total = totalTokens;
                 billable = billingRateService.toBillableUnits(context.taskCode(), modelCode, total);
-                cost = model == null ? null : estimateCost(total, model);
+                cost = model == null ? null : estimateCost(result, total, model);
                 idempotencyKey = idempotencyKey(context);
             } else {
                 // Request lỗi: input/output giữ NULL ("không biết", khác 0) qua result = null;
@@ -127,6 +135,7 @@ public class AiUsageServiceImpl implements AiUsageService {
                 AiUsage usage = aiConfigMapper.toUsage(user, context, result, providerCode, modelCode,
                         totalFinal, status, latencyMs, billableFinal, creditUnits, creditShortfall,
                         costFinal, YearMonth.now().toString(), keyFinal);
+                usage.setRoutedModelCode(routedModelCode);
                 usageRepository.save(usage);
             });
         } catch (DataIntegrityViolationException e) {
@@ -165,12 +174,38 @@ public class AiUsageServiceImpl implements AiUsageService {
     }
 
     /**
-     * Ước tính chi phí USD theo đơn giá ai_models: có breakdown input/output thì tính chính xác
-     * từng chiều; chỉ có tổng thì lấy trung bình đơn giá hai chiều như trước.
+     * Model đã trả lời theo vết chuỗi fallback (attempt "ok" cuối) + đơn giá của nó; null khi
+     * AI service cũ không trả llm_attempts / event lỗi (result null).
      */
-    private BigDecimal estimateCost(long totalTokens, AiRuntimeConfigService.ActiveModel model) {
+    private AiRuntimeConfigService.ActiveModel answeredModel(TokenAccountedPayload result) {
+        if (result == null || result.getLlmAttempts() == null) {
+            return null;
+        }
+        LlmAttemptPayload ok = null;
+        for (LlmAttemptPayload attempt : result.getLlmAttempts()) {
+            if (OUTCOME_OK.equals(attempt.getOutcome())) {
+                ok = attempt;
+            }
+        }
+        return ok == null ? null : runtimeConfigService.resolveModel(ok.getProvider(), ok.getModel());
+    }
+
+    /**
+     * Ước tính chi phí USD theo đơn giá ai_models của model đã trả lời: có breakdown input/output
+     * thì tính chính xác từng chiều; chỉ có tổng thì lấy trung bình đơn giá hai chiều.
+     */
+    private BigDecimal estimateCost(TokenAccountedPayload result, long totalTokens,
+                                    AiRuntimeConfigService.ActiveModel model) {
         BigDecimal input = model.inputPricePer1m();
         BigDecimal output = model.outputPricePer1m();
+        Long inputTokens = result == null ? null : result.getInputTokens();
+        Long outputTokens = result == null ? null : result.getOutputTokens();
+        if (input != null && output != null && inputTokens != null && outputTokens != null
+                && inputTokens + outputTokens > 0) {
+            return input.multiply(BigDecimal.valueOf(inputTokens))
+                    .add(output.multiply(BigDecimal.valueOf(outputTokens)))
+                    .divide(ONE_MILLION, 6, RoundingMode.HALF_UP);
+        }
         BigDecimal pricePer1m;
         if (input != null && output != null) {
             pricePer1m = input.add(output).divide(BigDecimal.valueOf(2), 6, RoundingMode.HALF_UP);

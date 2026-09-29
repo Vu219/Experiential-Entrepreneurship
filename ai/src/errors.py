@@ -7,8 +7,8 @@ a small set of kinds that drive retry/fallback decisions:
 
 | kind                    | source                                  | chain behavior                |
 |-------------------------|-----------------------------------------|-------------------------------|
-| bad_request             | 400                                     | stop, no fallback             |
-| invalid_key             | 401/403                                 | skip every model of provider  |
+| bad_request             | 400                                     | next model once, 2nd 400 stop |
+| invalid_key             | 401/403, Google 400 API_KEY_INVALID     | skip every model of provider  |
 | daily_quota_exhausted   | 429 + QuotaFailure quotaId "PerDay"     | next model, cooldown to reset |
 | rate_limited            | 429 otherwise (RetryInfo.retryDelay)    | wait ≤5s once, else next      |
 | provider_overloaded     | 500/502/503/504/529                     | retry once (~1s), then next   |
@@ -35,6 +35,7 @@ NETWORK_ERROR = "network_error"
 INVALID_RESPONSE = "invalid_response"
 
 _OVERLOADED_CODES = {500, 502, 503, 504, 529}  # 529 = Anthropic "overloaded_error"
+_INVALID_KEY_REASONS = {"API_KEY_INVALID", "API_KEY_EXPIRED"}  # google.rpc.ErrorInfo.reason
 # Google daily quotas reset at midnight Pacific time.
 _QUOTA_RESET_TZ = ZoneInfo("America/Los_Angeles")
 
@@ -122,6 +123,9 @@ def from_http(status: Any, body: Any = None, retry_after_header: Optional[float]
         return ErrorInfo(INVALID_RESPONSE)
 
     if code == 400:
+        # Google reports a wrong/revoked key as 400 INVALID_ARGUMENT + ErrorInfo.reason.
+        if _google_error_reasons(body) & _INVALID_KEY_REASONS:
+            return ErrorInfo(INVALID_KEY, code)
         return ErrorInfo(BAD_REQUEST, code)
     if code in (401, 403):
         return ErrorInfo(INVALID_KEY, code)
@@ -156,6 +160,16 @@ def _google_quota_details(body: Any) -> tuple[list[str], Optional[float]]:
         elif type_url.endswith("RetryInfo"):
             retry_delay = _parse_duration(d.get("retryDelay"))
     return quota_ids, retry_delay
+
+
+def _google_error_reasons(body: Any) -> set[str]:
+    """``reason`` values of the google.rpc.ErrorInfo details of a Google error body."""
+    if not isinstance(body, dict):
+        return set()
+    err = body.get("error", body)
+    details = err.get("details") if isinstance(err, dict) else None
+    return {str(d["reason"]) for d in details or []
+            if isinstance(d, dict) and str(d.get("@type", "")).endswith("ErrorInfo") and d.get("reason")}
 
 
 def _parse_duration(value: Any) -> Optional[float]:

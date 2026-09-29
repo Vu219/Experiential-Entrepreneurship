@@ -13,7 +13,13 @@ export type AiTaskCode =
   | 'GOLDEN_HOURS'
   | 'STRATEGY_OPTIMIZATION'
   | 'CONTENT_REGENERATION';
-export type AiTestStatus = 'SUCCESS' | 'FAILED';
+/**
+ * Kết quả "Kiểm tra kết nối" (AI service phân loại bằng classify_error). SUCCESS/FAILED = dữ liệu
+ * cũ (trước 29/9) hoặc FAILED = lỗi khác (AI service không phản hồi...).
+ */
+export type AiTestStatus =
+  | 'OK' | 'INVALID_KEY' | 'RATE_LIMITED' | 'DAILY_QUOTA_EXHAUSTED' | 'PROVIDER_OVERLOADED' | 'NETWORK_ERROR'
+  | 'SUCCESS' | 'FAILED';
 export type AiRouteHealth = 'OK' | 'DEGRADED' | 'ERROR';
 export type AiModelBlockReason =
   | 'MODEL_DELETED'
@@ -44,6 +50,8 @@ export interface AiProviderInfo {
   enabled: boolean;
   lastTestedAt: string | null;
   lastTestStatus: AiTestStatus | null;
+  /** Từng gặp 429 FreeTier (Google) — banner khuyên bật billing; null = chưa. Reset trạng thái model sẽ xoá. */
+  freeTierDetectedAt: string | null;
   updatedAt: string | null;
   /** null = chưa đồng bộ; thứ tự như provider trả (Anthropic: mới nhất trước). */
   modelCatalog: AiCatalogModel[] | null;
@@ -68,13 +76,18 @@ export async function updateAiProvider(
 
 export interface AiTestResult {
   status: AiTestStatus;
-  /** Thông điệp lỗi rút gọn khi FAILED (đã redact — không chứa key). */
+  /** Thông điệp lỗi rút gọn của provider khi không OK (đã redact — không chứa key). */
   message: string | null;
   latencyMs: number | null;
+  /** Lần test này gặp 429 FreeTier (Google). */
+  freeTier: boolean;
   testedAt: string;
 }
 
-/** "Kiểm tra kết nối": BE gọi AI service chạy 1 call model tối thiểu bằng key của provider. */
+/**
+ * "Kiểm tra kết nối": BE nhờ AI service LIỆT KÊ model bằng key của provider (Gemini
+ * GET /v1beta/models, Anthropic GET /v1/models) — không gọi generateContent, không tốn quota.
+ */
 export async function testAiProvider(id: string): Promise<AiTestResult> {
   const { data } = await client.post<ApiResponse<AiTestResult>>(`/admin/ai/providers/${id}/test`);
   return data.result;
@@ -88,6 +101,112 @@ export async function syncAiProviderModels(id: string): Promise<AiProviderInfo> 
   const { data } = await client.post<ApiResponse<AiProviderInfo>>(`/admin/ai/providers/${id}/sync-models`);
   return data.result;
 }
+
+/** Mức hiển thị của kết quả test: xanh = OK, vàng/cam = key hợp lệ nhưng nhà cung cấp tạm từ chối, đỏ = hỏng. */
+export type AiTestTone = 'ok' | 'limited' | 'error';
+
+export function aiTestTone(status: AiTestStatus | null): AiTestTone | null {
+  if (status == null) return null;
+  if (status === 'OK' || status === 'SUCCESS') return 'ok';
+  if (status === 'RATE_LIMITED' || status === 'DAILY_QUOTA_EXHAUSTED' || status === 'PROVIDER_OVERLOADED') return 'limited';
+  return 'error'; // INVALID_KEY, NETWORK_ERROR, FAILED
+}
+
+/** Nhãn ngắn (badge) + câu giải thích (ribbon/toast) cho một kết quả test. */
+export function aiTestStatusText(lang: Lang, status: AiTestStatus, freeTier: boolean): { badge: string; detail: string } {
+  switch (status) {
+    case 'OK':
+    case 'SUCCESS':
+      return { badge: P(lang, 'Đã kết nối', 'Connected'), detail: P(lang, 'Kết nối thành công', 'Connection OK') };
+    case 'DAILY_QUOTA_EXHAUSTED':
+      return {
+        badge: P(lang, 'Hết quota ngày', 'Daily quota used up'),
+        detail: freeTier
+          ? P(lang, 'Key hợp lệ — đang hết quota miễn phí trong ngày', 'Key is valid — free daily quota is used up')
+          : P(lang, 'Key hợp lệ — đã hết quota trong ngày', 'Key is valid — daily quota is used up'),
+      };
+    case 'RATE_LIMITED':
+      return {
+        badge: P(lang, 'Bị giới hạn tốc độ', 'Rate limited'),
+        detail: P(lang, 'Key hợp lệ — đang bị giới hạn tốc độ, thử lại sau ít phút', 'Key is valid — rate limited, try again in a few minutes'),
+      };
+    case 'PROVIDER_OVERLOADED':
+      return {
+        badge: P(lang, 'Nhà cung cấp quá tải', 'Provider overloaded'),
+        detail: P(lang, 'Key hợp lệ — nhà cung cấp tạm quá tải', 'Key is valid — the provider is temporarily overloaded'),
+      };
+    case 'INVALID_KEY':
+      return {
+        badge: P(lang, 'Kết nối thất bại', 'Connection failed'),
+        detail: P(lang, 'Kết nối thất bại — API key không hợp lệ hoặc đã bị thu hồi', 'Connection failed — the API key is invalid or revoked'),
+      };
+    case 'NETWORK_ERROR':
+      return {
+        badge: P(lang, 'Kết nối thất bại', 'Connection failed'),
+        detail: P(lang, 'Kết nối thất bại — không kết nối được tới nhà cung cấp', 'Connection failed — could not reach the provider'),
+      };
+    default:
+      return { badge: P(lang, 'Kết nối thất bại', 'Connection failed'), detail: P(lang, 'Kết nối thất bại', 'Connection failed') };
+  }
+}
+
+export const aiFreeTierText = (lang: Lang) => ({
+  banner: P(lang,
+    'Đang dùng gói miễn phí của Google (giới hạn thấp). Hãy bật billing trong Google AI Studio để dùng cho môi trường thật.',
+    "Using Google's free tier (low limits). Enable billing in Google AI Studio for production use."),
+  since: (at: string) => P(lang, `Phát hiện lúc ${at}`, `Detected at ${at}`),
+});
+
+// ===== Trạng thái model (circuit breaker, Redis) =====
+
+/** Một model đang bị cho nghỉ; model không có trong danh sách = khả dụng. */
+export interface AiModelHealth {
+  /** "google" / "anthropic" (chữ thường). */
+  provider: string;
+  model: string;
+  state: 'COOLDOWN' | 'EXHAUSTED';
+  reason: string;
+  /** Hết nghỉ lúc (giờ ứng dụng, LocalDateTime). */
+  until: string;
+  freeTier: boolean;
+  updatedAt: string;
+}
+
+export async function listAiModelHealth(): Promise<AiModelHealth[]> {
+  const { data } = await client.get<ApiResponse<AiModelHealth[]>>('/admin/ai/model-health');
+  return data.result;
+}
+
+/** "Reset trạng thái model": xoá cooldown/hết quota của mọi model thuộc provider — trả số model đã xoá. */
+export async function resetAiModelHealth(providerId: string): Promise<number> {
+  const { data } = await client.post<ApiResponse<number>>(`/admin/ai/providers/${providerId}/reset-model-health`);
+  return data.result;
+}
+
+/** "14:00" nếu trong hôm nay, còn lại "30/09 14:00" (chuỗi giờ ứng dụng, không đổi múi giờ). */
+const fmtUntil = (until: string): string => {
+  const [date, time] = until.split('T');
+  const hhmm = (time ?? '').slice(0, 5);
+  const today = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  return date === todayStr ? hhmm : `${date.slice(8, 10)}/${date.slice(5, 7)} ${hhmm}`;
+};
+
+export const aiModelHealthLabel = (lang: Lang, h: AiModelHealth): string => {
+  const at = fmtUntil(h.until);
+  if (h.state === 'EXHAUSTED') return P(lang, `Hết quota ngày · reset lúc ${at}`, `Daily quota exhausted · resets at ${at}`);
+  if (h.reason === 'rate_limited') return P(lang, `Bị giới hạn tốc độ · thử lại lúc ${at}`, `Rate limited · retry at ${at}`);
+  return P(lang, `Nhà cung cấp quá tải · tạm nghỉ tới ${at}`, `Provider overloaded · paused until ${at}`);
+};
+
+export const aiModelHealthText = (lang: Lang) => ({
+  title: P(lang, 'Model đang tạm nghỉ', 'Models paused'),
+  hint: P(lang, 'Hệ thống tự bỏ qua các model này khi tạo nội dung cho tới thời điểm trên.',
+    'These models are skipped automatically until the time shown.'),
+  reset: P(lang, 'Reset trạng thái model', 'Reset model status'),
+  resetDone: (n: number) => P(lang, `Đã reset trạng thái ${n} model`, `Reset status of ${n} model(s)`),
+});
 
 // ===== Model =====
 
@@ -145,15 +264,29 @@ export async function deleteAiModel(id: string): Promise<void> {
 
 // ===== Định tuyến theo nghiệp vụ =====
 
+/** Một model trong chuỗi dự phòng (position 0 = thử ngay sau model chính). */
+export interface AiRoutingFallback {
+  position: number;
+  modelId: string;
+  modelCode: string;
+  providerCode: AiProviderCode;
+}
+
+/** Trần độ dài chuỗi dự phòng — khớp AiConfigServiceImpl.MAX_FALLBACKS. */
+export const MAX_FALLBACKS = 5;
+
 export interface AiRoutingInfo {
   id: string;
   taskCode: AiTaskCode;
   primaryModelId: string;
   primaryModelCode: string;
   primaryProviderCode: AiProviderCode;
+  /** LEGACY = fallbacks[0]; dùng `fallbacks`. */
   fallbackModelId: string | null;
   fallbackModelCode: string | null;
   fallbackProviderCode: AiProviderCode | null;
+  /** Chuỗi dự phòng theo thứ tự thử ([] = không dùng). */
+  fallbacks: AiRoutingFallback[];
   temperature: number | null;
   maxTokens: number | null;
   enabled: boolean;
@@ -164,12 +297,16 @@ export async function listAiRouting(): Promise<AiRoutingInfo[]> {
   return data.result;
 }
 
-/** PUT = thay toàn bộ tham số của dòng routing (fallback/temperature/maxTokens null là XÓA). */
+/**
+ * PUT = thay toàn bộ tham số của dòng routing (temperature/maxTokens null là XÓA).
+ * `fallbackModelIds` = cả chuỗi dự phòng theo thứ tự ([] = không dùng) — BE chặn trùng / chứa
+ * model chính (2047) / quá MAX_FALLBACKS (2048).
+ */
 export async function updateAiRouting(
   id: string,
   body: {
     primaryModelId: string;
-    fallbackModelId?: string | null;
+    fallbackModelIds: string[];
     temperature?: number | null;
     maxTokens?: number | null;
     enabled: boolean;
@@ -202,6 +339,52 @@ export interface AiEffectiveStatus {
   routes: AiRouteStatus[];
 }
 
+/**
+ * Lý do một model không dùng được — cùng luật BE `AiRuntimeConfigService.blockReason` (tính ở FE
+ * từ danh sách model/provider để hiện mờ trong dropdown chuỗi dự phòng). null = dùng được.
+ */
+export function modelBlockReason(m: AiModelInfo, providers: AiProviderInfo[]): AiModelBlockReason | null {
+  if (!m.enabled) return 'MODEL_DISABLED';
+  const p = providers.find((x) => x.id === m.providerId);
+  if (!p?.enabled) return 'PROVIDER_DISABLED';
+  if (!p.apiKeyMasked) return 'PROVIDER_KEY_MISSING';
+  return null;
+}
+
+/** Chuỗi dự phòng gợi ý mặc định: 3 model Gemini theo thứ tự, rồi Claude khi Anthropic bật + có key. */
+export const SUGGESTED_GEMINI_CHAIN = ['gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash'];
+
+/**
+ * Model id của chuỗi gợi ý — chỉ lấy model ĐÃ có trong danh sách, đang dùng được; bỏ model chính.
+ * Claude = model Anthropic bật đầu tiên (ưu tiên sonnet), chỉ khi provider Anthropic dùng được.
+ */
+export function suggestedFallbackChain(models: AiModelInfo[], providers: AiProviderInfo[], primaryId: string): string[] {
+  const usable = models.filter((m) => m.id !== primaryId && modelBlockReason(m, providers) === null);
+  const gemini = SUGGESTED_GEMINI_CHAIN
+    .map((code) => usable.find((m) => m.providerCode === 'GOOGLE' && m.modelCode === code))
+    .filter((m): m is AiModelInfo => !!m);
+  const claudes = usable.filter((m) => m.providerCode === 'ANTHROPIC');
+  const claude = claudes.find((m) => m.modelCode.includes('sonnet')) ?? claudes[0];
+  return [...gemini, ...(claude ? [claude] : [])].map((m) => m.id).slice(0, MAX_FALLBACKS);
+}
+
+export const aiFallbackText = (lang: Lang) => ({
+  add: P(lang, '+ Thêm model dự phòng', '+ Add fallback model'),
+  suggest: P(lang, 'Dùng gợi ý mặc định', 'Use default suggestion'),
+  suggestHint: P(lang,
+    'gemini-3.5-flash → gemini-3.1-flash-lite → gemini-2.5-flash → Claude (khi Anthropic bật và có key)',
+    'gemini-3.5-flash → gemini-3.1-flash-lite → gemini-2.5-flash → Claude (when Anthropic is on with a key)'),
+  suggestEmpty: P(lang, 'Chưa có model nào của chuỗi gợi ý trong danh sách model đang dùng được',
+    'None of the suggested models are in the usable model list'),
+  chainHint: P(lang, 'Thử lần lượt từ trên xuống khi model chính lỗi, quá tải hoặc hết quota.',
+    'Tried top to bottom when the primary model fails, is overloaded or out of quota.'),
+  max: P(lang, `Tối đa ${MAX_FALLBACKS} model dự phòng`, `Up to ${MAX_FALLBACKS} fallback models`),
+  up: P(lang, 'Lên', 'Move up'),
+  down: P(lang, 'Xuống', 'Move down'),
+  remove: P(lang, 'Bỏ khỏi chuỗi', 'Remove'),
+  answeredBy: (routed: string) => P(lang, `dự phòng cho ${routed}`, `fallback for ${routed}`),
+});
+
 export async function getAiStatus(): Promise<AiEffectiveStatus> {
   const { data } = await client.get<ApiResponse<AiEffectiveStatus>>('/admin/ai/status');
   return data.result;
@@ -214,7 +397,10 @@ export interface AiUsageRow {
   userEmail: string | null;
   taskCode: AiTaskCode;
   providerCode: AiProviderCode;
+  /** Model THỰC SỰ trả lời (có thể là dự phòng) — chi phí tính theo model này. */
   modelCode: string;
+  /** Model chính theo định tuyến; khác modelCode = dự phòng đã trả lời. null = đường env / row cũ. */
+  routedModelCode: string | null;
   totalTokens: number;
   estimatedCost: number | null;
   createdAt: string;
@@ -247,7 +433,7 @@ export async function getAiUsageSummary(month?: string): Promise<AiUsageSummary>
 export interface AiAuditRow {
   id: string;
   actorEmail: string | null;
-  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'TEST_CONNECTION' | 'SYNC_MODELS';
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'TEST_CONNECTION' | 'SYNC_MODELS' | 'RESET_MODEL_HEALTH';
   entityType: string;
   entityId: string;
   beforeSnapshot: string | null;
@@ -294,6 +480,7 @@ export const aiAuditActionLabel = (lang: Lang, action: AiAuditRow['action']): st
     DELETE: P(lang, 'Xóa', 'Deleted'),
     TEST_CONNECTION: P(lang, 'Kiểm tra kết nối', 'Connection test'),
     SYNC_MODELS: P(lang, 'Đồng bộ model', 'Model sync'),
+    RESET_MODEL_HEALTH: P(lang, 'Reset trạng thái model', 'Model status reset'),
   })[action] ?? action;
 
 /** Lý do model không dùng được trong định tuyến (tooltip icon cảnh báo). */

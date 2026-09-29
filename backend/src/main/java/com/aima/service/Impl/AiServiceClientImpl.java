@@ -20,9 +20,12 @@ import com.aima.dto.ai.TestConnectionResultPayload;
 import com.aima.dto.ai.ListModelsPayload;
 import com.aima.dto.ai.ListModelsResultPayload;
 import com.aima.dto.ai.LlmRoutedPayload;
+import com.aima.dto.ai.AiErrorResponsePayload;
+import com.aima.dto.ai.TokenAccountedPayload;
 import com.aima.enums.AiTaskCode;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
+import com.aima.service.AiModelHealthService;
 import com.aima.service.AiRuntimeConfigService;
 import com.aima.service.AiServiceClient;
 import com.aima.service.SystemLogService;
@@ -33,6 +36,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
 
@@ -45,13 +50,18 @@ public class AiServiceClientImpl implements AiServiceClient {
     AiServiceProperties properties;
     SystemLogService systemLogService;
     AiRuntimeConfigService runtimeConfigService;
+    AiModelHealthService modelHealthService;
+    ObjectMapper objectMapper;
 
     public AiServiceClientImpl(@Qualifier("aiServiceWebClient") WebClient webClient, AiServiceProperties properties,
-                               SystemLogService systemLogService, AiRuntimeConfigService runtimeConfigService) {
+                               SystemLogService systemLogService, AiRuntimeConfigService runtimeConfigService,
+                               AiModelHealthService modelHealthService, ObjectMapper objectMapper) {
         this.webClient = webClient;
         this.properties = properties;
         this.systemLogService = systemLogService;
         this.runtimeConfigService = runtimeConfigService;
+        this.modelHealthService = modelHealthService;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -99,10 +109,11 @@ public class AiServiceClientImpl implements AiServiceClient {
     /**
      * Gắn llm_config theo bảng định tuyến (AI_CONFIG_FROM_DB) ngay trước khi gửi —
      * một điểm duy nhất, worker không phải biết. null = AI service dùng env (rollback).
+     * Model đang nghỉ (circuit breaker, {@link AiModelHealthService}) bị bỏ khỏi chuỗi.
      */
     private void applyRouting(LlmRoutedPayload payload, AiTaskCode taskCode) {
         if (payload.getLlmConfig() == null) {
-            payload.setLlmConfig(runtimeConfigService.getLlmConfig(taskCode));
+            payload.setLlmConfig(modelHealthService.filterAvailable(runtimeConfigService.getLlmConfig(taskCode)));
         }
     }
 
@@ -120,19 +131,57 @@ public class AiServiceClientImpl implements AiServiceClient {
 
     private <T> T post(String uri, Object payload, Class<T> resultType) {
         try {
-            return webClient.post()
+            T result = webClient.post()
                     .uri(uri)
                     .bodyValue(payload)
                     .retrieve()
                     .bodyToMono(resultType)
                     .block(Duration.ofSeconds(properties.timeoutSeconds()));
+            if (result instanceof TokenAccountedPayload accounted) {
+                modelHealthService.record(accounted.getLlmAttempts());
+            }
+            return result;
         } catch (WebClientResponseException e) {
-            throw aiFailure(uri, e.getStatusCode() + ": " + e.getResponseBodyAsString(), e, ErrorCode.AI_SERVICE_ERROR);
+            ErrorCode code = recordFailedChain(e.getResponseBodyAsString());
+            throw aiFailure(uri, e.getStatusCode() + ": " + e.getResponseBodyAsString(), e, code);
         } catch (Exception e) {
             // block(timeout) hết giờ → IllegalStateException bọc TimeoutException: AI chưa trả kịp.
             ErrorCode code = isBlockTimeout(e) ? ErrorCode.AI_TIMEOUT : ErrorCode.AI_SERVICE_ERROR;
             throw aiFailure(uri, e.getMessage(), e, code);
         }
+    }
+
+    /**
+     * 502 "cả chuỗi thất bại" mang vết từng model → cập nhật circuit breaker, và {@code error_code}
+     * → ErrorCode cùng tên (worker lưu vào job, FE ánh xạ câu thân thiện). Body khác (detail là
+     * chuỗi — lỗi cấu hình/validate) hoặc mã lạ → AI_SERVICE_ERROR.
+     */
+    private ErrorCode recordFailedChain(String body) {
+        try {
+            AiErrorResponsePayload error = objectMapper.readValue(body, AiErrorResponsePayload.class);
+            if (error.getDetail() != null) {
+                modelHealthService.record(error.getDetail().getAttempts());
+                return chainErrorCode(error.getDetail().getErrorCode());
+            }
+        } catch (Exception e) {
+            log.debug("[AiService] Body lỗi không phải vết chuỗi fallback: {}", e.getMessage());
+        }
+        return ErrorCode.AI_SERVICE_ERROR;
+    }
+
+    /** error_code của AI service (ai/src/llm.py) → ErrorCode backend; null/lạ → AI_SERVICE_ERROR. */
+    static ErrorCode chainErrorCode(String aiErrorCode) {
+        if (aiErrorCode == null) {
+            return ErrorCode.AI_SERVICE_ERROR;
+        }
+        return switch (aiErrorCode) {
+            case "AI_PROVIDER_OVERLOADED" -> ErrorCode.AI_PROVIDER_OVERLOADED;
+            case "AI_QUOTA_EXHAUSTED" -> ErrorCode.AI_QUOTA_EXHAUSTED;
+            case "AI_TIMEOUT" -> ErrorCode.AI_TIMEOUT;
+            case "AI_BAD_REQUEST" -> ErrorCode.AI_BAD_REQUEST;
+            case "AI_UNAVAILABLE" -> ErrorCode.AI_UNAVAILABLE;
+            default -> ErrorCode.AI_SERVICE_ERROR;
+        };
     }
 
     private static boolean isBlockTimeout(Throwable e) {

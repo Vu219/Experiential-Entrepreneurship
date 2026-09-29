@@ -48,8 +48,20 @@ public class AiUsage extends BaseEntity {
     @Column(name = "provider_code", nullable = false, length = 30)
     AiProviderCode providerCode;
 
+    /**
+     * Provider/model THỰC SỰ trả lời (attempt "ok" cuối của llm_attempts) — có thể là model dự
+     * phòng. Event lỗi / AI service cũ không có llm_attempts → model chính theo routing
+     * (đường env: UNKNOWN). Chi phí + hệ số quy đổi tính theo model này.
+     */
     @Column(name = "model_code", nullable = false, length = 100)
     String modelCode;
+
+    /**
+     * Model CHÍNH theo định tuyến lúc gọi (null = đường env / row trước 2026-09-29).
+     * Khác {@code modelCode} ⇔ model dự phòng đã trả lời thay.
+     */
+    @Column(name = "routed_model_code", length = 100)
+    String routedModelCode;
 
     /** Breakdown từ usage_metadata AI service; null ở bản ghi trước khi tách input/output. */
     @Column(name = "input_tokens")

@@ -88,7 +88,11 @@ export function useApp() {
   // để sidebar highlight + heading mặc định đúng khu vực, không rơi về 'dashboard'.
   const route =
     ROUTE_BY_PATH[location.pathname] ??
-    (location.pathname.startsWith('/admin/usage/') ? 'adminUsage' : 'dashboard');
+    (location.pathname.startsWith('/calendar')
+      ? 'calendar'
+      : location.pathname.startsWith('/admin/usage/')
+      ? 'adminUsage'
+      : 'dashboard');
 
   const go = useCallback(
     (r: Route) => {

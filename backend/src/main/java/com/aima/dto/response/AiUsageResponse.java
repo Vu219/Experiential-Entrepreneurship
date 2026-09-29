@@ -28,7 +28,11 @@ public class AiUsageResponse {
 
     String providerCode;
 
+    /** Model THỰC SỰ trả lời (có thể là dự phòng) — chi phí tính theo model này. */
     String modelCode;
+
+    /** Model chính theo định tuyến; khác modelCode = dự phòng đã trả lời. null = đường env / row cũ. */
+    String routedModelCode;
 
     Long totalTokens;
 

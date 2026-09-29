@@ -41,4 +41,8 @@ public class ResearchResultPayload implements TokenAccountedPayload {
 
     @JsonProperty("cached_tokens")
     Long cachedTokens;
+
+    /** Vết chuỗi fallback của AI service (model health — AiModelHealthService). */
+    @JsonProperty("llm_attempts")
+    List<LlmAttemptPayload> llmAttempts;
 }

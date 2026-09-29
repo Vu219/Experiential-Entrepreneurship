@@ -7,6 +7,7 @@ import com.aima.dto.request.AiRoutingUpdateRequest;
 import com.aima.dto.response.AiConfigAuditResponse;
 import com.aima.dto.response.AiEffectiveStatusResponse;
 import com.aima.dto.response.AiModelResponse;
+import com.aima.dto.response.AiModelHealthResponse;
 import com.aima.dto.response.AiProviderResponse;
 import com.aima.dto.response.AiRoutingResponse;
 import com.aima.dto.response.AiTestConnectionResponse;
@@ -36,6 +37,12 @@ public interface AiConfigService {
      * lưu cache JSONB + timestamp trên provider, ghi audit SYNC_MODELS.
      */
     ApiResponse<AiProviderResponse> syncProviderModels(UUID id);
+
+    /** Các model đang bị circuit breaker cho nghỉ (cooldown / hết quota ngày) — đọc Redis. */
+    ApiResponse<List<AiModelHealthResponse>> listModelHealth();
+
+    /** "Reset trạng thái model": xoá cooldown/exhausted mọi model của provider (vd sau khi bật billing). */
+    ApiResponse<Integer> resetModelHealth(UUID providerId);
 
     /**
      * Effective status 3 mức (OK / chỉ dự phòng chạy / lỗi cả hai) cho 6 nghiệp vụ + cờ

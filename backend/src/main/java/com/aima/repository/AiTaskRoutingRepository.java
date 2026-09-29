@@ -16,8 +16,8 @@ public interface AiTaskRoutingRepository extends JpaRepository<AiTaskRouting, UU
     Optional<AiTaskRouting> findByTaskCodeAndDeletedAtIsNull(AiTaskCode taskCode);
 
     /**
-     * Fetch-join đủ model + provider hai nhánh — AiRuntimeConfigService đọc ngoài transaction
-     * (entity detached) nên không được để lazy.
+     * Fetch-join đủ model + provider của model chính, cột legacy và cả chuỗi dự phòng —
+     * AiRuntimeConfigService đọc ngoài transaction (entity detached) nên không được để lazy.
      */
     @Query("""
             select r from AiTaskRouting r
@@ -25,6 +25,9 @@ public interface AiTaskRoutingRepository extends JpaRepository<AiTaskRouting, UU
             join fetch pm.provider
             left join fetch r.fallbackModel fm
             left join fetch fm.provider
+            left join fetch r.fallbacks f
+            left join fetch f.model fbm
+            left join fetch fbm.provider
             where r.taskCode = :taskCode and r.deletedAt is null
             """)
     Optional<AiTaskRouting> findWithModelsByTaskCode(@Param("taskCode") AiTaskCode taskCode);
@@ -33,13 +36,16 @@ public interface AiTaskRoutingRepository extends JpaRepository<AiTaskRouting, UU
 
     List<AiTaskRouting> findByDeletedAtIsNullOrderByTaskCodeAsc();
 
-    /** Fetch-join đủ hai nhánh model+provider cho tính effective status / đếm nghiệp vụ đang dùng. */
+    /** Fetch-join đủ model+provider (chính + chuỗi dự phòng) cho effective status / đếm nghiệp vụ đang dùng. */
     @Query("""
             select r from AiTaskRouting r
             join fetch r.primaryModel pm
             join fetch pm.provider
             left join fetch r.fallbackModel fm
             left join fetch fm.provider
+            left join fetch r.fallbacks f
+            left join fetch f.model fbm
+            left join fetch fbm.provider
             where r.deletedAt is null
             order by r.taskCode asc
             """)

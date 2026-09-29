@@ -71,7 +71,7 @@ response = the domain response **plus `TokenAccounting`** fields (`tokens_used`,
 | `/analyze` | Success factors + insights from post metrics (FR-63..64) |
 | `/optimize` | Strategy adjustments + future improvements (FR-65..66) |
 | `/golden-hours` | Posting-hour suggestions (FR-48; `data_driven=false` under 10 posts) |
-| `/test-connection` | Admin "Cấu hình AI": probe a provider key (wrong key = result, not 5xx) |
+| `/test-connection` | Admin "Cấu hình AI": probe a provider key by LISTING models (Gemini `GET /v1beta/models`, Anthropic `GET /v1/models`, 1 item — never generateContent, no quota); returns `status` from `classify_error` (OK / INVALID_KEY / RATE_LIMITED / DAILY_QUOTA_EXHAUSTED / PROVIDER_OVERLOADED / NETWORK_ERROR / FAILED) + `free_tier`; wrong key = result, not 5xx |
 | `/list-models` | Admin model sync: provider catalog (id + limits, no pricing) |
 
 ## 4. LLM routing & trend research — how it works
@@ -79,10 +79,14 @@ response = the domain response **plus `TokenAccounting`** fields (`tokens_used`,
 **Model selection (two paths, per request):**
 - **Env default** — `LLM_PROVIDER` + `ANTHROPIC_*`/`GOOGLE_*`; cached for the process. The
   rollback path when the backend runs with `AI_CONFIG_FROM_DB=false`.
-- **DB-managed `llm_config`** — the backend injects `{primary, fallback}` specs (provider,
-  model, api_key…) per request from its `ai_task_routing` table. Routes stash it in a
+- **DB-managed `llm_config`** — the backend injects `{primary, fallbacks[], fallback}` specs
+  (provider, model, api_key…) per request from its `ai_task_routing` + `ai_task_routing_fallback`
+  tables (ordered by `position`, models that are disabled / missing a key / resting in the
+  backend circuit breaker already removed). `fallback` is the LEGACY single fallback (older
+  backends send only that; the new backend sends it = `fallbacks[0]`) — `LlmConfig.chain()` uses
+  `fallbacks` when non-empty, else `fallback`, and drops duplicates. Routes stash it in a
   ContextVar (`use_llm_config`) so agent code never changes. `invoke_structured` walks the
-  chain (primary → fallback) itself — see **Retry/fallback chain** below.
+  chain (primary → fallbacks in order) itself — see **Retry/fallback chain** below.
 - **Security (fail-closed):** any request carrying `llm_config`, plus `/test-connection` and
   `/list-models`, REQUIRES header `X-Internal-Token` == `AI_INTERNAL_TOKEN` (shared secret
   with the backend, compared with `secrets.compare_digest`). Token unset on this service ⇒
@@ -95,13 +99,14 @@ usage (`usage_metadata`, incl. cache reads) for the `TokenAccounting` response f
 **Retry/fallback chain (2026-09-29).** SDK retries are OFF (google-genai `attempts=1`,
 Anthropic `max_retries=0`; AFC disabled via `_GeminiChat`) — never re-enable them, they
 multiply calls (default was 6/model) and blow the backend timeout. Per `errors.classify_error`
-kind: `bad_request` stop · `invalid_key` skip the whole provider · `daily_quota_exhausted`
+kind: `bad_request` next model once, a 2nd 400 stops (AI_BAD_REQUEST) · `invalid_key` skip the whole provider · `daily_quota_exhausted`
 next model (cooldown to 0:00 America/Los_Angeles) · `rate_limited` wait ≤5s once else next ·
 `provider_overloaded`/`network_error` one retry after ~1s then next · `invalid_response` next.
-Bounded by `LLM_CHAIN_BUDGET_SECONDS` (45) with `LLM_CALL_TIMEOUT_SECONDS` (25) per call —
-keep the budget below the backend's `AI_SERVICE_TIMEOUT_SECONDS` (90). Every step logs one
+Bounded by `LLM_CHAIN_BUDGET_SECONDS` (80) with `LLM_CALL_TIMEOUT_SECONDS` (40) per call —
+keep the budget below the backend's `AI_SERVICE_TIMEOUT_SECONDS` (100). Every step logs one
 line `llm[<req>] provider/model outcome action -> next <ms>`. Success responses carry
-`llm_attempts` (TokenAccounting); a failed chain → 502 `detail = {error_code, message,
+`llm_attempts` (TokenAccounting — the backend bills the LAST `"ok"` attempt's provider/model, not
+the configured primary); a failed chain → 502 `detail = {error_code, message,
 attempts}` with `error_code` ∈ AI_PROVIDER_OVERLOADED / AI_QUOTA_EXHAUSTED / AI_TIMEOUT /
 AI_BAD_REQUEST / AI_UNAVAILABLE. Model health (circuit breaker) is the BACKEND's job (Redis),
 fed by `attempts[].cooldown_until` — this service stays stateless.
@@ -143,7 +148,9 @@ amplifying noise. A failing/unsubscribed API is swallowed inside the connector (
 6. **No media generation (FR-29).** Agents produce media/image PROMPTS (text) only.
 7. **Errors:** raise/propagate inside agents; `routes._run` maps config errors → 503 and other
    failures → 502 with a clean label. A wrong provider key in `/test-connection` is a
-   `success=false` RESULT, not an HTTP error.
+   `success=false` RESULT, not an HTTP error; its `status` comes from the SAME `classify_error`
+   as the chain (Google reports a bad key as 400 + `ErrorInfo.reason=API_KEY_INVALID` →
+   `invalid_key`, not `bad_request`). Never switch the probe back to a generation call.
 8. **External fetches must stay resilient** (connector pattern): per-source try/except, log +
    fallback (mock or `[]`), parallel fetch so one slow source doesn't serialize the session.
 
@@ -151,7 +158,7 @@ amplifying noise. A failing/unsubscribed API is swallowed inside the connector (
 
 ```
 LLM_PROVIDER (anthropic|google), LLM_MAX_TOKENS (16000)
-LLM_CALL_TIMEOUT_SECONDS (25), LLM_CHAIN_BUDGET_SECONDS (45)   # chain limits, see §4
+LLM_CALL_TIMEOUT_SECONDS (40), LLM_CHAIN_BUDGET_SECONDS (80)   # chain limits, see §4
 ANTHROPIC_API_KEY, ANTHROPIC_MODEL (claude-sonnet-4-6)
 GOOGLE_API_KEY, GOOGLE_MODEL (gemini-2.5-pro)
 AI_SERVICE_HOST (0.0.0.0), AI_SERVICE_PORT (8000)

@@ -1,6 +1,7 @@
 package com.aima.config;
 
 import com.aima.enums.ActivityAction;
+import com.aima.enums.AiTestStatus;
 import com.aima.enums.NotificationType;
 import com.aima.enums.PaymentGateway;
 import com.aima.enums.PaymentMethod;
@@ -67,7 +68,9 @@ public class PaymentDataInitializer implements CommandLineRunner {
             new EnumColumn("activity_logs", "action", ActivityAction.class),
             new EnumColumn("notifications", "type", NotificationType.class),
             // Worker đăng bài ghi INTERNAL (lỗi nội bộ, không retry) — giá trị thêm sau khi bảng đã tạo.
-            new EnumColumn("posting_jobs", "error_type", PublishErrorType.class));
+            new EnumColumn("posting_jobs", "error_type", PublishErrorType.class),
+            // "Kiểm tra kết nối" AI (2026-09-29): OK/INVALID_KEY/RATE_LIMITED/... thêm sau SUCCESS/FAILED.
+            new EnumColumn("ai_providers", "last_test_status", AiTestStatus.class));
 
     /** Mọi literal {@code 'X'} trong định nghĩa CHECK do {@code pg_get_constraintdef} trả về. */
     private static final Pattern QUOTED_LITERAL = Pattern.compile("'((?:[^']|'')*)'");

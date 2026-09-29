@@ -37,6 +37,7 @@ import GenerateStep from '../../components/create/steps/GenerateStep.tsx';
 import FinalizeStep, { type FormatScope } from '../../components/create/steps/FinalizeStep.tsx';
 import ScheduleStep from '../../components/create/steps/ScheduleStep.tsx';
 import { useToast } from '../../components/toast/ToastProvider';
+import { aiErrorMessage, toAiErrorCode } from '../../api/aiErrorMessages';
 
 /**
  * /create/new — lớp 2: wizard timeline 4 mốc (trang riêng, không modal):
@@ -48,7 +49,7 @@ import { useToast } from '../../components/toast/ToastProvider';
  * hiển thị, và trạng thái duyệt chỉ gắn khi người dùng tự chọn.
  */
 export default function CreateWizard() {
-  const { t, go } = useApp();
+  const { t, go, lang } = useApp();
   const toast = useToast();
 
   // Bài DRAFT dở từ danh sách ("Tiếp tục"): draftId = id bài. Nạp trạng thái wizard đã
@@ -163,11 +164,15 @@ export default function CreateWizard() {
   };
 
   // Mã lỗi backend (1905/1906/1920) → thông báo rõ nghĩa, không phải lỗi chung chung.
+  // Job FAILED (errorCode) / mã lỗi AI / lỗi không có mã → câu thân thiện theo mã (api/aiErrorMessages),
+  // KHÔNG hiện errorMessage thô của job. Lỗi nghiệp vụ khác có mã (vd hết hạn mức) giữ message backend.
   const generationErrorMessage = (err: ApiError): string => {
     if (err.code === ERR_CONTENT_ITEM_NOT_DRAFT) return t.cwGenItemNotDraft;
     if (err.code === ERR_CONTENT_ITEM_NOT_FOUND) return t.cwGenItemNotFound;
     if (err.code === ERR_CONTENT_ITEM_ID_REQUIRED) return t.cwGenItemMissing;
-    if (err.errorCode === 'AI_TIMEOUT') return t.cwGenTimeout;
+    if (err.errorCode !== undefined || err.code === undefined || toAiErrorCode(err.code)) {
+      return aiErrorMessage(lang, err.errorCode ?? err.code);
+    }
     return err.message;
   };
 

@@ -21,6 +21,13 @@ public class TestConnectionResultPayload {
 
     boolean success;
 
+    /** AiTestStatus do AI service phân loại (OK / INVALID_KEY / RATE_LIMITED / ...); null = AI service cũ. */
+    String status;
+
+    /** Lỗi 429 mang quotaId "FreeTier" (Google) — key đang ở gói miễn phí. */
+    @JsonProperty("free_tier")
+    boolean freeTier;
+
     /** Thông điệp lỗi rút gọn từ provider (đã được phía AI service redact — không chứa key). */
     String message;
 

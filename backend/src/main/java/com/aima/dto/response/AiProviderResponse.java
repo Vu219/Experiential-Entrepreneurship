@@ -36,6 +36,9 @@ public class AiProviderResponse {
 
     String lastTestStatus;
 
+    /** Từng gặp 429 FreeTier (Google) — hiện banner "đang dùng gói miễn phí". null = chưa. */
+    LocalDateTime freeTierDetectedAt;
+
     LocalDateTime updatedAt;
 
     /**

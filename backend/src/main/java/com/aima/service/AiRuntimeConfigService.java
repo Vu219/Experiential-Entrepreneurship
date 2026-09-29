@@ -19,8 +19,16 @@ public interface AiRuntimeConfigService {
     /** Payload llm_config gắn vào request AI cho task; null = dùng env. */
     LlmConfigPayload getLlmConfig(AiTaskCode taskCode);
 
-    /** Model primary đang hiệu lực (để ghi ai_usage); null khi config DB không hiệu lực. */
+    /** Model primary đang hiệu lực (routed_model_code của ai_usage); null khi config DB không hiệu lực. */
     ActiveModel getActiveModel(AiTaskCode taskCode);
+
+    /**
+     * Đơn giá của một model bất kỳ theo mã provider ("google"/"anthropic", không phân biệt hoa
+     * thường) + model code — để tính chi phí theo model THỰC SỰ trả lời (llm_attempts "ok"),
+     * kể cả model dự phòng hay model env. Model không có trong ai_models → ActiveModel với
+     * đơn giá null (cost không ước tính được). Provider lạ → null.
+     */
+    ActiveModel resolveModel(String provider, String modelCode);
 
     /** Gọi sau MỌI mutation cấu hình AI để config mới áp dụng ngay. */
     void evictCache();

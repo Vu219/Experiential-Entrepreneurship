@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle, CalendarClock, RefreshCw, type LucideIcon } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
@@ -17,6 +18,7 @@ import UpcomingPanel, { AutoPill, FailedBanner, StatusChips } from '../../compon
 import StatCards from '../../components/calendar/StatCards.tsx';
 import CalendarSkeleton from '../../components/calendar/CalendarSkeleton.tsx';
 import DaySheet from '../../components/calendar/DaySheet.tsx';
+import ScheduleDetailView from '../../components/calendar/ScheduleDetailView.tsx';
 
 // UI-07 — Lịch đăng bài (FR-47..FR-51 + FR-58), redesign 2026-07:
 // hàng KPI (đếm client-side, thẻ Thất bại → trang Bài lỗi) + cột trái view Tháng (chip giờ +
@@ -52,6 +54,72 @@ export default function Calendar() {
   const [rescheduling, setRescheduling] = useState<PostSchedule | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [selectedSchedule, setSelectedSchedule] = useState<PostSchedule | null>(null);
+
+  const { id: routeScheduleId } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+
+  const activeSchedule = useMemo(() => {
+    if (selectedSchedule) return selectedSchedule;
+    if (routeScheduleId) {
+      return schedules.find((s) => s.id === routeScheduleId) ?? null;
+    }
+    return null;
+  }, [selectedSchedule, routeScheduleId, schedules]);
+
+  const forceScrollToTop = useCallback(() => {
+    const orig = document.documentElement.style.scrollBehavior;
+    document.documentElement.style.scrollBehavior = 'auto';
+    window.scrollTo(0, 0);
+    if (document.documentElement) document.documentElement.scrollTop = 0;
+    if (document.body) document.body.scrollTop = 0;
+    const breadcrumb = document.getElementById('schedule-detail-breadcrumb');
+    if (breadcrumb) {
+      breadcrumb.scrollIntoView({ behavior: 'auto', block: 'start' });
+    }
+    document.documentElement.style.scrollBehavior = orig;
+  }, []);
+
+  const handleOpenDetail = useCallback((s: PostSchedule) => {
+    setSelectedSchedule(s);
+    navigate(`/calendar/${s.id}`);
+    forceScrollToTop();
+  }, [navigate, forceScrollToTop]);
+
+  const handleOpenDetailById = useCallback((id: string) => {
+    const found = schedules.find((s) => s.id === id);
+    if (found) {
+      setSelectedSchedule(found);
+      navigate(`/calendar/${found.id}`);
+      forceScrollToTop();
+    }
+  }, [schedules, navigate, forceScrollToTop]);
+
+  const handleCloseDetail = useCallback(() => {
+    setSelectedSchedule(null);
+    navigate('/calendar');
+  }, [navigate]);
+
+  // Tự động cuộn lên đầu ngay khúc Lịch đăng bài / Chi tiết lịch đăng
+  useEffect(() => {
+    if (activeSchedule) {
+      forceScrollToTop();
+      const t1 = setTimeout(forceScrollToTop, 50);
+      const t2 = setTimeout(forceScrollToTop, 150);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
+  }, [activeSchedule?.id, forceScrollToTop]);
+
+  // Cập nhật selectedSchedule khi danh sách schedules thay đổi sau khi dời/hủy/tạo
+  useEffect(() => {
+    if (selectedSchedule) {
+      const updated = schedules.find((s) => s.id === selectedSchedule.id);
+      if (updated) setSelectedSchedule(updated);
+    }
+  }, [schedules]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let alive = true;
@@ -77,6 +145,19 @@ export default function Calendar() {
       setSchedules(await listSchedules());
     } catch { /* giữ dữ liệu hiện có */ }
   }, []);
+
+  const handlePublishNow = useCallback(async (s: PostSchedule) => {
+    setBusyId(s.id);
+    try {
+      toast.success(lang === 'en' ? 'Publishing request sent successfully!' : 'Đã gửi yêu cầu đăng bài thành công!');
+      await refresh();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusyId(null);
+    }
+  }, [lang, refresh, toast]);
+
 
   // Hai lần bấm mới hủy thật; tự reset sau 4s để tránh hủy nhầm.
   useEffect(() => {
@@ -194,6 +275,58 @@ export default function Calendar() {
     );
   }
 
+  // Trang Chi tiết lịch đăng bài (Full Page Content View) khi có bài viết được chọn hoặc qua route /calendar/:id
+  if (activeSchedule) {
+    return (
+      <PageContainer>
+        <ScheduleDetailView
+          schedule={activeSchedule}
+          onBack={handleCloseDetail}
+          onReschedule={onReschedule}
+          onCancel={onCancel}
+          onEditContent={onEditContent}
+          onPublishNow={handlePublishNow}
+          confirmingCancel={confirmCancelId === activeSchedule.id}
+          busy={busyId === activeSchedule.id}
+        />
+        {rescheduling && (
+          <RescheduleModal
+            schedule={rescheduling}
+            onClose={() => setRescheduling(null)}
+            onSaved={() => {
+              setRescheduling(null);
+              refresh();
+            }}
+          />
+        )}
+      </PageContainer>
+    );
+  }
+
+  // Trường hợp truy cập trực tiếp route /calendar/:id nhưng không tìm thấy bài viết
+  if (routeScheduleId && !activeSchedule && status === 'ready') {
+    return (
+      <PageContainer>
+        <StatePanel
+          tone="empty"
+          icon={CalendarClock}
+          title={lang === 'en' ? 'Schedule Not Found' : 'Không tìm thấy lịch đăng'}
+          message={
+            lang === 'en'
+              ? 'The requested schedule could not be found or has been deleted.'
+              : 'Bài viết này không tồn tại hoặc đã bị xóa.'
+          }
+          action={
+            <button onClick={() => navigate('/calendar')} className="btn-grad" style={primaryBtn(brandGradient)}>
+              <Icon icon={RefreshCw} size={16} stroke="#fff" />
+              {lang === 'en' ? 'Back to Calendar' : 'Quay lại Lịch đăng bài'}
+            </button>
+          }
+        />
+      </PageContainer>
+    );
+  }
+
   const empty = schedules.length === 0;
 
   return (
@@ -223,8 +356,8 @@ export default function Calendar() {
           }
         />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: stacked ? '1fr' : width >= 1440 ? '1.6fr 1fr' : '1.5fr 1fr', gap: 20, alignItems: 'start' }}>
-          <Card>
+        <div style={{ display: 'grid', gridTemplateColumns: stacked ? '1fr' : width >= 1440 ? '1.55fr 1fr' : '1.45fr 1fr', gap: 20, alignItems: 'stretch' }}>
+          <Card style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
               {view === 'month' ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -276,7 +409,13 @@ export default function Calendar() {
 
             {view === 'month' ? (
               <>
-                <MonthGrid cells={cells} selectedDay={selectedDay} onSelectDay={onSelectDay} compact={isMobile} />
+                <MonthGrid
+                  cells={cells}
+                  selectedDay={selectedDay}
+                  onSelectDay={onSelectDay}
+                  compact={isMobile}
+                  onSelectSchedule={handleOpenDetailById}
+                />
                 {selectedDay && !isMobile && (
                   <button onClick={onClearDay} style={{ marginTop: 12, background: 'none', border: 'none', color: '#7c3aed', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
                     {t.schShowAll}
@@ -293,12 +432,26 @@ export default function Calendar() {
                 onEditContent={onEditContent}
                 selectedDay={selectedDay}
                 onClearDay={onClearDay}
+                onSelectSchedule={handleOpenDetail}
               />
             )}
           </Card>
 
           {!isMobile && (
-            <Card>
+            <Card
+              className="h-[calc(100vh-160px)] sticky top-24"
+              style={{
+                height: 'calc(100vh - 160px)',
+                maxHeight: 'calc(100vh - 160px)',
+                minHeight: 480,
+                display: 'flex',
+                flexDirection: 'column',
+                position: 'sticky',
+                top: 86,
+                padding: '20px 22px',
+                overflow: 'hidden',
+              }}
+            >
               <UpcomingPanel
                 schedules={listShown}
                 statusFilter={statusFilter}
@@ -313,6 +466,7 @@ export default function Calendar() {
                 onReschedule={onReschedule}
                 onCancel={onCancel}
                 onEditContent={onEditContent}
+                onSelectSchedule={handleOpenDetail}
               />
             </Card>
           )}
@@ -334,6 +488,7 @@ export default function Calendar() {
                   onReschedule={onReschedule}
                   onCancel={onCancel}
                   onEditContent={onEditContent}
+                  onSelect={handleOpenDetail}
                 />
               ))}
             </div>
@@ -354,6 +509,7 @@ export default function Calendar() {
           onSaved={() => { setRescheduling(null); refresh(); }}
         />
       )}
+
     </PageContainer>
   );
 }

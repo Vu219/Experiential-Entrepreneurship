@@ -7,6 +7,7 @@ import com.aima.dto.request.AiRoutingUpdateRequest;
 import com.aima.dto.response.AiConfigAuditResponse;
 import com.aima.dto.response.AiEffectiveStatusResponse;
 import com.aima.dto.response.AiModelResponse;
+import com.aima.dto.response.AiModelHealthResponse;
 import com.aima.dto.response.AiProviderResponse;
 import com.aima.dto.response.AiRoutingResponse;
 import com.aima.dto.response.AiTestConnectionResponse;
@@ -62,6 +63,19 @@ public class AiConfigAdminController {
     @Operation(summary = "Kiểm tra kết nối provider (1 call model tối thiểu qua AI service)")
     public ApiResponse<AiTestConnectionResponse> testConnection(@PathVariable UUID id) {
         return aiConfigService.testConnection(id);
+    }
+
+    @PostMapping("/providers/{id}/reset-model-health")
+    @PreAuthorize(AiConfigAccess.WRITE)
+    @Operation(summary = "Reset trạng thái model (xoá cooldown / hết quota ngày của mọi model thuộc provider)")
+    public ApiResponse<Integer> resetModelHealth(@PathVariable UUID id) {
+        return aiConfigService.resetModelHealth(id);
+    }
+
+    @GetMapping("/model-health")
+    @Operation(summary = "Các model đang bị circuit breaker cho nghỉ (cooldown / hết quota ngày)")
+    public ApiResponse<List<AiModelHealthResponse>> listModelHealth() {
+        return aiConfigService.listModelHealth();
     }
 
     @PostMapping("/providers/{id}/sync-models")

@@ -1062,7 +1062,8 @@ export const STRINGS = {
     // ===== Gói & thanh toán (payOS) =====
     navBilling: 'Gói & thanh toán',
     blLoadingPage: 'Đang tải gói & thanh toán…',
-    blTitle: 'Gói & thanh toán', blSub: 'Xem gói đang dùng, mua hoặc gia hạn, và tra lại lịch sử giao dịch.',
+    blTitle: 'Gói & thanh toán', blSub: 'Quản lý gói cước & lịch sử giao dịch',
+    blIntroDesc: 'Xem gói dịch vụ đang hoạt động, nâng cấp hoặc gia hạn gói cước, và tra cứu lịch sử giao dịch thanh toán.',
     blCurrentPlan: 'Gói hiện tại', blSourceFree: 'Gói mặc định', blSourcePayment: 'Đã mua', blSourceAdmin: 'Được cấp',
     blNoExpiry: 'Không giới hạn thời gian', blExpiresOn: 'Hết hạn', blStartedOn: 'Bắt đầu',
     blQuotaReset: 'Hạn mức token reset', blTokenLimit: 'Hạn mức token mỗi tháng', blUnlimited: 'Không giới hạn',
@@ -2147,7 +2148,8 @@ export const STRINGS = {
     // ===== Plan & billing (payOS) =====
     navBilling: 'Plan & billing',
     blLoadingPage: 'Loading plan & billing…',
-    blTitle: 'Plan & billing', blSub: 'See your current plan, buy or renew it, and review past transactions.',
+    blTitle: 'Plan & billing', blSub: 'Manage your plan & transaction history',
+    blIntroDesc: 'View your active plan, upgrade or renew subscription, and review complete payment history.',
     blCurrentPlan: 'Current plan', blSourceFree: 'Default plan', blSourcePayment: 'Purchased', blSourceAdmin: 'Granted',
     blNoExpiry: 'Never expires', blExpiresOn: 'Expires', blStartedOn: 'Started',
     blQuotaReset: 'Token quota resets', blTokenLimit: 'Monthly token quota', blUnlimited: 'Unlimited',

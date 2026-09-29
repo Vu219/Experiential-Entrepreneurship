@@ -52,8 +52,16 @@ public class AiProvider extends BaseEntity {
     LocalDateTime lastTestedAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "last_test_status", length = 20)
+    @Column(name = "last_test_status", length = 30)
     AiTestStatus lastTestStatus;
+
+    /**
+     * Lần ĐẦU gặp lỗi 429 có quotaId chứa "FreeTier" (từ llm_attempts khi tạo nội dung hoặc từ
+     * "Kiểm tra kết nối") — key đang dùng gói miễn phí của Google, trang admin hiện banner khuyên
+     * bật billing. null = chưa gặp; admin bấm "Reset trạng thái model" thì xoá.
+     */
+    @Column(name = "free_tier_detected_at")
+    LocalDateTime freeTierDetectedAt;
 
     /**
      * Cache catalog model từ API provider (sync thủ công/sau test OK): JSON mảng object

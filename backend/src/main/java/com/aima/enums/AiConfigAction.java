@@ -9,5 +9,7 @@ public enum AiConfigAction {
     UPDATE,
     DELETE,
     TEST_CONNECTION,
-    SYNC_MODELS
+    SYNC_MODELS,
+    /** Admin xoá trạng thái nghỉ (circuit breaker) của các model thuộc provider. */
+    RESET_MODEL_HEALTH
 }

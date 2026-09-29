@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -26,11 +27,15 @@ public class AiRoutingResponse {
 
     String primaryProviderCode;
 
+    /** LEGACY: = fallbacks[0] (client cũ đọc bộ ba fallbackModel*). */
     UUID fallbackModelId;
 
     String fallbackModelCode;
 
     String fallbackProviderCode;
+
+    /** Chuỗi dự phòng theo thứ tự thử (rỗng = không dùng dự phòng). */
+    List<AiRoutingFallbackResponse> fallbacks;
 
     Double temperature;
 

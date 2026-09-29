@@ -35,6 +35,29 @@ def list_models(provider: str, api_key: str) -> List[CatalogModel]:
     raise ValueError(f"Unknown provider for model listing: {provider!r}")
 
 
+def probe(provider: str, api_key: str) -> None:
+    """Cheapest authenticated call: ONE page of size 1 of the model list (no generation, no
+    generateContent quota). Raises ``requests.HTTPError`` / transport errors for
+    ``errors.classify_error`` — used by /test-connection."""
+    if provider == "anthropic":
+        resp = requests.get(
+            f"{ANTHROPIC_BASE_URL}/v1/models",
+            headers={"x-api-key": api_key, "anthropic-version": ANTHROPIC_VERSION},
+            params={"limit": 1},
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+    elif provider == "google":
+        resp = requests.get(
+            f"{GOOGLE_BASE_URL}/v1beta/models",
+            headers={"x-goog-api-key": api_key},
+            params={"pageSize": 1},
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+    else:
+        raise ValueError(f"Unknown provider for probe: {provider!r}")
+    resp.raise_for_status()
+
+
 def _positive_or_none(value) -> Optional[int]:
     """Anthropic documents 0 as 'unknown' for token limits — treat 0/missing as None."""
     return value if isinstance(value, int) and value > 0 else None

@@ -7,7 +7,7 @@ import { absDayLabel, dayRel, groupByDay } from './dateUtils.ts';
 // item giữ nguyên đầy đủ hành động của hàng đợi. Dùng cho view Agenda (cột trái)
 // lẫn panel "Hàng đợi" (cột phải) — cùng một dữ liệu, hai khung nhìn.
 
-export default function AgendaView({ schedules, busyId, confirmCancelId, onReschedule, onCancel, onEditContent, selectedDay, onClearDay }: {
+export default function AgendaView({ schedules, busyId, confirmCancelId, onReschedule, onCancel, onEditContent, selectedDay, onClearDay, onSelectSchedule }: {
   schedules: PostSchedule[];
   busyId: string | null;
   confirmCancelId: string | null;
@@ -16,6 +16,7 @@ export default function AgendaView({ schedules, busyId, confirmCancelId, onResch
   onEditContent: () => void;
   selectedDay: string | null;
   onClearDay: () => void;
+  onSelectSchedule?: (s: PostSchedule) => void;
 }) {
   const { t, lang } = useApp();
 
@@ -57,6 +58,7 @@ export default function AgendaView({ schedules, busyId, confirmCancelId, onResch
                   onReschedule={onReschedule}
                   onCancel={onCancel}
                   onEditContent={onEditContent}
+                  onSelect={onSelectSchedule}
                 />
               ))}
             </div>

@@ -35,7 +35,7 @@ const PAGE_SIZE = 10;
  * để backend tự hỏi cổng.</p>
  */
 export default function Billing() {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const { refreshUser } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -132,6 +132,13 @@ export default function Billing() {
 
   return (
     <PageContainer>
+      {/* Giới thiệu ngữ cảnh nhẹ nhàng phía trên Card Gói hiện tại */}
+      <div style={{ marginBottom: -6 }}>
+        <p style={{ margin: 0, fontSize: 13.5, color: '#6b6680', lineHeight: 1.55 }}>
+          {(t as Record<string, string>).blIntroDesc ?? (lang === 'en' ? 'Review your active subscription, upgrade or extend your plan, and track complete invoice history.' : 'Xem gói dịch vụ đang hoạt động, nâng cấp hoặc gia hạn gói cước, và tra cứu lịch sử giao dịch thanh toán.')}
+        </p>
+      </div>
+
       {billing && <CurrentPlanCard billing={billing} />}
 
       {billing?.pendingPayment && (

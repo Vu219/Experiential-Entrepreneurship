@@ -55,12 +55,13 @@ export function buildMonth(viewDate: Date, schedules: PostSchedule[]): MonthCell
 const CHIP_LIMIT = 2;
 const ARROW_DELTA: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
 
-export default function MonthGrid({ cells, selectedDay, onSelectDay, compact }: {
+export default function MonthGrid({ cells, selectedDay, onSelectDay, compact, onSelectSchedule }: {
   cells: MonthCell[];
   selectedDay: string | null;
   onSelectDay: (key: string | null) => void;
   /** Mobile: dot màu thay cho chip giờ. */
   compact: boolean;
+  onSelectSchedule?: (scheduleId: string) => void;
 }) {
   const { t, lang } = useApp();
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -130,7 +131,43 @@ export default function MonthGrid({ cells, selectedDay, onSelectDay, compact }: 
               ) : (
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 5 }}>
                   {chips.map((it) => (
-                    <span key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#f4f1fb', borderRadius: 6, padding: '2px 6px', fontSize: 10, fontWeight: 700, color: '#4b4660', lineHeight: 1.4, fontVariantNumeric: 'tabular-nums' }}>
+                    <span
+                      key={it.id}
+                      onClick={(e) => {
+                        if (onSelectSchedule) {
+                          e.stopPropagation();
+                          onSelectSchedule(it.id);
+                        }
+                      }}
+                      title={lang === 'en' ? 'Click to view post details' : 'Nhấp để xem chi tiết bài đăng'}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        background: '#f4f1fb',
+                        borderRadius: 6,
+                        padding: '2px 6px',
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: '#4b4660',
+                        lineHeight: 1.4,
+                        fontVariantNumeric: 'tabular-nums',
+                        cursor: onSelectSchedule ? 'pointer' : 'default',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (onSelectSchedule) {
+                          e.currentTarget.style.background = '#ebe4f9';
+                          e.currentTarget.style.color = '#7c3aed';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (onSelectSchedule) {
+                          e.currentTarget.style.background = '#f4f1fb';
+                          e.currentTarget.style.color = '#4b4660';
+                        }
+                      }}
+                    >
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: it.bg, flex: 'none' }} />
                       {it.time}
                     </span>

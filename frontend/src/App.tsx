@@ -170,6 +170,7 @@ export default function App() {
           <Route path="/create" element={<Create />} />
           <Route path="/create/new" element={<CreateWizard />} />
           <Route path="/calendar" element={<Calendar />} />
+          <Route path="/calendar/:id" element={<Calendar />} />
           <Route path="/failed-posts" element={<FailedPosts />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/trends" element={<Trends />} />

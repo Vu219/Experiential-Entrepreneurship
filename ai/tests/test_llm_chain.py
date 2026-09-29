@@ -175,12 +175,34 @@ def test_401_without_other_provider_fails(script):
     assert ei.value.error_code == llm.AI_UNAVAILABLE
 
 
-def test_400_stops_without_fallback(script):
-    plan, calls, _ = script
+def test_400_falls_back_once_then_next_model_succeeds(script):
+    plan, calls, sleeps = script
     plan["gemini-3.5-flash"] = [_google_error(400)]
+    out, usage = _run([_spec("gemini-3.5-flash"), _spec("gemini-2.5-flash")])
+    assert out.text == "gemini-2.5-flash"
+    assert calls == ["gemini-3.5-flash", "gemini-2.5-flash"]  # no retry of the same model
+    assert sleeps == []
+    assert usage.attempts[0].outcome == errors.BAD_REQUEST
+
+
+def test_second_400_stops_with_bad_request(script, monkeypatch):
+    plan, calls, _ = script
+    plan["a"] = [_google_error(400)]
+    plan["b"] = [_google_error(400)]
+    chain = [_spec("a"), _spec("b"), _spec("c")]
+    monkeypatch.setattr(LlmConfig, "chain", lambda self: chain)
     with pytest.raises(llm.LlmChainError) as ei:
-        _run([_spec("gemini-3.5-flash"), _spec("gemini-2.5-flash")])
-    assert calls == ["gemini-3.5-flash"]
+        _run(chain[:1])
+    assert calls == ["a", "b"]  # "c" never tried
+    assert ei.value.error_code == llm.AI_BAD_REQUEST
+
+
+def test_400_on_last_model_reports_bad_request(script):
+    plan, calls, _ = script
+    plan["a"] = [_google_error(400)]
+    with pytest.raises(llm.LlmChainError) as ei:
+        _run([_spec("a")])
+    assert calls == ["a"]
     assert ei.value.error_code == llm.AI_BAD_REQUEST
 
 
@@ -206,7 +228,7 @@ def test_quota_then_overloaded_reports_overloaded(script):
 
 def test_chain_budget_exhausted_raises_timeout(script, monkeypatch):
     plan, _, _ = script
-    clock = iter([0.0] + [100.0] * 50)  # started=0, then every check is past the 45s budget
+    clock = iter([0.0] + [1000.0] * 50)  # started=0, then every check is past the 80s budget
     monkeypatch.setattr(llm.time, "monotonic", lambda: next(clock))
     with pytest.raises(llm.LlmChainError) as ei:
         _run([_spec("a"), _spec("b")])
@@ -232,3 +254,69 @@ def test_gemini_sdk_makes_exactly_one_http_call_and_afc_disabled(monkeypatch, ca
     assert errors.classify_error(ei.value).kind == errors.PROVIDER_OVERLOADED
     assert len(http_calls) == 1, "google-genai must not retry on its own"
     assert "AFC is enabled" not in caplog.text
+
+
+# ---------- timeout ordering across tiers ----------
+
+def test_timeout_tiers_are_ordered():
+    """per-call < chain budget < backend AI_SERVICE_TIMEOUT_SECONDS < FE poll cap."""
+    import re
+    from pathlib import Path
+
+    from src.config import Settings
+
+    root = Path(__file__).resolve().parents[2]
+    s = Settings(_env_file=None)
+    yml = (root / "backend/src/main/resources/application.yml").read_text(encoding="utf-8")
+    backend = int(re.search(r"AI_SERVICE_TIMEOUT_SECONDS:(\d+)", yml).group(1))
+    fe = (root / "frontend/src/api/contentCreationService.ts").read_text(encoding="utf-8")
+    fe_poll = int(re.search(r"GENERATION_POLL_LIMIT_MS = (\d+) \* 60_000", fe).group(1)) * 60
+
+    assert (s.llm_call_timeout_seconds, s.llm_chain_budget_seconds, backend) == (40, 80, 100)
+    assert s.llm_call_timeout_seconds < s.llm_chain_budget_seconds < backend < fe_poll
+
+
+# ---------- multi-model fallback chain (C) ----------
+
+def test_multi_model_chain_walks_fallbacks_in_order(script):
+    """primary daily-quota → fb1 503 twice → fb2 answers; fb3 is never called."""
+    plan, calls, _ = script
+    plan["gemini-3.5-flash"] = [_google_error(429, GEMINI_DAILY)]
+    plan["gemini-3.1-flash-lite"] = [_google_error(503), _google_error(503)]
+    config = LlmConfig(primary=_spec("gemini-3.5-flash"),
+                       fallbacks=[_spec("gemini-3.1-flash-lite"), _spec("gemini-2.5-flash"),
+                                  _spec("claude-sonnet-4-6", "anthropic")])
+    llm.use_llm_config(config)
+    try:
+        out, usage = llm.invoke_structured(Out, PROMPT, {"q": "hi"})
+    finally:
+        llm.use_llm_config(None)
+    assert out.text == "gemini-2.5-flash"
+    assert calls == ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
+    assert [a.model for a in usage.attempts if a.outcome == "ok"] == ["gemini-2.5-flash"]
+
+
+def test_chain_prefers_fallbacks_over_legacy_fallback_and_dedupes():
+    a, b, c = _spec("a"), _spec("b"), _spec("c")
+    # new backend sends both: fallback == fallbacks[0]
+    assert [s.model for s in LlmConfig(primary=a, fallback=b, fallbacks=[b, c]).chain()] == ["a", "b", "c"]
+    # a model listed twice (or equal to primary) is tried once
+    assert [s.model for s in LlmConfig(primary=a, fallbacks=[b, a, b, c]).chain()] == ["a", "b", "c"]
+
+
+def test_legacy_payload_with_single_fallback_still_works():
+    """Old backend: {primary, fallback} only — no `fallbacks` key."""
+    config = LlmConfig.model_validate({
+        "primary": {"provider": "google", "model": "a", "api_key": "k"},
+        "fallback": {"provider": "anthropic", "model": "b", "api_key": "k"},
+    })
+    assert [s.model for s in config.chain()] == ["a", "b"]
+    assert [s.model for s in LlmConfig(primary=_spec("a")).chain()] == ["a"]
+
+
+def test_classify_google_400_api_key_invalid_is_invalid_key():
+    body = {"error": {"code": 400, "message": "API key not valid.", "status": "INVALID_ARGUMENT",
+                      "details": [{"@type": "type.googleapis.com/google.rpc.ErrorInfo",
+                                   "reason": "API_KEY_INVALID", "domain": "googleapis.com"}]}}
+    assert errors.classify_error(genai_errors.ClientError(400, body)).kind == errors.INVALID_KEY
+    assert errors.classify_error(_google_error(400)).kind == errors.BAD_REQUEST

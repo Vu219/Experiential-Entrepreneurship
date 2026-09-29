@@ -13,6 +13,7 @@ import com.aima.dto.response.AiCatalogModelResponse;
 import com.aima.dto.response.AiConfigAuditResponse;
 import com.aima.dto.response.AiEffectiveStatusResponse;
 import com.aima.dto.response.AiModelResponse;
+import com.aima.dto.response.AiModelHealthResponse;
 import com.aima.dto.response.AiProviderResponse;
 import com.aima.dto.response.AiRouteStatusResponse;
 import com.aima.dto.response.AiRoutingResponse;
@@ -28,6 +29,7 @@ import com.aima.entity.AiModel;
 import com.aima.entity.AiModelPriceCatalog;
 import com.aima.entity.AiProvider;
 import com.aima.entity.AiTaskRouting;
+import com.aima.entity.AiTaskRoutingFallback;
 import com.aima.entity.AiUsage;
 import com.aima.entity.User;
 import com.aima.enums.ActivityAction;
@@ -43,11 +45,13 @@ import com.aima.repository.AiConfigAuditRepository;
 import com.aima.repository.AiModelPriceCatalogRepository;
 import com.aima.repository.AiModelRepository;
 import com.aima.repository.AiProviderRepository;
+import com.aima.repository.AiTaskRoutingFallbackRepository;
 import com.aima.repository.AiTaskRoutingRepository;
 import com.aima.repository.AiUsageRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.ActivityLogService;
 import com.aima.service.AiConfigService;
+import com.aima.service.AiModelHealthService;
 import com.aima.service.AiRuntimeConfigService;
 import com.aima.service.AiServiceClient;
 import tools.jackson.core.JacksonException;
@@ -68,10 +72,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -91,8 +98,12 @@ import java.util.stream.Collectors;
 public class AiConfigServiceImpl implements AiConfigService {
 
     ActivityLogService activityLogService;
+    AiModelHealthService modelHealthService;
 
     static final int MAX_AUDIT_PAGE_SIZE = 50;
+
+    /** Trần độ dài chuỗi dự phòng — chuỗi dài hơn cũng không kịp chạy hết trong LLM_CHAIN_BUDGET_SECONDS. */
+    static final int MAX_FALLBACKS = 5;
 
     static final String ENTITY_PROVIDER = "AiProvider";
     static final String ENTITY_MODEL = "AiModel";
@@ -101,6 +112,7 @@ public class AiConfigServiceImpl implements AiConfigService {
     AiProviderRepository providerRepository;
     AiModelRepository modelRepository;
     AiTaskRoutingRepository routingRepository;
+    AiTaskRoutingFallbackRepository fallbackRepository;
     AiConfigAuditRepository auditRepository;
     AiUsageRepository usageRepository;
     AiModelPriceCatalogRepository priceCatalogRepository;
@@ -150,6 +162,31 @@ public class AiConfigServiceImpl implements AiConfigService {
         return ApiResponse.success("Cập nhật nhà cung cấp AI thành công", response);
     }
 
+    @Override
+    public ApiResponse<List<AiModelHealthResponse>> listModelHealth() {
+        List<AiModelHealthResponse> response = aiConfigMapper.toModelHealthResponseList(modelHealthService.list());
+        return ApiResponse.success("Lấy trạng thái model thành công", response);
+    }
+
+    /**
+     * KHÔNG mở transaction: gọi Redis (rule #24); audit là transaction ngắn riêng. Xoá luôn cờ
+     * FreeTier của provider (admin reset sau khi bật billing).
+     */
+    @Override
+    public ApiResponse<Integer> resetModelHealth(UUID providerId) {
+        AiProvider provider = providerRepository.findByIdAndDeletedAtIsNull(providerId)
+                .orElseThrow(() -> new AppException(ErrorCode.AI_PROVIDER_NOT_FOUND));
+        int cleared = modelHealthService.reset(provider.getCode().name());
+        boolean hadFreeTier = provider.getFreeTierDetectedAt() != null;
+        if (hadFreeTier) {
+            provider.setFreeTierDetectedAt(null);
+            providerRepository.save(provider);
+        }
+        audit(AiConfigAction.RESET_MODEL_HEALTH, ENTITY_PROVIDER, provider.getId(), null,
+                "{\"clearedModels\":" + cleared + ",\"clearedFreeTier\":" + hadFreeTier + "}");
+        return ApiResponse.success("Đã reset trạng thái " + cleared + " model", cleared);
+    }
+
     /**
      * KHÔNG mở transaction: có HTTP call sang AI service (rule #24). Hai lần save (kết quả test
      * + audit) là các transaction ngắn riêng — chấp nhận không atomic cho thao tác chẩn đoán.
@@ -161,31 +198,36 @@ public class AiConfigServiceImpl implements AiConfigService {
         if (provider.getApiKey() == null || provider.getApiKey().isBlank()) {
             throw new AppException(ErrorCode.AI_PROVIDER_KEY_MISSING);
         }
-        AiModel model = modelRepository
+        // AI service mới chỉ liệt kê model (không gọi generateContent) — model gửi kèm để AI
+        // service bản cũ (bắt buộc trường này) vẫn chạy; không có model nào cũng test được.
+        String modelCode = modelRepository
                 .findFirstByProviderAndEnabledTrueAndDeletedAtIsNullOrderByCreatedAtAsc(provider)
-                .orElseThrow(() -> new AppException(ErrorCode.AI_MODEL_NOT_FOUND));
+                .map(AiModel::getModelCode)
+                .orElse(null);
 
         TestConnectionPayload payload = TestConnectionPayload.builder()
                 .provider(provider.getCode().name().toLowerCase())
-                .model(model.getModelCode())
+                .model(modelCode)
                 .apiKey(provider.getApiKey())
                 .build();
 
         AiTestStatus status;
         String message = null;
         Long latencyMs = null;
+        boolean freeTier = false;
         try {
             TestConnectionResultPayload result = aiServiceClient.testConnection(payload);
-            status = result.isSuccess() ? AiTestStatus.SUCCESS : AiTestStatus.FAILED;
-            message = result.getMessage();
+            status = AiTestStatus.fromAiService(result.getStatus(), result.isSuccess());
+            message = status == AiTestStatus.OK ? null : result.getMessage();
             latencyMs = result.getLatencyMs();
+            freeTier = result.isFreeTier();
         } catch (AppException e) {
             // AI service không chạy / lỗi HTTP → kết quả FAILED, không ném 502 cho thao tác chẩn đoán.
             status = AiTestStatus.FAILED;
             message = e.getMessage();
         }
 
-        if (status == AiTestStatus.SUCCESS) {
+        if (status == AiTestStatus.OK) {
             // Key vừa xác nhận OK → làm mới catalog model luôn (best-effort, lỗi không phá kết quả test).
             try {
                 syncCatalog(provider);
@@ -196,12 +238,16 @@ public class AiConfigServiceImpl implements AiConfigService {
 
         provider.setLastTestedAt(LocalDateTime.now());
         provider.setLastTestStatus(status);
+        if (freeTier && provider.getFreeTierDetectedAt() == null) {
+            provider.setFreeTierDetectedAt(provider.getLastTestedAt());
+        }
         providerRepository.save(provider);
 
         AiTestConnectionResponse response = AiTestConnectionResponse.builder()
                 .status(status.name())
                 .message(message)
                 .latencyMs(latencyMs)
+                .freeTier(freeTier)
                 .testedAt(provider.getLastTestedAt())
                 .build();
         audit(AiConfigAction.TEST_CONNECTION, ENTITY_PROVIDER, provider.getId(), null, toJson(response));
@@ -317,7 +363,8 @@ public class AiConfigServiceImpl implements AiConfigService {
         AiModel model = modelRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.AI_MODEL_NOT_FOUND));
         if (routingRepository.existsByPrimaryModelAndDeletedAtIsNull(model)
-                || routingRepository.existsByFallbackModelAndDeletedAtIsNull(model)) {
+                || routingRepository.existsByFallbackModelAndDeletedAtIsNull(model)
+                || fallbackRepository.existsByModelAndRouting_DeletedAtIsNull(model)) {
             throw new AppException(ErrorCode.AI_MODEL_IN_USE);
         }
 
@@ -351,19 +398,49 @@ public class AiConfigServiceImpl implements AiConfigService {
 
         AiModel primaryModel = modelRepository.findByIdAndDeletedAtIsNull(request.getPrimaryModelId())
                 .orElseThrow(() -> new AppException(ErrorCode.AI_MODEL_NOT_FOUND));
-        AiModel fallbackModel = request.getFallbackModelId() == null ? null
-                : modelRepository.findByIdAndDeletedAtIsNull(request.getFallbackModelId())
-                        .orElseThrow(() -> new AppException(ErrorCode.AI_MODEL_NOT_FOUND));
+        List<AiModel> fallbackModels = resolveFallbacks(request, primaryModel);
 
         aiConfigMapper.updateRouting(request, routing);
         routing.setPrimaryModel(primaryModel);
-        routing.setFallbackModel(fallbackModel);
+        // Legacy fallback_model_id = mắt xích đầu (backend cũ khi rollback vẫn đọc đúng).
+        routing.setFallbackModel(fallbackModels.isEmpty() ? null : fallbackModels.get(0));
+        // Thay CẢ chuỗi: xoá + flush trước khi chèn — Hibernate chạy INSERT trước DELETE trong
+        // cùng flush nên đổi thứ tự (A,B → B,A) sẽ vỡ unique (routing_id, position/model_id).
+        routing.getFallbacks().clear();
+        routingRepository.saveAndFlush(routing);
+        for (int i = 0; i < fallbackModels.size(); i++) {
+            routing.getFallbacks().add(AiTaskRoutingFallback.builder()
+                    .routing(routing).model(fallbackModels.get(i)).position(i).build());
+        }
         AiTaskRouting saved = routingRepository.save(routing);
 
         AiRoutingResponse response = aiConfigMapper.toRoutingResponse(saved);
         audit(AiConfigAction.UPDATE, ENTITY_ROUTING, saved.getId(), before, toJson(response));
         runtimeConfigService.evictCache();
         return ApiResponse.success("Cập nhật định tuyến AI thành công", response);
+    }
+
+    /**
+     * Chuỗi dự phòng từ request: {@code fallbackModelIds} (mới) hoặc {@code fallbackModelId}
+     * (client cũ). Không trùng, không chứa model chính, tối đa {@link #MAX_FALLBACKS}; model tắt
+     * / provider tắt vẫn lưu được (runtime tự bỏ qua, UI hiện mờ kèm lý do).
+     */
+    private List<AiModel> resolveFallbacks(AiRoutingUpdateRequest request, AiModel primaryModel) {
+        List<UUID> ids = request.getFallbackModelIds() != null ? request.getFallbackModelIds()
+                : request.getFallbackModelId() == null ? List.of() : List.of(request.getFallbackModelId());
+        if (ids.size() > MAX_FALLBACKS) {
+            throw new AppException(ErrorCode.AI_ROUTING_FALLBACK_TOO_MANY);
+        }
+        Set<UUID> seen = new HashSet<>(Set.of(primaryModel.getId()));
+        List<AiModel> models = new ArrayList<>();
+        for (UUID id : ids) {
+            if (id == null || !seen.add(id)) {
+                throw new AppException(ErrorCode.AI_ROUTING_FALLBACK_INVALID);
+            }
+            models.add(modelRepository.findByIdAndDeletedAtIsNull(id)
+                    .orElseThrow(() -> new AppException(ErrorCode.AI_MODEL_NOT_FOUND)));
+        }
+        return models;
     }
 
     // ===== Effective status (một nguồn sự thật — cùng luật blockReason với runtime) =====
@@ -391,9 +468,12 @@ public class AiConfigServiceImpl implements AiConfigService {
     /** Route tắt (dùng env) → health = null, không tính vào counts; route bật → OK/DEGRADED/ERROR. */
     private AiRouteStatusResponse toRouteStatus(AiTaskRouting routing) {
         AiModelBlockReason primaryReason = runtimeConfigService.blockReason(routing.getPrimaryModel());
-        boolean hasFallback = routing.getFallbackModel() != null;
+        List<AiModel> chain = routing.fallbackChain();
+        boolean hasFallback = !chain.isEmpty();
+        // Chuỗi còn ÍT NHẤT một model dùng được → null; hỏng hết → lý do của mắt xích đầu.
         AiModelBlockReason fallbackReason = hasFallback
-                ? runtimeConfigService.blockReason(routing.getFallbackModel())
+                && chain.stream().noneMatch(m -> runtimeConfigService.blockReason(m) == null)
+                ? runtimeConfigService.blockReason(chain.get(0))
                 : null;
 
         String health = null;
@@ -527,15 +607,14 @@ public class AiConfigServiceImpl implements AiConfigService {
         if (providerId.equals(routing.getPrimaryModel().getProvider().getId())) {
             return true;
         }
-        return routing.getFallbackModel() != null
-                && providerId.equals(routing.getFallbackModel().getProvider().getId());
+        return routing.fallbackChain().stream().anyMatch(m -> providerId.equals(m.getProvider().getId()));
     }
 
     private boolean usesModel(AiTaskRouting routing, UUID modelId) {
         if (modelId.equals(routing.getPrimaryModel().getId())) {
             return true;
         }
-        return routing.getFallbackModel() != null && modelId.equals(routing.getFallbackModel().getId());
+        return routing.fallbackChain().stream().anyMatch(m -> modelId.equals(m.getId()));
     }
 
     /** Snapshot truyền vào là JSON của response DTO (đã mask key) — KHÔNG serialize entity. */

@@ -144,7 +144,13 @@ public enum ErrorCode {
     AI_SERVICE_ERROR(1904, "Lỗi khi gọi dịch vụ AI. Vui lòng thử lại sau.", HttpStatus.BAD_GATEWAY),
     CONTENT_ITEM_ID_REQUIRED(1905, "Thiếu mã bài nội dung để ghi bản nền tảng", HttpStatus.BAD_REQUEST),
     CONTENT_ITEM_NOT_DRAFT(1906, "Chỉ tạo bản nội dung vào bài đang ở trạng thái Nháp (DRAFT)", HttpStatus.BAD_REQUEST),
-    AI_TIMEOUT(1907, "Quá trình tạo nội dung mất nhiều thời gian hơn dự kiến, vui lòng thử lại.", HttpStatus.GATEWAY_TIMEOUT),
+    AI_TIMEOUT(1907, "Quá trình tạo nội dung mất nhiều thời gian hơn dự kiến. Nội dung có thể vẫn đang được tạo, hãy kiểm tra Thư viện nội dung sau ít phút.", HttpStatus.GATEWAY_TIMEOUT),
+    // Mã lỗi chuỗi model của AI service (502 detail.error_code) — CÙNG TÊN với mã phía ai/src/llm.py
+    // để FE ánh xạ một nguồn (api/aiErrorMessages.ts). AI_TIMEOUT ở trên dùng chung.
+    AI_PROVIDER_OVERLOADED(1908, "Hệ thống AI đang quá tải, vui lòng thử lại sau ít phút.", HttpStatus.SERVICE_UNAVAILABLE),
+    AI_QUOTA_EXHAUSTED(1909, "Đã đạt giới hạn sử dụng AI hôm nay. Vui lòng thử lại sau hoặc liên hệ quản trị viên.", HttpStatus.TOO_MANY_REQUESTS),
+    AI_BAD_REQUEST(1954, "Yêu cầu không hợp lệ, vui lòng chỉnh lại nội dung đầu vào.", HttpStatus.BAD_REQUEST),
+    AI_UNAVAILABLE(1955, "Không thể tạo nội dung lúc này, vui lòng thử lại.", HttpStatus.BAD_GATEWAY),
     IDEMPOTENCY_KEY_INVALID(1944, "Idempotency-Key không hợp lệ (tối đa 64 ký tự)", HttpStatus.BAD_REQUEST),
 
     // TREND RESEARCH ERRORS
@@ -247,6 +253,9 @@ public enum ErrorCode {
     AI_MAX_TOKENS_INVALID(2020, "Max tokens phải là số dương", HttpStatus.BAD_REQUEST),
     AI_ROUTING_ENABLED_REQUIRED(2021, "Thiếu trạng thái bật/tắt của định tuyến", HttpStatus.BAD_REQUEST),
     AI_USAGE_MONTH_INVALID(2022, "Tháng không hợp lệ — dùng định dạng YYYY-MM", HttpStatus.BAD_REQUEST),
+    AI_MODEL_HEALTH_UNAVAILABLE(2046, "Không đọc/ghi được trạng thái model (Redis) — thử lại sau", HttpStatus.SERVICE_UNAVAILABLE),
+    AI_ROUTING_FALLBACK_INVALID(2047, "Chuỗi dự phòng không được trùng model hoặc chứa model chính", HttpStatus.BAD_REQUEST),
+    AI_ROUTING_FALLBACK_TOO_MANY(2048, "Chuỗi dự phòng tối đa 5 model", HttpStatus.BAD_REQUEST),
 
     // SUBSCRIPTION & USAGE (gói đăng ký + điều chỉnh token — grant/reset admin dùng từ pha sau)
     SUBSCRIPTION_NOT_FOUND(2023, "Không tìm thấy gói đăng ký của người dùng", HttpStatus.NOT_FOUND),
