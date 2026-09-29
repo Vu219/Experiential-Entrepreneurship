@@ -122,6 +122,7 @@ const PAGE_KEYS = {
   settings: ['navSettings', 'pageSubSettings'],
   // /settings/usage — tab trong Cài đặt nên heading dùng chung với Cài đặt.
   usage: ['navSettings', 'pageSubSettings'],
+  billing: ['blTitle', 'blSub'],
   admin: ['navAdminOverview', 'pageSubAdmin'],
   adminUsers: ['navAdminUsers', 'pageSubAdminUsers'],
   adminPosts: ['navAdminPosts', 'pageSubAdminPosts'],

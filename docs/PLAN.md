@@ -231,4 +231,6 @@
 - [ ] Độ bền gọi LLM — C: chuỗi fallback nhiều model (`ai_task_routing_fallback`, migrate `fallbackModel` → position 0) + UI sắp xếp `[BE][FE][AI]`
 - [ ] Độ bền gọi LLM — D: "Kiểm tra kết nối" dùng list models + status phân loại (đỏ chỉ khi invalid_key/network_error) + cảnh báo Free Tier `[BE][FE][AI]`
 - [ ] Độ bền gọi LLM — G: mã lỗi AI_PROVIDER_OVERLOADED / AI_QUOTA_EXHAUSTED hiển thị thân thiện cho user `[BE][FE]`
+- [x] Trang pháp lý mở từ footer landing luôn cuộn lên đầu trang `[FE]` — done 2026-09-29 (`LegalPage` `scrollTo(0,0)` theo docKey)
+- [x] Tiêu đề "Gói & thanh toán" lên header app như các tab khác `[FE]` — done 2026-09-29 (`PAGE_KEYS.billing`, bỏ h1 lặp trong `Billing.tsx`)
 - [x] AI transparency markers in UI (AI-generated / needs review / auto-posted) `[FE]` — đã có sẵn, xác nhận 2026-07-11: tone `ai` trong `statusTokens.ts` (một nguồn màu duy nhất) + badge "✨ AI tạo" theo trạng thái ở `ContentViewPanel` (nhãn đổi theo lifecycle qua `aiLabelKey`), `GenerateStep`/`ReviewStep`/`PostImagePreview` trong luồng tạo nội dung

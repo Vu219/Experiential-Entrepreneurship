@@ -132,13 +132,6 @@ export default function Billing() {
 
   return (
     <PageContainer>
-      <div>
-        <h1 style={{ margin: 0, fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 26, color: '#1b1730' }}>
-          {t.blTitle}
-        </h1>
-        <p style={{ margin: '6px 0 0', fontSize: 14, color: '#6b6680' }}>{t.blSub}</p>
-      </div>
-
       {billing && <CurrentPlanCard billing={billing} />}
 
       {billing?.pendingPayment && (

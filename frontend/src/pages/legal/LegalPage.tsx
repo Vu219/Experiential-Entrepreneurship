@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import LandingHeader from '../../components/LandingHeader';
@@ -13,6 +13,11 @@ export default function LegalPage({ docKey, children }: { docKey: LegalDocKey; c
   const { t, lang } = useApp();
   const { isMobile } = useBreakpoint();
   const doc = getLegalDoc(docKey, lang);
+
+  // Mở từ footer landing (điều hướng SPA giữ nguyên vị trí cuộn) hoặc chuyển giữa 3 trang → luôn về đầu trang.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [docKey]);
 
   const nav: { key: LegalDocKey; href: string; label: string }[] = [
     { key: 'privacy', href: '/privacy', label: t.privacy },
