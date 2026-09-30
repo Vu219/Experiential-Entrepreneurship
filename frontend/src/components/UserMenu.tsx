@@ -7,9 +7,9 @@ import { useBreakpoint } from "../hooks/useBreakpoint";
 /**
  * Chip người dùng đã đăng nhập trên header. Hover (desktop) hoặc click để mở dropdown.
  * Dùng ở 2 nơi (một component để đồng nhất giao diện):
- *  - variant "landing" (mặc định): Hồ sơ / Gói & thanh toán / Bảng điều khiển / (Quản trị) / Đăng xuất; dòng phụ = email.
- *  - variant "app" (topbar trong ứng dụng): Trang chủ / Hồ sơ / Gói & thanh toán / Cài đặt / Đăng xuất;
- *    dòng phụ = GÓI THẬT của user (Free/Plus/Pro — lấy từ /users/me, không hardcode).
+ *  - variant "landing" (mặc định): Hồ sơ / Gói & thanh toán / Cài đặt / Bảng điều khiển / (Quản trị) / Đăng xuất.
+ *  - variant "app" (topbar trong ứng dụng): Trang chủ / Hồ sơ / Gói & thanh toán / Cài đặt / Đăng xuất.
+ * Cả hai: dòng phụ + badge = GÓI THẬT của user (Free/Plus/Pro — lấy từ /users/me, không hardcode).
  * Hỗ trợ: click ra ngoài đóng, Esc đóng (focus trả về nút mở), điều hướng bàn phím qua Tab.
  */
 export default function UserMenu({ variant = "landing" }: { variant?: "landing" | "app" }) {
@@ -90,7 +90,7 @@ export default function UserMenu({ variant = "landing" }: { variant?: "landing" 
         {showText && (
           <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.15, maxWidth: 140 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: "#241f3a", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</span>
-            <span style={{ fontSize: 10.5, color: "#8a85a0", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{isApp ? planLabel : user?.email}</span>
+            <span style={{ fontSize: 10.5, color: "#8a85a0", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{planLabel}</span>
           </span>
         )}
         <ChevronDown size={15} style={{ color: "#a39bbf", transition: "transform .2s", transform: open ? "rotate(180deg)" : "none" }} />
@@ -117,9 +117,7 @@ export default function UserMenu({ variant = "landing" }: { variant?: "landing" 
                 {role && (
                   <span style={{ display: "inline-block", padding: "1px 6px", borderRadius: 5, fontSize: 9, fontWeight: 900, letterSpacing: ".12em", textTransform: "uppercase", color: "#7c3aed", background: "rgba(124,58,237,.1)", border: "1px solid rgba(124,58,237,.22)" }}>{role}</span>
                 )}
-                {isApp && (
-                  <span style={{ display: "inline-block", padding: "1px 6px", borderRadius: 5, fontSize: 9, fontWeight: 900, letterSpacing: ".08em", textTransform: "uppercase", color: "#0e7490", background: "rgba(14,116,144,.08)", border: "1px solid rgba(14,116,144,.2)" }}>{planLabel}</span>
-                )}
+                <span style={{ display: "inline-block", padding: "1px 6px", borderRadius: 5, fontSize: 9, fontWeight: 900, letterSpacing: ".08em", textTransform: "uppercase", color: "#0e7490", background: "rgba(14,116,144,.08)", border: "1px solid rgba(14,116,144,.2)" }}>{planLabel}</span>
               </span>
             </div>
           </div>
@@ -136,6 +134,7 @@ export default function UserMenu({ variant = "landing" }: { variant?: "landing" 
               <>
                 <MenuItem icon={<UserCircle size={17} />} label={t.navProfile} onClick={pick(() => go("profile"))} />
                 <MenuItem icon={<CreditCard size={17} />} label={t.navBilling} onClick={pick(() => go("billing"))} />
+                <MenuItem icon={<Settings size={17} />} label={t.navSettings} onClick={pick(() => go("settings"))} />
                 <MenuItem icon={<LayoutDashboard size={17} />} label={t.navDashboard} onClick={pick(() => go("dashboard"))} />
                 {role === "ADMIN" && <MenuItem icon={<Shield size={17} />} label={t.navAdmin} onClick={pick(() => go("admin"))} />}
               </>

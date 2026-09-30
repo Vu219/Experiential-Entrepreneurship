@@ -42,6 +42,7 @@ public interface ContentItemMapper {
     @Mapping(target = "ideaId", source = "contentIdea.id")
     @Mapping(target = "wizardPlatforms", source = "wizardPlatforms", qualifiedByName = "splitWizardPlatforms")
     @Mapping(target = "needsAttention", source = "contentVersions", qualifiedByName = "needsAttention")
+    @Mapping(target = "source", ignore = true) // chỉ màn chi tiết cần — service tự resolve
     ContentItemResponse toResponse(ContentItem item);
 
     // Auto-save trạng thái wizard (bài DRAFT) — partial: field null giữ nguyên; ideaId service resolve.

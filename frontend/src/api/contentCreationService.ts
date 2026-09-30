@@ -2,6 +2,7 @@ import type { Platform } from "./brandProfile";
 import type {
   ContentItemResponse,
   ContentItemStatus,
+  ContentSourceResponse,
   ContentVersionResponse,
   ContentVersionStatus,
   ReviewStatus,
@@ -295,10 +296,13 @@ export async function listContents(params: ContentListParams = {}): Promise<Page
   return { ...pg, content: pg.content.map(toContentListItem) };
 }
 
-// FR-87: GET /content-items/{id} — bài kèm các bản nền tảng còn hiệu lực (tab theo version thật).
-export async function getContentDetail(id: string): Promise<{ item: ContentListItem; versions: ContentVersion[] }> {
+// FR-87: GET /content-items/{id} — bài kèm các bản nền tảng còn hiệu lực (tab theo version thật)
+// + nguồn sinh bài (chiến lược/trend/ý tưởng) cho card "Thông tin nguồn".
+export async function getContentDetail(
+  id: string,
+): Promise<{ item: ContentListItem; versions: ContentVersion[]; source: ContentSourceResponse | null }> {
   const r = await getContentItem(id);
-  return { item: toContentListItem(r), versions: (r.versions ?? []).map(toContentVersion) };
+  return { item: toContentListItem(r), versions: (r.versions ?? []).map(toContentVersion), source: r.source ?? null };
 }
 
 // FR-89: DELETE /content-items/{id} — xóa mềm; backend chặn nếu bài đã lên lịch / đã gửi duyệt.

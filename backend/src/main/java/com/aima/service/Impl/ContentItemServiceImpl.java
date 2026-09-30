@@ -7,13 +7,18 @@ import com.aima.dto.request.ContentVersionUpdateRequest;
 import com.aima.dto.request.ContentWizardStateRequest;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.ContentItemResponse;
+import com.aima.dto.response.ContentSourceResponse;
 import com.aima.dto.response.PageResponse;
+import com.aima.entity.ContentGenerationJob;
+import com.aima.entity.ContentIdea;
 import com.aima.entity.ContentItem;
 import com.aima.entity.ContentStrategy;
 import com.aima.entity.ContentVersion;
+import com.aima.entity.Trend;
 import com.aima.entity.User;
 import com.aima.enums.ActivityAction;
 import com.aima.enums.ContentItemStatus;
+import com.aima.enums.GenerationJobStatus;
 import com.aima.enums.Platform;
 import com.aima.enums.ReviewStatus;
 import com.aima.enums.ScheduleStatus;
@@ -21,9 +26,11 @@ import com.aima.enums.StrategyStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.mapper.ContentItemMapper;
+import com.aima.repository.ContentGenerationJobRepository;
 import com.aima.repository.ContentIdeaRepository;
 import com.aima.repository.ContentItemRepository;
 import com.aima.repository.ContentStrategyRepository;
+import com.aima.repository.TrendRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.ActivityLogService;
 import com.aima.service.ContentItemService;
@@ -89,6 +96,8 @@ public class ContentItemServiceImpl implements ContentItemService {
     ContentItemRepository contentItemRepository;
     ContentStrategyRepository contentStrategyRepository;
     ContentIdeaRepository contentIdeaRepository;
+    ContentGenerationJobRepository contentGenerationJobRepository;
+    TrendRepository trendRepository;
     UserRepository userRepository;
     ContentItemMapper contentItemMapper;
     ContentItemStatusResolver statusResolver;
@@ -164,6 +173,7 @@ public class ContentItemServiceImpl implements ContentItemService {
     public ApiResponse<ContentItemResponse> getItem(String email, UUID itemId) {
         ContentItem item = ownedItem(email, itemId);
         ContentItemResponse response = contentItemMapper.toResponse(item);
+        response.setSource(resolveSource(item));
         return ApiResponse.success("Lấy nội dung thành công", response);
     }
 
@@ -306,6 +316,37 @@ public class ContentItemServiceImpl implements ContentItemService {
     private static List<Object> versionContent(ContentVersion version) {
         return Arrays.asList(version.getScript(), version.getFormattedCaption(), version.getFormattedHashtag(),
                 version.getCta(), version.getMediaPrompt());
+    }
+
+    /**
+     * Nguồn sinh bài (chiến lược + trend/ý tưởng) cho card "Thông tin nguồn" — bài không lưu chiến lược,
+     * nên lấy từ job sinh thành công gần nhất; thiếu job thì fallback trend/ý tưởng gắn trên bài.
+     * Trend/ý tưởng resolve theo ownership, đã xóa mềm thì bỏ qua (giống worker).
+     */
+    private ContentSourceResponse resolveSource(ContentItem item) {
+        UUID userId = item.getBrandProfile().getUser().getId();
+        ContentGenerationJob job = contentGenerationJobRepository
+                .findFirstByContentItem_IdAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(item.getId(), GenerationJobStatus.SUCCESS)
+                .orElse(null);
+        ContentStrategy strategy = job == null ? null : job.getContentStrategy();
+        UUID trendId = job != null && job.getTrendId() != null ? job.getTrendId() : item.getTrendId();
+        UUID ideaId = job != null && job.getIdeaId() != null ? job.getIdeaId()
+                : item.getContentIdea() == null ? null : item.getContentIdea().getId();
+        String trendName = trendId == null ? null : trendRepository
+                .findByIdAndResearchSession_BrandProfile_User_IdAndDeletedAtIsNull(trendId, userId)
+                .map(Trend::getTrendName).orElse(null);
+        String ideaTitle = ideaId == null ? null : contentIdeaRepository
+                .findByIdAndTrend_ResearchSession_BrandProfile_User_IdAndDeletedAtIsNull(ideaId, userId)
+                .map(ContentIdea::getIdeaTitle).orElse(null);
+        return ContentSourceResponse.builder()
+                .strategyId(strategy == null ? null : strategy.getId())
+                .strategyName(strategy == null ? null : strategy.getName())
+                .goals(strategy == null ? List.of() : List.copyOf(strategy.getGoals()))
+                .trendId(trendName == null ? null : trendId)
+                .trendName(trendName)
+                .ideaId(ideaTitle == null ? null : ideaId)
+                .ideaTitle(ideaTitle)
+                .build();
     }
 
     private ContentItem ownedItem(String email, UUID itemId) {

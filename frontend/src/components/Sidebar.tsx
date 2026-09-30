@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle, ChevronRight, ChevronLeft, X, type LucideIcon,
@@ -11,6 +11,7 @@ import { getTokenUsage, type TokenUsage } from '../api/auth';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useUiStore } from '../store/useUiStore';
 import { Icon } from './ui';
+import SidebarGroupFlyout from './SidebarGroupFlyout';
 import type { Route } from '../types';
 import { ICON } from '../data';
 
@@ -25,6 +26,8 @@ interface NavGroup {
   /** Có id = nhóm thu gọn được (chỉ nhóm có nhãn của sidebar admin); id dùng làm khóa localStorage. */
   id?: string;
   label?: string;
+  /** Icon đại diện nhóm — sidebar admin thu gọn chỉ hiện icon này + flyout mục con. */
+  icon?: LucideIcon;
   items: Item[];
 }
 
@@ -130,6 +133,21 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
 
   const collapsed = !isMobile && (autoCollapse ? !hover : sidebarCollapsed);
 
+  // Flyout nhóm (sidebar admin thu gọn): mỗi lúc một flyout; rời chuột thì hẹn đóng 150ms
+  // để kịp di sang flyout. Không đụng openGroups — mở sidebar lại các nhóm vẫn như cũ.
+  const asideRef = useRef<HTMLElement>(null);
+  const [flyoutId, setFlyoutId] = useState<string | null>(null);
+  const flyoutTimer = useRef<ReturnType<typeof setTimeout>>();
+  const cancelFlyoutClose = useCallback(() => clearTimeout(flyoutTimer.current), []);
+  const closeFlyout = useCallback((delay = 0) => {
+    clearTimeout(flyoutTimer.current);
+    if (delay > 0) flyoutTimer.current = setTimeout(() => setFlyoutId(null), delay);
+    else setFlyoutId(null);
+  }, []);
+  const openFlyout = (id: string) => { clearTimeout(flyoutTimer.current); setFlyoutId(id); };
+  useEffect(() => { if (!collapsed) closeFlyout(); }, [collapsed, closeFlyout]);
+  useEffect(() => () => clearTimeout(flyoutTimer.current), []);
+
   const onArrow = () => {
     if (autoCollapse) {
       toggleAutoCollapse();
@@ -173,6 +191,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
   const adminGroups: NavGroup[] = adminNavGroupsFor(user?.role).map((g) => ({
     id: g.labelKey,
     label: g.labelKey ? t[g.labelKey] : undefined,
+    icon: g.icon,
     items: g.items.map((n) => ({ key: n.key, label: t[n.labelKey], icon: n.icon })),
   }));
   // Hồ sơ / Cài đặt / Đăng xuất / Trang chủ đã chuyển lên dropdown avatar ở topbar (UserMenu
@@ -296,8 +315,29 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
   };
 
   // Nhãn + danh sách mục của một nhóm. Nhóm có id → header bấm được để mở/đóng; ở chế độ
-  // icon-only (collapsed) KHÔNG có header nên luôn hiện icon mọi mục như cũ.
+  // icon-only (collapsed) nhóm có icon đại diện → một icon + flyout mục con; nhóm không có
+  // (sidebar app, mục Tổng quan) vẫn hiện icon mọi mục như cũ.
   const renderGroupBody = (g: NavGroup, gap: number) => {
+    if (collapsed && g.id && g.label && g.icon) {
+      const id = g.id;
+      return (
+        <SidebarGroupFlyout
+          id={id}
+          label={g.label}
+          icon={g.icon}
+          items={g.items}
+          route={route}
+          open={flyoutId === id}
+          triggerStyle={(active) => itemBase(active)}
+          brandGradient={brandGradient}
+          anchorRef={asideRef}
+          onOpen={() => openFlyout(id)}
+          onClose={closeFlyout}
+          onCancelClose={cancelFlyoutClose}
+          onNavigate={go}
+        />
+      );
+    }
     if (collapsed || !g.id || !g.label) {
       return (
         <>
@@ -375,7 +415,8 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
       <div className="sb-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 3, paddingTop: 8 }}>
       {navGroups.map((g, gi) => (
         <nav key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 'none', marginTop: gi === 0 ? 0 : collapsed ? 0 : g.id ? 4 : 12 }}>
-          {collapsed && gi > 0 && <div style={collapsedDivider} aria-hidden />}
+          {/* Các icon nhóm (flyout) đứng liền nhau — chỉ kẻ divider khi chuyển sang cụm mới. */}
+          {collapsed && gi > 0 && !(g.icon && navGroups[gi - 1].icon) && <div style={collapsedDivider} aria-hidden />}
           {renderGroupBody(g, 3)}
         </nav>
       ))}
@@ -467,6 +508,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
 
   return (
     <aside
+      ref={asideRef}
       onMouseEnter={autoCollapse ? () => setHover(true) : undefined}
       onMouseLeave={autoCollapse ? () => setHover(false) : undefined}
       style={{

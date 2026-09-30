@@ -56,13 +56,17 @@ export function buildMonth(viewDate: Date, schedules: PostSchedule[]): MonthCell
 const CHIP_LIMIT = 2;
 const ARROW_DELTA: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
 
-export default function MonthGrid({ cells, selectedDay, onSelectDay, compact, onSelectSchedule }: {
+export default function MonthGrid({ cells, selectedDay, onSelectDay, compact, onSelectSchedule, minDay, disabledLabel }: {
   cells: MonthCell[];
   selectedDay: string | null;
   onSelectDay: (key: string | null) => void;
   /** Mobile: dot màu thay cho chip giờ. */
   compact: boolean;
   onSelectSchedule?: (scheduleId: string) => void;
+  /** Chọn ngày đăng: ngày trước mốc này (yyyy-MM-dd) làm mờ, trỏ chuột "cấm", không chọn được. */
+  minDay?: string;
+  /** Tooltip / nhãn đọc màn hình cho ngày bị khóa. */
+  disabledLabel?: string;
 }) {
   const { t, lang } = useApp();
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -99,6 +103,7 @@ export default function MonthGrid({ cells, selectedDay, onSelectDay, compact, on
       <div onKeyDown={onKeyDown} style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 6 }}>
         {cells.map((d, i) => {
           const selected = selectedDay === d.key;
+          const past = !!minDay && d.key < minDay;
           const chips = compact ? [] : d.items.slice(0, CHIP_LIMIT);
           const extra = d.items.length - chips.length;
           return (
@@ -106,23 +111,26 @@ export default function MonthGrid({ cells, selectedDay, onSelectDay, compact, on
               key={d.key}
               ref={(el) => { refs.current[i] = el; }}
               tabIndex={i === activeIdx ? 0 : -1}
-              onClick={() => { setFocusIdx(i); onSelectDay(selected ? null : d.key); }}
+              onClick={() => { setFocusIdx(i); if (!past) onSelectDay(selected ? null : d.key); }}
               aria-pressed={selected}
-              aria-label={`${absDayLabel(d.key, lang)} · ${t.calDayPosts.replace('{n}', String(d.items.length))}`}
+              // aria-disabled thay vì disabled: vẫn nhận hover để hiện tooltip + trỏ chuột "cấm", vẫn đi phím mũi tên qua được.
+              aria-disabled={past || undefined}
+              title={past ? disabledLabel : undefined}
+              aria-label={`${absDayLabel(d.key, lang)} · ${past && disabledLabel ? disabledLabel : t.calDayPosts.replace('{n}', String(d.items.length))}`}
               style={{
                 font: 'inherit',
                 textAlign: 'left',
                 minHeight: compact ? 48 : 84,
                 borderRadius: 11,
                 padding: compact ? '5px 6px' : '6px 7px',
-                border: `1px solid ${selected ? '#8b5cf6' : d.today ? '#c4b5fd' : '#f1eef8'}`,
-                background: selected ? '#f1e9ff' : d.today ? '#f6f1ff' : '#fcfbfe',
-                opacity: d.muted ? 0.38 : 1,
-                cursor: 'pointer',
+                border: `1px solid ${selected ? '#8b5cf6' : d.today ? '#c4b5fd' : past ? 'transparent' : '#f1eef8'}`,
+                background: selected ? '#f1e9ff' : d.today ? '#f6f1ff' : past ? '#f4f3f8' : '#fcfbfe',
+                opacity: past ? 0.45 : d.muted ? 0.38 : 1,
+                cursor: past ? 'not-allowed' : 'pointer',
                 minWidth: 0,
               }}
             >
-              <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: d.today || selected ? '#7c3aed' : '#3f3a55' }}>{d.day}</span>
+              <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: d.today || selected ? '#7c3aed' : past ? '#a39fb3' : '#3f3a55' }}>{d.day}</span>
               {compact ? (
                 <span style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 5 }}>
                   {d.items.slice(0, 4).map((it) => (

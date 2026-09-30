@@ -104,6 +104,19 @@ export interface ContentItemResponse {
   wizardNote: string | null;
   trendId: string | null;
   updatedAt: string | null;
+  /** Nguồn sinh bài — CHỈ có ở GET /content-items/{id} (card "Thông tin nguồn" màn xem chi tiết). */
+  source?: ContentSourceResponse | null;
+}
+
+/** Chiến lược + trend/ý tưởng AI đã dùng — suy từ job sinh thành công gần nhất; thiếu thì null. */
+export interface ContentSourceResponse {
+  strategyId: string | null;
+  strategyName: string | null;
+  goals: string[];
+  trendId: string | null;
+  trendName: string | null;
+  ideaId: string | null;
+  ideaTitle: string | null;
 }
 
 export interface ContentGenerationJob {

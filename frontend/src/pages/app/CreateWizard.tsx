@@ -193,6 +193,13 @@ export default function CreateWizard() {
     setMaxReached((m) => (s > m ? s : m));
   };
 
+  // Mốc 4 → 3 ("Quay lại" / link sửa trên card bị khóa). Mở thẳng mốc 4 (resume/URL) thì chưa có nguồn:
+  // mốc 1 tự xác nhận nguồn rồi nhảy tiếp về 3 thay vì dừng ở 2.
+  const backToFinalize = () => {
+    if (!source) resumeStepRef.current = 3;
+    goStep(3);
+  };
+
   // Nội dung đã tạo bị vô hiệu (đổi hồ sơ/chiến lược qua dialog ở mốc 1) → xóa khỏi phiên.
   // dropItem xóa mềm bài cũ để auto-save/lượt generate mới tạo BÀI mới đúng nguồn.
   const discardGenerated = () => {
@@ -629,6 +636,7 @@ export default function CreateWizard() {
           version={scheduleVersions.find((v) => v.platform === firstPlatform) ?? scheduleVersions[0] ?? null}
           brandName={source?.brand.brandName ?? detail?.brandName ?? ''}
           onScheduled={() => setScheduled(true)}
+          onBack={backToFinalize}
         />
       )}
     </PageContainer>

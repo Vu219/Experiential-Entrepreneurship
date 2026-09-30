@@ -1,11 +1,8 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { ChevronLeft, ChevronRight, Globe, Loader2, RotateCcw, Sparkles } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Globe, Loader2, RotateCcw } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
-import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
-import DatePicker from '../DatePicker.tsx';
 import Switch from '../admin/Switch.tsx';
-import MonthGrid, { buildMonth } from '../calendar/MonthGrid.tsx';
-import { dateKey, nowLocal, MONTHS_EN } from '../calendar/dateUtils.ts';
+import { dateKey, nowLocal } from '../calendar/dateUtils.ts';
 import { PlatformTag } from '../ui.tsx';
 import { PLATFORM_BG } from '../../theme.ts';
 import { PLATFORM_TO_TAG, listConnections } from '../../api/connections.ts';
@@ -16,10 +13,12 @@ import {
 } from '../../api/schedules.ts';
 import type { Platform } from '../../api/brandProfile.ts';
 import { getPublishingTimezone, publishingToday } from '../../utils/publishingTime.ts';
-import SchedulePlatformRow from './SchedulePlatformRow.tsx';
+import SchedulePlatformRow, { PLATFORM_NAME, TimeExtras, timeErrorText } from './SchedulePlatformRow.tsx';
+import ScheduleDateField from './ScheduleDateField.tsx';
+import ScheduleTimeField from './ScheduleTimeField.tsx';
 import {
-  applyBatchResult, initialRows, isSubmittable, localConflicts, toBatchRows, validateRow, wallDateTime,
-  type PlannerAccount, type PlannerRow, type SharedTime,
+  MIN_LEAD_MINUTES, applyBatchResult, earliestTimeOn, initialRows, localConflicts, submitSummary, toBatchRows, validateRow, wallDateTime, wallDiffMinutes,
+  type PlannerAccount, type PlannerRow, type RowError, type SharedTime,
 } from './plannerLogic.ts';
 
 // SchedulePlanner dùng chung (Phase 4): bước 4 wizard, nút "Lên lịch" ở danh sách và modal tạo lịch của Calendar.
@@ -28,6 +27,17 @@ import {
 
 const newKey = () => crypto.randomUUID();
 
+/** Trạng thái nút gửi chính — wizard đưa ra thanh hành động sticky đáy màn thay vì nút trong planner. */
+export interface PlannerAction {
+  label: string;
+  disabled: boolean;
+  /** Lý do khóa nút (hiện cạnh nút), null khi bấm được. */
+  reason: string | null;
+  submitting: boolean;
+  retry: boolean;
+  submit: () => void;
+}
+
 export interface SchedulePlannerProps {
   /** Bài cố định (wizard / danh sách); bỏ trống → người dùng chọn bài có bản đã định dạng. */
   itemId?: string;
@@ -35,14 +45,17 @@ export interface SchedulePlannerProps {
   onSubmitted?: (result: ScheduleBatchResult) => void;
   /** Điều hướng tới Cài đặt → Kết nối khi nền tảng chưa có tài khoản. */
   onConnect: () => void;
+  /** Có → planner KHÔNG tự vẽ nút gửi mà báo trạng thái nút ra ngoài (null khi chưa có dòng nào). */
+  onActionChange?: (action: PlannerAction | null) => void;
+  /** Wizard: link "Quay lại bước 3" trên card bị khóa vì thiếu media / chưa định dạng. */
+  onFixInFinalize?: () => void;
 }
 
 const hasSchedulable = (item: ContentItemResponse) =>
   item.versions.some((v) => v.status === 'FORMATTED' && !v.scheduleStatus && v.platformName !== 'INSTAGRAM');
 
-export default function SchedulePlanner({ itemId, onSubmitted, onConnect }: SchedulePlannerProps) {
-  const { t, lang, brandGradient } = useApp();
-  const { isMobile } = useBreakpoint();
+export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActionChange, onFixInFinalize }: SchedulePlannerProps) {
+  const { t, brandGradient } = useApp();
   const [load, setLoad] = useState<'loading' | 'error' | 'ok'>('loading');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<PlannerAccount[]>([]);
@@ -53,11 +66,15 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect }: Sche
   const [rows, setRows] = useState<PlannerRow[]>([]);
   const [shared, setShared] = useState<SharedTime>({ enabled: false, date: '', time: '' });
   const [golden, setGolden] = useState<Partial<Record<Platform, string[]>>>({});
-  const [activeRow, setActiveRow] = useState<string | null>(null);
-  const [viewMonth, setViewMonth] = useState(() => publishingToday());
   const [submitting, setSubmitting] = useState(false);
-  const [showErrors, setShowErrors] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [sharedTimeBad, setSharedTimeBad] = useState(false);
+  // Đồng hồ 30s: giờ vừa chọn trôi vào quá khứ / quá sát thì lỗi hiện ra ngay, không đợi bấm gửi.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
   const [lastResult, setLastResult] = useState<ScheduleBatchResult | null>(null);
 
   const todayISO = dateKey(publishingToday());
@@ -96,7 +113,6 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect }: Sche
         if (!cancelled && item) {
           setRows(initialRows(item.versions, accounts, newKey));
           setLastResult(null);
-          setShowErrors(false);
         }
       } catch (e) {
         if (!cancelled) { setLoadError((e as Error).message); setLoad('error'); }
@@ -114,36 +130,31 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect }: Sche
   }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const patchRow = useCallback((versionId: string, patch: Partial<PlannerRow>) => {
-    setActiveRow(versionId);
     setRows((prev) => prev.map((r) => (r.versionId === versionId ? { ...r, ...patch } : r)));
   }, []);
 
   const nowWall = nowLocal();
   const errors = useMemo(() => rows.map((r) => validateRow(r, shared, nowWall)), [rows, shared, nowWall]);
-  const submittable = rows.filter(isSubmittable);
   const sharedHours = useMemo(() => [...new Set(rows.filter((r) => !r.block).flatMap((r) => golden[r.platform] ?? []))], [rows, golden]);
-
-  // Lịch tháng mini: lịch hiện có của các tài khoản đang chọn; bấm ngày → đặt ngày cho giờ chung / dòng đang sửa.
+  // Chấm lịch trên lịch chọn ngày: giờ chung → mọi tài khoản đang chọn; từng card → tài khoản của card.
   const selectedAccounts = new Set(rows.map((r) => r.accountId).filter(Boolean));
-  const gridCells = useMemo(
-    () => buildMonth(viewMonth, schedules.filter((s) => selectedAccounts.has(s.platformAccountId))),
-    [viewMonth, schedules, rows], // eslint-disable-line react-hooks/exhaustive-deps
+  const sharedSchedules = useMemo(
+    () => schedules.filter((s) => selectedAccounts.has(s.platformAccountId)),
+    [schedules, rows], // eslint-disable-line react-hooks/exhaustive-deps
   );
-  const focused = rows.find((r) => r.versionId === activeRow && r.mode === 'SCHEDULE' && !r.block);
-  const gridDay = shared.enabled ? shared.date : focused?.date ?? null;
-  const pickDay = (key: string | null) => {
-    if (!key || key < todayISO) return;
-    if (shared.enabled) setShared((s) => ({ ...s, date: key }));
-    else if (focused) patchRow(focused.versionId, { date: key });
+  const sharedWall = shared.date && shared.time ? `${shared.date}T${shared.time}` : null;
+  const sharedDiff = sharedWall ? wallDiffMinutes(sharedWall, nowWall) : null;
+  const sharedKind = sharedDiff === null ? null : sharedDiff <= 0 ? 'PAST' as const : sharedDiff < MIN_LEAD_MINUTES ? 'TOO_SOON' as const : null;
+
+  // Lý do khóa nút gửi cho dòng lỗi đầu tiên (lỗi giờ nói rõ giờ sớm nhất nếu là hôm nay).
+  const errorLabel = (row: PlannerRow, error: Exclude<RowError, null>): string => {
+    if (error === 'MISSING_ACCOUNT') return t.planErrAccount;
+    if (error === 'MISSING_TIME') return t.planErrMissingTime;
+    return timeErrorText(t, error, wallDateTime(row, shared)?.slice(0, 10) ?? '', nowWall);
   };
-  const shiftMonth = (delta: number) => setViewMonth((d) => new Date(d.getFullYear(), d.getMonth() + delta, 1, 12));
-  const monthLabel = lang === 'en'
-    ? `${MONTHS_EN[viewMonth.getMonth()]} ${viewMonth.getFullYear()}`
-    : `Tháng ${viewMonth.getMonth() + 1}/${viewMonth.getFullYear()}`;
 
   const submit = async () => {
     if (submitting) return;
-    setShowErrors(true);
     setSubmitError(null);
     if (errors.some(Boolean)) return;
     const { payload, rows: keyed } = toBatchRows(rows, shared, newKey);
@@ -154,7 +165,6 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect }: Sche
       const result = await createScheduleBatch(payload);
       setRows(applyBatchResult(keyed, result));
       setLastResult(result);
-      setShowErrors(false);
       listSchedules().then(setSchedules).catch(() => undefined);
       onSubmitted?.(result);
     } catch (e) {
@@ -164,6 +174,27 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect }: Sche
     }
   };
 
+  // Nút chính: nhãn đổi theo lựa chọn ("Lên lịch 1 nền tảng · 18:34, 30/09" / "Đăng ngay"), khóa khi còn lỗi.
+  const summary = submitSummary(rows, shared);
+  const firstError = errors.findIndex(Boolean);
+  const reason = summary.kind === 'none' ? t.planNothing
+    : firstError >= 0 ? `${PLATFORM_NAME[rows[firstError].platform] ?? rows[firstError].platform}: ${errorLabel(rows[firstError], errors[firstError]!)}` : null;
+  const at = summary.at ? `${summary.at.slice(11, 16)}, ${summary.at.slice(8, 10)}/${summary.at.slice(5, 7)}` : null;
+  const label = submitting ? t.schCreating
+    : summary.kind === 'retry' ? t.planRetry.replace('{n}', String(summary.count))
+    : summary.kind === 'now' ? (summary.count > 1 ? t.planPublishNowN.replace('{n}', String(summary.count)) : t.planPublishNow)
+    : at ? t.planSubmitAt.replace('{n}', String(summary.count)).replace('{time}', at)
+    : summary.kind === 'none' ? t.cwScheduleTitle
+    : t.planSubmit.replace('{n}', String(summary.count));
+  const disabled = submitting || reason !== null;
+  const submitRef = useRef(submit);
+  submitRef.current = submit;
+  const hasRows = load === 'ok' && rows.length > 0;
+  useEffect(() => {
+    if (!onActionChange) return;
+    onActionChange(hasRows ? { label, disabled, reason, submitting, retry: summary.kind === 'retry', submit: () => void submitRef.current() } : null);
+  }, [onActionChange, hasRows, label, disabled, reason, submitting, summary.kind]);
+
   if (load === 'loading') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} aria-hidden="true">
@@ -172,8 +203,6 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect }: Sche
     );
   }
   if (load === 'error') return <div role="alert" style={{ ...note, color: '#e23d6e' }}>{loadError ?? t.planLoadError}</div>;
-
-  const failedCount = rows.filter((r) => r.result && !r.result.ok).length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -220,55 +249,44 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect }: Sche
             </div>
             {shared.enabled && (
               <>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <DatePicker value={shared.date} min={todayISO} onChange={(v) => setShared((s) => ({ ...s, date: v }))} ariaLabel={`${t.schTime} — ${t.planShared}`}
-                    style={{ flex: 1, borderRadius: 10, border: '1px solid #ece8f6', background: '#fff', padding: '0 12px' }} inputStyle={{ fontSize: 13.5, padding: '9px 0' }} />
-                  <input type="time" value={shared.time} onChange={(e) => setShared((s) => ({ ...s, time: e.target.value }))} aria-label={`${t.planTimeOfDay} — ${t.planShared}`} style={{ ...inp, width: 108, flex: 'none' }} />
-                </div>
-                {sharedHours.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <Sparkles size={13} color="#7c3aed" aria-hidden="true" />
-                    {sharedHours.map((h) => {
-                      const start = h.split('-')[0]?.trim() ?? '';
-                      const on = shared.time === start;
-                      return (
-                        <button key={h} type="button" aria-pressed={on} onClick={() => setShared((s) => ({ ...s, time: start, date: s.date || todayISO }))}
-                          style={{ ...chip, border: `1px solid ${on ? '#6d28d9' : '#e3d9fb'}`, background: on ? '#6d28d9' : '#f8f5ff', color: on ? '#fff' : '#6d28d9' }}>{h}</button>
-                      );
-                    })}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ flex: '1 1 180px', minWidth: 0 }}>
+                    <ScheduleDateField value={shared.date} min={todayISO} onChange={(v) => setShared((s) => ({ ...s, date: v }))} schedules={sharedSchedules}
+                      ariaLabel={`${t.schTime} — ${t.planShared}`} invalid={!!sharedKind} />
                   </div>
-                )}
+                  <ScheduleTimeField value={shared.time} onChange={(v) => setShared((s) => ({ ...s, time: v, date: s.date || todayISO }))}
+                    ariaLabel={`${t.planTimeOfDay} — ${t.planShared}`} invalid={!!sharedKind} onInvalidChange={setSharedTimeBad}
+                    minTime={earliestTimeOn(shared.date || todayISO, nowWall)} />
+                </div>
+                <TimeExtras date={shared.date} time={shared.time} todayISO={todayISO} nowWall={nowWall} error={sharedKind} formatError={sharedTimeBad}
+                  hours={sharedHours} onPick={(start) => setShared((s) => ({ ...s, time: start, date: s.date || todayISO }))} />
               </>
             )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: 14, alignItems: 'start' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {rows.map((row, i) => (
+          {/* Mỗi nền tảng một card theo hàng dọc — card bị khóa vẫn hiện (mờ) kèm lý do */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {rows.map((row, i) => {
+              const wall = wallDateTime(row, shared);
+              return (
                 <SchedulePlatformRow
                   key={row.versionId}
                   row={row}
                   accounts={accounts.filter((a) => a.platform === row.platform)}
                   sharedEnabled={shared.enabled}
                   goldenHours={golden[row.platform] ?? []}
-                  conflicts={localConflicts(row.accountId, wallDateTime(row, shared), schedules, windowMinutes)}
+                  conflicts={localConflicts(row.accountId, wall, schedules, windowMinutes)}
+                  accountSchedules={row.accountId ? schedules.filter((s) => s.platformAccountId === row.accountId) : []}
+                  wall={wall}
+                  nowWall={nowWall}
                   error={errors[i]}
-                  showError={showErrors}
                   todayISO={todayISO}
                   onChange={(patch) => patchRow(row.versionId, patch)}
                   onConnect={onConnect}
+                  onFixInFinalize={onFixInFinalize}
                 />
-              ))}
-            </div>
-            <div style={{ border: '1px solid #ece8f6', borderRadius: 14, padding: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <button type="button" onClick={() => shiftMonth(-1)} aria-label={t.planPrevMonth} style={navBtn}><ChevronLeft size={15} aria-hidden="true" /></button>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#3f3a55' }}>{monthLabel}</span>
-                <button type="button" onClick={() => shiftMonth(1)} aria-label={t.planNextMonth} style={navBtn}><ChevronRight size={15} aria-hidden="true" /></button>
-              </div>
-              <MonthGrid cells={gridCells} selectedDay={gridDay} onSelectDay={pickDay} compact />
-              <div style={{ fontSize: 11.5, color: '#a59fbb', marginTop: 6, lineHeight: 1.45 }}>{t.planMiniHint}</div>
-            </div>
+              );
+            })}
           </div>
 
           {lastResult && (
@@ -278,22 +296,22 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect }: Sche
           )}
           {submitError && <div role="alert" style={{ ...note, color: '#e23d6e', background: '#fdecf1' }}>{submitError}</div>}
 
-          {submittable.length > 0 && (
-            <button type="button" onClick={submit} disabled={submitting} className="btn-grad"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: 'none', borderRadius: 11, padding: '11px 16px', fontWeight: 800, fontSize: 14, color: '#fff', background: brandGradient, cursor: submitting ? 'default' : 'pointer', opacity: submitting ? 0.6 : 1 }}>
-              {submitting ? <Loader2 size={15} className="icon-spin" aria-hidden="true" /> : failedCount > 0 ? <RotateCcw size={15} aria-hidden="true" /> : null}
-              {submitting ? t.schCreating : failedCount > 0 ? t.planRetry.replace('{n}', String(submittable.length)) : t.planSubmit.replace('{n}', String(submittable.length))}
-            </button>
+          {/* Nút gửi trong planner (Calendar / danh sách); wizard lấy trạng thái nút qua onActionChange */}
+          {!onActionChange && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <button type="button" onClick={submit} disabled={disabled} className="btn-grad"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: 'none', borderRadius: 11, padding: '11px 16px', fontWeight: 800, fontSize: 14, color: '#fff', background: brandGradient, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.55 : 1 }}>
+                {submitting ? <Loader2 size={15} className="icon-spin" aria-hidden="true" /> : summary.kind === 'retry' ? <RotateCcw size={15} aria-hidden="true" /> : null}
+                {label}
+              </button>
+              {reason && !submitting && <div style={{ fontSize: 12, color: '#8a85a0', textAlign: 'center' }}>{reason}</div>}
+            </div>
           )}
-          {submittable.length === 0 && !lastResult && <div style={note}>{t.planNothing}</div>}
         </>
       )}
     </div>
   );
 }
 
-const chip: CSSProperties = { borderRadius: 999, padding: '5px 11px', fontSize: 12, fontWeight: 700, cursor: 'pointer' };
 const lbl: CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 700, color: '#4b4660', marginBottom: 6 };
-const inp: CSSProperties = { width: '100%', border: '1px solid #ece8f6', borderRadius: 10, padding: '9px 12px', fontSize: 13.5, color: '#241f3a', background: '#fff', outline: 'none' };
 const note: CSSProperties = { fontSize: 12.5, color: '#8a85a0', background: '#f7f6fd', borderRadius: 9, padding: '8px 11px', lineHeight: 1.5 };
-const navBtn: CSSProperties = { width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ece8f6', borderRadius: 8, background: '#fff', cursor: 'pointer' };

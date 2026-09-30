@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Card, Icon, cardStyle } from '../ui';
 import type { ApiError } from '../../api/apiClient';
-import { type ContentItemStatus, type ReviewStatus } from '../../api/contentGeneration';
+import { type ContentItemStatus, type ContentSourceResponse, type ReviewStatus } from '../../api/contentGeneration';
 import {
   getContentDetail,
   saveVersionEdit,
@@ -91,10 +91,20 @@ export default function ContentViewPanel({
   const [hashtagText, setHashtagText] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
   const [statusBusy, setStatusBusy] = useState(false);
-  // Thông tin nguồn (rút gọn) cho màn xem: brand + nền tảng có sẵn từ item; ngành hàng/logo
-  // enrich best-effort từ hồ sơ thương hiệu (chi tiết này không mang strategy/trend nên các
-  // dòng đó bị ẩn — SourceInfoCard tự ẩn dòng thiếu dữ liệu).
-  const [srcInfo, setSrcInfo] = useState<SourceInfoData>({ brandName: item.brandName, platforms: item.platforms });
+  // Thông tin nguồn — cùng các dòng như lúc tạo: brand + nền tảng có sẵn từ item; ngành hàng/logo
+  // enrich best-effort từ hồ sơ thương hiệu; chiến lược/mục tiêu/trend/ý tưởng lấy từ `source` của
+  // API chi tiết (dòng nào thiếu dữ liệu thì SourceInfoCard tự ẩn).
+  const [brandInfo, setBrandInfo] = useState<Pick<SourceInfoData, 'brandName' | 'logoUrl' | 'industry'>>({ brandName: item.brandName });
+  const [genSource, setGenSource] = useState<ContentSourceResponse | null>(null);
+  const srcInfo: SourceInfoData = {
+    ...brandInfo,
+    platforms: item.platforms,
+    strategyName: genSource?.strategyName,
+    goals: genSource?.goals,
+    // Như bước Chọn nguồn: chọn ý tưởng thì hiện ý tưởng, không thì trend.
+    trend: genSource?.ideaTitle ? { kind: 'idea', title: genSource.ideaTitle }
+      : genSource?.trendName ? { kind: 'trend', title: genSource.trendName } : null,
+  };
   const st = CONTENT_STATUS_META[status];
   const rv = REVIEW_STATUS_META[review];
 
@@ -117,7 +127,7 @@ export default function ContentViewPanel({
       .then((bs) => {
         if (cancelled) return;
         const b = bs.find((x) => x.id === item.brandId);
-        if (b) setSrcInfo({ brandName: b.brandName, logoUrl: b.logoUrl, industry: b.industry, platforms: item.platforms });
+        if (b) setBrandInfo({ brandName: b.brandName, logoUrl: b.logoUrl, industry: b.industry });
       })
       .catch(() => { /* best-effort: giữ brandName + nền tảng từ item */ });
     return () => { cancelled = true; };
@@ -127,9 +137,10 @@ export default function ContentViewPanel({
   useEffect(() => {
     let cancelled = false;
     getContentDetail(item.id)
-      .then(({ item: it, versions: vs }) => {
+      .then(({ item: it, versions: vs, source }) => {
         if (cancelled) return;
         setVersions(vs);
+        setGenSource(source);
         setStatus(it.status);
         setReview(it.reviewStatus);
         setLoad('ok');
@@ -339,8 +350,8 @@ export default function ContentViewPanel({
             )}
           </Card>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
-            {/* Thông tin nguồn (rút gọn) — mặc định thu gọn vì đây là màn xem/duyệt */}
-            <SourceInfoCard info={srcInfo} defaultOpen={false} />
+            {/* Thông tin nguồn — hiển thị giống lúc tạo (mở sẵn, đủ các dòng) */}
+            <SourceInfoCard info={srcInfo} />
             <BrandVoicePanel check={shown.brandVoice} />
             {/* Từ "Xem trước bài đăng" trở xuống dính theo màn hình khi cuộn — cùng cơ chế với
                 wizard (StepLayout): cho dính CẢ cột thì khi cột cao hơn màn hình, preview nằm

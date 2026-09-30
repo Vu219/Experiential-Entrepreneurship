@@ -86,7 +86,7 @@ function Topbar({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen?: boolea
 
       {!isMobile && <PageHeading />}
       {!isMobile && (
-        <div style={{ flex: '1 1 auto', minWidth: 260, display: 'flex', justifyContent: 'center' }}>
+        <div style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', justifyContent: 'center' }}>
           <div
             style={{
               display: 'flex',
@@ -97,9 +97,10 @@ function Topbar({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen?: boolea
               borderRadius: 12,
               padding: '9px 14px',
               flex: '1 1 auto',
-              minWidth: 260,
+              // Co được (tới cỡ chỉ còn icon ở tablet hẹp): 260px cứng đẩy cụm phải ra ngoài màn ở 1280px khi tên
+              // tài khoản dài (tràn ngang). Ở ≥1280px ô vẫn đủ rộng vì flex hấp thụ chiều rộng dôi.
+              minWidth: 44,
               maxWidth: sidebarOpen ? 460 : 600,
-              flexShrink: 0,
               transition: 'max-width .2s ease',
             }}
           >
@@ -175,11 +176,11 @@ function PageHeading() {
   const title = override ? override.title : keys ? t[keys[0]] : null;
   const sub = override ? override.sub : keys ? t[keys[1]] : null;
   if (!title) return null;
-  // flex none + nowrap: tiêu đề bám sát sidebar, không nhảy dòng/đổi cỡ chữ khi
-  // sidebar đóng/mở (khối duy nhất được phép dịch theo sidebar).
+  // nowrap: tiêu đề bám sát sidebar, không nhảy dòng/đổi cỡ chữ khi sidebar đóng/mở (khối duy nhất
+  // được phép dịch theo sidebar). Chỉ co lại (cắt "…") khi màn hẹp không đủ chỗ — tránh tràn ngang ở tablet.
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 'none' }}>
-      <div style={{ flex: 'none', whiteSpace: 'nowrap', maxWidth: 380, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: '0 1 auto', minWidth: 0 }}>
+      <div style={{ flex: '0 1 auto', minWidth: 0, whiteSpace: 'nowrap', maxWidth: 380, overflow: 'hidden' }}>
         <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 19, color: '#211c38', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
         {sub && <div style={{ fontSize: 12.5, color: '#8a85a0', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
       </div>

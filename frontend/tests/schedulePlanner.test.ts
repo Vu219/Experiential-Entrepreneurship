@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  applyBatchResult, blockOf, initialRows, localConflicts, toBatchRows, validateRow, wallDateTime,
+  applyBatchResult, blockOf, initialRows, localConflicts, submitSummary, toBatchRows, addWallMinutes, earliestTimeOn, isSlotPast, validateRow, wallDateTime, wallDiffMinutes,
   type PlannerAccount, type PlannerRow, type SharedTime,
 } from '../src/components/schedule/plannerLogic.ts';
 import type { ContentVersionResponse } from '../src/api/contentGeneration.ts';
@@ -83,4 +83,32 @@ test('local conflict check uses the publishing timezone and the configured windo
   assert.deepEqual(localConflicts('fb-page', '2030-10-01T20:00', schedules, 60).map((s) => s.id), ['2030-10-01T19:30:00+07:00']);
   assert.deepEqual(localConflicts('fb-page', '2030-10-01T20:00', schedules, 0), []);
   assert.deepEqual(localConflicts('other', '2030-10-01T20:00', schedules, 60), []);
+});
+
+test('publish time must be at least MIN_LEAD_MINUTES ahead; wall diff crosses days', () => {
+  const [row] = initialRows([version('v-fb', 'FACEBOOK')], accounts, newKey);
+  const at = (time: string) => ({ ...row, date: '2030-10-02', time });
+  assert.equal(validateRow(at('09:00'), off, '2030-10-02T09:00'), 'PAST');
+  assert.equal(validateRow(at('09:04'), off, '2030-10-02T09:00'), 'TOO_SOON');
+  assert.equal(validateRow(at('09:05'), off, '2030-10-02T09:00'), null);
+  assert.equal(wallDiffMinutes('2030-10-03T00:10', '2030-10-02T23:50'), 20);
+});
+
+test('submit summary drives the primary button label', () => {
+  const rows = initialRows([version('v-fb', 'FACEBOOK'), version('v-th', 'THREADS')], accounts, newKey)
+    .map((r) => ({ ...r, date: '2030-10-01', time: '18:34' }));
+  assert.deepEqual(submitSummary(rows, off), { kind: 'schedule', count: 2, at: '2030-10-01T18:34' });
+  assert.deepEqual(submitSummary([rows[0], { ...rows[1], time: '19:00' }], off), { kind: 'schedule', count: 2, at: null });
+  assert.deepEqual(submitSummary(rows.map((r) => ({ ...r, mode: 'NOW' as const })), off), { kind: 'now', count: 2, at: null });
+  assert.deepEqual(submitSummary(rows.map((r) => ({ ...r, mode: 'NONE' as const })), off), { kind: 'none', count: 0, at: null });
+});
+
+test('earliest publish time today, slots already passed, and the end-of-day edge', () => {
+  assert.equal(addWallMinutes('2030-10-31T23:58', 5), '2030-11-01T00:03');
+  assert.equal(earliestTimeOn('2030-10-02', '2030-10-02T18:31'), '18:36');
+  assert.equal(earliestTimeOn('2030-10-03', '2030-10-02T18:31'), null);
+  assert.equal(earliestTimeOn('2030-10-02', '2030-10-02T23:57'), 'OVER');
+  assert.equal(isSlotPast('2030-10-02', '11:00', '2030-10-02T18:31'), true);
+  assert.equal(isSlotPast('2030-10-02', '18:36', '2030-10-02T18:31'), false);
+  assert.equal(isSlotPast('2030-10-03', '11:00', '2030-10-02T18:31'), false);
 });

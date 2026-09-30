@@ -5,21 +5,31 @@ import com.aima.dto.request.ContentVersionUpdateRequest;
 import com.aima.dto.request.ContentWizardStateRequest;
 import com.aima.dto.response.ContentItemResponse;
 import com.aima.entity.BrandProfile;
+import com.aima.entity.ContentGenerationJob;
 import com.aima.entity.ContentItem;
+import com.aima.entity.ContentStrategy;
 import com.aima.entity.ContentVersion;
+import com.aima.entity.Trend;
+import com.aima.entity.TrendResearchSession;
 import com.aima.entity.User;
 import com.aima.enums.ContentItemStatus;
 import com.aima.enums.ContentVersionStatus;
+import com.aima.enums.GenerationJobStatus;
 import com.aima.enums.Platform;
 import com.aima.enums.ReviewStatus;
+import com.aima.enums.StrategyStatus;
 import com.aima.enums.UserPlan;
 import com.aima.enums.UserStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.repository.BrandProfileRepository;
+import com.aima.repository.ContentGenerationJobRepository;
 import com.aima.repository.ContentItemRepository;
+import com.aima.repository.ContentStrategyRepository;
 import com.aima.repository.ContentVersionRepository;
 import com.aima.repository.RoleRepository;
+import com.aima.repository.TrendRepository;
+import com.aima.repository.TrendResearchSessionRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.ContentItemService;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +37,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,6 +53,10 @@ class ContentItemServiceImplTest {
     @Autowired BrandProfileRepository brandProfileRepository;
     @Autowired ContentItemRepository contentItemRepository;
     @Autowired ContentVersionRepository contentVersionRepository;
+    @Autowired ContentStrategyRepository contentStrategyRepository;
+    @Autowired ContentGenerationJobRepository contentGenerationJobRepository;
+    @Autowired TrendResearchSessionRepository trendResearchSessionRepository;
+    @Autowired TrendRepository trendRepository;
 
     String email;
     BrandProfile brand;
@@ -147,6 +163,52 @@ class ContentItemServiceImplTest {
         assertEquals(ContentItemStatus.DRAFT, response.getStatus());
         assertEquals(ReviewStatus.NONE, response.getReviewStatus());
         assertFalse(response.isNeedsAttention());
+    }
+
+    @Test
+    void detailExposesGenerationSourceFromLatestSuccessfulJob() {
+        ContentItem item = item(ContentItemStatus.GENERATED, ReviewStatus.NEED_REVIEW);
+        assertNull(service.getItem(email, item.getId()).getResult().getSource().getStrategyName(),
+                "chưa có job sinh → không có chiến lược");
+
+        ContentStrategy strategy = new ContentStrategy();
+        strategy.setBrandProfile(brand);
+        strategy.setName("Chiến lược IT");
+        strategy.setGoals(new java.util.ArrayList<>(List.of("Tăng nhận diện", "Bán hàng")));
+        strategy.setFrequencyCount(3);
+        strategy.setStatus(StrategyStatus.ACTIVE);
+        strategy = contentStrategyRepository.save(strategy);
+
+        TrendResearchSession session = new TrendResearchSession();
+        session.setBrandProfile(brand);
+        session.setIndustry("Beauty");
+        session.setPlatform(Platform.FACEBOOK);
+        session.setResearchTime(LocalDateTime.now());
+        session = trendResearchSessionRepository.save(session);
+        Trend trend = new Trend();
+        trend.setResearchSession(session);
+        trend.setTrendName("Skincare tối giản");
+        trend.setPlatform(Platform.FACEBOOK);
+        trend = trendRepository.save(trend);
+
+        job(item, strategy, trend.getId(), GenerationJobStatus.SUCCESS);
+        job(item, strategy, UUID.randomUUID(), GenerationJobStatus.FAILED); // job lỗi sau đó không đổi nguồn
+
+        var source = service.getItem(email, item.getId()).getResult().getSource();
+        assertEquals("Chiến lược IT", source.getStrategyName());
+        assertEquals(List.of("Tăng nhận diện", "Bán hàng"), source.getGoals());
+        assertEquals("Skincare tối giản", source.getTrendName());
+        assertNull(source.getIdeaTitle());
+    }
+
+    private void job(ContentItem item, ContentStrategy strategy, UUID trendId, GenerationJobStatus status) {
+        ContentGenerationJob job = new ContentGenerationJob();
+        job.setContentItem(item);
+        job.setContentStrategy(strategy);
+        job.setPlatform(Platform.FACEBOOK);
+        job.setTrendId(trendId);
+        job.setStatus(status);
+        contentGenerationJobRepository.save(job);
     }
 
     private ContentItemResponse review(ContentItem item, ReviewStatus target) {

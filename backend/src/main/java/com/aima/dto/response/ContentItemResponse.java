@@ -81,4 +81,7 @@ public class ContentItemResponse {
 
     @Schema(description = "Last update time.")
     LocalDateTime updatedAt;
+
+    @Schema(description = "Generation source (strategy/trend/idea) — only on GET /content-items/{id}; null elsewhere.")
+    ContentSourceResponse source;
 }

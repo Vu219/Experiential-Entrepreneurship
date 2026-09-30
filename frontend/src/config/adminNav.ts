@@ -1,6 +1,6 @@
 import {
-  AlertTriangle, Code, LayoutTemplate, Coins, DollarSign, Gauge, KeyRound, Package,
-  Route as RouteIcon, Server, Users, FileText, type LucideIcon,
+  AlertTriangle, BrainCircuit, Briefcase, Code, LayoutTemplate, Coins, DollarSign, Gauge, KeyRound,
+  Newspaper, Package, Route as RouteIcon, Server, Settings2, Users, FileText, type LucideIcon,
 } from 'lucide-react';
 import { ICON } from '../data';
 import type { Dict } from '../i18n';
@@ -26,6 +26,8 @@ export interface AdminNavItem {
 export interface AdminNavGroup {
   /** Nhóm đầu (Bảng điều khiển) không có nhãn — mục Tổng quan tự đứng đầu. */
   labelKey?: keyof Dict;
+  /** Icon đại diện cho cả nhóm — sidebar THU GỌN chỉ hiện icon này (mục con nằm trong flyout). */
+  icon?: LucideIcon;
   items: AdminNavItem[];
 }
 
@@ -37,6 +39,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   },
   {
     labelKey: 'admGrpContent',
+    icon: Newspaper,
     items: [
       { key: 'adminPosts', labelKey: 'navAdminPosts', icon: AlertTriangle, roles: ADMIN_ONLY },
       { key: 'adminLanding', labelKey: 'navAdminLanding', icon: LayoutTemplate, roles: ADMIN_ONLY },
@@ -44,6 +47,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   },
   {
     labelKey: 'admGrpBusiness',
+    icon: Briefcase,
     items: [
       { key: 'adminUsers', labelKey: 'navAdminUsers', icon: Users, roles: ADMIN_ONLY },
       { key: 'adminRevenue', labelKey: 'navAdminRevenue', icon: DollarSign, roles: ADMIN_ONLY },
@@ -53,6 +57,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   },
   {
     labelKey: 'admGrpAi',
+    icon: BrainCircuit,
     items: [
       { key: 'adminAiProviders', labelKey: 'navAdminAiProviders', icon: KeyRound, roles: ADMIN_ONLY },
       { key: 'adminAiModels', labelKey: 'navAdminAiModels', icon: RouteIcon, roles: ADMIN_ONLY },
@@ -61,6 +66,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   },
   {
     labelKey: 'admGrpSystem',
+    icon: Settings2,
     items: [
       { key: 'adminSystem', labelKey: 'navAdminSystem', icon: Server, roles: ADMIN_ONLY },
       { key: 'adminLogs', labelKey: 'navAdminLogs', icon: FileText, roles: ADMIN_ONLY },

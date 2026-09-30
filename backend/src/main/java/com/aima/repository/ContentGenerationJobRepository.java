@@ -26,6 +26,10 @@ public interface ContentGenerationJobRepository extends JpaRepository<ContentGen
     Optional<ContentGenerationJob> findFirstByContentItem_IdAndPlatformAndStatusInAndDeletedAtIsNullOrderByCreatedAtDesc(
             UUID contentItemId, Platform platform, Collection<GenerationJobStatus> statuses);
 
+    // Nguồn sinh bài cho màn xem chi tiết: job thành công gần nhất của bài.
+    Optional<ContentGenerationJob> findFirstByContentItem_IdAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(
+            UUID contentItemId, GenerationJobStatus status);
+
     // Job kẹt (server restart giữa chừng / worker chết): PENDING/RUNNING không cập nhật từ trước
     // :threshold → FAILED + AI_TIMEOUT. Bulk update không kích hoạt @UpdateTimestamp nên set tay updatedAt.
     @Modifying(flushAutomatically = true)
