@@ -1,8 +1,9 @@
 package com.aima.dto.response;
 
 import com.aima.dto.common.VideoScriptDto;
-import com.aima.enums.ContentLifecycle;
+import com.aima.enums.ContentVersionStatus;
 import com.aima.enums.Platform;
+import com.aima.enums.ScheduleStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -61,6 +62,9 @@ public class ContentVersionResponse {
     @Schema(description = "FR-30: short brand-voice notes from the AI.")
     String voiceNotes;
 
-    @Schema(description = "Lifecycle status of this version.", example = "GENERATED")
-    ContentLifecycle status;
+    @Schema(description = "Production status of this version.", example = "FORMATTED")
+    ContentVersionStatus status;
+
+    @Schema(description = "Status of this version's live schedule; null when never scheduled or the schedule was cancelled.")
+    ScheduleStatus scheduleStatus;
 }

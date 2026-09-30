@@ -55,7 +55,7 @@ public interface StrategyOptimizationMapper {
     // hook không tách được từ script đã làm phẳng → bỏ (Optional phía Python).
     @Mapping(target = "postId", source = "post.id")
     @Mapping(target = "platform", source = "post.platformName")
-    @Mapping(target = "scheduledHour", expression = "java(post.getSchedule().getScheduledTime() == null ? null : post.getSchedule().getScheduledTime().getHour())")
+    @Mapping(target = "scheduledHour", expression = "java(post.getSchedule().getScheduledTime() == null ? null : post.getSchedule().getScheduledTime().atZone(com.aima.util.PublishingTime.LEGACY_ZONE).getHour())")
     @Mapping(target = "hook", ignore = true)
     @Mapping(target = "caption", source = "version.formattedCaption")
     @Mapping(target = "hashtags", source = "version.formattedHashtag", qualifiedByName = "csvToList")

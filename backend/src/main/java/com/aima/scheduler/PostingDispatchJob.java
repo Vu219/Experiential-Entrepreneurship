@@ -1,17 +1,14 @@
 package com.aima.scheduler;
 
-import com.aima.entity.Post;
 import com.aima.entity.PostSchedule;
 import com.aima.entity.PostingJob;
-import com.aima.enums.PostStatus;
 import com.aima.enums.PostingJobStatus;
 import com.aima.enums.ScheduleStatus;
 import com.aima.enums.UserStatus;
-import com.aima.mapper.PostPublishMapper;
-import com.aima.repository.PostRepository;
 import com.aima.repository.PostScheduleRepository;
 import com.aima.repository.PostingJobRepository;
 import com.aima.service.PostPublishWorkerService;
+import com.aima.service.PostingDispatchService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -22,7 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -44,30 +41,29 @@ public class PostingDispatchJob {
     static final Duration STUCK_RUNNING_AGE = Duration.ofMinutes(10);
 
     PostScheduleRepository scheduleRepository;
-    PostRepository postRepository;
     PostingJobRepository jobRepository;
-    PostPublishMapper postPublishMapper;
     PostPublishWorkerService postPublishWorkerService;
+    PostingDispatchService dispatchService;
     TransactionTemplate transactionTemplate;
 
     @Scheduled(fixedDelay = 60_000)
     @SchedulerLock(name = "posting-dispatch", lockAtMostFor = "PT5M", lockAtLeastFor = "PT20S")
     public void run() {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         dispatchDueSchedules(now);
         dispatchDueRetries(now);
         redispatchStalePending(now);
         recoverStuckRunning(now);
     }
 
-    private void dispatchDueSchedules(LocalDateTime now) {
+    private void dispatchDueSchedules(Instant now) {
         List<PostSchedule> due = scheduleRepository
                 .findByStatusAndScheduledTimeLessThanEqualAndDeletedAtIsNullAndPlatformAccount_User_StatusNot(
                         ScheduleStatus.SCHEDULED, now, UserStatus.PENDING_DELETE); // tài khoản chờ xoá: không đăng
         for (PostSchedule schedule : due) {
             try {
                 // Transaction ngắn tạo Post + Job; dispatch worker SAU khi commit (rule #28).
-                UUID jobId = transactionTemplate.execute(tx -> createPostAndJob(schedule.getId()));
+                UUID jobId = transactionTemplate.execute(tx -> dispatchService.dispatch(schedule.getId()).jobId());
                 if (jobId != null) {
                     log.info("[PostingDispatch] Lịch {} đến hạn → tạo job {}, giao worker", schedule.getId(), jobId);
                     postPublishWorkerService.process(jobId);
@@ -78,34 +74,7 @@ public class PostingDispatchJob {
         }
     }
 
-    private UUID createPostAndJob(UUID scheduleId) {
-        // Claim nguyên tử SCHEDULED → POSTING: lịch vừa bị hủy/giữ lại, hoặc instance khác đã
-        // claim trước (nhiều instance cùng quét) → 0 row → bỏ qua, không tạo Post/Job trùng.
-        if (scheduleRepository.claimForPosting(scheduleId) == 0) {
-            return null;
-        }
-        PostSchedule schedule = scheduleRepository.findById(scheduleId).orElse(null);
-        if (schedule == null) {
-            return null;
-        }
-
-        Post post = schedule.getPost();
-        if (post == null) {
-            post = postPublishMapper.toPost(schedule);
-            schedule.setPost(post);
-        } else {
-            // Lịch được tái sử dụng sau lần FAILED + hủy trước đó — mở chu kỳ đăng mới trên cùng Post.
-            post.setStatus(PostStatus.POSTING);
-        }
-        Post savedPost = postRepository.save(post);
-
-        PostingJob job = postPublishMapper.toPostingJob(savedPost, 0, null, PostingJobStatus.PENDING);
-        savedPost.getPostingJobs().add(job);
-        PostingJob savedJob = jobRepository.save(job);
-        return savedJob.getId();
-    }
-
-    private void dispatchDueRetries(LocalDateTime now) {
+    private void dispatchDueRetries(Instant now) {
         List<PostingJob> retries = jobRepository
                 .findByStatusAndNextRetryAtLessThanEqualAndDeletedAtIsNullAndPost_Schedule_PlatformAccount_User_StatusNot(
                         PostingJobStatus.RETRYING, now, UserStatus.PENDING_DELETE);
@@ -118,8 +87,8 @@ public class PostingDispatchJob {
         }
     }
 
-    private void recoverStuckRunning(LocalDateTime now) {
-        LocalDateTime threshold = now.minus(STUCK_RUNNING_AGE);
+    private void recoverStuckRunning(Instant now) {
+        Instant threshold = now.minus(STUCK_RUNNING_AGE);
         for (PostingJob job : jobRepository.findByStatusAndStartTimeLessThanEqualAndDeletedAtIsNull(
                 PostingJobStatus.RUNNING, threshold)) {
             try {
@@ -130,10 +99,10 @@ public class PostingDispatchJob {
         }
     }
 
-    private void redispatchStalePending(LocalDateTime now) {
+    private void redispatchStalePending(Instant now) {
         List<PostingJob> stale = jobRepository
                 .findByStatusAndCreatedAtLessThanEqualAndDeletedAtIsNullAndPost_Schedule_PlatformAccount_User_StatusNot(
-                        PostingJobStatus.PENDING, now.minus(STALE_PENDING_AGE), UserStatus.PENDING_DELETE);
+                        PostingJobStatus.PENDING, com.aima.util.PublishingTime.toLegacy(now.minus(STALE_PENDING_AGE)), UserStatus.PENDING_DELETE);
         for (PostingJob job : stale) {
             try {
                 log.info("[PostingDispatch] Vớt lại job PENDING {} (mất dispatch)", job.getId());

@@ -12,7 +12,7 @@
 | UI-04 | Content Strategy | Goals, frequency, platforms, posting schedule |
 | UI-05 | Trend Research | List of trends + AI-suggested content ideas |
 | UI-06 | Content Workspace | View/edit/approve/regenerate content |
-| UI-07 | Calendar / Schedule | Posting calendar by day/week/month |
+| UI-07 | Calendar / Schedule | Posting calendar by day/week/month; create-schedule modal = the shared `SchedulePlanner` (also step 4 of the create wizard); `?day=YYYY-MM-DD` deep link; hold reasons shown on held schedules |
 | UI-08 | Analytics | Performance data + insights |
 | UI-09 | Social Account | Connect / status / disconnect |
 | UI-10 | Admin Dashboard | Users, system errors, content awaiting review |
@@ -31,6 +31,21 @@
 - **API-03** Authorization checks: users can only access their own data; admins have administrative rights.
 - **API-04** Validate input before processing.
 - **API-05** Return clear errors with frontend-friendly messages.
+
+### Scheduling API (2026-09-30)
+
+| Method | Path | Notes |
+|---|---|---|
+| PATCH | `/content-items/{id}/review` | Change `reviewStatus`; resending the current value is a no-op |
+| GET/PUT | `/users/me/publishing-settings` | Timezone (IANA), require approval, conflict window, brand-voice blocking + threshold |
+| POST | `/schedules` | One schedule; optional `Idempotency-Key` header; mode SCHEDULE/NOW |
+| POST | `/schedules/batch` | Many rows, one transaction per row, per-row result (`code`/`message`/`schedule`/`jobId`/`warnings`) and per-row `idempotencyKey` (same key + same payload → replay, different payload → 2139) |
+| POST | `/schedules/{id}/publish-now` | Same dispatch path as the scheduler; rejected when unapproved under require-approval (2138) or still held (2140) |
+| GET | `/schedules/suggested-slots?accountId=&count=` | Golden-hour slots in the user's timezone, skipping the conflict window; nothing is reserved |
+| PUT | `/schedules/{id}` | New time and/or `platformAccountId` of the same platform |
+| GET/POST | `/admin/maintenance/content-status-repair` | ADMIN only. Dry-run report / apply with `planToken` (409/2144 when data changed). Never runs on boot |
+
+Schedule responses carry `holdReasons`, `overdue`, `jobId`, `warnings`; content items carry `reviewStatus`, `needsAttention` and `versions[].scheduleStatus`. Times are ISO-8601 with an offset; responses are UTC instants.
 
 ---
 

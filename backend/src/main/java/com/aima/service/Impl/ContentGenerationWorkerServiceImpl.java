@@ -21,6 +21,7 @@ import com.aima.repository.ContentIdeaRepository;
 import com.aima.repository.ContentVersionRepository;
 import com.aima.repository.TrendRepository;
 import com.aima.service.AiServiceClient;
+import com.aima.service.ContentItemStatusResolver;
 import com.aima.service.ContentGenerationWorkerService;
 import com.aima.service.NotificationService;
 import com.aima.service.AiUsageService;
@@ -58,6 +59,7 @@ public class ContentGenerationWorkerServiceImpl implements ContentGenerationWork
     TransactionTemplate transactionTemplate;
     NotificationService notificationService;
     AiUsageService aiUsageService;
+    ContentItemStatusResolver statusResolver;
 
     /** Payload + ngữ cảnh event usage, dựng trong TX ngắn #1 để dùng ngoài transaction. */
     private record GenerationTask(GenerateContentPayload payload, AiUsageService.AiCallContext callContext) {
@@ -147,15 +149,21 @@ public class ContentGenerationWorkerServiceImpl implements ContentGenerationWork
                 });
     }
 
-    // B2: job ghi MỘT ContentVersion giàu vào bài (INSERT row con — không đụng row
-    // ContentItem, không job nào lật status bài → N job song song không còn race).
+    // B2: job ghi MỘT ContentVersion giàu vào bài. Khóa bài trước khi đụng version (thứ tự item → version):
+    // N job song song trên cùng bài tuần tự ở bước lưu, job sau tính trạng thái tổng trên bản của job trước.
     private void saveSuccess(UUID jobId, GeneratedContentResult result) {
         ContentGenerationJob job = jobRepository.findById(jobId).orElse(null);
         if (job == null) {
             log.warn("[ContentGeneration] Job {} biến mất trước khi lưu kết quả", jobId);
             return;
         }
-        ContentItem item = job.getContentItem();
+        ContentItem item = job.getContentItem() == null ? null : statusResolver.lock(job.getContentItem().getId());
+        if (item != null && item.getDeletedAt() == null && !ContentItemServiceImpl.isWizardOpen(item)) {
+            // Bài đã gửi duyệt / lên lịch trong lúc job chạy — không thay bản đang được dùng.
+            log.warn("[ContentGeneration] Bài của job {} đã rời wizard — bỏ kết quả", jobId);
+            saveFailureOn(job, "Bài đã gửi duyệt hoặc đã lên lịch trong lúc tạo — kết quả bị bỏ");
+            return;
+        }
         if (item == null || item.getDeletedAt() != null) {
             // Bài bị xóa trong lúc job chạy — kết quả không còn chỗ ghi.
             log.warn("[ContentGeneration] Bài của job {} không còn — bỏ kết quả", jobId);
@@ -178,6 +186,7 @@ public class ContentGenerationWorkerServiceImpl implements ContentGenerationWork
         job.setResultContentVersion(version);
         job.setStatus(GenerationJobStatus.SUCCESS);
         jobRepository.save(job);
+        statusResolver.refresh(item.getId());
 
         // FR-77: nội dung mới do AI tạo — nhắc user xem và duyệt trước khi lên lịch.
         // (B2: mỗi nền tảng một thông báo — chấp nhận ồn nhẹ, tối ưu ở lượt sau.)

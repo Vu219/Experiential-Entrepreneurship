@@ -1,7 +1,7 @@
 package com.aima.service.Impl;
 
 import com.aima.dto.request.ContentItemCreateRequest;
-import com.aima.dto.request.ContentItemStatusRequest;
+import com.aima.dto.request.ContentItemReviewRequest;
 import com.aima.dto.request.ContentItemUpdateRequest;
 import com.aima.dto.request.ContentVersionUpdateRequest;
 import com.aima.dto.request.ContentWizardStateRequest;
@@ -13,8 +13,10 @@ import com.aima.entity.ContentStrategy;
 import com.aima.entity.ContentVersion;
 import com.aima.entity.User;
 import com.aima.enums.ActivityAction;
-import com.aima.enums.ContentLifecycle;
+import com.aima.enums.ContentItemStatus;
 import com.aima.enums.Platform;
+import com.aima.enums.ReviewStatus;
+import com.aima.enums.ScheduleStatus;
 import com.aima.enums.StrategyStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
@@ -25,6 +27,8 @@ import com.aima.repository.ContentStrategyRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.ActivityLogService;
 import com.aima.service.ContentItemService;
+import com.aima.service.ContentItemStatusResolver;
+import com.aima.service.ScheduleHoldService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -38,6 +42,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +51,7 @@ import java.util.UUID;
 
 /**
  * FR-33 (manual edit) + FR-34 (review before posting) trên {@link ContentItem}.
- * Chỉ theo state machine trong WORKFLOWS.md: Generated → Need Review → Approved.
+ * Duyệt là chiều riêng ({@link ReviewStatus}); trạng thái tổng do {@link ContentItemStatusResolver} suy ra.
  */
 @Service
 @RequiredArgsConstructor
@@ -57,29 +62,37 @@ public class ContentItemServiceImpl implements ContentItemService {
 
     ActivityLogService activityLogService;
 
-    // FR-33: chỉ sửa được trước khi vào pipeline đăng (WORKFLOWS.md).
-    // FR-39/EX-02: bài FAILED cũng sửa được (sửa xong hủy lịch FAILED → version về FORMATTED → lên lịch lại).
-    static final Set<ContentLifecycle> EDITABLE_STATUSES = EnumSet.of(
-            ContentLifecycle.DRAFT, ContentLifecycle.GENERATED,
-            ContentLifecycle.NEED_REVIEW, ContentLifecycle.APPROVED, ContentLifecycle.FAILED);
+    // FR-33 (Phase 2): chỉ lúc ĐANG đăng mới khóa sửa — bài đã lên lịch/tạm giữ sửa được (bài đăng dùng
+    // snapshot chụp lúc dispatch), sửa bản đã đăng không đổi bài đã đăng.
+    /** Bản nền tảng có lịch đang POSTING → không sửa/định dạng/tạo lại. */
+    static boolean isPostingLocked(ContentVersion version) {
+        return version.getPostSchedule() != null && version.getPostSchedule().getDeletedAt() == null
+                && version.getPostSchedule().getStatus() == ScheduleStatus.POSTING;
+    }
 
-    // FR-34: các bước hợp lệ của review flow — Generated → Need Review → Approved.
-    // B2: bài giữ DRAFT suốt wizard (job không lật status) → user gửi duyệt từ DRAFT.
-    // "Trả về sửa": NEED_REVIEW → GENERATED (bài quay lại trạng thái AI đã tạo để sửa tiếp).
-    static final Map<ContentLifecycle, Set<ContentLifecycle>> REVIEW_TRANSITIONS = Map.of(
-            ContentLifecycle.NEED_REVIEW, EnumSet.of(ContentLifecycle.DRAFT, ContentLifecycle.GENERATED),
-            ContentLifecycle.APPROVED, EnumSet.of(ContentLifecycle.NEED_REVIEW),
-            ContentLifecycle.GENERATED, EnumSet.of(ContentLifecycle.NEED_REVIEW));
+    // FR-34: review flow — gửi duyệt (NONE/CHANGES_REQUESTED → NEED_REVIEW), duyệt hoặc trả về sửa
+    // (NEED_REVIEW → APPROVED/CHANGES_REQUESTED). Gửi lại đúng trạng thái hiện tại = no-op hợp lệ.
+    static final Map<ReviewStatus, Set<ReviewStatus>> REVIEW_TRANSITIONS = Map.of(
+            ReviewStatus.NEED_REVIEW, EnumSet.of(ReviewStatus.NONE, ReviewStatus.CHANGES_REQUESTED),
+            ReviewStatus.APPROVED, EnumSet.of(ReviewStatus.NEED_REVIEW),
+            ReviewStatus.CHANGES_REQUESTED, EnumSet.of(ReviewStatus.NEED_REVIEW));
 
-    // FR-89: chỉ xóa được khi chưa vào pipeline (Draft/Generated); Scheduled/Posting/Posted cấm xóa.
-    static final Set<ContentLifecycle> DELETABLE_STATUSES =
-            EnumSet.of(ContentLifecycle.DRAFT, ContentLifecycle.GENERATED);
+    // FR-89: chỉ xóa được khi chưa vào pipeline — chưa có lịch hiệu lực và chưa gửi duyệt/đã duyệt.
+    static final Set<ReviewStatus> DELETABLE_REVIEW_STATUSES =
+            EnumSet.of(ReviewStatus.NONE, ReviewStatus.CHANGES_REQUESTED);
+
+    /** Bài còn trong wizard (tạo bản / auto-save): chưa có lịch hiệu lực và chưa gửi duyệt. */
+    static boolean isWizardOpen(ContentItem item) {
+        return item.getStatus().isPrePublishing() && item.getReviewStatus() == ReviewStatus.NONE;
+    }
 
     ContentItemRepository contentItemRepository;
     ContentStrategyRepository contentStrategyRepository;
     ContentIdeaRepository contentIdeaRepository;
     UserRepository userRepository;
     ContentItemMapper contentItemMapper;
+    ContentItemStatusResolver statusResolver;
+    ScheduleHoldService holdService;
 
     // FR-87: thư viện nội dung — mọi filter đều optional (null/rỗng = bỏ qua). Sắp xếp server-side
     // qua ORDER BY trong repository (newest/voice/status), nên Pageable KHÔNG mang Sort riêng.
@@ -87,7 +100,8 @@ public class ContentItemServiceImpl implements ContentItemService {
 
     @Override
     @Transactional(readOnly = true)
-    public ApiResponse<PageResponse<ContentItemResponse>> list(String email, ContentLifecycle status,
+    public ApiResponse<PageResponse<ContentItemResponse>> list(String email, ContentItemStatus status,
+                                                               ReviewStatus reviewStatus,
                                                                UUID brandProfileId, Platform platform,
                                                                String industry, LocalDate fromDate, LocalDate toDate,
                                                                String q, String sort, int page, int size) {
@@ -101,6 +115,7 @@ public class ContentItemServiceImpl implements ContentItemService {
         LocalDateTime to = toDate == null ? null : toDate.atTime(LocalTime.MAX);
         Page<ContentItem> items = contentItemRepository.search(user.getId(),
                 status == null ? null : status.name(),
+                reviewStatus == null ? null : reviewStatus.name(),
                 brandProfileId,
                 platform == null ? null : platform.name(),
                 industry == null ? "" : industry.trim(), from, to,
@@ -135,7 +150,8 @@ public class ContentItemServiceImpl implements ContentItemService {
                     .ifPresent(item::setContentIdea);
         }
 
-        ContentItem saved = contentItemRepository.save(item); // status default DRAFT
+        statusResolver.initialize(item); // bài rỗng → DRAFT
+        ContentItem saved = contentItemRepository.save(item);
         activityLogService.record(ActivityLogService.Entry.of(
                 ActivityAction.CONTENT_CREATED, user.getId(), user.getEmail(),
                 "ContentItem", saved.getId().toString()));
@@ -153,17 +169,20 @@ public class ContentItemServiceImpl implements ContentItemService {
 
     @Override
     public ApiResponse<ContentItemResponse> updateItem(String email, UUID itemId, ContentItemUpdateRequest request) {
-        ContentItem item = ownedItem(email, itemId);
-        if (!EDITABLE_STATUSES.contains(item.getStatus())) {
+        ContentItem item = ownedItemForUpdate(email, itemId);
+        if (item.getStatus() == ContentItemStatus.POSTING) {
             throw new AppException(ErrorCode.CONTENT_ITEM_NOT_EDITABLE);
         }
 
+        List<Object> before = itemContent(item);
         contentItemMapper.update(request, item);
-
-        // Nội dung đã duyệt mà bị sửa thì phải duyệt lại (giữ review flow trung thực).
-        if (item.getStatus() == ContentLifecycle.APPROVED) {
-            item.setStatus(ContentLifecycle.NEED_REVIEW);
+        if (before.equals(itemContent(item))) {
+            // PUT cùng dữ liệu = no-op: không bỏ duyệt, không giữ lịch.
+            ContentItemResponse unchanged = contentItemMapper.toResponse(item);
+            return ApiResponse.success("Nội dung không đổi", unchanged);
         }
+        // Nội dung đã duyệt mà bị sửa thì phải duyệt lại (giữ review flow trung thực).
+        holdService.onContentChanged(item);
 
         ContentItem saved = contentItemRepository.save(item);
         activityLogService.record(ActivityLogService.Entry.byActor(
@@ -173,24 +192,27 @@ public class ContentItemServiceImpl implements ContentItemService {
     }
 
     // B2/FR-33: sửa thủ công MỘT bản nền tảng — partial update, cùng ràng buộc trạng thái
-    // với sửa bài; bài APPROVED bị sửa quay về NEED_REVIEW (review flow trung thực).
+    // với sửa bài; bài đã duyệt bị sửa quay về NEED_REVIEW (review flow trung thực).
     @Override
     public ApiResponse<ContentItemResponse> updateVersion(String email, UUID itemId, UUID versionId,
                                                           ContentVersionUpdateRequest request) {
-        ContentItem item = ownedItem(email, itemId);
-        if (!EDITABLE_STATUSES.contains(item.getStatus())) {
-            throw new AppException(ErrorCode.CONTENT_ITEM_NOT_EDITABLE);
-        }
-
+        ContentItem item = ownedItemForUpdate(email, itemId);
         ContentVersion version = item.getContentVersions().stream()
                 .filter(v -> v.getId().equals(versionId) && v.getDeletedAt() == null)
                 .findFirst()
                 .orElseThrow(() -> new AppException(ErrorCode.CONTENT_VERSION_NOT_FOUND));
-
-        contentItemMapper.updateVersion(request, version);
-        if (item.getStatus() == ContentLifecycle.APPROVED) {
-            item.setStatus(ContentLifecycle.NEED_REVIEW);
+        if (isPostingLocked(version)) {
+            throw new AppException(ErrorCode.CONTENT_VERSION_POSTING_LOCKED);
         }
+
+        List<Object> before = versionContent(version);
+        contentItemMapper.updateVersion(request, version);
+        if (before.equals(versionContent(version))) {
+            ContentItemResponse unchanged = contentItemMapper.toResponse(item);
+            return ApiResponse.success("Nội dung không đổi", unchanged);
+        }
+        version.setRevision(version.getRevision() + 1);
+        holdService.onContentChanged(item);
 
         ContentItem saved = contentItemRepository.save(item); // version lưu qua cascade
         ContentItemResponse response = contentItemMapper.toResponse(saved);
@@ -198,38 +220,43 @@ public class ContentItemServiceImpl implements ContentItemService {
     }
 
     @Override
-    public ApiResponse<ContentItemResponse> updateStatus(String email, UUID itemId, ContentItemStatusRequest request) {
-        ContentItem item = ownedItem(email, itemId);
+    public ApiResponse<ContentItemResponse> updateReview(String email, UUID itemId, ContentItemReviewRequest request) {
+        ContentItem item = ownedItemForUpdate(email, itemId);
 
-        ContentLifecycle target = request.getStatus();
-        Set<ContentLifecycle> allowedFrom = REVIEW_TRANSITIONS.get(target);
-        if (allowedFrom == null || !allowedFrom.contains(item.getStatus())) {
+        ReviewStatus target = request.getReviewStatus();
+        if (item.getReviewStatus() == target) {
+            // Gửi lặp (double-click, FE retry) → no-op hợp lệ, không ghi log trùng.
+            ContentItemResponse unchanged = contentItemMapper.toResponse(item);
+            return ApiResponse.success("Trạng thái duyệt không đổi", unchanged);
+        }
+        Set<ReviewStatus> allowedFrom = REVIEW_TRANSITIONS.get(target);
+        if (allowedFrom == null || !allowedFrom.contains(item.getReviewStatus())) {
             throw new AppException(ErrorCode.INVALID_CONTENT_STATUS_TRANSITION);
         }
 
-        item.setStatus(target);
-        // Bài đã rời DRAFT → trạng thái wizard hết ý nghĩa; dọn để danh sách không còn coi là bài dở.
-        if (target != ContentLifecycle.DRAFT) {
-            item.setWizardStep(null);
-            item.setWizardPlatforms(null);
-            item.setWizardNote(null);
-            item.setTrendId(null);
-        }
+        item.setReviewStatus(target);
+        // Duyệt kịp giờ → gỡ PENDING_REVIEW, lịch trở lại SCHEDULED; duyệt muộn → lịch vẫn giữ (quá giờ).
+        holdService.syncReviewHolds(item);
+        // Bài đã gửi duyệt → trạng thái wizard hết ý nghĩa; dọn để danh sách không còn coi là bài dở.
+        item.setWizardStep(null);
+        item.setWizardPlatforms(null);
+        item.setWizardNote(null);
+        item.setTrendId(null);
         ContentItem saved = contentItemRepository.save(item);
         activityLogService.record(ActivityLogService.Entry.byActor(
                 ActivityAction.CONTENT_STATUS_CHANGED, email, "ContentItem", itemId.toString(),
-                Map.of("status", target.name())));
+                Map.of("reviewStatus", target.name())));
         ContentItemResponse response = contentItemMapper.toResponse(saved);
-        return ApiResponse.success("Cập nhật trạng thái nội dung thành công", response);
+        return ApiResponse.success("Cập nhật trạng thái duyệt thành công", response);
     }
 
-    // Auto-save wizard (debounce phía FE): chỉ khi bài còn DRAFT — trạng thái khác nghĩa là
+    // Auto-save wizard (debounce phía FE): chỉ khi bài còn trong wizard — đã gửi duyệt/lên lịch nghĩa là
     // bài đã rời wizard, snapshot không còn giá trị resume.
     @Override
     public ApiResponse<ContentItemResponse> updateWizardState(String email, UUID itemId,
                                                               ContentWizardStateRequest request) {
-        ContentItem item = ownedItem(email, itemId);
-        if (item.getStatus() != ContentLifecycle.DRAFT) {
+        ContentItem item = ownedItemForUpdate(email, itemId);
+        if (!isWizardOpen(item)) {
             throw new AppException(ErrorCode.CONTENT_ITEM_NOT_EDITABLE);
         }
 
@@ -250,8 +277,8 @@ public class ContentItemServiceImpl implements ContentItemService {
     // FR-89: xóa mềm item + cascade các ContentVersion/MediaAsset còn hiệu lực (DATA_MODEL.md).
     @Override
     public ApiResponse<ContentItemResponse> delete(String email, UUID itemId) {
-        ContentItem item = ownedItem(email, itemId);
-        if (!DELETABLE_STATUSES.contains(item.getStatus())) {
+        ContentItem item = ownedItemForUpdate(email, itemId);
+        if (!item.getStatus().isPrePublishing() || !DELETABLE_REVIEW_STATUSES.contains(item.getReviewStatus())) {
             throw new AppException(ErrorCode.CONTENT_ITEM_NOT_DELETABLE);
         }
 
@@ -271,10 +298,29 @@ public class ContentItemServiceImpl implements ContentItemService {
         return ApiResponse.success("Đã xóa nội dung", response);
     }
 
+    // Các trường nội dung so sánh để phát hiện sửa no-op (List.equals so từng phần tử, chấp nhận null).
+    private static List<Object> itemContent(ContentItem item) {
+        return Arrays.asList(item.getScript(), item.getCaption(), item.getHashtag(), item.getCta(), item.getMediaPrompt());
+    }
+
+    private static List<Object> versionContent(ContentVersion version) {
+        return Arrays.asList(version.getScript(), version.getFormattedCaption(), version.getFormattedHashtag(),
+                version.getCta(), version.getMediaPrompt());
+    }
+
     private ContentItem ownedItem(String email, UUID itemId) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         return contentItemRepository.findByIdAndBrandProfile_User_IdAndDeletedAtIsNull(itemId, user.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.CONTENT_ITEM_NOT_FOUND));
+    }
+
+    // Luồng ghi khóa bài (thứ tự item → version → schedule → job) để không ghi đè trạng thái tổng
+    // mà worker đăng bài vừa tính lại trong lúc user đang sửa.
+    private ContentItem ownedItemForUpdate(String email, UUID itemId) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        return contentItemRepository.findOwnedForUpdate(itemId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.CONTENT_ITEM_NOT_FOUND));
     }
 }

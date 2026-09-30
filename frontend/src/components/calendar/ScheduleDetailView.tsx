@@ -38,7 +38,8 @@ export interface ScheduleDetailViewProps {
   onBack: () => void;
   onReschedule: (schedule: PostSchedule) => void;
   onCancel: (schedule: PostSchedule) => void;
-  onEditContent: () => void;
+  /** Mở đúng bài của lịch để sửa nội dung. */
+  onEditContent: (schedule: PostSchedule) => void;
   onPublishNow?: (schedule: PostSchedule) => void;
   confirmingCancel?: boolean;
   busy?: boolean;
@@ -162,7 +163,7 @@ export default function ScheduleDetailView({
   const hasScript = !!(script?.hook?.content || (script?.steps && script.steps.length > 0) || script?.cta?.content);
 
   // Tính toán thời gian
-  const dateObj = new Date(schedule.scheduledTime);
+  const dateObj = new Date(schedule.scheduledTime.slice(0, 19));
   const weekdayIndex = (dateObj.getDay() + 6) % 7;
   const langKey = (lang === 'en' ? 'en' : 'vi') as 'vi' | 'en';
   const weekdayName = WEEKDAYS_FULL[langKey]?.[weekdayIndex] ?? WEEKDAYS_FULL.vi[weekdayIndex];
@@ -407,7 +408,7 @@ export default function ScheduleDetailView({
                   <button
                     onClick={() => {
                       setDropdownOpen(false);
-                      onEditContent();
+                      onEditContent(schedule);
                     }}
                     style={{
                       display: 'flex',
@@ -679,6 +680,14 @@ export default function ScheduleDetailView({
                 <div style={{ fontSize: 12.5, color: '#92400e', marginTop: 6, lineHeight: 1.5 }}>
                   {t.schOnHoldHint}
                 </div>
+                {(schedule.holdReasons ?? []).length > 0 && (
+                  <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12.5, color: '#92400e', lineHeight: 1.6 }}>
+                    {schedule.holdReasons.map((r) => <li key={r}>{t[`schHold${r}` as keyof typeof t] as string}</li>)}
+                  </ul>
+                )}
+                {schedule.overdue && (
+                  <div style={{ fontSize: 12.5, color: '#b45309', fontWeight: 700, marginTop: 8, lineHeight: 1.5 }}>{t.schHoldOverdue}</div>
+                )}
               </div>
             )}
 

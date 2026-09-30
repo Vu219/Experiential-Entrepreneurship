@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,7 +24,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             + "and p.publishedAt is not null and p.publishedAt <= :threshold "
             + "and not exists (select a from PostAnalytics a where a.post = p "
             + "and a.milestoneHours = :milestone and a.deletedAt is null)")
-    List<UUID> findDueForAnalytics(@Param("milestone") int milestone, @Param("threshold") LocalDateTime threshold);
+    List<UUID> findDueForAnalytics(@Param("milestone") int milestone, @Param("threshold") Instant threshold);
 
     // Nạp đủ đồ thị AnalyticsCollectionJob cần (token của kết nối + version/item để đổi trạng thái).
     @Query("select p from Post p join fetch p.schedule s join fetch s.platformAccount "
@@ -66,7 +67,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             join users u on u.id = pa.user_id
             left join content_versions cv on cv.id = ps.content_version_id and cv.deleted_at is null
             cross join lateral (
-                select coalesce(max(j.end_time), p.updated_at) as failed_at
+                select coalesce(max((j.end_time AT TIME ZONE 'Asia/Ho_Chi_Minh')), p.updated_at) as failed_at
                 from posting_jobs j
                 where j.post_id = p.id and j.status = 'FAILED'
             ) lj
@@ -139,13 +140,13 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             from (
                 select p.id as id,
                        pa.user_id as user_id,
-                       coalesce((select max(j.end_time) from posting_jobs j
+                       coalesce((select max((j.end_time AT TIME ZONE 'Asia/Ho_Chi_Minh')) from posting_jobs j
                                  where j.post_id = p.id and j.status = 'FAILED'), p.updated_at) as failed_at,
                        exists (select 1 from posting_jobs j2 where j2.post_id = p.id
                                and j2.error_type = 'POLICY_VIOLATION') as is_policy,
                        (select j3.error_type from posting_jobs j3
                         where j3.post_id = p.id and j3.status = 'FAILED'
-                        order by j3.end_time desc nulls last limit 1) as last_error_type
+                        order by (j3.end_time AT TIME ZONE 'Asia/Ho_Chi_Minh') desc nulls last limit 1) as last_error_type
                 from posts p
                 join post_schedules ps on ps.id = p.schedule_id and ps.deleted_at is null
                 join platform_accounts pa on pa.id = ps.platform_account_id and pa.deleted_at is null
@@ -170,9 +171,9 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
               and (:technicalOnly = false or not exists (
                     select 1 from posting_jobs j0 where j0.post_id = p.id
                       and j0.error_type = 'POLICY_VIOLATION'))
-              and coalesce((select max(j.end_time) from posting_jobs j
+              and coalesce((select max((j.end_time AT TIME ZONE 'Asia/Ho_Chi_Minh')) from posting_jobs j
                             where j.post_id = p.id and j.status = 'FAILED'), p.updated_at) >= :from
-              and coalesce((select max(j.end_time) from posting_jobs j
+              and coalesce((select max((j.end_time AT TIME ZONE 'Asia/Ho_Chi_Minh')) from posting_jobs j
                             where j.post_id = p.id and j.status = 'FAILED'), p.updated_at) < :to
             """, nativeQuery = true)
     long countAffectedUsersForAdmin(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to,
@@ -226,7 +227,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
                        = any(string_to_array(cast(:typeCsv as text), ',')))
               and exists (
                   select 1 from (
-                      select max(j.end_time) as failed_at
+                      select max((j.end_time AT TIME ZONE 'Asia/Ho_Chi_Minh')) as failed_at
                       from posting_jobs j
                       where j.post_id = p.id and j.status = 'FAILED'
                   ) lj
@@ -239,7 +240,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
                                    @Param("platformCsv") String platformCsv,
                                    @Param("typeCsv") String typeCsv);
 
-    long countByStatusAndPublishedAtAfterAndDeletedAtIsNull(PostStatus status, LocalDateTime after);
+    long countByStatusAndPublishedAtAfterAndDeletedAtIsNull(PostStatus status, Instant after);
 
     long countByStatusAndUpdatedAtAfterAndDeletedAtIsNull(PostStatus status, LocalDateTime after);
 

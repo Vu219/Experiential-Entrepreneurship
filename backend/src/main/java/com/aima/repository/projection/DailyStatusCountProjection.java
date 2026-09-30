@@ -5,13 +5,16 @@ package com.aima.repository.projection;
  * và % thay đổi (7 ngày qua so với 7 ngày liền trước) của các thẻ số liệu Bảng điều khiển.
  *
  * <p>{@code day} là chuỗi {@code yyyy-MM-dd} (native {@code to_char}) và {@code status} là tên
- * enum {@link com.aima.enums.ContentLifecycle} dạng chuỗi — native query trả cột varchar.
+ * enum {@link com.aima.enums.ContentItemStatus} dạng chuỗi, {@code reviewStatus} là tên
+ * {@link com.aima.enums.ReviewStatus} — native query trả cột varchar.
  */
 public interface DailyStatusCountProjection {
 
     String getDay();
 
     String getStatus();
+
+    String getReviewStatus();
 
     long getTotal();
 }

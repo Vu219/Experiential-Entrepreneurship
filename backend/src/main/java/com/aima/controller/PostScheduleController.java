@@ -26,6 +26,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.aima.dto.request.ScheduleBatchRequest;
+import com.aima.dto.response.ScheduleBatchResponse;
+import com.aima.dto.response.SuggestedSlotResponse;
+import org.springframework.web.bind.annotation.RequestHeader;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -44,8 +49,41 @@ public class PostScheduleController {
                     + "platform (BR-05). Re-scheduling a CANCELLED schedule reuses it; an active schedule for the "
                     + "same version is rejected.")
     public ApiResponse<PostScheduleResponse> create(@AuthenticationPrincipal UserDetails principal,
+                                                    @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
                                                     @Valid @RequestBody PostScheduleRequest request) {
-        return postScheduleService.create(principal.getUsername(), request);
+        return postScheduleService.create(principal.getUsername(), request, idempotencyKey);
+    }
+
+    @PostMapping("/batch")
+    @Operation(summary = "Create several schedules at once",
+            description = "One row per platform/account; each row runs in its own transaction and is idempotent by its "
+                    + "own idempotencyKey (same key + same payload replays the result, other payload → 2139). Rows fail "
+                    + "independently (code/message per row); conflicts within the user's window are warnings only.")
+    public ApiResponse<ScheduleBatchResponse> createBatch(@AuthenticationPrincipal UserDetails principal,
+                                                          @Valid @RequestBody ScheduleBatchRequest request) {
+        return postScheduleService.createBatch(principal.getUsername(), request);
+    }
+
+    @PostMapping("/{scheduleId}/publish-now")
+    @Operation(summary = "Publish a schedule now",
+            description = "SCHEDULED (or ON_HOLD with no remaining hold reason) → claimed with the same service as the "
+                    + "dispatcher; the job is returned immediately and runs in the background. Requires approval first "
+                    + "when the user's policy demands it (2138).")
+    public ApiResponse<PostScheduleResponse> publishNow(@AuthenticationPrincipal UserDetails principal,
+                                                        @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+                                                        @PathVariable UUID scheduleId) {
+        return postScheduleService.publishNow(principal.getUsername(), scheduleId, idempotencyKey);
+    }
+
+    @GetMapping("/suggested-slots")
+    @Operation(summary = "Free golden-hour slots for an account",
+            description = "Golden-hour starts in the user's publishing timezone, skipping past times and times within the "
+                    + "conflict window of existing schedules on that account. Nothing is reserved; count 1-20 (default 5).")
+    public ApiResponse<List<SuggestedSlotResponse>> suggestSlots(@AuthenticationPrincipal UserDetails principal,
+                                                                 @RequestParam UUID accountId,
+                                                                 @RequestParam(required = false) Instant from,
+                                                                 @RequestParam(required = false) Integer count) {
+        return postScheduleService.suggestSlots(principal.getUsername(), accountId, from, count);
     }
 
     @GetMapping
@@ -75,8 +113,9 @@ public class PostScheduleController {
     }
 
     @PutMapping("/{scheduleId}")
-    @Operation(summary = "Move a schedule to a new time (FR-50)",
-            description = "Only allowed while SCHEDULED or ON_HOLD (unpublished).")
+    @Operation(summary = "Move a schedule to a new time / account (FR-50)",
+            description = "Only allowed while SCHEDULED or ON_HOLD (unpublished). Optional platformAccountId moves it to "
+                    + "another account of the same platform. An ON_HOLD schedule resumes only when no hold reason remains.")
     public ApiResponse<PostScheduleResponse> update(@AuthenticationPrincipal UserDetails principal,
                                                     @PathVariable UUID scheduleId,
                                                     @Valid @RequestBody PostScheduleUpdateRequest request) {

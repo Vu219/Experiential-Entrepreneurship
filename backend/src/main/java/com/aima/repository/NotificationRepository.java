@@ -28,4 +28,6 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     @Query("update Notification n set n.readAt = :now "
             + "where n.user.id = :userId and n.readAt is null and n.deletedAt is null")
     int markAllRead(@Param("userId") UUID userId, @Param("now") LocalDateTime now);
+
+    boolean existsByDedupeKey(String dedupeKey);
 }

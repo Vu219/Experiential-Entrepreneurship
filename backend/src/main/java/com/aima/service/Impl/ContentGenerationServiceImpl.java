@@ -7,7 +7,6 @@ import com.aima.entity.ContentGenerationJob;
 import com.aima.entity.ContentItem;
 import com.aima.entity.ContentStrategy;
 import com.aima.entity.User;
-import com.aima.enums.ContentLifecycle;
 import com.aima.enums.GenerationJobStatus;
 import com.aima.enums.StrategyStatus;
 import com.aima.exception.AppException;
@@ -90,8 +89,8 @@ public class ContentGenerationServiceImpl implements ContentGenerationService {
             throw new AppException(ErrorCode.STRATEGY_NOT_ACTIVE);
         }
 
-        // B2: job ghi version vào MỘT bài có sẵn — bài phải thuộc user và còn ở DRAFT.
-        if (item.getStatus() != ContentLifecycle.DRAFT) {
+        // B2: job ghi version vào MỘT bài có sẵn — bài phải thuộc user và còn trong wizard.
+        if (!ContentItemServiceImpl.isWizardOpen(item)) {
             throw new AppException(ErrorCode.CONTENT_ITEM_NOT_DRAFT);
         }
 

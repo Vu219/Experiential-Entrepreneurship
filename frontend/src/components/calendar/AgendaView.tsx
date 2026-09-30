@@ -13,7 +13,8 @@ export default function AgendaView({ schedules, busyId, confirmCancelId, onResch
   confirmCancelId: string | null;
   onReschedule: (s: PostSchedule) => void;
   onCancel: (s: PostSchedule) => void;
-  onEditContent: () => void;
+  /** Mở đúng bài của lịch để sửa nội dung. */
+  onEditContent: (schedule: PostSchedule) => void;
   selectedDay: string | null;
   onClearDay: () => void;
   onSelectSchedule?: (s: PostSchedule) => void;

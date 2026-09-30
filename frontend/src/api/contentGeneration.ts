@@ -9,25 +9,35 @@ import type { Platform } from "./brandProfile";
 
 export type GenerationJobStatus = "PENDING" | "RUNNING" | "SUCCESS" | "FAILED";
 
-// Trạng thái vòng đời nội dung (state machine trong docs/WORKFLOWS.md — không tự đặt status mới).
-export type ContentLifecycle =
+// Trạng thái TỔNG của bài — backend suy ra từ bản nền tảng + lịch đăng (ContentItemStatusResolver).
+export type ContentItemStatus =
   | "DRAFT"
   | "GENERATED"
-  | "NEED_REVIEW"
-  | "APPROVED"
   | "FORMATTED"
   | "SCHEDULED"
+  | "ON_HOLD"
   | "POSTING"
   | "POSTED"
-  | "FAILED"
-  | "ANALYZING"
-  | "OPTIMIZED";
+  | "PARTIALLY_POSTED"
+  | "FAILED";
+
+/** Bài chưa có lịch hiệu lực và chưa bản nào đăng (giai đoạn sản xuất). */
+export const PRE_PUBLISHING_STATUSES: ContentItemStatus[] = ["DRAFT", "GENERATED", "FORMATTED"];
+
+// FR-34: trạng thái duyệt — chiều riêng, không nằm trong trạng thái tổng.
+export type ReviewStatus = "NONE" | "NEED_REVIEW" | "APPROVED" | "CHANGES_REQUESTED";
+
+// Trạng thái SẢN XUẤT của một bản nền tảng; vòng đời đăng nằm ở scheduleStatus.
+export type ContentVersionStatus = "DRAFT" | "GENERATED" | "FORMATTED";
+
+/** Trạng thái lịch còn hiệu lực của một bản (mirror ScheduleStatus backend, trừ CANCELLED → null). */
+export type VersionScheduleStatus = "SCHEDULED" | "ON_HOLD" | "POSTING" | "POSTED" | "FAILED";
 
 // Mã lỗi backend (ErrorCode.java) cần bắt riêng ở luồng generate B2.
 export const ERR_CONTENT_ITEM_NOT_FOUND = 1920; // bài không tồn tại / không thuộc user
 export const ERR_CONTENT_ITEM_ID_REQUIRED = 1905; // thiếu contentItemId
-export const ERR_CONTENT_ITEM_NOT_DRAFT = 1906; // bài không còn ở DRAFT (vd bấm tạo 2 lần)
-export const ERR_CONTENT_ITEM_NOT_DELETABLE = 1947; // FR-89: chỉ xóa được khi DRAFT/GENERATED
+export const ERR_CONTENT_ITEM_NOT_DRAFT = 1906; // bài đã gửi duyệt / đã lên lịch (vd bấm tạo 2 lần)
+export const ERR_CONTENT_ITEM_NOT_DELETABLE = 1947; // FR-89: chỉ xóa được khi chưa lên lịch và chưa gửi duyệt
 
 // ---- Kịch bản video có cấu trúc (mirror VideoScriptDto backend; NON_NULL nên field có thể vắng) ----
 
@@ -66,7 +76,9 @@ export interface ContentVersionResponse {
   voiceAligned: boolean | null;
   voiceScore: number | null;
   voiceNotes: string | null;
-  status: ContentLifecycle;
+  status: ContentVersionStatus;
+  /** Lịch còn hiệu lực của bản; null = chưa lên lịch / lịch đã hủy. */
+  scheduleStatus?: VersionScheduleStatus | null;
 }
 
 /** Bài — MỘT thực thể chứa N bản nền tảng (versions). */
@@ -77,13 +89,16 @@ export interface ContentItemResponse {
   hashtags: string[];
   cta: string | null;
   mediaPrompt: string | null;
-  status: ContentLifecycle;
+  status: ContentItemStatus;
+  reviewStatus: ReviewStatus;
+  /** Có bản đang FAILED/ON_HOLD cần user xử lý. */
+  needsAttention: boolean;
   versions: ContentVersionResponse[];
   brandProfileId: string | null;
   brandName: string | null;
   /** Idea gắn kèm (đặt lúc tạo bài / auto-save wizard). */
   ideaId: string | null;
-  // ===== Trạng thái wizard (auto-save/resume) — chỉ có nghĩa khi DRAFT, null sau khi rời DRAFT =====
+  // ===== Trạng thái wizard (auto-save/resume) — chỉ có nghĩa khi chưa gửi duyệt, null sau khi gửi duyệt =====
   wizardStep: number | null;
   wizardPlatforms: Platform[];
   wizardNote: string | null;
@@ -253,7 +268,7 @@ export interface WizardStateInput {
   note?: string;
 }
 
-// PATCH /content-items/{itemId}/wizard-state — chỉ khi bài còn DRAFT (khác → CONTENT_ITEM_NOT_EDITABLE).
+// PATCH /content-items/{itemId}/wizard-state — chỉ khi bài chưa gửi duyệt/lên lịch (khác → CONTENT_ITEM_NOT_EDITABLE).
 export async function updateWizardState(itemId: string, input: WizardStateInput): Promise<ContentItemResponse> {
   const { data } = await client.patch<ApiResponse<ContentItemResponse>>(
     `/content-items/${itemId}/wizard-state`,
@@ -262,11 +277,11 @@ export async function updateWizardState(itemId: string, input: WizardStateInput)
   return data.result;
 }
 
-// FR-34: review flow — DRAFT/GENERATED→NEED_REVIEW (gửi duyệt), NEED_REVIEW→APPROVED (phê duyệt),
-// NEED_REVIEW→GENERATED (trả về sửa).
-// PATCH /content-items/{itemId}/status
-export async function updateContentItemStatus(itemId: string, status: ContentLifecycle): Promise<ContentItemResponse> {
-  const { data } = await client.patch<ApiResponse<ContentItemResponse>>(`/content-items/${itemId}/status`, { status });
+// FR-34: review flow — NONE/CHANGES_REQUESTED→NEED_REVIEW (gửi duyệt), NEED_REVIEW→APPROVED (phê duyệt),
+// NEED_REVIEW→CHANGES_REQUESTED (trả về sửa). Gửi lại đúng trạng thái hiện tại = no-op.
+// PATCH /content-items/{itemId}/review
+export async function updateContentItemReview(itemId: string, reviewStatus: ReviewStatus): Promise<ContentItemResponse> {
+  const { data } = await client.patch<ApiResponse<ContentItemResponse>>(`/content-items/${itemId}/review`, { reviewStatus });
   return data.result;
 }
 
@@ -274,7 +289,8 @@ export async function updateContentItemStatus(itemId: string, status: ContentLif
 
 // Filter/sort/phân trang SERVER-SIDE (page 0-based theo Pageable). Backend bỏ qua param undefined.
 export interface ContentItemListParams {
-  status?: ContentLifecycle;
+  status?: ContentItemStatus;
+  reviewStatus?: ReviewStatus;
   brandProfileId?: string;
   platform?: Platform;
   q?: string;
@@ -295,7 +311,7 @@ export async function getContentItem(itemId: string): Promise<ContentItemRespons
   return data.result;
 }
 
-// DELETE /content-items/{itemId} — soft delete; lỗi ERR_CONTENT_ITEM_NOT_DELETABLE nếu không ở DRAFT/GENERATED.
+// DELETE /content-items/{itemId} — soft delete; lỗi ERR_CONTENT_ITEM_NOT_DELETABLE nếu đã lên lịch / đã gửi duyệt.
 export async function deleteContentItem(itemId: string): Promise<void> {
   await client.delete<ApiResponse<ContentItemResponse>>(`/content-items/${itemId}`);
 }

@@ -34,7 +34,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     # Tắt Open-Session-In-View: mọi service đã build DTO TRONG @Transactional (rule #22),
     # nên giữ connection DB suốt lúc serialize JSON chỉ lãng phí pool (hikari chỉ có 5 kết nối,
@@ -52,6 +52,10 @@ spring:
 
   jackson:
     time-zone: ${APP_TIMEZONE}
+
+  flyway:
+    baseline-on-migrate: false
+    clean-disabled: true
 
   servlet:
     multipart:

@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Lock } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 
-import { Icon } from '../../components/ui.tsx';
+import { Card, Icon } from '../../components/ui.tsx';
 import PageContainer from '../../components/PageContainer.tsx';
 import type { ApiError } from '../../api/apiClient.ts';
 import { withToast } from '../../utils/toastFlow';
 import {
-  type ContentLifecycle,
   ERR_CONTENT_ITEM_NOT_DRAFT,
   ERR_CONTENT_ITEM_NOT_FOUND,
   ERR_CONTENT_ITEM_ID_REQUIRED,
@@ -22,10 +21,12 @@ import {
   saveVersions,
   formatContent,
   deleteContent,
+  getContentDetail,
   getWizardResume,
   saveWizardState,
   type ContentVersion,
   type GenerationResult,
+  type SaveReviewChoice,
   type SaveVersionInput,
   type WizardDraft,
 } from '../../api/contentCreationService.ts';
@@ -39,9 +40,15 @@ import ScheduleStep from '../../components/create/steps/ScheduleStep.tsx';
 import { useToast } from '../../components/toast/ToastProvider';
 import { aiErrorMessage, toAiErrorCode } from '../../api/aiErrorMessages';
 
+const parseStep = (v: string | null): WizardStep | null => (v === '1' || v === '2' || v === '3' || v === '4' ? (Number(v) as WizardStep) : null);
+
 /**
- * /create/new — lớp 2: wizard timeline 4 mốc (trang riêng, không modal):
- * 1 Chọn nguồn → 2 AI tạo nội dung → 3 Chỉnh sửa & Hoàn Thiện → 4 Lên lịch (mở tab Lịch đăng bài).
+ * /create/new và /create/:id?step=N — lớp 2: wizard timeline 4 mốc (trang riêng, không modal):
+ * 1 Chọn nguồn → 2 AI tạo nội dung → 3 Chỉnh sửa & Hoàn Thiện → 4 Lên lịch (SchedulePlanner ngay trong wizard).
+ *
+ * Phase 5: URL mang id bài + bước (reload / back-forward đúng bước). Bài đã gửi duyệt hoặc đã lên lịch mở ở
+ * chế độ chỉ lên lịch: bước 1–3 chỉ đọc, bước 4 lên lịch tiếp các nền tảng còn lại. Lên lịch xong trong phiên
+ * cũng khóa bước 1–3.
  *
  * Mốc 3 gộp ba mốc cũ (Định dạng · Chỉnh sửa · Duyệt & Lưu): định dạng giờ là NÚT trong không gian
  * chỉnh sửa, còn duyệt/lưu là toggle "Xem tổng thể" + chọn trạng thái tại chỗ — không phải quay lui
@@ -51,11 +58,24 @@ import { aiErrorMessage, toAiErrorCode } from '../../api/aiErrorMessages';
 export default function CreateWizard() {
   const { t, go, lang } = useApp();
   const toast = useToast();
+  const navigate = useNavigate();
+  const { itemId: routeItemId } = useParams();
+  const [searchParams] = useSearchParams();
+  const urlStep = parseStep(searchParams.get('step'));
 
-  // Bài DRAFT dở từ danh sách ("Tiếp tục"): draftId = id bài. Nạp trạng thái wizard đã
+  // Bài dở từ danh sách ("Tiếp tục") hoặc URL /create/:id: draftId = id bài. Nạp trạng thái wizard đã
   // auto-save (bước đang dừng + id nguồn) + các bản nền tảng đã sinh; SourceStep vẫn tự fetch
   // dữ liệu MỚI NHẤT (không dùng bản chụp cũ — hồ sơ/chiến lược vừa sửa hiện đúng).
-  const draftId = (useLocation().state as { draftId?: string } | null)?.draftId;
+  const stateDraftId = (useLocation().state as { draftId?: string } | null)?.draftId;
+  const draftId = routeItemId ?? stateDraftId;
+  const [loadError, setLoadError] = useState<string | null>(null);
+  // Bài không còn trong wizard (đã gửi duyệt / lên lịch): chỉ lên lịch, bước 1–3 chỉ đọc.
+  const [locked, setLocked] = useState(false);
+  // Đã lên lịch ít nhất một nền tảng trong phiên này → bước 1–3 chỉ đọc.
+  const [scheduled, setScheduled] = useState(false);
+  // Bản nền tảng nạp thẳng từ DB — bước 4 chỉ cần id bài + bản đã lưu, KHÔNG phụ thuộc mốc 1 xác nhận nguồn
+  // (hồ sơ/chiến lược đã ngừng hoạt động vẫn lên lịch được bài có sẵn).
+  const [detail, setDetail] = useState<{ versions: ContentVersion[]; brandName: string } | null>(null);
   const [draft, setDraft] = useState<WizardDraft | null>(null);
   const [draftLoading, setDraftLoading] = useState(!!draftId);
   // Bước đang dở cần nhảy tới sau khi SourceStep tự xác nhận nguồn (resume bước ≥2).
@@ -105,12 +125,26 @@ export default function CreateWizard() {
   useEffect(() => {
     if (!draftId) return;
     let cancelled = false;
-    getWizardResume(draftId)
-      .then((res) => {
-        if (cancelled || !res) return;
-        setDraft(res.draft);
+    (async () => {
+      try {
+        // Nạp chi tiết trực tiếp theo id: không thuộc user / đã xóa → màn lỗi rõ ràng (không catch rỗng).
+        const detail = await getContentDetail(draftId);
+        if (cancelled) return;
+        itemIdRef.current = draftId;
         setItemId(draftId);
-        itemIdRef.current = draftId; // ghi tiếp vào đúng bài đang dở
+        setDetail({ versions: detail.versions, brandName: detail.item.brandName });
+        if (!detail.item.isDraft) {
+          savedRef.current = true; // không auto-save wizard state vào bài đã rời wizard
+          setLocked(true);
+          setStep(urlStep ?? 4);
+          setMaxReached(4);
+          return;
+        }
+        const res = await getWizardResume(draftId);
+        if (cancelled || !res) return;
+        // Bước trên URL (reload / back-forward) ưu tiên hơn bước auto-save.
+        const resumeTo = urlStep ?? res.draft.step;
+        setDraft({ ...res.draft, step: resumeTo });
         if (res.versions.length > 0) {
           const resumed: GenerationResult = {
             id: `resume-${draftId}`,
@@ -120,12 +154,20 @@ export default function CreateWizard() {
           setGens([resumed]);
           setBaselines(Object.fromEntries(res.versions.map((v) => [v.id, v.brandVoice.score])));
         }
-        if (res.draft.step > 1) resumeStepRef.current = res.draft.step;
-      })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setDraftLoading(false); });
+        if (resumeTo === 4) {
+          setStep(4);
+          setMaxReached(4);
+        } else if (resumeTo > 1) {
+          resumeStepRef.current = resumeTo;
+        }
+      } catch (e) {
+        if (!cancelled) setLoadError((e as ApiError).code === ERR_CONTENT_ITEM_NOT_FOUND ? t.cwLoadNotFound : t.cwLoadFailed);
+      } finally {
+        if (!cancelled) setDraftLoading(false);
+      }
+    })();
     return () => { cancelled = true; };
-  }, [draftId]);
+  }, [draftId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [starting, setStarting] = useState(false); // đang tạo bài / khởi động lượt generate
   const startingRef = useRef(false); // guard đồng bộ chống double-click "Tạo nội dung với AI"
@@ -139,7 +181,7 @@ export default function CreateWizard() {
   const [baselines, setBaselines] = useState<Record<string, number>>({});
   // Trạng thái khi lưu — mặc định NHÁP: "đã duyệt" phải là hành động CÓ CHỦ ĐÍCH của người dùng
   // ở mốc Hoàn thiện, không được tự gắn khi họ chỉ lưu nháp.
-  const [status, setStatus] = useState<ContentLifecycle>('DRAFT');
+  const [status, setStatus] = useState<SaveReviewChoice>('DRAFT');
   const [saving, setSaving] = useState(false);
   // Định dạng theo nền tảng (job format thật, PA2-a) — giờ là THAO TÁC ở mốc Hoàn thiện, không còn
   // là mốc riêng. Giữ phạm vi lượt đang chạy ('all' | một nền tảng) để nút bấm hiện spinner đúng chỗ.
@@ -318,7 +360,7 @@ export default function CreateWizard() {
   };
 
   // Lưu nội dung cuối vào backend: PUT từng bản nền tảng đang active + PATCH trạng thái bài.
-  const persistContent = async (saveStatus: 'DRAFT' | 'NEED_REVIEW' | 'APPROVED') => {
+  const persistContent = async (saveStatus: SaveReviewChoice) => {
     if (!source || !itemId) return;
     await saveContent({ itemId, status: saveStatus, versions: versionInputs(source.platforms) });
   };
@@ -328,7 +370,7 @@ export default function CreateWizard() {
     if (!source || !itemId || saving) return;
     setSaving(true);
     try {
-      await withToast(persistContent(status as 'DRAFT' | 'NEED_REVIEW' | 'APPROVED'), {
+      await withToast(persistContent(status), {
         loading: 'Đang lưu nội dung...',
         success: 'Nội dung đã được lưu thành công',
         error: (e: any) => `${t.cwSaveError}: ${e.message}`,
@@ -349,7 +391,7 @@ export default function CreateWizard() {
     if (!source || !itemId || saving) return;
     setSaving(true);
     try {
-      await withToast(persistContent(status as 'DRAFT' | 'NEED_REVIEW' | 'APPROVED'), {
+      await withToast(persistContent(status), {
         loading: 'Đang lưu trạng thái bài viết...',
         success: 'Trạng thái đã được cập nhật',
         error: (e: any) => `${t.cwSaveError}: ${e.message}`,
@@ -421,8 +463,8 @@ export default function CreateWizard() {
       strategyId,
       ideaId,
       state: {
-        // Kẹp về 3: không bao giờ resume thẳng vào mốc 4 (Lên lịch) — mốc đó cần nội dung đã lưu.
-        step: Math.min(step, 3) as 1 | 2 | 3,
+        // Mốc 4 dùng nội dung đã lưu ở DB nên resume được (Phase 5).
+        step,
         platforms: source?.platforms ?? liveSel?.platforms,
         trendId,
         ideaId,
@@ -464,8 +506,53 @@ export default function CreateWizard() {
   useEffect(() => () => { void persistRef.current(); }, []);
 
   const gen = gens[genIndex] ?? null;
-  // Mốc 3+ cần đã có nội dung — thiếu thì quay về mốc tương ứng.
-  const effectiveStep: WizardStep = step >= 3 && !gen ? 2 : step >= 2 && !source ? 1 : step;
+  // Mốc 3+ cần đã có nội dung — thiếu thì quay về mốc tương ứng (chế độ chỉ lên lịch đọc bản từ DB).
+  const effectiveStep: WizardStep = locked || (step === 4 && detail)
+    ? step
+    : step >= 3 && !gen ? 2 : step >= 2 && !source ? 1 : step;
+  const readOnlyStep = (locked || scheduled) && effectiveStep < 4;
+
+  // URL /create/:id?step=N theo đúng bài + bước: lần đầu có bài → thay URL; đổi bước → thêm history
+  // (nút Back của trình duyệt quay về bước trước). Chờ resume xong để không ghi đè bước trên URL.
+  useEffect(() => {
+    if (!itemId || draftLoading || resumeStepRef.current) return;
+    const want = String(effectiveStep);
+    if (routeItemId === itemId && searchParams.get('step') === want) return;
+    navigate(`/create/${itemId}?step=${want}`, { replace: routeItemId !== itemId || !searchParams.get('step') });
+  }, [itemId, effectiveStep, draftLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Back/forward đổi ?step= → theo URL (chỉ tới bước đã mở được).
+  useEffect(() => {
+    if (urlStep && urlStep !== step && urlStep <= maxReached && !draftLoading) setStep(urlStep);
+  }, [urlStep]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (loadError) {
+    return (
+      <PageContainer>
+        <Card style={{ textAlign: 'center', padding: 36 }}>
+          <div role="alert" style={{ fontSize: 14.5, fontWeight: 600, color: '#3f3a55', marginBottom: 16 }}>{loadError}</div>
+          <button onClick={() => go('create')} className="btn-soft" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: '#574f6e', cursor: 'pointer' }}>
+            <Icon icon={ArrowLeft} size={15} stroke="#574f6e" />{t.cwBackToList}
+          </button>
+        </Card>
+      </PageContainer>
+    );
+  }
+
+  const readOnlyNotice = (
+    <Card style={{ textAlign: 'center', padding: 36 }}>
+      <div style={{ width: 56, height: 56, borderRadius: 16, background: '#f6f2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+        <Icon icon={Lock} size={24} stroke="#a78bfa" />
+      </div>
+      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 16, color: '#211c38' }}>{t.cwReadOnlyTitle}</div>
+      <div style={{ fontSize: 13, color: '#8a85a0', margin: '8px auto 18px', maxWidth: 420, lineHeight: 1.55 }}>{t.cwReadOnlySub}</div>
+      <button onClick={() => navigate(`/create?view=${itemId}`)} className="btn-soft" style={{ border: '1px solid #e3d9fb', background: '#fff', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, color: '#6d28d9', cursor: 'pointer' }}>
+        {t.cwOpenContent}
+      </button>
+    </Card>
+  );
+  const scheduleVersions = gen?.versions ?? detail?.versions ?? [];
+  const firstPlatform = source?.platforms[0] ?? scheduleVersions[0]?.platform;
 
   return (
     <PageContainer>
@@ -478,7 +565,8 @@ export default function CreateWizard() {
         </div>
       </div>
 
-      {effectiveStep === 1 &&
+      {readOnlyStep && readOnlyNotice}
+      {!readOnlyStep && effectiveStep === 1 &&
         (draftLoading ? (
           <WizardStepSkeleton />
         ) : (
@@ -500,7 +588,7 @@ export default function CreateWizard() {
             onNext={handleSourceNext}
           />
         ))}
-      {effectiveStep === 2 && source && (
+      {!readOnlyStep && effectiveStep === 2 && source && (
         <GenerateStep
           source={source}
           gens={gens}
@@ -516,7 +604,7 @@ export default function CreateWizard() {
           onNext={() => gen && goStep(3)}
         />
       )}
-      {effectiveStep === 3 && source && gen && (
+      {!readOnlyStep && effectiveStep === 3 && source && gen && (
         <FinalizeStep
           source={source}
           gen={gen}
@@ -533,12 +621,14 @@ export default function CreateWizard() {
           onGoSchedule={handleGoSchedule}
         />
       )}
-      {effectiveStep === 4 && (
+      {effectiveStep === 4 && itemId && (
         // Preview lấy theo nền tảng ĐẦU TIÊN người dùng chọn — không phụ thuộc thứ tự version
         // trong lượt tạo (thứ tự đó đổi theo lượt "Tạo lại"/định dạng từng nền tảng).
         <ScheduleStep
-          version={gen?.versions.find((v) => v.platform === source?.platforms[0]) ?? gen?.versions[0] ?? null}
-          brandName={source?.brand.brandName ?? ''}
+          itemId={itemId}
+          version={scheduleVersions.find((v) => v.platform === firstPlatform) ?? scheduleVersions[0] ?? null}
+          brandName={source?.brand.brandName ?? detail?.brandName ?? ''}
+          onScheduled={() => setScheduled(true)}
         />
       )}
     </PageContainer>

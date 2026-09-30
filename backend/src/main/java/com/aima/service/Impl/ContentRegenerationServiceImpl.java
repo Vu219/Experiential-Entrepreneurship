@@ -62,9 +62,9 @@ public class ContentRegenerationServiceImpl implements ContentRegenerationServic
         if (item == null || !item.getId().equals(itemId)) {
             throw new AppException(ErrorCode.CONTENT_VERSION_NOT_FOUND);
         }
-        // Chỉ tạo lại được khi bài còn ở trạng thái cho sửa (khớp FR-33 EDITABLE_STATUSES).
-        if (!ContentItemServiceImpl.EDITABLE_STATUSES.contains(item.getStatus())) {
-            throw new AppException(ErrorCode.CONTENT_ITEM_NOT_EDITABLE);
+        // Chỉ tạo lại được khi bản còn sửa được (khớp FR-33: chỉ lúc đang đăng mới khóa).
+        if (ContentItemServiceImpl.isPostingLocked(version)) {
+            throw new AppException(ErrorCode.CONTENT_VERSION_POSTING_LOCKED);
         }
         // Tạo lại một bước cụ thể → bước đó phải tồn tại trong script hiện tại.
         if (request.getSection() == RegenSection.BODY && request.getStepIndex() != null) {

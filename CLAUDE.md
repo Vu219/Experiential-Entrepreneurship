@@ -215,6 +215,13 @@ Time-consuming AI tasks **must run async / as background jobs** and must not blo
 
 Special status: `On Hold` (when a platform token expires, a Scheduled post is held back — FR-18b).
 
+> **Implemented model (D2, 2026-09-30) — this is what the code uses.** The chain above is the original
+> requirement; it is now split into three dimensions: aggregate `ContentItemStatus` (derived only by
+> `ContentItemStatusResolver`: DRAFT/GENERATED/FORMATTED/SCHEDULED/ON_HOLD/POSTING/POSTED/PARTIALLY_POSTED/FAILED),
+> `ReviewStatus` (NONE/NEED_REVIEW/APPROVED/CHANGES_REQUESTED) and `ContentVersionStatus` (DRAFT/GENERATED/FORMATTED),
+> plus `ScheduleStatus` with multiple hold reasons. Analyzing/Optimized are not statuses (analytics never change status).
+> See `docs/WORKFLOWS.md` → "Post State Machine"; do not add values outside these enums.
+
 ---
 
 ## 7. Retry & error policy (FR-56) — don't get this wrong

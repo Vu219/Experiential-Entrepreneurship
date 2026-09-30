@@ -143,7 +143,7 @@ public enum ErrorCode {
     CONTENT_GENERATION_JOB_NOT_FOUND(1903, "Không tìm thấy tác vụ tạo nội dung", HttpStatus.NOT_FOUND),
     AI_SERVICE_ERROR(1904, "Lỗi khi gọi dịch vụ AI. Vui lòng thử lại sau.", HttpStatus.BAD_GATEWAY),
     CONTENT_ITEM_ID_REQUIRED(1905, "Thiếu mã bài nội dung để ghi bản nền tảng", HttpStatus.BAD_REQUEST),
-    CONTENT_ITEM_NOT_DRAFT(1906, "Chỉ tạo bản nội dung vào bài đang ở trạng thái Nháp (DRAFT)", HttpStatus.BAD_REQUEST),
+    CONTENT_ITEM_NOT_DRAFT(1906, "Chỉ tạo bản nội dung cho bài chưa gửi duyệt và chưa lên lịch", HttpStatus.BAD_REQUEST),
     AI_TIMEOUT(1907, "Quá trình tạo nội dung mất nhiều thời gian hơn dự kiến. Nội dung có thể vẫn đang được tạo, hãy kiểm tra Thư viện nội dung sau ít phút.", HttpStatus.GATEWAY_TIMEOUT),
     // Mã lỗi chuỗi model của AI service (502 detail.error_code) — CÙNG TÊN với mã phía ai/src/llm.py
     // để FE ánh xạ một nguồn (api/aiErrorMessages.ts). AI_TIMEOUT ở trên dùng chung.
@@ -193,7 +193,7 @@ public enum ErrorCode {
     POST_NOT_FOUND(1946, "Không tìm thấy bài đăng", HttpStatus.NOT_FOUND),
 
     // CONTENT LIBRARY ERRORS (FR-87..FR-89)
-    CONTENT_ITEM_NOT_DELETABLE(1947, "Chỉ xóa được nội dung ở trạng thái Draft/Generated", HttpStatus.BAD_REQUEST),
+    CONTENT_ITEM_NOT_DELETABLE(1947, "Chỉ xóa được nội dung chưa lên lịch và chưa gửi duyệt", HttpStatus.BAD_REQUEST),
     INVALID_CONTENT_SCRIPT(1948, "Kịch bản video không hợp lệ", HttpStatus.BAD_REQUEST),
     CONTENT_WIZARD_STEP_INVALID(1949, "Bước wizard không hợp lệ (1-4)", HttpStatus.BAD_REQUEST),
 
@@ -432,6 +432,28 @@ public enum ErrorCode {
             HttpStatus.BAD_REQUEST),
     PLAN_ALREADY_PERMANENT(2124, "Gói hiện tại của bạn không có hạn dùng — không cần gia hạn",
             HttpStatus.BAD_REQUEST),
+
+    // Nối wizard tạo nội dung ↔ lịch đăng (duyệt, tạm giữ, snapshot, policy) — 2130+
+    SCHEDULE_PLATFORM_UNSUPPORTED(2130, "Instagram yêu cầu ảnh/video — hiện chưa hỗ trợ tự đăng lên Instagram, hãy đăng thủ công bằng media prompt của bài",
+            HttpStatus.BAD_REQUEST),
+    CONTENT_VERSION_POSTING_LOCKED(2131, "Bản nội dung đang được đăng lên nền tảng — chờ đăng xong rồi sửa",
+            HttpStatus.CONFLICT),
+    BRAND_VOICE_BELOW_THRESHOLD(2132, "Điểm brand voice của bản này thấp hơn ngưỡng bạn đặt — sửa nội dung hoặc chỉnh ngưỡng trong cài đặt đăng bài",
+            HttpStatus.BAD_REQUEST),
+    PUBLISHING_TIMEZONE_INVALID(2133, "Múi giờ không hợp lệ — dùng tên IANA, vd Asia/Ho_Chi_Minh", HttpStatus.BAD_REQUEST),
+    PUBLISHING_CONFLICT_WINDOW_INVALID(2134, "Khoảng cảnh báo trùng lịch phải từ 0 đến 1440 phút", HttpStatus.BAD_REQUEST),
+    BRAND_VOICE_THRESHOLD_INVALID(2135, "Ngưỡng brand voice phải từ 0 đến 100 và bắt buộc khi bật chặn", HttpStatus.BAD_REQUEST),
+    PUBLISHING_SETTING_REQUIRED(2136, "Thiếu giá trị cài đặt đăng bài bắt buộc", HttpStatus.BAD_REQUEST),
+    REVIEW_REQUIRED_BEFORE_PUBLISH(2138, "Bài cần được duyệt trước khi đăng ngay (đang bật bắt buộc duyệt)", HttpStatus.BAD_REQUEST),
+    IDEMPOTENCY_KEY_REUSED(2139, "Idempotency-Key này đã dùng cho một yêu cầu khác — hãy tạo key mới", HttpStatus.CONFLICT),
+    SCHEDULE_HELD_CANNOT_PUBLISH(2140, "Lịch đang bị tạm giữ — xử lý lý do tạm giữ trước khi đăng ngay", HttpStatus.BAD_REQUEST),
+    SUGGESTED_SLOT_COUNT_INVALID(2141, "Số khung giờ gợi ý phải từ 1 đến 20", HttpStatus.BAD_REQUEST),
+    SCHEDULE_BATCH_INVALID(2142, "Danh sách lên lịch phải có từ 1 đến 20 dòng", HttpStatus.BAD_REQUEST),
+    SCHEDULE_ROW_ID_REQUIRED(2143, "Mỗi dòng lên lịch cần clientRowId (tối đa 64 ký tự)", HttpStatus.BAD_REQUEST),
+    REPAIR_PLAN_CHANGED(2144, "Dữ liệu đã thay đổi từ lần dry-run — chạy dry-run lại và kiểm tra kế hoạch mới trước khi áp dụng", HttpStatus.CONFLICT),
+    REPAIR_PLAN_TOKEN_REQUIRED(2145, "Thiếu planToken của lần dry-run", HttpStatus.BAD_REQUEST),
+    CONTENT_CHANGED_DURING_FORMAT(2137, "Nội dung đã được sửa, lên lịch đăng hoặc đang đăng trong lúc định dạng — kết quả cũ bị bỏ, hãy định dạng lại",
+            HttpStatus.CONFLICT),
     ;
 
     private int code;

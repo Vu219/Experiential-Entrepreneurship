@@ -42,4 +42,8 @@ public class Notification extends BaseEntity {
 
     @Column(name = "read_at")
     LocalDateTime readAt;
+
+    /** Khóa chống gửi lặp (unique khi khác null) — vd nhắc lịch tạm giữ đã quá giờ chỉ gửi một lần. */
+    @Column(name = "dedupe_key", length = 200)
+    String dedupeKey;
 }

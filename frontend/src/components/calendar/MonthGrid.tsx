@@ -1,3 +1,4 @@
+import { publishingToday } from '../../utils/publishingTime';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext.tsx';
 import { weekdays } from '../../data.ts';
@@ -25,7 +26,7 @@ export function buildMonth(viewDate: Date, schedules: PostSchedule[]): MonthCell
   const first = new Date(year, month, 1);
   const lead = (first.getDay() + 6) % 7; // Chủ nhật (0) → cột 7
   const start = new Date(year, month, 1 - lead);
-  const todayKey = dateKey(new Date());
+  const todayKey = dateKey(publishingToday());
 
   const itemsByDay = new Map<string, MonthCell['items']>();
   for (const s of schedules) {

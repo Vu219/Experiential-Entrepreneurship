@@ -9,6 +9,7 @@ public enum NotificationType {
     REVIEW_NEEDED,    // FR-77: có nội dung mới cần xem xét/duyệt
     RECONNECT_NEEDED, // FR-78: token hết hạn/thu hồi — cần kết nối lại
     NEW_INSIGHT,      // FR-79: có insight mới từ phân tích (phát khi làm FR-59..FR-64)
+    SCHEDULE_OVERDUE, // lịch đang tạm giữ đã quá giờ đăng — không tự đăng, cần chọn giờ mới (gửi một lần/lịch)
 
     // ===== Thanh toán gói dịch vụ =====
     // Hai loại dưới là enum ĐÓNG khớp hai đầu: thêm giá trị phải sửa cả

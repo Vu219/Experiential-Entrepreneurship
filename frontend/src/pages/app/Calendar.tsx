@@ -1,12 +1,13 @@
+import { publishingToday } from '../../utils/publishingTime';
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, CalendarClock, RefreshCw, type LucideIcon } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
 import { Card, Icon } from '../../components/ui.tsx';
 import PageContainer from '../../components/PageContainer.tsx';
 import { PLATFORM_BG } from '../../theme.ts';
-import { cancelSchedule, listSchedules, type PostSchedule, type ScheduleStatus } from '../../api/schedules.ts';
+import { cancelSchedule, listSchedules, publishScheduleNow, type PostSchedule, type ScheduleStatus } from '../../api/schedules.ts';
 import type { Platform } from '../../api/brandProfile.ts';
 import { useToast } from '../../components/toast/ToastProvider';
 import ScheduleItem from '../../components/calendar/ScheduleItem.tsx';
@@ -46,8 +47,16 @@ export default function Calendar() {
   const [schedules, setSchedules] = useState<PostSchedule[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
   const [view, setView] = useState<ViewMode>(isMobile ? 'agenda' : 'month');
-  const [monthOffset, setMonthOffset] = useState(0);
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  // ?day=yyyy-MM-dd (vd "Xem lịch" sau khi lên lịch trong wizard) → mở đúng tháng + lọc đúng ngày (giờ tường
+  // theo múi giờ đăng; không suy từ chuỗi UTC).
+  const [searchParams] = useSearchParams();
+  const focusDay = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.get('day') ?? '') ? searchParams.get('day') : null;
+  const [monthOffset, setMonthOffset] = useState(() => {
+    if (!focusDay) return 0;
+    const today = publishingToday();
+    return (Number(focusDay.slice(0, 4)) - today.getFullYear()) * 12 + (Number(focusDay.slice(5, 7)) - 1 - today.getMonth());
+  });
+  const [selectedDay, setSelectedDay] = useState<string | null>(focusDay);
   const [statusFilter, setStatusFilter] = useState<ScheduleStatus | 'ALL'>('ALL');
   const [platformFilter, setPlatformFilter] = useState<Platform | 'ALL'>('ALL');
   const [createOpen, setCreateOpen] = useState(false);
@@ -146,9 +155,11 @@ export default function Calendar() {
     } catch { /* giữ dữ liệu hiện có */ }
   }, []);
 
+  // Đăng ngay qua API thật (cùng claim với bộ lập lịch); job chạy nền, trạng thái cập nhật khi refresh.
   const handlePublishNow = useCallback(async (s: PostSchedule) => {
     setBusyId(s.id);
     try {
+      await publishScheduleNow(s.id, crypto.randomUUID());
       toast.success(lang === 'en' ? 'Publishing request sent successfully!' : 'Đã gửi yêu cầu đăng bài thành công!');
       await refresh();
     } catch (e) {
@@ -207,9 +218,9 @@ export default function Calendar() {
   }, [platformFiltered, statusFilter, selectedDay]);
 
   const viewDate = useMemo(() => {
-    const d = new Date();
+    const d = publishingToday();
     return new Date(d.getFullYear(), d.getMonth() + monthOffset, 1);
-  }, [monthOffset]);
+  }, [monthOffset, schedules]);
 
   const cells = useMemo(() => buildMonth(viewDate, platformFiltered), [viewDate, platformFiltered]);
 
@@ -224,7 +235,7 @@ export default function Calendar() {
   );
 
   const onReschedule = useCallback((s: PostSchedule) => setRescheduling(s), []);
-  const onEditContent = useCallback(() => go('create'), [go]);
+  const onEditContent = useCallback((s: PostSchedule) => navigate(`/create?view=${s.contentItemId}&edit=1`), [navigate]);
   const onGoFailed = useCallback(() => go('failedPosts'), [go]);
   const onSelectDay = useCallback((key: string | null) => setSelectedDay(key), []);
   const onClearDay = useCallback(() => setSelectedDay(null), []);

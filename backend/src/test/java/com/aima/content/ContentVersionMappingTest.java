@@ -11,7 +11,7 @@ import com.aima.dto.response.ContentItemResponse;
 import com.aima.entity.BrandProfile;
 import com.aima.entity.ContentItem;
 import com.aima.entity.ContentVersion;
-import com.aima.enums.ContentLifecycle;
+import com.aima.enums.ContentVersionStatus;
 import com.aima.enums.Platform;
 import com.aima.mapper.ContentItemMapper;
 import com.aima.mapper.ContentItemMapperImpl;
@@ -78,7 +78,7 @@ class ContentVersionMappingTest {
         assertEquals(Boolean.TRUE, version.getVoiceAligned());
         assertEquals(91, version.getVoiceScore());
         assertEquals("Đúng giọng", version.getVoiceNotes());
-        assertEquals(ContentLifecycle.GENERATED, version.getStatus());
+        assertEquals(ContentVersionStatus.GENERATED, version.getStatus());
     }
 
     @Test

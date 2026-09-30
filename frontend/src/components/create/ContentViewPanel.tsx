@@ -4,11 +4,11 @@ import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Card, Icon, cardStyle } from '../ui';
 import type { ApiError } from '../../api/apiClient';
-import { type ContentLifecycle } from '../../api/contentGeneration';
+import { type ContentItemStatus, type ReviewStatus } from '../../api/contentGeneration';
 import {
   getContentDetail,
   saveVersionEdit,
-  changeContentStatus,
+  changeReviewStatus,
   emptyScript,
   type ContentListItem,
   type ContentVersion,
@@ -25,25 +25,27 @@ import PostImagePreview from './PostImagePreview';
 import BrandVoicePanel from './BrandVoicePanel';
 import { CaptionCounter, HashtagCounter, parseHashtags } from './platformLimits';
 import { ContentViewSkeleton } from './CreateSkeleton';
-import { CONTENT_STATUS_META, aiLabelKey } from './statusMeta';
+import { CONTENT_STATUS_META, REVIEW_STATUS_META, aiLabelKey } from './statusMeta';
 import StatusBadge from '../admin/StatusBadge';
 import { TONE_COLORS } from '../../statusTokens';
 import { useToast } from '../toast/ToastProvider';
 
-// FR-33: chỉ sửa được trước khi vào pipeline đăng (khớp EDITABLE_STATUSES backend).
-const EDITABLE_STATUSES: ContentLifecycle[] = ['DRAFT', 'GENERATED', 'NEED_REVIEW', 'APPROVED'];
+// FR-33: chỉ lúc ĐANG đăng mới khóa sửa (khớp backend) — bài đã lên lịch/tạm giữ vẫn sửa được,
+// bài đang/đã đăng dùng snapshot chụp lúc dispatch.
+const isEditable = (status: ContentItemStatus, version?: ContentVersion | null) =>
+  status !== 'POSTING' && version?.scheduleStatus !== 'POSTING';
 
 /** Topbar AppShell cao 70 + 8px thở — mốc dính của header panel (tính từ viewport). */
 const HEADER_TOP = 78;
 
-// FR-34: action đổi trạng thái theo review flow — chỉ đưa ra bước hợp lệ kế tiếp của
-// state machine (REVIEW_TRANSITIONS backend): Gửi duyệt / Duyệt / Trả về sửa.
-const statusActions = (s: ContentLifecycle): { target: ContentLifecycle; labelKey: keyof Dict; icon: typeof Send; primary: boolean }[] => {
-  if (s === 'DRAFT' || s === 'GENERATED') return [{ target: 'NEED_REVIEW', labelKey: 'cvSubmitReview', icon: Send, primary: true }];
-  if (s === 'NEED_REVIEW')
+// FR-34: action đổi trạng thái DUYỆT — chỉ đưa ra bước hợp lệ kế tiếp (REVIEW_TRANSITIONS backend):
+// Gửi duyệt / Duyệt / Trả về sửa. Duyệt độc lập với trạng thái tổng của bài.
+const statusActions = (r: ReviewStatus): { target: ReviewStatus; labelKey: keyof Dict; icon: typeof Send; primary: boolean }[] => {
+  if (r === 'NONE' || r === 'CHANGES_REQUESTED') return [{ target: 'NEED_REVIEW', labelKey: 'cvSubmitReview', icon: Send, primary: true }];
+  if (r === 'NEED_REVIEW')
     return [
       { target: 'APPROVED', labelKey: 'cvApprove', icon: CheckCircle2, primary: true },
-      { target: 'GENERATED', labelKey: 'cvReturnEdit', icon: Undo2, primary: false },
+      { target: 'CHANGES_REQUESTED', labelKey: 'cvReturnEdit', icon: Undo2, primary: false },
     ];
   return [];
 };
@@ -81,7 +83,8 @@ export default function ContentViewPanel({
   const [load, setLoad] = useState<'loading' | 'error' | 'ok'>('loading');
   const [versions, setVersions] = useState<ContentVersion[]>([]);
   const [platform, setPlatform] = useState<Platform>(item.platforms[0]);
-  const [status, setStatus] = useState<ContentLifecycle>(item.status);
+  const [status, setStatus] = useState<ContentItemStatus>(item.status);
+  const [review, setReview] = useState<ReviewStatus>(item.reviewStatus);
   const [tab, setTab] = useState<VersionTab>('script');
   // Chế độ sửa: draft = bản sao đang sửa của version hiện tại (null = đang xem read-only).
   const [draft, setDraft] = useState<ContentVersion | null>(null);
@@ -93,6 +96,7 @@ export default function ContentViewPanel({
   // dòng đó bị ẩn — SourceInfoCard tự ẩn dòng thiếu dữ liệu).
   const [srcInfo, setSrcInfo] = useState<SourceInfoData>({ brandName: item.brandName, platforms: item.platforms });
   const st = CONTENT_STATUS_META[status];
+  const rv = REVIEW_STATUS_META[review];
 
   // Header panel là sticky và CAO THAY ĐỔI (tiêu đề bài xuống 2 dòng, cụm nút xuống hàng) —
   // đo thật để khối xem trước bên phải dính ngay dưới nó thay vì chui vào sau.
@@ -127,11 +131,12 @@ export default function ContentViewPanel({
         if (cancelled) return;
         setVersions(vs);
         setStatus(it.status);
+        setReview(it.reviewStatus);
         setLoad('ok');
         // Nút "Sửa" ở bảng danh sách → vào thẳng chế độ sửa của nền tảng đầu tiên.
-        if (startInEdit && EDITABLE_STATUSES.includes(it.status)) {
+        if (startInEdit) {
           const v = vs.find((x) => x.platform === item.platforms[0]) ?? vs[0];
-          if (v) { setDraft(cloneVersion(v)); setHashtagText(v.hashtags.join(' ')); }
+          if (v && isEditable(it.status, v)) { setDraft(cloneVersion(v)); setHashtagText(v.hashtags.join(' ')); }
         }
       })
       .catch(() => { if (!cancelled) setLoad('error'); });
@@ -141,7 +146,7 @@ export default function ContentViewPanel({
 
   const version = versions.find((v) => v.platform === platform) ?? versions[0] ?? null;
   const shown = draft ?? version; // đang sửa thì mọi panel (voice/preview) phản ánh bản nháp
-  const editable = EDITABLE_STATUSES.includes(status) && !!version;
+  const editable = !!version && isEditable(status, version);
   // Tạo lại từng phần kịch bản (chỉ khi đang sửa bản nháp) — patch merge vào draft mới nhất.
   const regen = useScriptRegen(item.id, draft?.id, draft?.script ?? emptyScript(), (s) =>
     setDraft((d) => (d ? { ...d, script: s } : d)),
@@ -160,7 +165,8 @@ export default function ContentViewPanel({
     try {
       const res = await saveVersionEdit(item.id, draft);
       setVersions(res.versions);
-      setStatus(res.item.status); // APPROVED bị sửa → backend tự hạ về NEED_REVIEW
+      setStatus(res.item.status);
+      setReview(res.item.reviewStatus); // đã duyệt mà bị sửa → backend tự hạ về NEED_REVIEW
       setDraft(null);
       onChanged?.();
     } catch (e) {
@@ -170,12 +176,13 @@ export default function ContentViewPanel({
     }
   };
 
-  const applyStatus = async (target: ContentLifecycle) => {
+  const applyStatus = async (target: ReviewStatus) => {
     if (statusBusy) return;
     setStatusBusy(true);
     try {
-      const res = await changeContentStatus(item.id, target);
+      const res = await changeReviewStatus(item.id, target);
       setStatus(res.status);
+      setReview(res.reviewStatus);
       onChanged?.();
     } catch (e) {
       toast.error(`${t.cvStatusError}: ${(e as ApiError).message}`);
@@ -262,7 +269,7 @@ export default function ContentViewPanel({
         )
       )}
       {/* FR-34: bước hợp lệ kế tiếp của review flow — ẩn khi đang sửa để tránh đổi trạng thái giữa chừng */}
-      {!draft && statusActions(status).map(({ target, labelKey, icon, primary }) => (
+      {!draft && statusActions(review).map(({ target, labelKey, icon, primary }) => (
         <button
           key={target}
           disabled={statusBusy}
@@ -303,7 +310,8 @@ export default function ContentViewPanel({
             <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 18, color: '#211c38', lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.title}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginTop: 6 }}>
               <StatusBadge tone={st.tone} label={t[st.labelKey]} />
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: ai.bg, color: ai.color, borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>✨ {t[aiLabelKey(status)]}</span>
+              {review !== 'NONE' && <StatusBadge tone={rv.tone} label={t[rv.labelKey]} />}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: ai.bg, color: ai.color, borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>✨ {t[aiLabelKey(status, review)]}</span>
             </div>
           </div>
           {actionButtons}

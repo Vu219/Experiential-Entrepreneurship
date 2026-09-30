@@ -2,7 +2,7 @@ package com.aima.controller;
 
 import com.aima.dto.request.ContentFormatRequest;
 import com.aima.dto.request.ContentItemCreateRequest;
-import com.aima.dto.request.ContentItemStatusRequest;
+import com.aima.dto.request.ContentItemReviewRequest;
 import com.aima.dto.request.ContentItemUpdateRequest;
 import com.aima.dto.request.ContentVersionUpdateRequest;
 import com.aima.dto.request.ContentWizardStateRequest;
@@ -10,8 +10,9 @@ import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.ContentFormattingJobResponse;
 import com.aima.dto.response.ContentItemResponse;
 import com.aima.dto.response.PageResponse;
-import com.aima.enums.ContentLifecycle;
+import com.aima.enums.ContentItemStatus;
 import com.aima.enums.Platform;
+import com.aima.enums.ReviewStatus;
 import com.aima.service.ContentFormattingService;
 import com.aima.service.ContentItemService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -49,11 +50,12 @@ public class ContentItemController {
 
     @GetMapping
     @Operation(summary = "Content library — list/filter/search (FR-87)",
-            description = "Paged. Optional filters: status, brandProfileId, platform (of formatted versions), "
+            description = "Paged. Optional filters: status (aggregate), reviewStatus, brandProfileId, platform (of formatted versions), "
                     + "industry, fromDate/toDate (ISO date, on createdAt), q (keyword in caption/script). "
                     + "sort = newest (default) | voice (highest brand-voice score) | status (grouped).")
     public ApiResponse<PageResponse<ContentItemResponse>> list(@AuthenticationPrincipal UserDetails principal,
-                                                               @RequestParam(required = false) ContentLifecycle status,
+                                                               @RequestParam(required = false) ContentItemStatus status,
+                                                               @RequestParam(required = false) ReviewStatus reviewStatus,
                                                                @RequestParam(required = false) UUID brandProfileId,
                                                                @RequestParam(required = false) Platform platform,
                                                                @RequestParam(required = false) String industry,
@@ -63,7 +65,7 @@ public class ContentItemController {
                                                                @RequestParam(defaultValue = "newest") String sort,
                                                                @RequestParam(defaultValue = "0") int page,
                                                                @RequestParam(defaultValue = "10") int size) {
-        return contentItemService.list(principal.getUsername(), status, brandProfileId, platform, industry, fromDate, toDate, q, sort, page, size);
+        return contentItemService.list(principal.getUsername(), status, reviewStatus, brandProfileId, platform, industry, fromDate, toDate, q, sort, page, size);
     }
 
     // B2: bài là MỘT thực thể — tạo shell DRAFT trước, các job generate ghi version vào.
@@ -86,8 +88,8 @@ public class ContentItemController {
 
     @DeleteMapping("/{itemId}")
     @Operation(summary = "Delete a content item (FR-89)",
-            description = "Only while DRAFT/GENERATED; soft-deletes the item and cascades to its "
-                    + "ContentVersions and MediaAssets. Items in the posting pipeline cannot be deleted.")
+            description = "Only before scheduling and before review (reviewStatus NONE/CHANGES_REQUESTED); soft-deletes "
+                    + "the item and cascades to its ContentVersions and MediaAssets. Items in the posting pipeline cannot be deleted.")
     public ApiResponse<ContentItemResponse> delete(@AuthenticationPrincipal UserDetails principal,
                                                    @PathVariable UUID itemId) {
         return contentItemService.delete(principal.getUsername(), itemId);
@@ -95,8 +97,8 @@ public class ContentItemController {
 
     @PutMapping("/{itemId}")
     @Operation(summary = "Manually edit a content item (FR-33)",
-            description = "Partial update of script/caption/hashtags/CTA/media prompt; only allowed before the "
-                    + "posting pipeline (DRAFT/GENERATED/NEED_REVIEW/APPROVED). Editing an APPROVED item moves it "
+            description = "Partial update of script/caption/hashtags/CTA/media prompt; allowed while the aggregate status "
+                    + "is DRAFT/GENERATED/FORMATTED/FAILED/PARTIALLY_POSTED. Editing an APPROVED item moves its reviewStatus "
                     + "back to NEED_REVIEW.")
     public ApiResponse<ContentItemResponse> updateItem(@AuthenticationPrincipal UserDetails principal,
                                                        @PathVariable UUID itemId,
@@ -108,7 +110,7 @@ public class ContentItemController {
     @PutMapping("/{itemId}/versions/{versionId}")
     @Operation(summary = "Manually edit one per-platform version (B2, FR-33)",
             description = "Partial update of script/caption/hashtags/CTA/media prompt on one ContentVersion; "
-                    + "same status rules as editing the item — editing an APPROVED item moves it back to NEED_REVIEW.")
+                    + "same status rules as editing the item — editing an APPROVED item moves its reviewStatus back to NEED_REVIEW.")
     public ApiResponse<ContentItemResponse> updateVersion(@AuthenticationPrincipal UserDetails principal,
                                                           @PathVariable UUID itemId,
                                                           @PathVariable UUID versionId,
@@ -118,31 +120,32 @@ public class ContentItemController {
 
     // Auto-save trạng thái wizard (bài DRAFT) — FE debounce ~1s, "Tiếp tục" resume đúng bước.
     @PatchMapping("/{itemId}/wizard-state")
-    @Operation(summary = "Auto-save wizard progress on a DRAFT item",
+    @Operation(summary = "Auto-save wizard progress on an unsubmitted item",
             description = "Stores the wizard step (1-4), picked platforms, attached trend/idea and AI note so the "
-                    + "user can resume the draft at the right step; only allowed while the item is DRAFT. "
-                    + "Fields are cleared automatically when the item leaves DRAFT.")
+                    + "user can resume the draft at the right step; only allowed while the item has no active schedule "
+                    + "and reviewStatus is NONE. Fields are cleared automatically when the item is submitted for review.")
     public ApiResponse<ContentItemResponse> updateWizardState(@AuthenticationPrincipal UserDetails principal,
                                                               @PathVariable UUID itemId,
                                                               @Valid @RequestBody ContentWizardStateRequest request) {
         return contentItemService.updateWizardState(principal.getUsername(), itemId, request);
     }
 
-    @PatchMapping("/{itemId}/status")
-    @Operation(summary = "Review flow status change (FR-34)",
-            description = "Allowed transitions: DRAFT/GENERATED→NEED_REVIEW (submit for review), NEED_REVIEW→APPROVED "
-                    + "(approve), NEED_REVIEW→GENERATED (return for edits).")
-    public ApiResponse<ContentItemResponse> updateStatus(@AuthenticationPrincipal UserDetails principal,
+    @PatchMapping("/{itemId}/review")
+    @Operation(summary = "Review flow change (FR-34)",
+            description = "Changes reviewStatus only (the aggregate status is derived). Allowed: NONE/CHANGES_REQUESTED→NEED_REVIEW "
+                    + "(submit), NEED_REVIEW→APPROVED (approve), NEED_REVIEW→CHANGES_REQUESTED (return for edits). "
+                    + "Sending the current reviewStatus again is a no-op.")
+    public ApiResponse<ContentItemResponse> updateReview(@AuthenticationPrincipal UserDetails principal,
                                                          @PathVariable UUID itemId,
-                                                         @Valid @RequestBody ContentItemStatusRequest request) {
-        return contentItemService.updateStatus(principal.getUsername(), itemId, request);
+                                                         @Valid @RequestBody ContentItemReviewRequest request) {
+        return contentItemService.updateReview(principal.getUsername(), itemId, request);
     }
 
     // NFR-04: định dạng là tác vụ AI chạy nền — trả job ngay, FE poll.
     @PostMapping("/{itemId}/format")
     @Operation(summary = "Start platform formatting (FR-40..FR-46, BR-04)",
             description = "Starts an async job that formats the item into one ContentVersion per requested platform; "
-                    + "the item must be GENERATED or APPROVED. Re-formatting soft-deletes the replaced versions.")
+                    + "the item must have no active schedule (DRAFT/GENERATED/FORMATTED). Re-formatting soft-deletes the replaced versions.")
     public ApiResponse<ContentFormattingJobResponse> startFormatting(@AuthenticationPrincipal UserDetails principal,
                                                                      @PathVariable UUID itemId,
                                                                      @Valid @RequestBody ContentFormatRequest request) {

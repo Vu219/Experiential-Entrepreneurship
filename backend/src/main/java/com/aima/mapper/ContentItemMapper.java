@@ -7,10 +7,14 @@ import com.aima.dto.request.ContentItemUpdateRequest;
 import com.aima.dto.request.ContentVersionUpdateRequest;
 import com.aima.dto.request.ContentWizardStateRequest;
 import com.aima.dto.response.ContentItemResponse;
+import com.aima.dto.response.ContentStatusRepairReport;
+import com.aima.dto.response.ContentStatusRepairResult;
 import com.aima.dto.response.ContentVersionResponse;
 import com.aima.entity.ContentItem;
 import com.aima.entity.ContentVersion;
+import com.aima.entity.PostSchedule;
 import com.aima.enums.Platform;
+import com.aima.enums.ScheduleStatus;
 import com.aima.util.ScriptJson;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
@@ -19,8 +23,11 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")
@@ -34,6 +41,7 @@ public interface ContentItemMapper {
     @Mapping(target = "brandName", source = "brandProfile.brandName")
     @Mapping(target = "ideaId", source = "contentIdea.id")
     @Mapping(target = "wizardPlatforms", source = "wizardPlatforms", qualifiedByName = "splitWizardPlatforms")
+    @Mapping(target = "needsAttention", source = "contentVersions", qualifiedByName = "needsAttention")
     ContentItemResponse toResponse(ContentItem item);
 
     // Auto-save trạng thái wizard (bài DRAFT) — partial: field null giữ nguyên; ideaId service resolve.
@@ -45,7 +53,6 @@ public interface ContentItemMapper {
 
     @Mapping(target = "script", source = "script", qualifiedByName = "formatScript")
     @Mapping(target = "hashtag", source = "hashtags", qualifiedByName = "joinHashtags")
-    @Mapping(target = "status", constant = "GENERATED")
     ContentItem toContentItem(GeneratedContentResult result);
 
     // B2: kết quả generate của MỘT nền tảng → ContentVersion GIÀU (worker gán platform + item).
@@ -60,6 +67,7 @@ public interface ContentItemMapper {
 
     @Mapping(target = "script", source = "script", qualifiedByName = "parseScript")
     @Mapping(target = "formattedHashtags", source = "formattedHashtag", qualifiedByName = "splitHashtags")
+    @Mapping(target = "scheduleStatus", source = "postSchedule", qualifiedByName = "liveScheduleStatus")
     ContentVersionResponse toVersionResponse(ContentVersion version);
 
     // FR-33: partial update — field null giữ nguyên giá trị cũ.
@@ -85,6 +93,27 @@ public interface ContentItemMapper {
                 .filter(v -> v.getDeletedAt() == null)
                 .map(this::toVersionResponse)
                 .toList();
+    }
+
+    /** Lịch còn hiệu lực của bản (CANCELLED/xóa mềm = không có) — cùng quy ước ContentItemStatusResolver. */
+    @Named("liveScheduleStatus")
+    default ScheduleStatus liveScheduleStatus(PostSchedule schedule) {
+        if (schedule == null || schedule.getDeletedAt() != null || schedule.getStatus() == ScheduleStatus.CANCELLED) {
+            return null;
+        }
+        return schedule.getStatus();
+    }
+
+    /** Có bản hiện hành đang FAILED/ON_HOLD — user cần xử lý (PARTIALLY_POSTED không tự nói lên điều này). */
+    @Named("needsAttention")
+    default boolean needsAttention(List<ContentVersion> versions) {
+        if (versions == null) {
+            return false;
+        }
+        return versions.stream()
+                .filter(v -> v.getDeletedAt() == null)
+                .map(v -> liveScheduleStatus(v.getPostSchedule()))
+                .anyMatch(s -> s == ScheduleStatus.FAILED || s == ScheduleStatus.ON_HOLD);
     }
 
     @Named("splitHashtags")
@@ -122,6 +151,26 @@ public interface ContentItemMapper {
                 .filter(p -> !p.isEmpty())
                 .flatMap(p -> Arrays.stream(Platform.values()).filter(v -> v.name().equalsIgnoreCase(p)))
                 .toList();
+    }
+
+    // ===== Job sửa dữ liệu trạng thái (Phase 6) — chỉ id + trạng thái, không nội dung =====
+
+    ContentStatusRepairReport.Change toRepairChange(UUID itemId, String from, String to, String reason);
+
+    // Viết tay: MapStruct coi tham số Map là nguồn thuộc tính (map → bean) nên không sinh được mapping này.
+    default ContentStatusRepairReport toRepairReport(String planToken, Instant generatedAt, String flywayVersion,
+                                                     List<ContentStatusRepairReport.Change> itemChanges,
+                                                     List<UUID> instagramSchedules, List<UUID> unclassifiedHolds,
+                                                     List<UUID> reviewUnknown, Map<String, Map<String, Long>> enumUsage) {
+        return ContentStatusRepairReport.builder().planToken(planToken).generatedAt(generatedAt).flywayVersion(flywayVersion)
+                .itemChanges(itemChanges).instagramSchedules(instagramSchedules).unclassifiedHolds(unclassifiedHolds)
+                .reviewUnknown(reviewUnknown).enumUsage(enumUsage).build();
+    }
+
+    // Viết tay: MapStruct 1.5 sinh null-check rỗng khi mọi tham số là kiểu nguyên thủy.
+    default ContentStatusRepairResult toRepairResult(int itemsUpdated, int instagramHeld, int remainingChanges) {
+        return ContentStatusRepairResult.builder().itemsUpdated(itemsUpdated).instagramHeld(instagramHeld)
+                .remainingChanges(remainingChanges).build();
     }
 
     // AI payload (snake_case) → DTO hợp đồng API (camelCase); MapStruct tự sinh mapping lồng nhau.

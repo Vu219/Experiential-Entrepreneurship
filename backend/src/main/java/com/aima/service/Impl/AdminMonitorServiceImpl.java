@@ -129,7 +129,7 @@ public class AdminMonitorServiceImpl implements AdminMonitorService {
         long activeConnections = safeCount(() ->
                 platformAccountRepository.countByConnectionStatusAndDeletedAtIsNull(ConnectionStatus.ACTIVE));
         long postedLast24h = safeCount(() ->
-                postRepository.countByStatusAndPublishedAtAfterAndDeletedAtIsNull(PostStatus.POSTED, last24h));
+                postRepository.countByStatusAndPublishedAtAfterAndDeletedAtIsNull(PostStatus.POSTED, com.aima.util.PublishingTime.fromLegacy(last24h)));
         long failedLast24h = safeCount(() ->
                 postRepository.countByStatusAndUpdatedAtAfterAndDeletedAtIsNull(PostStatus.FAILED, last24h));
         long pendingSchedules = safeCount(() ->
@@ -499,14 +499,14 @@ public class AdminMonitorServiceImpl implements AdminMonitorService {
     private Map<LocalDateTime, long[]> queryActivity(String interval, LocalDateTime origin, LocalDateTime to) {
         String sql = """
                 SELECT bucket, kind, cnt FROM (
-                  SELECT date_bin(CAST(? AS interval), published_at, CAST(? AS timestamp)) AS bucket,
+                  SELECT date_bin(CAST(? AS interval), published_at AT TIME ZONE 'Asia/Ho_Chi_Minh', CAST(? AS timestamp)) AS bucket,
                          'posts' AS kind, count(*) AS cnt
                   FROM posts WHERE status = 'POSTED' AND deleted_at IS NULL
-                    AND published_at >= ? AND published_at < ? GROUP BY 1
+                    AND (published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') >= ? AND (published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') < ? GROUP BY 1
                   UNION ALL
-                  SELECT date_bin(CAST(? AS interval), start_time, CAST(? AS timestamp)), 'jobs', count(*)
+                  SELECT date_bin(CAST(? AS interval), start_time AT TIME ZONE 'Asia/Ho_Chi_Minh', CAST(? AS timestamp)), 'jobs', count(*)
                   FROM posting_jobs WHERE deleted_at IS NULL
-                    AND start_time >= ? AND start_time < ? GROUP BY 1
+                    AND (start_time AT TIME ZONE 'Asia/Ho_Chi_Minh') >= ? AND (start_time AT TIME ZONE 'Asia/Ho_Chi_Minh') < ? GROUP BY 1
                   UNION ALL
                   SELECT date_bin(CAST(? AS interval), created_at, CAST(? AS timestamp)), 'errors', count(*)
                   FROM system_logs WHERE level = 'ERROR' AND deleted_at IS NULL

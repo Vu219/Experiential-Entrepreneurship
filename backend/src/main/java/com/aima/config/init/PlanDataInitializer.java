@@ -11,7 +11,6 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -20,8 +19,7 @@ import java.util.Map;
 /**
  * Seed 3 gói lõi FREE/PLUS/PRO + bảng so sánh mặc định (nội dung chuyển từ
  * frontend/src/config/plans.ts — trước đây hardcode ở FE, nay DB là nguồn duy nhất).
- * Idempotent: chỉ seed khi bảng còn trống. Dùng cách này thay Flyway/Liquibase vì
- * dự án đang dùng {@code ddl-auto: update} (cùng mẫu {@code PlatformDataInitializer}).
+ * Idempotent: chỉ seed khi bảng còn trống. Schema và CHECK do Flyway quản lý.
  */
 @Component
 @RequiredArgsConstructor
@@ -32,7 +30,6 @@ public class PlanDataInitializer implements CommandLineRunner {
 
     PlanRepository planRepository;
     PlanFeatureRepository featureRepository;
-    JdbcTemplate jdbcTemplate;
 
     /** Hạn mức token LLM/tháng của 3 gói lõi (đã chốt): FREE 1.000 / PLUS 100.000 / PRO 1.000.000. */
     static final Map<String, Long> CORE_MONTHLY_TOKEN_LIMITS = Map.of(
@@ -46,27 +43,6 @@ public class PlanDataInitializer implements CommandLineRunner {
         seedPlans();
         seedFeatures();
         backfillMonthlyTokenLimits();
-        ensureBillingIntervalConstraint();
-    }
-
-    /**
-     * Cột {@code billing_interval_months} do ddl-auto tạo (smallint not null default 1) — nhưng
-     * ddl-auto KHÔNG sinh được CHECK, mà chu kỳ ≤ 0 sẽ làm phép chia doanh thu định kỳ vỡ.
-     * Backfill phòng hờ cho hàng cũ (Postgres đã điền default khi thêm cột) rồi gắn CHECK 1..60
-     * khớp @Min/@Max ở tầng DTO. Cùng mẫu {@code AiConfigDataInitializer}.
-     */
-    private void ensureBillingIntervalConstraint() {
-        try {
-            jdbcTemplate.update("UPDATE plans SET billing_interval_months = 1 "
-                    + "WHERE billing_interval_months IS NULL OR billing_interval_months < 1");
-            jdbcTemplate.execute(
-                    "ALTER TABLE plans DROP CONSTRAINT IF EXISTS plans_billing_interval_months_check");
-            jdbcTemplate.execute(
-                    "ALTER TABLE plans ADD CONSTRAINT plans_billing_interval_months_check "
-                            + "CHECK (billing_interval_months >= 1 AND billing_interval_months <= 60)");
-        } catch (Exception e) {
-            log.error("[PlanInit] Không gắn được CHECK cho plans.billing_interval_months: {}", e.getMessage());
-        }
     }
 
     /**

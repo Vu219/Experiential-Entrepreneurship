@@ -1,6 +1,7 @@
 package com.aima.repository.projection;
 
-import com.aima.enums.ContentLifecycle;
+import com.aima.enums.ContentItemStatus;
+import com.aima.enums.ReviewStatus;
 
 /**
  * Kết quả gộp "đếm bài theo trạng thái hiện tại" (thẻ số liệu Bảng điều khiển) — một truy vấn
@@ -8,7 +9,9 @@ import com.aima.enums.ContentLifecycle;
  */
 public interface StatusCountProjection {
 
-    ContentLifecycle getStatus();
+    ContentItemStatus getStatus();
+
+    ReviewStatus getReviewStatus();
 
     long getTotal();
 }

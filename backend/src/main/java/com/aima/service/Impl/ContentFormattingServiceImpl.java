@@ -6,8 +6,9 @@ import com.aima.dto.response.ContentFormattingJobResponse;
 import com.aima.dto.response.ContentVersionResponse;
 import com.aima.entity.ContentFormattingJob;
 import com.aima.entity.ContentItem;
+import com.aima.entity.ContentVersion;
 import com.aima.entity.User;
-import com.aima.enums.ContentLifecycle;
+import com.aima.enums.ScheduleStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.mapper.ContentFormattingMapper;
@@ -27,9 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -42,13 +41,6 @@ import java.util.UUID;
 @Slf4j
 @Transactional
 public class ContentFormattingServiceImpl implements ContentFormattingService {
-
-    // Thứ tự mới (Tạo → Định dạng → Sửa → Duyệt): format chạy TRƯỚC review nên bài còn ở DRAFT khi
-    // format. Cho phép DRAFT + GENERATED (bài đã tạo) / APPROVED (đã duyệt) / FORMATTED ("Định dạng lại").
-    // Format chỉ đổi status của VERSION sang FORMATTED, KHÔNG lật status item — item giữ vòng đời review.
-    static final Set<ContentLifecycle> FORMATTABLE_STATUSES =
-            EnumSet.of(ContentLifecycle.DRAFT, ContentLifecycle.GENERATED,
-                    ContentLifecycle.APPROVED, ContentLifecycle.FORMATTED);
 
     ContentFormattingJobRepository jobRepository;
     ContentItemRepository contentItemRepository;
@@ -66,7 +58,14 @@ public class ContentFormattingServiceImpl implements ContentFormattingService {
                 .findByIdAndBrandProfile_User_IdAndDeletedAtIsNull(itemId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.CONTENT_ITEM_NOT_FOUND));
 
-        if (!FORMATTABLE_STATUSES.contains(item.getStatus())) {
+        // Định dạng (lại) được ở mọi trạng thái duyệt/lịch, TRỪ nền tảng đang đăng hoặc đã đăng: bản mới sẽ thay
+        // bản cũ và nhận lại lịch chưa đăng của nó. Trạng thái tổng do worker cập nhật qua resolver.
+        boolean publishedOrPosting = item.getContentVersions().stream()
+                .filter(v -> v.getDeletedAt() == null && request.getPlatforms().contains(v.getPlatformName()))
+                .map(ContentVersion::getPostSchedule)
+                .anyMatch(s -> s != null && s.getDeletedAt() == null
+                        && (s.getStatus() == ScheduleStatus.POSTING || s.getStatus() == ScheduleStatus.POSTED));
+        if (publishedOrPosting) {
             throw new AppException(ErrorCode.CONTENT_ITEM_NOT_FORMATTABLE);
         }
 

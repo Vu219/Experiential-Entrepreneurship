@@ -1,4 +1,6 @@
 import type { PostSchedule } from '../../api/schedules.ts';
+import { wallTime, publishingToday } from '../../utils/publishingTime';
+export { publishingToday } from '../../utils/publishingTime';
 
 // Helper ngày giờ dùng chung cho trang Lịch đăng bài (UI-07) — tách từ pages/app/Calendar.tsx.
 
@@ -7,11 +9,8 @@ export const dateKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}
 export const fmtTime = (iso: string) => iso.slice(11, 16);
 export const fmtDate = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
-/** Giá trị datetime-local "YYYY-MM-DDTHH:mm" của thời điểm hiện tại (giờ máy user). */
-export const nowLocal = () => {
-  const d = new Date();
-  return `${dateKey(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
+/** Giá trị datetime-local "YYYY-MM-DDTHH:mm" theo timezone đăng bài của user. */
+export const nowLocal = () => wallTime(new Date()).slice(0, 16);
 
 export const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -23,7 +22,7 @@ export const WEEKDAYS_FULL: Record<'vi' | 'en', string[]> = {
 
 /** Ngày này là hôm nay / ngày mai (theo giờ máy user)? Dùng cho nhãn nhóm tương đối. */
 export const dayRel = (key: string): 'today' | 'tomorrow' | null => {
-  const now = new Date();
+  const now = publishingToday();
   if (key === dateKey(now)) return 'today';
   const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
   return key === dateKey(tomorrow) ? 'tomorrow' : null;
@@ -32,7 +31,7 @@ export const dayRel = (key: string): 'today' | 'tomorrow' | null => {
 /** Nhãn ngày tuyệt đối: "17 Tháng 7" / "July 17" (kèm năm nếu khác năm hiện tại). */
 export const absDayLabel = (key: string, lang: 'vi' | 'en'): string => {
   const [y, m, d] = key.split('-').map(Number);
-  const yearSuffix = y === new Date().getFullYear() ? '' : `, ${y}`;
+  const yearSuffix = y === publishingToday().getFullYear() ? '' : `, ${y}`;
   return lang === 'en' ? `${MONTHS_EN[m - 1]} ${d}${yearSuffix}` : `${d} Tháng ${m}${yearSuffix}`;
 };
 

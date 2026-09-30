@@ -6,7 +6,6 @@ import com.aima.entity.AiModelPriceCatalog;
 import com.aima.entity.AiProvider;
 import com.aima.entity.AiTaskRouting;
 import com.aima.entity.AiTaskRoutingFallback;
-import com.aima.enums.AiConfigAction;
 import com.aima.enums.AiProviderCode;
 import com.aima.enums.AiTaskCode;
 import com.aima.repository.AiModelPriceCatalogRepository;
@@ -21,12 +20,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.core.annotation.Order;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.stream.Collectors;
 
 /**
  * Seed cấu hình AI theo DB (chạy sau {@code PlanDataInitializer}):
@@ -39,10 +35,8 @@ import java.util.stream.Collectors;
  *       mặc định của AI service), chuỗi dự phòng = [model Google], max_tokens 16000 (= LLM_MAX_TOKENS).</li>
  *   <li>Migration chuỗi dự phòng: routing cũ chỉ có {@code fallback_model_id} → thêm dòng
  *       {@code ai_task_routing_fallback} position 0 (idempotent — chỉ routing chưa có dòng nào).</li>
- *   <li>Partial unique index (WHERE deleted_at IS NULL) — JPA không khai báo được.</li>
  * </ul>
- * Idempotent theo từng row. Dùng cách này thay Flyway/Liquibase vì dự án đang dùng
- * {@code ddl-auto: update} (cùng mẫu {@code PlatformDataInitializer}).
+ * Idempotent theo từng row. Schema, CHECK và partial unique index do Flyway quản lý.
  * KHÔNG log key dưới mọi hình thức.
  */
 @Component
@@ -83,7 +77,6 @@ public class AiConfigDataInitializer implements CommandLineRunner {
     AiTaskRoutingFallbackRepository fallbackRepository;
     AiModelPriceCatalogRepository priceCatalogRepository;
     AiConfigProperties properties;
-    JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
@@ -98,9 +91,6 @@ public class AiConfigDataInitializer implements CommandLineRunner {
         seedRouting(anthropicModel, googleModel);
         migrateLegacyFallbacks();
         seedPriceCatalog();
-        createPartialUniqueIndexes();
-        refreshAuditActionCheck();
-        widenTestStatusColumn();
     }
 
     /**
@@ -118,41 +108,6 @@ public class AiConfigDataInitializer implements CommandLineRunner {
                     .routing(routing).model(routing.getFallbackModel()).position(0).build());
             log.info("[AiConfigInit] Chuyển fallback {} của routing {} thành chuỗi dự phòng (position 0)",
                     routing.getFallbackModel().getModelCode(), routing.getTaskCode());
-        }
-    }
-
-    /**
-     * {@code last_test_status} tạo với varchar(20) nhưng AiTestStatus mới có giá trị 21 ký tự
-     * (DAILY_QUOTA_EXHAUSTED) — {@code ddl-auto: update} không nới độ dài cột. CHECK constraint
-     * của cột do PaymentDataInitializer.ENUM_COLUMNS đồng bộ. Idempotent (nới lại cùng kiểu).
-     */
-    private void widenTestStatusColumn() {
-        try {
-            jdbcTemplate.execute("ALTER TABLE ai_providers ALTER COLUMN last_test_status TYPE varchar(30)");
-        } catch (Exception e) {
-            log.warn("[AiConfigInit] Nới cột ai_providers.last_test_status bỏ qua: {}", e.getMessage());
-        }
-    }
-
-    /**
-     * Hibernate sinh CHECK constraint cho cột enum lúc TẠO bảng nhưng {@code ddl-auto: update}
-     * KHÔNG nới nó khi enum thêm giá trị (vd SYNC_MODELS) → insert audit vỡ constraint.
-     * Tái tạo constraint theo enum hiện hành mỗi lần khởi động — idempotent, tự lành cho
-     * các giá trị enum thêm sau này.
-     */
-    private void refreshAuditActionCheck() {
-        String values = Arrays.stream(AiConfigAction.values())
-                .map(a -> "'" + a.name() + "'")
-                .collect(Collectors.joining(","));
-        try {
-            jdbcTemplate.execute(
-                    "ALTER TABLE ai_config_audit DROP CONSTRAINT IF EXISTS ai_config_audit_action_check");
-            jdbcTemplate.execute(
-                    "ALTER TABLE ai_config_audit ADD CONSTRAINT ai_config_audit_action_check "
-                            + "CHECK (action IN (" + values + "))");
-            log.info("[AiConfigInit] Check constraint ai_config_audit_action_check đồng bộ theo enum.");
-        } catch (Exception e) {
-            log.warn("[AiConfigInit] Tái tạo check constraint audit action bỏ qua: {}", e.getMessage());
         }
     }
 
@@ -226,28 +181,6 @@ public class AiConfigDataInitializer implements CommandLineRunner {
             priceCatalogRepository.save(entry);
             log.info("[AiConfigInit] Seeded price catalog {} ({})", modelCode, providerCode);
         }
-    }
-
-    // Unique "còn sống" (bỏ qua row đã soft-delete) — từng index một để một lỗi không chặn các index còn lại.
-    private void createPartialUniqueIndexes() {
-        String[] statements = {
-                "CREATE UNIQUE INDEX IF NOT EXISTS uk_ai_providers_code " +
-                        "ON ai_providers (code) WHERE deleted_at IS NULL",
-                "CREATE UNIQUE INDEX IF NOT EXISTS uk_ai_models_provider_model " +
-                        "ON ai_models (provider_id, model_code) WHERE deleted_at IS NULL",
-                "CREATE UNIQUE INDEX IF NOT EXISTS uk_ai_task_routing_task_code " +
-                        "ON ai_task_routing (task_code) WHERE deleted_at IS NULL",
-                "CREATE UNIQUE INDEX IF NOT EXISTS uk_ai_model_price_catalog " +
-                        "ON ai_model_price_catalog (provider_code, model_code) WHERE deleted_at IS NULL"
-        };
-        for (String sql : statements) {
-            try {
-                jdbcTemplate.execute(sql);
-            } catch (Exception e) {
-                log.warn("[AiConfigInit] Tạo partial unique index bỏ qua: {}", e.getMessage());
-            }
-        }
-        log.info("[AiConfigInit] Partial unique index cho ai_providers/ai_models/ai_task_routing đã sẵn sàng.");
     }
 
     private static String defaultIfBlank(String value, String fallback) {

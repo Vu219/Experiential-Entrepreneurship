@@ -5,23 +5,22 @@ import com.aima.enums.ActivityAction;
 import com.aima.config.AimaProperties;
 import com.aima.config.MetaProperties;
 import com.aima.entity.PlatformAccount;
-import com.aima.entity.PostSchedule;
 import com.aima.entity.User;
 import com.aima.enums.ConnectionStatus;
+import com.aima.enums.HoldReason;
 import com.aima.enums.NotificationType;
 import com.aima.enums.Platform;
 import com.aima.enums.PlatformAccountType;
-import com.aima.enums.ScheduleStatus;
 import com.aima.enums.TokenType;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.repository.PlatformAccountRepository;
-import com.aima.repository.PostScheduleRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.MetaApiClient;
 import com.aima.service.MetaOAuthService;
 import com.aima.service.NotificationService;
 import com.aima.service.PlatformVersionService;
+import com.aima.service.ScheduleHoldService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
@@ -62,7 +61,7 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
     AimaProperties aimaProperties;
     RedisTemplate<String, String> redisTemplate;
     ObjectMapper objectMapper;
-    PostScheduleRepository scheduleRepository;
+    ScheduleHoldService holdService;
     NotificationService notificationService;
 
     private static final String STATE_PREFIX = "oauth_state:";
@@ -138,6 +137,8 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
                     ActivityAction.SOCIAL_CONNECTED, user.getId(), user.getEmail(),
                     "PlatformAccount", platform.name())
                     .withMetadata(Map.of("platform", platform.name(), "connections", connected.size())));
+            // Kết nối lại chỉ gỡ ACCOUNT_ISSUE; lịch còn lý do khác (chưa duyệt, quá giờ...) vẫn giữ.
+            holdService.releaseForAccounts(connected.stream().map(PlatformAccount::getId).toList(), HoldReason.ACCOUNT_ISSUE);
             return connected;
         } catch (AppException e) {
             throw e;
@@ -273,7 +274,9 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
         } catch (Exception e) {
             throw validationFailed(account, e);
         }
-        return accountRepository.save(account);
+        PlatformAccount saved = accountRepository.save(account);
+        syncAccountIssueHolds(saved);
+        return saved;
     }
 
     @Override
@@ -291,7 +294,9 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
             account.setTokenExpiredAt(expiry(refreshed.expiresInSeconds()));
             account.setConnectionStatus(ConnectionStatus.ACTIVE);
             account.setLastValidatedAt(LocalDateTime.now());
-            return accountRepository.save(account);
+            PlatformAccount saved = accountRepository.save(account);
+            syncAccountIssueHolds(saved);
+            return saved;
         } catch (Exception e) {
             log.warn("[OAuth] Refresh token kết nối {} thất bại: {}", account.getId(), e.getMessage());
             throw new AppException(ErrorCode.TOKEN_REFRESH_FAILED);
@@ -325,7 +330,7 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
                 Map.of("platform", account.getPlatformName().name(),
                         "accountName", String.valueOf(account.getAccountName()))));
         List<PlatformAccount> tree = subtree(account);
-        holdSchedules(account.getUser(), tree, "Bạn đã ngắt kết nối " + account.getAccountName()
+        holdSchedules(account.getUser(), tree, HoldReason.ACCOUNT_REMOVED, "Bạn đã ngắt kết nối " + account.getAccountName()
                 + " trên " + account.getPlatformName() + ".");
         softDeleteAndScrub(tree);
     }
@@ -336,7 +341,7 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
         int held = 0;
         for (PlatformAccount root : findFacebookRoots(platformUserId)) {
             List<PlatformAccount> tree = subtree(root);
-            held += holdSchedules(root.getUser(), tree, "Theo yêu cầu xoá dữ liệu gửi từ Facebook, AIMA đã xoá kết nối "
+            held += holdSchedules(root.getUser(), tree, HoldReason.ACCOUNT_REMOVED, "Theo yêu cầu xoá dữ liệu gửi từ Facebook, AIMA đã xoá kết nối "
                     + root.getAccountName() + " cùng các Trang/tài khoản liên quan.");
             softDeleteAndScrub(tree);
             connections += tree.size();
@@ -351,7 +356,7 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
         int held = 0;
         for (PlatformAccount root : findFacebookRoots(platformUserId)) {
             List<PlatformAccount> tree = subtree(root);
-            held += holdSchedules(root.getUser(), tree, "AIMA đã bị gỡ khỏi tài khoản Facebook " + root.getAccountName()
+            held += holdSchedules(root.getUser(), tree, HoldReason.ACCOUNT_ISSUE, "AIMA đã bị gỡ khỏi tài khoản Facebook " + root.getAccountName()
                     + ", các kết nối liên quan không còn hiệu lực.");
             for (PlatformAccount account : tree) {
                 account.setConnectionStatus(ConnectionStatus.REVOKED);
@@ -439,16 +444,9 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
         }
     }
 
-    /** Lịch SCHEDULED của các kết nối → ON_HOLD (FR-18b); báo user một lần nếu có lịch bị giữ. */
-    private int holdSchedules(User user, List<PlatformAccount> accounts, String reason) {
-        int held = 0;
-        for (PlatformAccount account : accounts) {
-            List<PostSchedule> waiting = scheduleRepository
-                    .findByPlatformAccount_IdAndStatusAndDeletedAtIsNull(account.getId(), ScheduleStatus.SCHEDULED);
-            waiting.forEach(s -> s.setStatus(ScheduleStatus.ON_HOLD));
-            scheduleRepository.saveAll(waiting);
-            held += waiting.size();
-        }
+    /** Lịch chưa đăng của các kết nối nhận lý do tạm giữ (FR-18b); báo user một lần nếu có lịch bị giữ. */
+    private int holdSchedules(User user, List<PlatformAccount> accounts, HoldReason holdReason, String reason) {
+        int held = holdService.holdForAccounts(accounts.stream().map(PlatformAccount::getId).toList(), holdReason);
         if (held > 0) {
             notificationService.notify(user, NotificationType.RECONNECT_NEEDED,
                     "Bài đã lên lịch được tạm giữ",
@@ -457,6 +455,16 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
                     null);
         }
         return held;
+    }
+
+    // Xác thực/làm mới xong: ACTIVE → gỡ ACCOUNT_ISSUE; REVOKED → thêm ACCOUNT_ISSUE cho lịch chưa đăng.
+    private void syncAccountIssueHolds(PlatformAccount account) {
+        List<UUID> ids = List.of(account.getId());
+        if (account.getConnectionStatus() == ConnectionStatus.ACTIVE) {
+            holdService.releaseForAccounts(ids, HoldReason.ACCOUNT_ISSUE);
+        } else {
+            holdService.holdForAccounts(ids, HoldReason.ACCOUNT_ISSUE);
+        }
     }
 
     // ---------- Helpers ----------

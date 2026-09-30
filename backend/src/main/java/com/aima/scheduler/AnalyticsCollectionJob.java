@@ -1,9 +1,7 @@
 package com.aima.scheduler;
 
-import com.aima.entity.ContentVersion;
 import com.aima.entity.Post;
 import com.aima.entity.PostAnalytics;
-import com.aima.enums.ContentLifecycle;
 import com.aima.enums.Platform;
 import com.aima.exception.AppException;
 import com.aima.mapper.PostAnalyticsMapper;
@@ -18,7 +16,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -44,9 +42,9 @@ public class AnalyticsCollectionJob {
     @Scheduled(fixedDelay = 3_600_000) // mỗi giờ
     @SchedulerLock(name = "analytics-collection", lockAtMostFor = "PT50M", lockAtLeastFor = "PT1M")
     public void run() {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         for (int milestone : MILESTONE_HOURS) {
-            List<UUID> due = postRepository.findDueForAnalytics(milestone, now.minusHours(milestone));
+            List<UUID> due = postRepository.findDueForAnalytics(milestone, now.minus(java.time.Duration.ofHours(milestone)));
             if (due.isEmpty()) {
                 continue;
             }
@@ -90,16 +88,8 @@ public class AnalyticsCollectionJob {
 
     private void saveSnapshot(UUID postId, int milestone, MetaApiClient.MetaPostMetrics metrics) {
         Post post = postRepository.findForAnalytics(postId).orElseThrow();
-        PostAnalytics analytics = postAnalyticsMapper.toAnalytics(post, metrics, milestone, LocalDateTime.now());
+        PostAnalytics analytics = postAnalyticsMapper.toAnalytics(post, metrics, milestone, Instant.now());
+        // Analytics là chiều riêng: không đổi trạng thái lịch/bài (bài PARTIALLY_POSTED/FAILED vẫn được thu).
         post.getPostAnalytics().add(analytics); // cascade lưu bản ghi analytics khi commit
-
-        // FR-55: Posted → Analyzing khi bắt đầu có số liệu (version + item).
-        ContentVersion version = post.getSchedule().getContentVersion();
-        if (version.getStatus() == ContentLifecycle.POSTED) {
-            version.setStatus(ContentLifecycle.ANALYZING);
-        }
-        if (version.getContentItem().getStatus() == ContentLifecycle.POSTED) {
-            version.getContentItem().setStatus(ContentLifecycle.ANALYZING);
-        }
     }
 }

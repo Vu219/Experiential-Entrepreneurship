@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -27,6 +28,11 @@ public class GlobalExceptionHandler {
     private static final String MAX_ATTRIBUTE = "max";
 
     private final SystemLogService systemLogService;
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse> handlingUnreadableRequest(HttpMessageNotReadableException exception) {
+        return handlingAppException(new AppException(ErrorCode.INVALID_REQUEST));
+    }
 
     @ExceptionHandler(value = Exception.class)
     public ResponseEntity<ApiResponse> handlingRuntimeException(Exception exception) {

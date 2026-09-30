@@ -1,8 +1,9 @@
 package com.aima.dto.response;
 
 import com.aima.dto.common.VideoScriptDto;
-import com.aima.enums.ContentLifecycle;
+import com.aima.enums.ContentItemStatus;
 import com.aima.enums.Platform;
+import com.aima.enums.ReviewStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -41,8 +42,14 @@ public class ContentItemResponse {
     @Schema(description = "Text description of the image/video to create (FR-29) — no media is generated.")
     String mediaPrompt;
 
-    @Schema(description = "Content lifecycle status.", example = "GENERATED")
-    ContentLifecycle status;
+    @Schema(description = "Derived aggregate status (versions + schedules).", example = "GENERATED")
+    ContentItemStatus status;
+
+    @Schema(description = "FR-34 review status, independent of the aggregate status.", example = "NONE")
+    ReviewStatus reviewStatus;
+
+    @Schema(description = "True when a current version's schedule is FAILED or ON_HOLD (user action needed).")
+    boolean needsAttention;
 
     // ===== B2: bài là MỘT thực thể chứa N bản nền tảng =====
 

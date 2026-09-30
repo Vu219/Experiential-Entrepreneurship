@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Data
@@ -49,5 +49,5 @@ public class PostAnalyticsResponse {
     Long watchTime;
 
     @Schema(description = "When this snapshot was collected.")
-    LocalDateTime collectedAt;
+    Instant collectedAt;
 }

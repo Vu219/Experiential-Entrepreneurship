@@ -26,7 +26,7 @@
 - **FR-15 List**: platform name, account name, connection status, connection date, token status.
 - **FR-16 Disconnect**, **FR-17 Check connection** before posting.
 - **FR-18a** Auto-refresh tokens while still active (token has < 24h remaining and a refresh token exists) → status stays Active.
-- **FR-18b** Token fully expired → status `Expired`, prompt the user to reconnect; that platform's `Scheduled` posts → `On Hold`.
+- **FR-18b** Token fully expired → status `Expired`, prompt the user to reconnect; that platform's `Scheduled` posts → `On Hold` (hold reason `ACCOUNT_ISSUE`; reconnecting removes only that reason — see WORKFLOWS.md).
 
 ## 5. Trend Research (Agent AI)
 - **FR-19 Research**: runs automatically on schedule (default **2:00 AM daily**) + a "Research now" button. Only runs if a Brand Profile exists and a Strategy is `Active`. Does not start a new session while the previous one is unfinished.
@@ -43,6 +43,7 @@
 - **FR-30** Check brand voice.
 - **FR-31** Save drafts (`Draft`/`Generated`).
 - **FR-32 Regenerate**, **FR-33 Manual edit**, **FR-34 Review** before posting.
+  - *(2026-09-30)* Review is its own dimension (`ReviewStatus` NONE/NEED_REVIEW/APPROVED/CHANGES_REQUESTED), separate from the aggregate post status. Per-user setting "Bắt buộc duyệt" holds schedules of unapproved posts (`PENDING_REVIEW`); a real edit of an approved post sends it back to NEED_REVIEW, a no-op edit does not.
 
 ## 7. Policy Violation Handling (do NOT build a custom filter — SEC-06)
 - **FR-35** Receive the platform's error response (HTTP 400/403 policy violation), classify it as a policy violation, **no retry**, store the original error code + message, set `Failed`, notify the user.
@@ -55,16 +56,18 @@
 - **FR-40** Create a dedicated version for each selected platform.
 - **FR-44 Facebook**: longer caption, clear CTA, shareable, combines image/video/link.
 - **FR-42 Instagram**: vertical video / square-vertical image, emotive caption, brand hashtags, highly visual.
+  - *(2026-09-30)* Instagram publishing requires media the MVP does not produce (FR-29): new IG schedules are rejected (2130) and existing unpublished IG schedules are held with `UNSUPPORTED_MEDIA`.
 - **Threads**: (per the current scope — short, conversational format; details follow the Threads API).
 - *(FR-41 TikTok, FR-43 YouTube Shorts, FR-45 LinkedIn — out of the current scope.)*
 - **FR-46** Save each formatted `ContentVersion`.
 
 ## 9. Scheduling
 - **FR-47 Create schedule**: content, platform, date, time, status.
+  - *(2026-09-30)* The create wizard (step 4) and the Calendar share one planner: one row per platform, modes post now / pick time / suggested slot / skip; `POST /schedules/batch` with per-row result and per-row idempotency key; overlapping schedules within the user's conflict window only warn. Times are wall-clock in the user's publishing timezone, sent with an offset.
 - **FR-48 Golden hour suggestions**: based on platform, audience, historical data, preferred time slots.
   - Default time slots — Facebook: 8–9 AM, 1–2 PM, 8–9 PM. Instagram: 8–10 AM, 12–1 PM, 7–9 PM.
   - After **≥10 posts with analytics** → switch to data-driven suggestions.
-- **FR-49 Queue**, **FR-50 Update schedule**, **FR-51 Cancel schedule** (unpublished posts only).
+- **FR-49 Queue**, **FR-50 Update schedule** (time and/or a different account of the same platform), **FR-51 Cancel schedule** (unpublished posts only; cancelling keeps the review status).
 
 ## 10. Auto-Posting
 - **FR-52** Post on time, **FR-53** call the platform API, **FR-54** receive the result.
@@ -105,7 +108,7 @@
 ## 17. Content Library
 - **FR-87** View all ContentItems (filter by status/platform/date/industry; search by keyword in caption/script).
 - **FR-88** Reuse: regenerate from an old item → creates a new item, the original is untouched.
-- **FR-89** Delete: only when `Draft`/`Generated`; deleting `Scheduled`/`Posting`/`Posted` is forbidden; deleting an item also deletes its related ContentVersions.
+- **FR-89** Delete: only when `Draft`/`Generated`/`Formatted` with no active schedule and review NONE/CHANGES_REQUESTED; deleting `Scheduled`/`Posting`/`Posted` is forbidden; deleting an item also deletes its related ContentVersions.
 
 ---
 

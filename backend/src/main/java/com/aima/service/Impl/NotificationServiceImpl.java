@@ -96,6 +96,20 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
+    @Override
+    @Transactional
+    public void notifyOnce(User user, NotificationType type, String title, String message, UUID refId, String dedupeKey) {
+        try {
+            if (notificationRepository.existsByDedupeKey(dedupeKey)) {
+                return;
+            }
+            Notification notification = notificationMapper.toDedupedNotification(user, type, title, message, refId, dedupeKey);
+            notificationRepository.saveAndFlush(notification);
+        } catch (Exception e) {
+            log.error("[Notification] Không thể tạo thông báo {} ({}) cho user {}", type, dedupeKey, user.getId(), e);
+        }
+    }
+
     private User currentUser(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));

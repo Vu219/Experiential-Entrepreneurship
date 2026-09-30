@@ -26,8 +26,9 @@ import {
 import { useToast } from '../components/toast/ToastProvider';
 import PageContainer from '../components/PageContainer';
 import UsageTab from '../components/settings/UsageTab';
+import PublishingTab from '../components/settings/PublishingTab';
 
-type SettingsTab = 'appearance' | 'usage' | 'notifications' | 'connections';
+type SettingsTab = 'appearance' | 'usage' | 'publishing' | 'notifications' | 'connections';
 
 // ——— Status badge color map ———
 // Dùng chung design token (statusTokens.ts) với phần "Chú thích trạng thái" bên dưới
@@ -71,7 +72,7 @@ export default function Settings() {
   const tabParam = searchParams.get('tab');
   const tab: SettingsTab = location.pathname.endsWith('/usage')
     ? 'usage'
-    : tabParam === 'connections' || tabParam === 'notifications' ? tabParam : 'appearance';
+    : tabParam === 'connections' || tabParam === 'notifications' || tabParam === 'publishing' ? tabParam : 'appearance';
   const setTab = (k: SettingsTab) =>
     navigate(k === 'usage' ? '/settings/usage' : k === 'appearance' ? '/settings' : `/settings?tab=${k}`, { replace: true });
 
@@ -79,6 +80,7 @@ export default function Settings() {
   const tabs: { key: SettingsTab; label: string }[] = [
     { key: 'appearance', label: t.seTabAppearance },
     { key: 'usage', label: t.navUsage },
+    { key: 'publishing', label: t.seTabPublishing },
     { key: 'notifications', label: t.seTabNotif },
     { key: 'connections', label: t.seTabConnect },
   ];
@@ -198,6 +200,9 @@ export default function Settings() {
 
       {/* ——— Tab: Token & mức dùng (mục 7 — chuyển từ trang /usage cũ) ——— */}
       {tab === 'usage' && <UsageTab />}
+
+      {/* ——— Tab: Đăng bài (policy duyệt, múi giờ, brand voice) ——— */}
+      {tab === 'publishing' && <PublishingTab />}
 
       {/* ——— Tab: Notifications ——— */}
       {tab === 'notifications' && (

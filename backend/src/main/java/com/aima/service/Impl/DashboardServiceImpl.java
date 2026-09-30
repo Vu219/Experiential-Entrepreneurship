@@ -12,8 +12,9 @@ import com.aima.dto.response.DashboardTopicResponse;
 import com.aima.entity.PlatformAccount;
 import com.aima.entity.User;
 import com.aima.enums.ConnectionStatus;
-import com.aima.enums.ContentLifecycle;
+import com.aima.enums.ContentItemStatus;
 import com.aima.enums.Platform;
+import com.aima.enums.ReviewStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.mapper.DashboardMapper;
@@ -40,7 +41,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -77,16 +78,25 @@ public class DashboardServiceImpl implements DashboardService {
     /** Nhãn gộp cho bản nền tảng chưa có định dạng media (mediaFormat null). */
     static String OTHER_LABEL = "OTHER";
 
-    // Gom trạng thái vòng đời (docs/WORKFLOWS.md) thành 4 thẻ số liệu.
-    static Set<ContentLifecycle> POSTED_STATUSES =
-            EnumSet.of(ContentLifecycle.POSTED, ContentLifecycle.ANALYZING, ContentLifecycle.OPTIMIZED);
+    /** Một nhóm đếm: (trạng thái tổng, trạng thái duyệt) — hai chiều độc lập của bài. */
+    record StatusKey(ContentItemStatus status, ReviewStatus review) {
+    }
+
+    // Gom (trạng thái tổng, duyệt) thành 4 thẻ số liệu. Đăng một phần tính là "đã đăng" (đã có bài lên nền tảng).
+    static Set<ContentItemStatus> POSTED_STATUSES =
+            EnumSet.of(ContentItemStatus.POSTED, ContentItemStatus.PARTIALLY_POSTED);
     // POSTING (đang đẩy lên nền tảng) tính vào "đang chờ": chưa đăng xong nên không thể là "đã đăng",
     // cũng chưa lỗi nên không phải "bị từ chối" — bỏ ra ngoài thì bài biến mất khỏi cả 3 thẻ.
-    static Set<ContentLifecycle> PENDING_STATUSES = EnumSet.of(
-            ContentLifecycle.NEED_REVIEW, ContentLifecycle.APPROVED,
-            ContentLifecycle.SCHEDULED, ContentLifecycle.POSTING);
-    static Set<ContentLifecycle> REJECTED_STATUSES = EnumSet.of(ContentLifecycle.FAILED);
-    static Set<ContentLifecycle> ALL_STATUSES = EnumSet.allOf(ContentLifecycle.class);
+    static Set<ContentItemStatus> PIPELINE_STATUSES =
+            EnumSet.of(ContentItemStatus.SCHEDULED, ContentItemStatus.ON_HOLD, ContentItemStatus.POSTING);
+    static Set<ReviewStatus> IN_REVIEW = EnumSet.of(ReviewStatus.NEED_REVIEW, ReviewStatus.APPROVED);
+
+    static Predicate<StatusKey> ALL = key -> true;
+    static Predicate<StatusKey> POSTED = key -> POSTED_STATUSES.contains(key.status());
+    // Đang chờ = đã vào pipeline đăng, hoặc chưa lên lịch nhưng đã gửi duyệt/được duyệt.
+    static Predicate<StatusKey> PENDING = key -> PIPELINE_STATUSES.contains(key.status())
+            || (key.status().isPrePublishing() && IN_REVIEW.contains(key.review()));
+    static Predicate<StatusKey> REJECTED = key -> key.status() == ContentItemStatus.FAILED;
 
     ContentItemRepository contentItemRepository;
     ContentVersionRepository contentVersionRepository;
@@ -103,7 +113,7 @@ public class DashboardServiceImpl implements DashboardService {
         int rangeDays = Math.min(Math.max(days, MIN_RANGE_DAYS), MAX_RANGE_DAYS);
         LocalDate today = LocalDate.now();
 
-        Map<ContentLifecycle, Long> totals = loadStatusTotals(userId);
+        Map<StatusKey, Long> totals = loadStatusTotals(userId);
         DashboardStatsResponse stats = buildStats(userId, today, totals);
         List<DashboardTopicResponse> topTopics = dashboardMapper.toTopicResponseList(
                 postAnalyticsRepository.findTopTopicsForUser(userId, TOP_TOPICS_LIMIT));
@@ -113,8 +123,8 @@ public class DashboardServiceImpl implements DashboardService {
 
         DashboardSummaryResponse summary = DashboardSummaryResponse.builder()
                 .stats(stats)
-                .awaitingReview(totals.getOrDefault(ContentLifecycle.NEED_REVIEW, 0L))
-                .scheduled(totals.getOrDefault(ContentLifecycle.SCHEDULED, 0L))
+                .awaitingReview(sum(totals, key -> key.review() == ReviewStatus.NEED_REVIEW))
+                .scheduled(sum(totals, key -> key.status() == ContentItemStatus.SCHEDULED))
                 .performance(buildPerformance(userId, today, rangeDays))
                 .rangeDays(rangeDays)
                 .contentTypes(buildContentTypes(userId))
@@ -127,37 +137,44 @@ public class DashboardServiceImpl implements DashboardService {
 
     // ===== Thẻ số liệu =====
 
-    private Map<ContentLifecycle, Long> loadStatusTotals(UUID userId) {
-        Map<ContentLifecycle, Long> totals = new EnumMap<>(ContentLifecycle.class);
+    private Map<StatusKey, Long> loadStatusTotals(UUID userId) {
+        Map<StatusKey, Long> totals = new HashMap<>();
         for (StatusCountProjection row : contentItemRepository.countByStatusForUser(userId)) {
-            if (row.getStatus() != null) {
-                totals.merge(row.getStatus(), row.getTotal(), Long::sum);
+            if (row.getStatus() != null && row.getReviewStatus() != null) {
+                totals.merge(new StatusKey(row.getStatus(), row.getReviewStatus()), row.getTotal(), Long::sum);
             }
         }
         return totals;
     }
 
-    private DashboardStatsResponse buildStats(UUID userId, LocalDate today, Map<ContentLifecycle, Long> totals) {
+    static long sum(Map<StatusKey, Long> totals, Predicate<StatusKey> bucket) {
+        return totals.entrySet().stream()
+                .filter(e -> bucket.test(e.getKey()))
+                .mapToLong(Map.Entry::getValue)
+                .sum();
+    }
+
+    private DashboardStatsResponse buildStats(UUID userId, LocalDate today, Map<StatusKey, Long> totals) {
         LocalDate seriesStart = today.minusDays(TREND_DAYS - 1L);
         LocalDate previousStart = today.minusDays(2L * TREND_DAYS - 1);
-        Map<ContentLifecycle, Map<LocalDate, Long>> daily = loadDailyCounts(userId, previousStart);
+        Map<StatusKey, Map<LocalDate, Long>> daily = loadDailyCounts(userId, previousStart);
 
         return DashboardStatsResponse.builder()
-                .total(buildStat(totals, daily, ALL_STATUSES, seriesStart, previousStart))
-                .posted(buildStat(totals, daily, POSTED_STATUSES, seriesStart, previousStart))
-                .pending(buildStat(totals, daily, PENDING_STATUSES, seriesStart, previousStart))
-                .rejected(buildStat(totals, daily, REJECTED_STATUSES, seriesStart, previousStart))
+                .total(buildStat(totals, daily, ALL, seriesStart, previousStart))
+                .posted(buildStat(totals, daily, POSTED, seriesStart, previousStart))
+                .pending(buildStat(totals, daily, PENDING, seriesStart, previousStart))
+                .rejected(buildStat(totals, daily, REJECTED, seriesStart, previousStart))
                 .build();
     }
 
-    private Map<ContentLifecycle, Map<LocalDate, Long>> loadDailyCounts(UUID userId, LocalDate from) {
-        Map<ContentLifecycle, Map<LocalDate, Long>> daily = new EnumMap<>(ContentLifecycle.class);
+    private Map<StatusKey, Map<LocalDate, Long>> loadDailyCounts(UUID userId, LocalDate from) {
+        Map<StatusKey, Map<LocalDate, Long>> daily = new HashMap<>();
         for (DailyStatusCountProjection row : contentItemRepository.countDailyByStatusForUser(userId, from.atStartOfDay())) {
-            ContentLifecycle status = parseStatus(row.getStatus());
-            if (status == null) {
+            StatusKey key = parseKey(row.getStatus(), row.getReviewStatus());
+            if (key == null) {
                 continue;
             }
-            daily.computeIfAbsent(status, s -> new HashMap<>())
+            daily.computeIfAbsent(key, s -> new HashMap<>())
                     .merge(LocalDate.parse(row.getDay()), row.getTotal(), Long::sum);
         }
         return daily;
@@ -165,21 +182,21 @@ public class DashboardServiceImpl implements DashboardService {
 
     // Cột status do chính hệ thống ghi nên luôn hợp lệ; giá trị lạ (dữ liệu cũ) chỉ bỏ qua để một
     // bản ghi hỏng không làm sập cả bảng điều khiển.
-    private ContentLifecycle parseStatus(String value) {
+    private StatusKey parseKey(String status, String review) {
         try {
-            return ContentLifecycle.valueOf(value);
+            return new StatusKey(ContentItemStatus.valueOf(status), ReviewStatus.valueOf(review));
         } catch (IllegalArgumentException | NullPointerException e) {
-            log.warn("Bỏ qua trạng thái nội dung không hợp lệ khi tổng hợp bảng điều khiển: {}", value);
+            log.warn("Bỏ qua trạng thái nội dung không hợp lệ khi tổng hợp bảng điều khiển: {}/{}", status, review);
             return null;
         }
     }
 
-    private DashboardStatResponse buildStat(Map<ContentLifecycle, Long> totals,
-                                            Map<ContentLifecycle, Map<LocalDate, Long>> daily,
-                                            Set<ContentLifecycle> bucket,
+    private DashboardStatResponse buildStat(Map<StatusKey, Long> totals,
+                                            Map<StatusKey, Map<LocalDate, Long>> daily,
+                                            Predicate<StatusKey> bucket,
                                             LocalDate seriesStart,
                                             LocalDate previousStart) {
-        long total = bucket.stream().mapToLong(status -> totals.getOrDefault(status, 0L)).sum();
+        long total = sum(totals, bucket);
 
         List<Long> series = new ArrayList<>(TREND_DAYS);
         long current = 0;
@@ -198,14 +215,13 @@ public class DashboardServiceImpl implements DashboardService {
                 .build();
     }
 
-    private long countOn(Map<ContentLifecycle, Map<LocalDate, Long>> daily,
-                         Set<ContentLifecycle> bucket,
+    private long countOn(Map<StatusKey, Map<LocalDate, Long>> daily,
+                         Predicate<StatusKey> bucket,
                          LocalDate day) {
         long sum = 0;
-        for (ContentLifecycle status : bucket) {
-            Map<LocalDate, Long> perDay = daily.get(status);
-            if (perDay != null) {
-                sum += perDay.getOrDefault(day, 0L);
+        for (Map.Entry<StatusKey, Map<LocalDate, Long>> entry : daily.entrySet()) {
+            if (bucket.test(entry.getKey())) {
+                sum += entry.getValue().getOrDefault(day, 0L);
             }
         }
         return sum;

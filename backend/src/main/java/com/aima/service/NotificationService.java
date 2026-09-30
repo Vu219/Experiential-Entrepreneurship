@@ -23,4 +23,7 @@ public interface NotificationService {
      * lỗi chỉ log, KHÔNG ném ra để không phá luồng nghiệp vụ đang gọi.
      */
     void notify(User user, NotificationType type, String title, String message, UUID refId);
+
+    /** Như {@link #notify} nhưng chỉ gửi MỘT lần cho mỗi {@code dedupeKey} (unique index chặn cả khi chạy trùng). */
+    void notifyOnce(User user, NotificationType type, String title, String message, UUID refId, String dedupeKey);
 }

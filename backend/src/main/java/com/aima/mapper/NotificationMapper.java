@@ -20,6 +20,14 @@ public interface NotificationMapper {
     @Mapping(target = "readAt", ignore = true)
     Notification toNotification(User user, NotificationType type, String title, String message, UUID refId);
 
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
+    @Mapping(target = "readAt", ignore = true)
+    Notification toDedupedNotification(User user, NotificationType type, String title, String message, UUID refId,
+                                       String dedupeKey);
+
     NotificationResponse toResponse(Notification notification);
 
     List<NotificationResponse> toResponseList(List<Notification> notifications);

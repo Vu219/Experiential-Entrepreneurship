@@ -20,20 +20,20 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class BrevoEmailSender {
 
-    static final String BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
     String senderEmail;
     String senderName;
     RestClient restClient;
 
     public BrevoEmailSender(
+            @Value("${brevo.api-url:https://api.brevo.com/v3/smtp/email}") String apiUrl,
             @Value("${brevo.api-key}") String apiKey,
             @Value("${brevo.sender.email}") String senderEmail,
             @Value("${brevo.sender.name}") String senderName) {
         this.senderEmail = senderEmail;
         this.senderName = senderName;
         this.restClient = RestClient.builder()
-                .baseUrl(BREVO_API_URL)
+                .baseUrl(apiUrl)
                 .defaultHeader("api-key", apiKey)
                 .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader("accept", MediaType.APPLICATION_JSON_VALUE)

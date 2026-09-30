@@ -1,8 +1,11 @@
 import type { Platform } from "./brandProfile";
 import type {
   ContentItemResponse,
-  ContentLifecycle,
+  ContentItemStatus,
   ContentVersionResponse,
+  ContentVersionStatus,
+  ReviewStatus,
+  VersionScheduleStatus,
   VideoScriptResponse,
 } from "./contentGeneration";
 import {
@@ -12,7 +15,8 @@ import {
   startFormatting,
   getFormattingJob,
   updateContentVersion,
-  updateContentItemStatus,
+  updateContentItemReview,
+  PRE_PUBLISHING_STATUSES,
   updateWizardState,
   listContentItems,
   getContentItem,
@@ -86,9 +90,11 @@ export interface ContentVersion {
   /**
    * Trạng thái của BẢN nền tảng này (khác trạng thái BÀI). `FORMATTED` = đã chuyển thể xong
    * theo đặc thù nền tảng — nguồn sự thật duy nhất để biết nền tảng nào đã định dạng
-   * (không suy từ việc "đã từng chạy job format" nữa).
+   * (không suy từ việc "đã từng chạy job format" nữa). Lên lịch không đổi trạng thái này.
    */
-  status: ContentLifecycle;
+  status: ContentVersionStatus;
+  /** Lịch còn hiệu lực của bản; null = chưa lên lịch / lịch đã hủy. */
+  scheduleStatus: VersionScheduleStatus | null;
   script: VideoScript;
   caption: string;
   hashtags: string[];
@@ -113,7 +119,12 @@ export interface ContentListItem {
   title: string;
   excerpt: string;
   platforms: Platform[];
-  status: ContentLifecycle;
+  /** Trạng thái tổng (suy từ bản + lịch). */
+  status: ContentItemStatus;
+  /** FR-34 — chiều duyệt riêng. */
+  reviewStatus: ReviewStatus;
+  /** Có bản đang lỗi/tạm giữ cần xử lý. */
+  needsAttention: boolean;
   brandVoice: number; // % — 0 nếu chưa kiểm tra (bản nháp)
   brandId: string;
   brandName: string;
@@ -121,7 +132,7 @@ export interface ContentListItem {
   /** Bản nháp dở dang trong wizard → hiện nút "Tiếp tục". */
   isDraft: boolean;
   /** Bước wizard đang dừng (chỉ có ở bản nháp) — card hiện "Dừng ở: …". */
-  draftStep?: 1 | 2 | 3;
+  draftStep?: 1 | 2 | 3 | 4;
 }
 
 /** Sắp xếp danh sách: mới nhất / brand voice cao nhất / theo thứ tự trạng thái. */
@@ -130,7 +141,8 @@ export type ContentSort = "newest" | "voice" | "status";
 export interface ContentListParams {
   q?: string;
   platform?: Platform;
-  status?: ContentLifecycle;
+  status?: ContentItemStatus;
+  reviewStatus?: ReviewStatus;
   brandId?: string;
   sort?: ContentSort;
   /** Trang 0-based (theo Pageable của backend). */
@@ -184,10 +196,12 @@ export interface SaveVersionInput {
   mediaPrompt: string;
 }
 
+/** Lựa chọn khi lưu ở mốc Hoàn thiện: giữ nháp (không gửi duyệt) / gửi duyệt / phê duyệt. */
+export type SaveReviewChoice = "DRAFT" | "NEED_REVIEW" | "APPROVED";
+
 export interface SaveContentInput {
   itemId: string;
-  /** Trạng thái khi lưu: giữ Nháp (không PATCH) / gửi duyệt / phê duyệt. */
-  status: "DRAFT" | "NEED_REVIEW" | "APPROVED";
+  status: SaveReviewChoice;
   versions: SaveVersionInput[];
 }
 
@@ -195,7 +209,7 @@ export interface SaveContentInput {
 export interface WizardDraft {
   /** = id bài (ContentItem) DRAFT đang dở. */
   draftId: string;
-  step: 1 | 2 | 3;
+  step: 1 | 2 | 3 | 4;
   brandId?: string;
   brandName?: string;
   /** Không lưu trên bài — SourceStep tự nạp chiến lược ACTIVE của hồ sơ. */
@@ -218,19 +232,23 @@ const lang = () => useAppStore.getState().lang;
 // Thứ tự nền tảng cố định trên card (FB → IG → TH), không phụ thuộc thứ tự backend trả version.
 const PLATFORM_ORDER: Platform[] = ["FACEBOOK", "INSTAGRAM", "THREADS"];
 
-// Bước wizard resume được: 1 Chọn nguồn / 2 Tạo nội dung / 3 Hoàn thiện. KHÔNG bao giờ resume
-// thẳng vào mốc 4 (Lên lịch) — mốc đó cần nội dung đã lưu, nên bước lưu ở DB luôn bị kẹp về 3.
-// Bài DRAFT chưa có wizard_step → suy từ dữ liệu: đã có bản nền tảng → 3, chưa có → 1.
-function resumeStep(r: ContentItemResponse): 1 | 2 | 3 {
+// Bước wizard resume được: 1 Chọn nguồn / 2 Tạo nội dung / 3 Hoàn thiện / 4 Lên lịch (Phase 5: URL
+// /create/:id?step=N; mốc 4 dùng nội dung đã lưu ở DB). Bài chưa có wizard_step → suy từ dữ liệu:
+// đã có bản nền tảng → 3, chưa có → 1.
+function resumeStep(r: ContentItemResponse): 1 | 2 | 3 | 4 {
   const s = r.wizardStep;
-  if (s === 1 || s === 2) return s;
-  if (s != null && s >= 3) return 3;
+  if (s === 1 || s === 2 || s === 3 || s === 4) return s;
   return (r.versions ?? []).length > 0 ? 3 : 1;
 }
 
 // Bài (B2) → mục danh sách. Nội dung nằm ở các version (row bài thường rỗng), nên title/excerpt
 // lấy từ bản nền tảng đầu tiên; brand voice của card = điểm cao nhất trong các bản.
-// isDraft = bài còn DRAFT (đang dở trong wizard, auto-save) → card hiện "Tiếp tục" + bước đang dừng.
+// isDraft = bài còn trong wizard (chưa gửi duyệt, chưa lên lịch — khớp guard auto-save backend)
+// → card hiện "Tiếp tục" + bước đang dừng.
+export function isWizardOpen(status: ContentItemStatus, reviewStatus: ReviewStatus): boolean {
+  return reviewStatus === "NONE" && PRE_PUBLISHING_STATUSES.includes(status);
+}
+
 function toContentListItem(r: ContentItemResponse): ContentListItem {
   const versions = r.versions ?? [];
   const first = versions[0];
@@ -243,18 +261,22 @@ function toContentListItem(r: ContentItemResponse): ContentListItem {
   const scores = versions
     .map((v) => v.voiceScore)
     .filter((n): n is number => typeof n === "number");
+  const reviewStatus = r.reviewStatus ?? "NONE";
+  const draft = isWizardOpen(r.status, reviewStatus);
   return {
     id: r.id,
     title,
     excerpt,
     platforms,
     status: r.status,
+    reviewStatus,
+    needsAttention: r.needsAttention ?? false,
     brandVoice: scores.length ? Math.max(...scores) : 0,
     brandId: r.brandProfileId ?? "",
     brandName: r.brandName ?? "",
     updatedAt: r.updatedAt ?? new Date().toISOString(),
-    isDraft: r.status === "DRAFT",
-    draftStep: r.status === "DRAFT" ? resumeStep(r) : undefined,
+    isDraft: draft,
+    draftStep: draft ? resumeStep(r) : undefined,
   };
 }
 
@@ -264,6 +286,7 @@ export async function listContents(params: ContentListParams = {}): Promise<Page
     q: params.q?.trim() || undefined,
     platform: params.platform,
     status: params.status,
+    reviewStatus: params.reviewStatus,
     brandProfileId: params.brandId,
     sort: params.sort ?? "newest",
     page: params.page ?? 0,
@@ -278,7 +301,7 @@ export async function getContentDetail(id: string): Promise<{ item: ContentListI
   return { item: toContentListItem(r), versions: (r.versions ?? []).map(toContentVersion) };
 }
 
-// FR-89: DELETE /content-items/{id} — xóa mềm; backend chặn nếu bài không ở DRAFT/GENERATED.
+// FR-89: DELETE /content-items/{id} — xóa mềm; backend chặn nếu bài đã lên lịch / đã gửi duyệt.
 export async function deleteContent(id: string): Promise<void> {
   await deleteContentItem(id);
 }
@@ -286,7 +309,7 @@ export async function deleteContent(id: string): Promise<void> {
 /**
  * FR-33 — Sửa tại chỗ MỘT bản nền tảng từ màn Xem chi tiết: PUT toàn bộ nội dung của bản
  * (script cấu trúc + caption/hashtag/CTA/media prompt). Trả về bài đã cập nhật để panel
- * refresh cả status (bài APPROVED bị sửa được backend tự hạ về NEED_REVIEW).
+ * refresh cả trạng thái duyệt (bài đã duyệt bị sửa được backend tự hạ về NEED_REVIEW).
  */
 export async function saveVersionEdit(
   itemId: string,
@@ -303,11 +326,11 @@ export async function saveVersionEdit(
 }
 
 /**
- * FR-34 — Đổi trạng thái bài theo review flow (PATCH). Backend chỉ chấp nhận bước hợp lệ:
- * DRAFT/GENERATED → NEED_REVIEW, NEED_REVIEW → APPROVED, NEED_REVIEW → GENERATED (trả về sửa).
+ * FR-34 — Đổi trạng thái duyệt (PATCH /review). Backend chỉ chấp nhận bước hợp lệ:
+ * NONE/CHANGES_REQUESTED → NEED_REVIEW, NEED_REVIEW → APPROVED | CHANGES_REQUESTED; gửi lặp = no-op.
  */
-export async function changeContentStatus(itemId: string, status: ContentLifecycle): Promise<ContentListItem> {
-  const r = await updateContentItemStatus(itemId, status);
+export async function changeReviewStatus(itemId: string, reviewStatus: ReviewStatus): Promise<ContentListItem> {
+  const r = await updateContentItemReview(itemId, reviewStatus);
   return toContentListItem(r);
 }
 
@@ -332,7 +355,7 @@ export async function saveWizardState(itemId: string, input: Omit<WizardDraft, "
  */
 export async function getWizardResume(itemId: string): Promise<{ draft: WizardDraft; versions: ContentVersion[] } | null> {
   const r = await getContentItem(itemId);
-  if (r.status !== "DRAFT") return null;
+  if (!isWizardOpen(r.status, r.reviewStatus ?? "NONE")) return null;
   return {
     draft: {
       draftId: itemId,
@@ -397,6 +420,7 @@ function toContentVersion(v: ContentVersionResponse): ContentVersion {
     id: v.id,
     platform: v.platformName,
     status: v.status,
+    scheduleStatus: v.scheduleStatus ?? null,
     script: toScript(v.script),
     caption: v.formattedCaption ?? "",
     hashtags: (v.formattedHashtags ?? []).map((h) => (h.startsWith("#") ? h : `#${h}`)),
@@ -605,9 +629,10 @@ export async function checkBrandVoice(input: CheckBrandVoiceInput): Promise<Bran
  * Dùng cho "lưu ngầm trước khi định dạng" (để chỉnh sửa tay là đầu vào thật của job format,
  * vì backend đọc bản nguồn từ DB chứ không nhận nội dung từ FE).
  */
-export async function saveVersions(itemId: string, versions: SaveVersionInput[]): Promise<void> {
+export async function saveVersions(itemId: string, versions: SaveVersionInput[]): Promise<ContentItemResponse | null> {
+  let latest: ContentItemResponse | null = null;
   for (const v of versions) {
-    await updateContentVersion(itemId, v.versionId, {
+    latest = await updateContentVersion(itemId, v.versionId, {
       script: toScriptPayload(v.script),
       caption: v.caption,
       // Backend lưu hashtag không '#' (Python trả không '#') → cắt '#' trước khi gửi, tránh nhân đôi.
@@ -616,21 +641,21 @@ export async function saveVersions(itemId: string, versions: SaveVersionInput[])
       mediaPrompt: v.mediaPrompt,
     });
   }
+  return latest;
 }
 
 /**
- * Lưu bài ở mốc Hoàn thiện (B2, API THẬT): PUT nội dung cuối vào từng bản nền tảng rồi PATCH
- * trạng thái bài.
- * - DRAFT: bài đã ở DRAFT → không PATCH (giữ nháp, KHÔNG tự gắn trạng thái duyệt).
- * - NEED_REVIEW: PATCH một bước (DRAFT→NEED_REVIEW).
- * - APPROVED: PATCH hai bước (DRAFT→NEED_REVIEW→APPROVED) vì backend chỉ duyệt từ NEED_REVIEW.
+ * Lưu bài ở mốc Hoàn thiện (B2, API THẬT): PUT nội dung cuối vào từng bản nền tảng rồi chỉ PATCH
+ * các bước duyệt CÒN THIẾU tính từ trạng thái duyệt hiện tại (lưu lại nhiều lần không lỗi):
+ * - DRAFT: không PATCH (giữ nháp, KHÔNG tự gắn trạng thái duyệt).
+ * - NEED_REVIEW: gửi duyệt nếu chưa gửi; bài đã duyệt thì giữ nguyên.
+ * - APPROVED: gửi duyệt (nếu cần) rồi duyệt — backend chỉ duyệt từ NEED_REVIEW.
  */
 export async function saveContent(input: SaveContentInput): Promise<void> {
-  await saveVersions(input.itemId, input.versions);
-  if (input.status === "NEED_REVIEW") {
-    await updateContentItemStatus(input.itemId, "NEED_REVIEW");
-  } else if (input.status === "APPROVED") {
-    await updateContentItemStatus(input.itemId, "NEED_REVIEW");
-    await updateContentItemStatus(input.itemId, "APPROVED");
-  }
+  const saved = await saveVersions(input.itemId, input.versions);
+  if (input.status === "DRAFT") return;
+  const current = (saved ?? (await getContentItem(input.itemId))).reviewStatus ?? "NONE";
+  if (current === input.status || (input.status === "NEED_REVIEW" && current === "APPROVED")) return;
+  if (current !== "NEED_REVIEW") await updateContentItemReview(input.itemId, "NEED_REVIEW");
+  if (input.status === "APPROVED") await updateContentItemReview(input.itemId, "APPROVED");
 }

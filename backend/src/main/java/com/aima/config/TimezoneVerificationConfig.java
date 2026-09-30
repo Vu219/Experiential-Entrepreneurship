@@ -59,9 +59,6 @@ public class TimezoneVerificationConfig implements CommandLineRunner {
      */
     private void verifyTimezoneUnchanged() {
         try {
-            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS system_config ("
-                    + "config_key VARCHAR(100) PRIMARY KEY, config_value VARCHAR(300) NOT NULL, "
-                    + "updated_at TIMESTAMP NOT NULL DEFAULT now())");
             List<String> stored = jdbcTemplate.queryForList(
                     "SELECT config_value FROM system_config WHERE config_key = 'app.timezone'", String.class);
             if (stored.isEmpty()) {

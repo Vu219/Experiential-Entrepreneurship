@@ -1,6 +1,6 @@
 package com.aima.entity;
 
-import com.aima.enums.ContentLifecycle;
+import com.aima.enums.ContentVersionStatus;
 import com.aima.enums.Platform;
 import jakarta.persistence.*;
 import lombok.*;
@@ -69,9 +69,14 @@ public class ContentVersion extends BaseEntity {
     @Column(name = "voice_notes", columnDefinition = "text")
     String voiceNotes;
 
+    /** Trạng thái SẢN XUẤT (DRAFT/GENERATED/FORMATTED) — vòng đời đăng nằm ở PostSchedule. */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    ContentLifecycle status;
+    ContentVersionStatus status;
+
+    /** Tăng mỗi lần nội dung THỰC SỰ đổi (sửa tay) — job AI hoàn tất trễ so revision để không ghi đè bản mới hơn. */
+    @Column(name = "revision", nullable = false)
+    int revision;
 
     /**
      * Bản GỐC mà bản FORMATTED này chuyển thể từ (FR-40 truy vết + "Định dạng lại" luôn adapt từ

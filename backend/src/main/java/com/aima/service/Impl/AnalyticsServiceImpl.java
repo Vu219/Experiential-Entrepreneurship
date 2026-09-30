@@ -21,7 +21,7 @@ import com.aima.entity.PostAnalytics;
 import com.aima.entity.PostSchedule;
 import com.aima.entity.User;
 import com.aima.enums.ConnectionStatus;
-import com.aima.enums.ContentLifecycle;
+import com.aima.enums.ContentVersionStatus;
 import com.aima.enums.Platform;
 import com.aima.enums.PlatformAccountType;
 import com.aima.enums.PostStatus;
@@ -42,6 +42,7 @@ import com.aima.repository.projection.PlatformMetricProjection;
 import com.aima.repository.projection.PostEngagementProjection;
 import com.aima.repository.projection.TopPostProjection;
 import com.aima.service.AnalyticsService;
+import com.aima.service.ContentItemStatusResolver;
 import com.aima.util.CsvUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -116,6 +117,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     UserRepository userRepository;
     AnalyticsMapper analyticsMapper;
     Environment environment;
+    ContentItemStatusResolver statusResolver;
 
     // Có khởi tạo sẵn nên KHÔNG vào constructor của @RequiredArgsConstructor (Lombok bỏ qua final
     // đã gán giá trị) — đây là state cục bộ của service, không phải dependency.
@@ -640,28 +642,28 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         ContentItem item = new ContentItem();
         item.setBrandProfile(brand);
         item.setCaption("Bài phân tích mẫu #" + (index + 1));
-        item.setStatus(ContentLifecycle.POSTED);
 
         ContentVersion version = new ContentVersion();
         version.setContentItem(item);
         version.setPlatformName(platform);
         version.setFormattedCaption("Bài mẫu #" + (index + 1) + " trên " + platform.name());
         version.setMediaFormat(index % 2 == 0 ? "image" : "video");
-        version.setStatus(ContentLifecycle.POSTED);
+        version.setStatus(ContentVersionStatus.FORMATTED);
         item.getContentVersions().add(version);
 
         PostSchedule schedule = new PostSchedule();
         schedule.setContentVersion(version);
         schedule.setPlatformAccount(account);
-        schedule.setScheduledTime(publishedAt.minusMinutes(5));
+        schedule.setScheduledTime(com.aima.util.PublishingTime.fromLegacy(publishedAt.minusMinutes(5)));
         schedule.setStatus(ScheduleStatus.POSTED);
         version.setPostSchedule(schedule);
+        statusResolver.initialize(item); // lịch POSTED → bài POSTED
 
         Post post = new Post();
         post.setSchedule(schedule);
         post.setPlatformName(platform);
         post.setPlatformPostId(DEV_MARKER_PREFIX + "post-" + index);
-        post.setPublishedAt(publishedAt);
+        post.setPublishedAt(com.aima.util.PublishingTime.fromLegacy(publishedAt));
         post.setStatus(PostStatus.POSTED);
         schedule.setPost(post);
 
@@ -682,7 +684,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             snapshot.setComments(Math.round(comments * growth));
             snapshot.setShares(Math.round(shares * growth));
             snapshot.setMilestoneHours(milestone);
-            snapshot.setCollectedAt(publishedAt.plusHours(milestone));
+            snapshot.setCollectedAt(com.aima.util.PublishingTime.fromLegacy(publishedAt.plusHours(milestone)));
             post.getPostAnalytics().add(snapshot);
         }
         return item;

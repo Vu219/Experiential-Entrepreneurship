@@ -72,7 +72,7 @@ class ContentGenerationWorkerErrorCodeTest {
         ContentGenerationWorkerServiceImpl worker = new ContentGenerationWorkerServiceImpl(jobRepository,
                 mock(ContentVersionRepository.class), mock(TrendRepository.class), mock(ContentIdeaRepository.class),
                 aiServiceClient, mock(ContentItemMapper.class), mock(AiContentMapper.class), tx,
-                mock(NotificationService.class), aiUsageService);
+                mock(NotificationService.class), aiUsageService, mock(com.aima.service.ContentItemStatusResolver.class));
 
         worker.process(jobId);
 

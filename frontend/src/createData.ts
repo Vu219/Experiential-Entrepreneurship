@@ -1,6 +1,6 @@
 import type { Lang } from './types';
 import type { Platform } from './api/brandProfile';
-import type { ContentLifecycle } from './api/contentGeneration';
+import type { ContentItemStatus, ReviewStatus } from './api/contentGeneration';
 import type {
   BrandVoiceCheck,
   ContentListItem,
@@ -37,37 +37,37 @@ export function placeholderImage(seed: number): string {
 // ===== Lớp 1 — danh sách nội dung đã tạo (của user hiện tại) =====
 
 export function mockContentList(lang: Lang): ContentListItem[] {
-  const rows: [string, string, Platform[], ContentLifecycle, number, string, string, boolean][] = [
-    // [title, excerpt, platforms, status, brandVoice, brandName, updatedAt, isDraft]
+  const rows: [string, string, Platform[], [ContentItemStatus, ReviewStatus], number, string, string, boolean][] = [
+    // [title, excerpt, platforms, [status, reviewStatus], brandVoice, brandName, updatedAt, isDraft]
     [
       P(lang, '5 mẹo tăng tương tác cho fanpage nhỏ', '5 tips to boost engagement for small pages'),
       P(lang, 'Tạm biệt cảnh đăng bài mà không ai xem 👋 Đây là 5 mẹo mình dùng mỗi ngày...', 'Say goodbye to posts nobody sees 👋 Here are 5 tips I use every day...'),
-      ['FACEBOOK', 'INSTAGRAM'], 'POSTED', 92, 'AIMA Studio', '2026-07-04T09:30:00Z', false,
+      ['FACEBOOK', 'INSTAGRAM'], ['POSTED', 'APPROVED'], 92, 'AIMA Studio', '2026-07-04T09:30:00Z', false,
     ],
     [
       P(lang, 'Carousel: Quy trình content 5 phút với AI', 'Carousel: A 5-minute content workflow with AI'),
       P(lang, 'Quy trình 5 giờ → 5 phút. Swipe để xem từng bước AIMA lên bài giúp bạn ➡️', 'From 5 hours to 5 minutes. Swipe to see each step ➡️'),
-      ['INSTAGRAM'], 'SCHEDULED', 89, 'AIMA Studio', '2026-07-03T15:20:00Z', false,
+      ['INSTAGRAM'], ['SCHEDULED', 'APPROVED'], 89, 'AIMA Studio', '2026-07-03T15:20:00Z', false,
     ],
     [
       P(lang, 'Xu hướng AI Marketing 2026 cho SME', 'AI Marketing trends 2026 for SMEs'),
       P(lang, 'Năm 2026, SME không cần đội content 5 người. Bạn cần một quy trình đúng...', 'In 2026 SMEs don’t need a 5-person content team. You need the right workflow...'),
-      ['FACEBOOK'], 'NEED_REVIEW', 88, 'AIMA Studio', '2026-07-02T11:05:00Z', false,
+      ['FACEBOOK'], ['FORMATTED', 'NEED_REVIEW'], 88, 'AIMA Studio', '2026-07-02T11:05:00Z', false,
     ],
     [
       P(lang, 'Thread: 3 hiểu lầm về tự động hoá marketing', 'Thread: 3 myths about marketing automation'),
       P(lang, 'Tự động hoá không có nghĩa là mất chất riêng. 3 hiểu lầm phổ biến nhất 🧵', 'Automation doesn’t mean losing your voice. The 3 most common myths 🧵'),
-      ['THREADS'], 'GENERATED', 85, 'AIMA Skincare', '2026-07-01T08:45:00Z', false,
+      ['THREADS'], ['GENERATED', 'NONE'], 85, 'AIMA Skincare', '2026-07-01T08:45:00Z', false,
     ],
     [
       P(lang, 'Routine skincare 3 bước cho người mới', 'A 3-step skincare routine for beginners'),
       P(lang, 'Da xỉn màu, lỗ chân lông to? Chỉ 3 bước đơn giản mỗi ngày...', 'Dull skin, large pores? Just 3 simple steps a day...'),
-      ['FACEBOOK', 'INSTAGRAM', 'THREADS'], 'DRAFT', 0, 'AIMA Skincare', '2026-06-30T17:10:00Z', true,
+      ['FACEBOOK', 'INSTAGRAM', 'THREADS'], ['DRAFT', 'NONE'], 0, 'AIMA Skincare', '2026-06-30T17:10:00Z', true,
     ],
     [
       P(lang, 'Case study: 30 ngày để kênh tự vận hành', 'Case study: 30 days to a self-running channel'),
       P(lang, 'Từ 2 bài/tuần viết tay đến 12 bài/tuần tự động — số liệu thật sau 30 ngày.', 'From 2 handwritten posts a week to 12 automated — real numbers after 30 days.'),
-      ['FACEBOOK', 'INSTAGRAM', 'THREADS'], 'APPROVED', 94, 'AIMA Studio', '2026-06-28T13:00:00Z', false,
+      ['FACEBOOK', 'INSTAGRAM', 'THREADS'], ['FORMATTED', 'APPROVED'], 94, 'AIMA Studio', '2026-06-28T13:00:00Z', false,
     ],
   ];
   return rows.map((r, i) => ({
@@ -75,7 +75,9 @@ export function mockContentList(lang: Lang): ContentListItem[] {
     title: r[0],
     excerpt: r[1],
     platforms: r[2],
-    status: r[3],
+    status: r[3][0],
+    reviewStatus: r[3][1],
+    needsAttention: false,
     brandVoice: r[4],
     brandId: r[5] === 'AIMA Studio' ? 'mock-brand-1' : 'mock-brand-2',
     brandName: r[5],
@@ -183,6 +185,7 @@ export function mockGeneration(lang: Lang, platforms: Platform[], versionIndex: 
     platform,
     // Bản mock là nội dung vừa tạo, chưa qua job định dạng.
     status: 'GENERATED',
+    scheduleStatus: null,
     script: mockScript(lang, platform, versionIndex % 2),
     caption: mockCaption(lang, platform, versionIndex % 2),
     hashtags: MOCK_HASHTAGS[platform],

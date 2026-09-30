@@ -38,7 +38,8 @@ interface ScheduleDetailModalProps {
   onClose: () => void;
   onReschedule: (schedule: PostSchedule) => void;
   onCancel: (schedule: PostSchedule) => void;
-  onEditContent: () => void;
+  /** Mở đúng bài của lịch để sửa nội dung. */
+  onEditContent: (schedule: PostSchedule) => void;
   onPublishNow?: (schedule: PostSchedule) => void;
   confirmingCancel?: boolean;
   busy?: boolean;
@@ -133,7 +134,7 @@ export default function ScheduleDetailModal({
   const hasScript = !!(script?.hook?.content || (script?.steps && script.steps.length > 0) || script?.cta?.content);
 
   // Tính toán thời gian
-  const dateObj = new Date(schedule.scheduledTime);
+  const dateObj = new Date(schedule.scheduledTime.slice(0, 19));
   const weekdayIndex = (dateObj.getDay() + 6) % 7;
   const langKey = (lang === 'en' ? 'en' : 'vi') as 'vi' | 'en';
   const weekdayName = WEEKDAYS_FULL[langKey]?.[weekdayIndex] ?? WEEKDAYS_FULL.vi[weekdayIndex];
@@ -824,7 +825,7 @@ export default function ScheduleDetailModal({
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {(isFailed || schedule.status === 'SCHEDULED') && (
               <button
-                onClick={onEditContent}
+                onClick={() => onEditContent(schedule)}
                 disabled={busy}
                 style={{
                   display: 'inline-flex',

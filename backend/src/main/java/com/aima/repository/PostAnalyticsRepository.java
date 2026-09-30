@@ -58,7 +58,7 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
 
     // Biểu đồ "Hiệu suất nội dung": tiếp cận (views) + tương tác (likes+comments+shares) theo NGÀY ĐĂNG.
     @Query(value = """
-            select to_char(p.published_at, 'YYYY-MM-DD') as day,
+            select to_char((p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh'), 'YYYY-MM-DD') as day,
                    cast(coalesce(sum(la.views), 0) as bigint) as reach,
                    cast(coalesce(sum(coalesce(la.likes, 0) + coalesce(la.comments, 0)
                                      + coalesce(la.shares, 0)), 0) as bigint) as engagement
@@ -74,8 +74,8 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
             where pa.user_id = :userId
               and p.deleted_at is null
               and p.status = 'POSTED'
-              and p.published_at is not null
-              and p.published_at >= :from
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') is not null
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') >= :from
             group by 1
             order by 1
             """, nativeQuery = true)
@@ -121,7 +121,7 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
     // Trang Phân tích (UI-08 khối B/C): 4 metric riêng lẻ theo NGÀY ĐĂNG trong [from, to). Cùng khuôn
     // với findDailyPerformanceForUser nhưng KHÔNG gộp thành reach/engagement — FE cần từng metric.
     @Query(value = """
-            select to_char(p.published_at, 'YYYY-MM-DD') as day,
+            select to_char((p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh'), 'YYYY-MM-DD') as day,
                    cast(coalesce(sum(la.views), 0) as bigint) as views,
                    cast(coalesce(sum(la.likes), 0) as bigint) as likes,
                    cast(coalesce(sum(la.comments), 0) as bigint) as comments,
@@ -139,9 +139,9 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
             where pa.user_id = :userId
               and p.deleted_at is null
               and p.status = 'POSTED'
-              and p.published_at is not null
-              and p.published_at >= :from
-              and p.published_at < :to
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') is not null
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') >= :from
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') < :to
               and (cast(:platformCsv as text) is null
                    or p.platform_name = any(string_to_array(cast(:platformCsv as text), ',')))
               and (cast(:typeCsv as text) is null
@@ -180,9 +180,9 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
             where pa.user_id = :userId
               and p.deleted_at is null
               and p.status = 'POSTED'
-              and p.published_at is not null
-              and p.published_at >= :from
-              and p.published_at < :to
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') is not null
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') >= :from
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') < :to
               and (cast(:typeCsv as text) is null
                    or upper(coalesce(nullif(trim(cv.media_format), ''), 'OTHER'))
                        = any(string_to_array(cast(:typeCsv as text), ',')))
@@ -218,9 +218,9 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
             where pa.user_id = :userId
               and p.deleted_at is null
               and p.status = 'POSTED'
-              and p.published_at is not null
-              and p.published_at >= :from
-              and p.published_at < :to
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') is not null
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') >= :from
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') < :to
               and (cast(:platformCsv as text) is null
                    or p.platform_name = any(string_to_array(cast(:platformCsv as text), ',')))
             group by 1
@@ -235,8 +235,8 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
     // múi giờ, đã lưu theo APP_TIMEZONE nên extract dùng trực tiếp, không quy đổi thêm. Chỉ trả ô CÓ
     // bài; ô vắng mặt nghĩa là "chưa từng đăng khung đó" — khác hẳn ô đăng rồi mà không ai tương tác.
     @Query(value = """
-            select cast(extract(isodow from p.published_at) as int) as dow,
-                   cast(floor(extract(hour from p.published_at) / 3) as int) as slot,
+            select cast(extract(isodow from (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh')) as int) as dow,
+                   cast(floor(extract(hour from (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh')) / 3) as int) as slot,
                    count(*) as posts,
                    cast(coalesce(sum(coalesce(la.likes, 0) + coalesce(la.comments, 0)
                                      + coalesce(la.shares, 0)), 0) as bigint) as engagement
@@ -253,9 +253,9 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
             where pa.user_id = :userId
               and p.deleted_at is null
               and p.status = 'POSTED'
-              and p.published_at is not null
-              and p.published_at >= :from
-              and p.published_at < :to
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') is not null
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') >= :from
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') < :to
               and (cast(:platformCsv as text) is null
                    or p.platform_name = any(string_to_array(cast(:platformCsv as text), ',')))
               and (cast(:typeCsv as text) is null
@@ -279,9 +279,9 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
             where pa.user_id = :userId
               and p.deleted_at is null
               and p.status = 'POSTED'
-              and p.published_at is not null
-              and p.published_at >= :from
-              and p.published_at < :to
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') is not null
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') >= :from
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') < :to
               and (cast(:platformCsv as text) is null
                    or p.platform_name = any(string_to_array(cast(:platformCsv as text), ',')))
               and (cast(:typeCsv as text) is null
@@ -314,9 +314,9 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
             where pa.user_id = :userId
               and p.deleted_at is null
               and p.status = 'POSTED'
-              and p.published_at is not null
-              and p.published_at >= :from
-              and p.published_at < :to
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') is not null
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') >= :from
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') < :to
               and (cast(:platformCsv as text) is null
                    or p.platform_name = any(string_to_array(cast(:platformCsv as text), ',')))
               and (cast(:typeCsv as text) is null
@@ -338,7 +338,7 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
                    p.platform_name as platform,
                    cv.formatted_caption as caption,
                    pa.account_name as accountName,
-                   p.published_at as publishedAt,
+                   (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') as publishedAt,
                    cast(coalesce(la.views, 0) as bigint) as views,
                    cast(coalesce(la.likes, 0) as bigint) as likes,
                    cast(coalesce(la.comments, 0) as bigint) as comments,
@@ -357,15 +357,15 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
             where pa.user_id = :userId
               and p.deleted_at is null
               and p.status = 'POSTED'
-              and p.published_at is not null
-              and p.published_at >= :from
-              and p.published_at < :to
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') is not null
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') >= :from
+              and (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') < :to
               and (cast(:platformCsv as text) is null
                    or p.platform_name = any(string_to_array(cast(:platformCsv as text), ',')))
               and (cast(:typeCsv as text) is null
                    or upper(coalesce(nullif(trim(cv.media_format), ''), 'OTHER'))
                        = any(string_to_array(cast(:typeCsv as text), ',')))
-            order by p.published_at desc
+            order by (p.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') desc
             """, nativeQuery = true)
     List<TopPostProjection> findTopPostsForUser(@Param("userId") UUID userId,
                                                 @Param("from") LocalDateTime from,

@@ -1,14 +1,13 @@
 package com.aima.scheduler;
 
 import com.aima.entity.PlatformAccount;
-import com.aima.entity.PostSchedule;
 import com.aima.enums.ConnectionStatus;
+import com.aima.enums.HoldReason;
 import com.aima.enums.NotificationType;
-import com.aima.enums.ScheduleStatus;
 import com.aima.repository.PlatformAccountRepository;
-import com.aima.repository.PostScheduleRepository;
 import com.aima.service.MetaOAuthService;
 import com.aima.service.NotificationService;
+import com.aima.service.ScheduleHoldService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -31,7 +30,7 @@ import java.util.List;
 public class TokenHealthCheckJob {
 
     PlatformAccountRepository accountRepository;
-    PostScheduleRepository scheduleRepository;
+    ScheduleHoldService holdService;
     MetaOAuthService metaOAuthService;
     NotificationService notificationService;
 
@@ -66,16 +65,13 @@ public class TokenHealthCheckJob {
             accountRepository.save(account);
 
             // FR-18b: bài SCHEDULED của tài khoản hết hạn → ON_HOLD chờ user kết nối lại.
-            List<PostSchedule> waiting = scheduleRepository
-                    .findByPlatformAccount_IdAndStatusAndDeletedAtIsNull(account.getId(), ScheduleStatus.SCHEDULED);
-            waiting.forEach(s -> s.setStatus(ScheduleStatus.ON_HOLD));
-            scheduleRepository.saveAll(waiting);
+            int held = holdService.holdForAccounts(List.of(account.getId()), HoldReason.ACCOUNT_ISSUE);
 
             // FR-78: nhắc kết nối lại.
             notificationService.notify(account.getUser(), NotificationType.RECONNECT_NEEDED,
                     "Cần kết nối lại tài khoản",
                     "Token của " + account.getAccountName() + " trên " + account.getPlatformName()
-                            + " đã hết hạn — " + (waiting.isEmpty() ? "" : waiting.size() + " bài đã lên lịch được tạm giữ (On Hold). ")
+                            + " đã hết hạn — " + (held == 0 ? "" : held + " bài đã lên lịch được tạm giữ (On Hold). ")
                             + "Vui lòng kết nối lại trong phần Cài đặt.",
                     account.getId());
         } catch (Exception e) {

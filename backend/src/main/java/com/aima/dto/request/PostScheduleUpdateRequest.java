@@ -10,7 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Data
 @Builder
@@ -22,6 +22,10 @@ public class PostScheduleUpdateRequest {
 
     @NotNull(message = "SCHEDULE_TIME_REQUIRED")
     @Future(message = "SCHEDULE_TIME_IN_PAST")
-    @Schema(description = "New publishing time (server timezone).", example = "2026-07-11T08:30:00")
-    LocalDateTime scheduledTime;
+    @Schema(description = "Absolute publishing time; ISO-8601 with Z or offset is required.", example = "2026-10-11T08:30:00+07:00")
+    Instant scheduledTime;
+
+    @Schema(description = "Optional: move the schedule to another ACTIVE account of the same platform "
+            + "(clears ACCOUNT_REMOVED/ACCOUNT_ISSUE holds tied to the old account).")
+    java.util.UUID platformAccountId;
 }

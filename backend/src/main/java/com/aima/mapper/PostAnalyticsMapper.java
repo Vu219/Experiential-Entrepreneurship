@@ -8,7 +8,7 @@ import com.aima.service.MetaApiClient;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -29,7 +29,7 @@ public interface PostAnalyticsMapper {
     @Mapping(target = "watchTime", ignore = true)
     @Mapping(target = "optimizationInsights", ignore = true)
     PostAnalytics toAnalytics(Post post, MetaApiClient.MetaPostMetrics metrics,
-                              Integer milestoneHours, LocalDateTime collectedAt);
+                              Integer milestoneHours, Instant collectedAt);
 
     // ===== Entity → response (FR-60/FR-61) =====
 

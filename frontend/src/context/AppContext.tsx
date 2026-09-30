@@ -90,6 +90,8 @@ export function useApp() {
     ROUTE_BY_PATH[location.pathname] ??
     (location.pathname.startsWith('/calendar')
       ? 'calendar'
+      : location.pathname.startsWith('/create/') // wizard mở theo id bài: /create/:id?step=N
+      ? 'createWizard'
       : location.pathname.startsWith('/admin/usage/')
       ? 'adminUsage'
       : 'dashboard');

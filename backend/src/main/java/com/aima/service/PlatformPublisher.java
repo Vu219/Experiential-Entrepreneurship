@@ -1,7 +1,6 @@
 package com.aima.service;
 
 import com.aima.dto.publish.PublishTarget;
-import com.aima.entity.ContentVersion;
 import com.aima.enums.Platform;
 
 import java.util.Arrays;
@@ -25,11 +24,10 @@ public interface PlatformPublisher {
 
     /**
      * Nội dung bài đăng = caption đã định dạng + hashtag (CSV không '#' trong DB → "#a #b").
-     * Worker gọi TRONG transaction lúc dựng {@link PublishTarget}.
+     * Worker truyền giá trị từ snapshot của Post (bài cũ chưa có snapshot: từ bản nền tảng).
      */
-    default String buildMessage(ContentVersion version) {
-        String caption = version.getFormattedCaption() == null ? "" : version.getFormattedCaption().trim();
-        String hashtagCsv = version.getFormattedHashtag();
+    default String buildMessage(String formattedCaption, String hashtagCsv) {
+        String caption = formattedCaption == null ? "" : formattedCaption.trim();
         if (hashtagCsv == null || hashtagCsv.isBlank()) {
             return caption;
         }

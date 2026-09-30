@@ -19,7 +19,8 @@ import com.aima.entity.User;
 import com.aima.enums.AiProviderCode;
 import com.aima.enums.AiTaskCode;
 import com.aima.enums.ConnectionStatus;
-import com.aima.enums.ContentLifecycle;
+import com.aima.enums.ContentItemStatus;
+import com.aima.enums.ContentVersionStatus;
 import com.aima.enums.PaymentGateway;
 import com.aima.enums.PaymentStatus;
 import com.aima.enums.Platform;
@@ -123,17 +124,17 @@ class AccountDeletionLifecycleTest {
         brand = brandProfileRepository.save(brand);
         ContentItem item = new ContentItem();
         item.setBrandProfile(brand);
-        item.setStatus(status == ScheduleStatus.POSTING ? ContentLifecycle.POSTING : ContentLifecycle.SCHEDULED);
+        item.applyResolvedStatus(status == ScheduleStatus.POSTING ? ContentItemStatus.POSTING : ContentItemStatus.SCHEDULED);
         item = contentItemRepository.save(item);
         ContentVersion version = new ContentVersion();
         version.setContentItem(item);
         version.setPlatformName(Platform.FACEBOOK);
-        version.setStatus(item.getStatus());
+        version.setStatus(ContentVersionStatus.FORMATTED);
         version = contentVersionRepository.save(version);
         PostSchedule schedule = new PostSchedule();
         schedule.setContentVersion(version);
         schedule.setPlatformAccount(page);
-        schedule.setScheduledTime(LocalDateTime.now().plusDays(2));
+        schedule.setScheduledTime(java.time.Instant.now().plus(java.time.Duration.ofDays(2)));
         schedule.setStatus(status);
         return scheduleRepository.save(schedule);
     }
@@ -150,7 +151,7 @@ class AccountDeletionLifecycleTest {
         job.setPost(post);
         job.setRetryCount(1);
         job.setStatus(PostingJobStatus.RETRYING);
-        job.setNextRetryAt(LocalDateTime.now().plusMinutes(15));
+        job.setNextRetryAt(java.time.Instant.now().plus(java.time.Duration.ofMinutes(15)));
         return jobRepository.save(job);
     }
 
@@ -211,7 +212,7 @@ class AccountDeletionLifecycleTest {
 
         // Không kích hoạt lại / dời lịch được khi đang chờ xoá.
         AppException ex = assertThrows(AppException.class, () -> postScheduleService.update(user.getEmail(), waiting.getId(),
-                PostScheduleUpdateRequest.builder().scheduledTime(LocalDateTime.now().plusDays(3)).build()));
+                PostScheduleUpdateRequest.builder().scheduledTime(java.time.Instant.now().plus(java.time.Duration.ofDays(3))).build()));
         assertEquals(ErrorCode.SCHEDULING_BLOCKED_PENDING_DELETE, ex.getErrorCode());
     }
 
@@ -222,12 +223,12 @@ class AccountDeletionLifecycleTest {
         markExpiredPendingDelete(user);
         // Lịch "đến hạn" (giờ đã qua) của user chờ xoá — lọt qua hold thì dispatcher vẫn phải bỏ qua.
         PostSchedule due = newSchedule(user, page, ScheduleStatus.SCHEDULED);
-        due.setScheduledTime(LocalDateTime.now().minusMinutes(5));
+        due.setScheduledTime(java.time.Instant.now().minus(java.time.Duration.ofMinutes(5)));
         scheduleRepository.save(due);
 
         boolean picked = scheduleRepository
                 .findByStatusAndScheduledTimeLessThanEqualAndDeletedAtIsNullAndPlatformAccount_User_StatusNot(
-                        ScheduleStatus.SCHEDULED, LocalDateTime.now(), UserStatus.PENDING_DELETE)
+                        ScheduleStatus.SCHEDULED, java.time.Instant.now(), UserStatus.PENDING_DELETE)
                 .stream().anyMatch(s -> s.getId().equals(due.getId()));
         assertFalse(picked);
 
@@ -250,7 +251,7 @@ class AccountDeletionLifecycleTest {
                 "khôi phục KHÔNG tự bật lại lịch");
 
         postScheduleService.update(user.getEmail(), waiting.getId(),
-                PostScheduleUpdateRequest.builder().scheduledTime(LocalDateTime.now().plusDays(5)).build());
+                PostScheduleUpdateRequest.builder().scheduledTime(java.time.Instant.now().plus(java.time.Duration.ofDays(5))).build());
         assertEquals(ScheduleStatus.SCHEDULED, scheduleRepository.findById(waiting.getId()).orElseThrow().getStatus());
     }
 

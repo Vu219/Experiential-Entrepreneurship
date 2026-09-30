@@ -1,6 +1,7 @@
 package com.aima.entity;
 
-import com.aima.enums.ContentLifecycle;
+import com.aima.enums.ContentItemStatus;
+import com.aima.enums.ReviewStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -49,12 +50,19 @@ public class ContentItem extends BaseEntity {
     @Column(name = "media_prompt", columnDefinition = "text")
     String mediaPrompt;
 
+    /** Trạng thái tổng SUY RA — không có setter; chỉ ContentItemStatusResolver ghi qua applyResolvedStatus. */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    ContentLifecycle status = ContentLifecycle.DRAFT;
+    @Setter(AccessLevel.NONE)
+    ContentItemStatus status = ContentItemStatus.DRAFT;
 
-    // ===== Trạng thái wizard (auto-save để "Tiếp tục" bài dở) — chỉ có nghĩa khi DRAFT,
-    // được dọn null khi bài rời DRAFT (PATCH status). =====
+    /** FR-34: trạng thái duyệt, độc lập với trạng thái tổng. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "review_status", nullable = false, length = 20)
+    ReviewStatus reviewStatus = ReviewStatus.NONE;
+
+    // ===== Trạng thái wizard (auto-save để "Tiếp tục" bài dở) — chỉ có nghĩa khi bài chưa gửi duyệt
+    // và chưa lên lịch, được dọn null khi bài rời trạng thái duyệt NONE (PATCH review). =====
 
     /** Bước wizard đang dừng (1-4). */
     @Column(name = "wizard_step")
@@ -87,4 +95,9 @@ public class ContentItem extends BaseEntity {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     List<ContentFormattingJob> formattingJobs = new ArrayList<>();
+
+    /** Chỉ {@code ContentItemStatusResolver} gọi (test kiến trúc kiểm tra) — trạng thái tổng là giá trị suy ra. */
+    public void applyResolvedStatus(ContentItemStatus resolved) {
+        this.status = resolved;
+    }
 }

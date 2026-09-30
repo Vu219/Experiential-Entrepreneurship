@@ -582,7 +582,8 @@ public class UserServiceImpl implements UserService {
         user.setDeletionDate(null);
         user.setDeletionWarningSentAt(null); // khôi phục → xoá cờ cảnh báo để lần xóa sau lại cảnh báo
         userRepository.save(user);
-        // Lịch bị tạm giữ lúc yêu cầu xoá KHÔNG tự chạy lại — user chủ động "Kích hoạt lại" trong Lịch đăng.
+        // Gỡ lý do USER_PENDING_DELETE nhưng lịch KHÔNG tự chạy lại — user chủ động "Kích hoạt lại" trong Lịch đăng.
+        postScheduleService.releasePendingDeletionHolds(user.getId());
         int onHold = postScheduleService.countOnHold(user.getId());
 
         DeleteAccountResponse deleteAccountResponse = userMapper.toDeleteAccountResponse(user, null,

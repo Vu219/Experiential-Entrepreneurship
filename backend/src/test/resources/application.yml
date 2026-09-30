@@ -1,4 +1,6 @@
 spring:
+  flyway:
+    enabled: false
   application:
     name: aima-backend
 
@@ -38,6 +40,8 @@ brevo:
     name: AIMA Test
 
 app:
+  scheduling:
+    enabled: false
   frontend:
     base-url: http://localhost:3000
   oauth2:

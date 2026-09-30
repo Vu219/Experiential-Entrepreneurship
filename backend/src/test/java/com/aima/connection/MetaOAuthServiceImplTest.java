@@ -12,7 +12,6 @@ import com.aima.enums.Platform;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.repository.PlatformAccountRepository;
-import com.aima.repository.PostScheduleRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.ActivityLogService;
 import com.aima.service.MetaApiClient;
@@ -20,6 +19,7 @@ import com.aima.service.MetaOAuthService;
 import com.aima.service.NotificationService;
 import com.aima.service.Impl.MetaOAuthServiceImpl;
 import com.aima.service.PlatformVersionService;
+import com.aima.service.ScheduleHoldService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,7 +45,7 @@ class MetaOAuthServiceImplTest {
     private PlatformVersionService versionService;
     private PlatformAccountRepository accountRepository;
     private UserRepository userRepository;
-    private PostScheduleRepository scheduleRepository;
+    private ScheduleHoldService holdService;
     private NotificationService notificationService;
     @SuppressWarnings("unchecked")
     private final RedisTemplate<String, String> redisTemplate = mock(RedisTemplate.class);
@@ -60,7 +60,7 @@ class MetaOAuthServiceImplTest {
         versionService = mock(PlatformVersionService.class);
         accountRepository = mock(PlatformAccountRepository.class);
         userRepository = mock(UserRepository.class);
-        scheduleRepository = mock(PostScheduleRepository.class);
+        holdService = mock(ScheduleHoldService.class);
         notificationService = mock(NotificationService.class);
         service = newService(null);
 
@@ -80,7 +80,7 @@ class MetaOAuthServiceImplTest {
                 new AimaProperties.OAuth(10, "http://fe/success", "http://fe/error"));
         return new MetaOAuthServiceImpl(mock(ActivityLogService.class), metaApiClient, versionService,
                 accountRepository, userRepository, props, aima, redisTemplate, new ObjectMapper(),
-                scheduleRepository, notificationService);
+                holdService, notificationService);
     }
 
     @Test
@@ -223,10 +223,16 @@ class MetaOAuthServiceImplTest {
         lenient().when(accountRepository.findByParentConnection_IdAndDeletedAtIsNull(root.getId())).thenReturn(List.of(page));
         lenient().when(accountRepository.findByParentConnection_IdAndDeletedAtIsNull(page.getId())).thenReturn(List.of(ig));
         lenient().when(accountRepository.findByParentConnection_IdAndDeletedAtIsNull(ig.getId())).thenReturn(List.of());
-        lenient().when(scheduleRepository.findByPlatformAccount_IdAndStatusAndDeletedAtIsNull(any(), eq(ScheduleStatus.SCHEDULED)))
-                .thenReturn(List.of());
-        lenient().when(scheduleRepository.findByPlatformAccount_IdAndStatusAndDeletedAtIsNull(page.getId(), ScheduleStatus.SCHEDULED))
-                .thenReturn(List.of(s1, s2));
+        // Tạm giữ thật (khóa bài + resolver) được kiểm ở PostScheduleServiceImplTest; ở đây chỉ mô phỏng kết quả.
+        lenient().doAnswer(i -> {
+            java.util.Collection<UUID> ids = i.getArgument(0);
+            if (!ids.contains(page.getId())) {
+                return 0;
+            }
+            s1.setStatus(ScheduleStatus.ON_HOLD);
+            s2.setStatus(ScheduleStatus.ON_HOLD);
+            return 2;
+        }).when(holdService).holdForAccounts(any(), any());
         lenient().when(accountRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         lenient().when(accountRepository.findWithUserByIdAndUserId(root.getId(), owner.getId())).thenReturn(Optional.of(root));
         for (PlatformAccount a : List.of(root, page, ig)) {

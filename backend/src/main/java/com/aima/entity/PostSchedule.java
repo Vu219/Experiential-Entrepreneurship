@@ -5,7 +5,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Schedule for publishing one {@link ContentVersion} to one {@link PlatformAccount}.
@@ -31,7 +33,7 @@ public class PostSchedule extends BaseEntity {
     PlatformAccount platformAccount;
 
     @Column(name = "scheduled_time", nullable = false)
-    LocalDateTime scheduledTime;
+    Instant scheduledTime;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -41,4 +43,10 @@ public class PostSchedule extends BaseEntity {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     Post post;
+
+    /** Các lý do tạm giữ hiện hành (ScheduleHoldService là nơi duy nhất thêm/gỡ). */
+    @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    List<PostScheduleHold> holds = new ArrayList<>();
 }

@@ -1,7 +1,6 @@
 package com.aima.service.Impl;
 
 import com.aima.dto.publish.PublishTarget;
-import com.aima.entity.ContentItem;
 import com.aima.entity.ContentVersion;
 import com.aima.entity.PlatformAccount;
 import com.aima.entity.Post;
@@ -11,22 +10,24 @@ import com.aima.entity.PublishResult;
 import com.aima.enums.ActivityAction;
 import com.aima.enums.ActivityResult;
 import com.aima.enums.ConnectionStatus;
-import com.aima.enums.ContentLifecycle;
+import com.aima.enums.HoldReason;
 import com.aima.enums.NotificationType;
 import com.aima.enums.Platform;
+import com.aima.enums.PostSnapshotState;
 import com.aima.enums.PostStatus;
 import com.aima.enums.PostingJobStatus;
 import com.aima.enums.PublishErrorType;
 import com.aima.enums.ScheduleStatus;
 import com.aima.exception.PublishException;
 import com.aima.mapper.PostPublishMapper;
-import com.aima.repository.PostScheduleRepository;
 import com.aima.repository.PostingJobRepository;
 import com.aima.service.ActivityLogService;
+import com.aima.service.ContentItemStatusResolver;
 import com.aima.service.MetaApiClient;
 import com.aima.service.NotificationService;
 import com.aima.service.PlatformPublisher;
 import com.aima.service.PostPublishWorkerService;
+import com.aima.service.ScheduleHoldService;
 import com.aima.service.SystemLogService;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
@@ -36,7 +37,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -71,25 +72,26 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
     static final String INTERNAL_ERROR_CODE = "INTERNAL";
 
     PostingJobRepository jobRepository;
-    PostScheduleRepository scheduleRepository;
     PostPublishMapper postPublishMapper;
     TransactionTemplate transactionTemplate;
     TransactionTemplate readOnlyTransactionTemplate;
     NotificationService notificationService;
     SystemLogService systemLogService;
     ActivityLogService activityLogService;
+    ContentItemStatusResolver statusResolver;
+    ScheduleHoldService holdService;
     Map<Platform, PlatformPublisher> publishers;
 
     public PostPublishWorkerServiceImpl(PostingJobRepository jobRepository,
-                                        PostScheduleRepository scheduleRepository,
                                         PostPublishMapper postPublishMapper,
                                         TransactionTemplate transactionTemplate,
                                         NotificationService notificationService,
                                         SystemLogService systemLogService,
                                         ActivityLogService activityLogService,
+                                        ContentItemStatusResolver statusResolver,
+                                        ScheduleHoldService holdService,
                                         List<PlatformPublisher> publisherList) {
         this.jobRepository = jobRepository;
-        this.scheduleRepository = scheduleRepository;
         this.postPublishMapper = postPublishMapper;
         this.transactionTemplate = transactionTemplate;
         // Cùng transaction manager, chỉ thêm cờ read-only cho bước nạp dữ liệu trước khi gọi nền tảng.
@@ -98,6 +100,8 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         this.notificationService = notificationService;
         this.systemLogService = systemLogService;
         this.activityLogService = activityLogService;
+        this.statusResolver = statusResolver;
+        this.holdService = holdService;
         this.publishers = publisherList.stream()
                 .collect(Collectors.toUnmodifiableMap(PlatformPublisher::platform, Function.identity()));
     }
@@ -147,11 +151,28 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
             log.error("[PostPublish] Job {} lỗi trước khi claim — giữ nguyên trạng thái để dispatch lại", jobId, e);
             return;
         }
+        UUID accountToHold;
         try {
-            transactionTemplate.executeWithoutResult(tx -> saveFailure(jobId, e));
+            accountToHold = transactionTemplate.execute(tx -> saveFailure(jobId, e));
         } catch (Exception saveError) {
             log.error("[PostPublish] Job {} không ghi được kết quả thất bại — job còn RUNNING tới khi bị vớt",
                     jobId, saveError);
+            return;
+        }
+        holdAccountSchedules(accountToHold);
+    }
+
+    // Tạm giữ lịch của tài khoản (token hết hạn / bị hạn chế) SAU khi kết quả đã commit: đây là nhiều bài
+    // khác nhau, khóa chúng trong transaction đang giữ khóa bài hiện tại dễ deadlock với worker khác.
+    private void holdAccountSchedules(UUID accountId) {
+        if (accountId == null) {
+            return;
+        }
+        try {
+            int held = holdService.holdForAccounts(List.of(accountId), HoldReason.ACCOUNT_ISSUE);
+            log.warn("[PostPublish] Tài khoản {} — chuyển {} lịch chờ sang ON_HOLD", accountId, held);
+        } catch (Exception holdError) {
+            log.error("[PostPublish] Không tạm giữ được lịch chờ của tài khoản {}", accountId, holdError);
         }
     }
 
@@ -165,21 +186,35 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
     }
 
     @Override
-    public void recoverStuck(UUID jobId, LocalDateTime startedBefore) {
-        transactionTemplate.executeWithoutResult(tx -> {
+    public void recoverStuck(UUID jobId, Instant startedBefore) {
+        UUID accountToHold = transactionTemplate.execute(tx -> {
+            lockItemOf(jobId);
             if (jobRepository.releaseStuck(jobId, startedBefore) == 0) {
-                return; // worker vừa ghi kết quả / instance khác đã vớt
+                return null; // worker vừa ghi kết quả / instance khác đã vớt
             }
             // Không biết Meta đã nhận bài hay chưa (worker chết giữa chừng) → coi như lỗi tạm thời
             // giống lỗi mạng (FR-56): retry theo lịch 5/15/30 phút, hết lượt thì FAILED + báo user.
             log.warn("[PostPublish] Job {} kẹt RUNNING từ trước {} — ghi thất bại tạm thời để retry", jobId, startedBefore);
-            saveFailure(jobId, new PublishException(PublishErrorType.TEMPORARY, STUCK_RUNNING_CODE,
+            return saveFailure(jobId, new PublishException(PublishErrorType.TEMPORARY, STUCK_RUNNING_CODE,
                     "Tiến trình đăng bài bị gián đoạn (máy chủ khởi động lại) — hệ thống sẽ thử lại"));
         });
+        holdAccountSchedules(accountToHold);
+    }
+
+    // Thứ tự khóa item → schedule → job: khóa bài của job TRƯỚC khi claim/ghi lịch, post, job.
+    private UUID lockItemOf(UUID jobId) {
+        UUID itemId = jobRepository.findContentItemId(jobId).orElseThrow();
+        statusResolver.lock(itemId);
+        return itemId;
     }
 
     private boolean claimAndMarkPosting(UUID jobId) {
-        int claimed = jobRepository.claim(jobId, LocalDateTime.now());
+        if (jobRepository.findContentItemId(jobId).isEmpty()) {
+            log.warn("[PostPublish] Job {} không tồn tại — bỏ qua", jobId);
+            return false;
+        }
+        UUID itemId = lockItemOf(jobId);
+        int claimed = jobRepository.claim(jobId, Instant.now());
         if (claimed == 0) {
             log.info("[PostPublish] Job {} đã được worker khác xử lý — bỏ qua", jobId);
             return false;
@@ -187,13 +222,11 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         PostingJob job = jobRepository.findById(jobId).orElseThrow();
         Post post = job.getPost();
         PostSchedule schedule = post.getSchedule();
-        ContentVersion version = schedule.getContentVersion();
 
-        // FR-55: Scheduled/Retrying → Posting trên toàn pipeline.
+        // FR-55: Scheduled/Retrying → Posting; trạng thái tổng của bài suy ra từ lịch.
         post.setStatus(PostStatus.POSTING);
         schedule.setStatus(ScheduleStatus.POSTING);
-        version.setStatus(ContentLifecycle.POSTING);
-        version.getContentItem().setStatus(ContentLifecycle.POSTING);
+        statusResolver.refresh(itemId);
         return true;
     }
 
@@ -201,9 +234,14 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
     // lỗi giải mã nổ ở đây (→ INTERNAL) chứ không nổ giữa lúc gọi nền tảng.
     private PublishTarget loadTarget(UUID jobId) {
         PostingJob job = jobRepository.findForPublish(jobId).orElseThrow();
-        PostSchedule schedule = job.getPost().getSchedule();
+        Post post = job.getPost();
+        PostSchedule schedule = post.getSchedule();
         ContentVersion version = schedule.getContentVersion();
-        String message = publisherFor(version.getPlatformName()).buildMessage(version);
+        // Mọi lần thử của chu kỳ dùng snapshot chụp lúc dispatch; Post cũ (UNKNOWN_LEGACY) mới đọc bản hiện tại.
+        PlatformPublisher publisher = publisherFor(version.getPlatformName());
+        String message = post.getSnapshotState() == PostSnapshotState.CAPTURED
+                ? publisher.buildMessage(post.getSnapshotCaption(), post.getSnapshotHashtag())
+                : publisher.buildMessage(version.getFormattedCaption(), version.getFormattedHashtag());
         return postPublishMapper.toPublishTarget(job, schedule.getPlatformAccount(), version, message);
     }
 
@@ -217,8 +255,9 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
     }
 
     private void saveSuccess(UUID jobId, MetaApiClient.MetaPostResult result) {
+        UUID itemId = lockItemOf(jobId);
         PostingJob job = jobRepository.findById(jobId).orElseThrow();
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         job.setStatus(PostingJobStatus.SUCCESS);
         job.setEndTime(now);
 
@@ -232,9 +271,8 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
 
         PostSchedule schedule = post.getSchedule();
         schedule.setStatus(ScheduleStatus.POSTED);
-        ContentVersion version = schedule.getContentVersion();
-        version.setStatus(ContentLifecycle.POSTED);
-        version.getContentItem().setStatus(ContentLifecycle.POSTED);
+        // Hai nền tảng của cùng bài xong cùng lúc: khóa bài tuần tự hoá hai lần ghi, lần sau thấy kết quả lần trước.
+        statusResolver.refresh(itemId);
 
         // FR-75: báo đăng thành công.
         PlatformAccount account = schedule.getPlatformAccount();
@@ -253,10 +291,12 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
                 post.getId(), post.getPlatformName(), result.platformPostId());
     }
 
-    private void saveFailure(UUID jobId, PublishException e) {
+    /** Ghi kết quả thất bại; trả id tài khoản cần tạm giữ các lịch chờ (null = không cần) để làm sau commit. */
+    private UUID saveFailure(UUID jobId, PublishException e) {
+        UUID itemId = lockItemOf(jobId);
         PostingJob job = jobRepository.findById(jobId).orElseThrow();
         job.setStatus(PostingJobStatus.FAILED);
-        job.setEndTime(LocalDateTime.now());
+        job.setEndTime(Instant.now());
         job.setErrorMessage(e.getMessage());
         job.setErrorType(e.getErrorType());
 
@@ -272,20 +312,17 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
             // FR-56: đặt lịch retry — schedule/version/item giữ POSTING (Failed → Retrying → Posted).
             Duration delay = RETRY_DELAYS.get(Math.min(job.getRetryCount(), RETRY_DELAYS.size() - 1));
             PostingJob retryJob = postPublishMapper.toPostingJob(
-                    post, job.getRetryCount() + 1, LocalDateTime.now().plus(delay), PostingJobStatus.RETRYING);
+                    post, job.getRetryCount() + 1, Instant.now().plus(delay), PostingJobStatus.RETRYING);
             post.getPostingJobs().add(retryJob);
             log.info("[PostPublish] Job {} sẽ retry lần {} sau {} phút",
                     jobId, job.getRetryCount() + 1, delay.toMinutes());
-            return;
+            return null;
         }
 
         // Thất bại chung cuộc (BR-07/BR-08): dừng pipeline, lưu lỗi, báo user (FR-57/FR-76).
         PostSchedule schedule = post.getSchedule();
         schedule.setStatus(ScheduleStatus.FAILED);
-        ContentVersion version = schedule.getContentVersion();
-        version.setStatus(ContentLifecycle.FAILED);
-        ContentItem item = version.getContentItem();
-        item.setStatus(ContentLifecycle.FAILED);
+        statusResolver.refresh(itemId);
         log.warn("[PostPublish] Bài {} thất bại chung cuộc trên {} [{}]: {}",
                 post.getId(), post.getPlatformName(), e.getErrorType(), e.getMessage());
         // FR-74: lưu lỗi đăng bài chung cuộc vào log hệ thống cho admin (FR-83/FR-84).
@@ -296,12 +333,11 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         PlatformAccount account = schedule.getPlatformAccount();
         notifyFailure(account, post, e);
 
-        // FR-70 (khớp FR-18b): token hết hạn → tài khoản EXPIRED, các lịch SCHEDULED khác → ON_HOLD.
+        // FR-70 (khớp FR-18b): token hết hạn → tài khoản EXPIRED, các lịch SCHEDULED khác → ON_HOLD (sau commit).
         if (TOKEN_EXPIRED_CODE.equals(e.getResponseCode())) {
             account.setConnectionStatus(ConnectionStatus.EXPIRED);
-            int held = holdWaitingSchedules(account);
-            log.warn("[PostPublish] Token {} hết hạn — chuyển {} lịch chờ sang ON_HOLD",
-                    account.getPlatformName(), held);
+            log.warn("[PostPublish] Token {} hết hạn — tạm giữ các lịch chờ của tài khoản {}",
+                    account.getPlatformName(), account.getId());
             // FR-78: nhắc kết nối lại.
             notificationService.notify(account.getUser(), NotificationType.RECONNECT_NEEDED,
                     "Cần kết nối lại tài khoản",
@@ -309,12 +345,13 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
                             + " đã hết hạn — các bài đã lên lịch được tạm giữ (On Hold). "
                             + "Vui lòng kết nối lại trong phần Cài đặt.",
                     account.getId());
-        } else if (isAccountRestricted(e)) {
+            return account.getId();
+        }
+        if (isAccountRestricted(e)) {
             // FR-73: tài khoản bị nền tảng hạn chế → dừng đăng các lịch còn lại + báo user.
             account.setConnectionStatus(ConnectionStatus.ERROR);
-            int held = holdWaitingSchedules(account);
-            log.warn("[PostPublish] Tài khoản {} ({}) bị hạn chế — chuyển {} lịch chờ sang ON_HOLD",
-                    account.getAccountName(), account.getPlatformName(), held);
+            log.warn("[PostPublish] Tài khoản {} ({}) bị hạn chế — tạm giữ các lịch chờ",
+                    account.getAccountName(), account.getPlatformName());
             notificationService.notify(account.getUser(), NotificationType.RECONNECT_NEEDED,
                     "Tài khoản bị nền tảng hạn chế",
                     account.getPlatformName() + " đang hạn chế tài khoản " + account.getAccountName()
@@ -322,15 +359,9 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
                             + ". Các bài đã lên lịch được tạm giữ (On Hold). Vui lòng xử lý hạn chế"
                             + " trên nền tảng rồi xác thực lại kết nối trong phần Cài đặt.",
                     account.getId());
+            return account.getId();
         }
-    }
-
-    /** Dừng đăng: mọi lịch SCHEDULED của tài khoản → ON_HOLD (kích hoạt lại qua PUT /schedules). */
-    private int holdWaitingSchedules(PlatformAccount account) {
-        List<PostSchedule> waiting = scheduleRepository
-                .findByPlatformAccount_IdAndStatusAndDeletedAtIsNull(account.getId(), ScheduleStatus.SCHEDULED);
-        waiting.forEach(s -> s.setStatus(ScheduleStatus.ON_HOLD));
-        return waiting.size();
+        return null;
     }
 
     // FR-73: Graph 368 = tài khoản bị chặn tạm thời do vi phạm; ngoài ra nhận diện theo message.

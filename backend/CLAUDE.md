@@ -195,10 +195,14 @@ backend/
 >   `scheduler/DailyTrendResearchJob` (2:00 AM daily run),
 >   `mapper/TrendResearchMapper`, `entity/{TrendResearchSession, Trend, ContentIdea}`,
 >   `dto/ai/{ResearchPayload, ResearchResultPayload, TrendPayload, ContentIdeaPayload}`. See §4 "Trend Research".
-> - **Post Scheduling (FR-47..FR-51 + FR-48 golden hours)**: `controller/PostScheduleController`,
->   `service/PostScheduleService` (+`Impl`), `AiServiceClient.goldenHours()`, `mapper/PostScheduleMapper`,
->   `repository/{PostScheduleRepository, ContentVersionRepository}`, entities `PostSchedule`/`Post`/`PostingJob`
->   (pre-existing), `dto/ai/{GoldenHourPayload, GoldenHourResultPayload}`. See §4 "Post Scheduling".
+> - **Post Scheduling (FR-47..FR-51 + FR-48 golden hours)**: `controller/{PostScheduleController, PublishingSettingsController}`,
+>   `service/{PostScheduleService, ScheduleHoldService, PostingDispatchService, PublishingSettingsService,
+>   ContentItemStatusResolver}` (+`Impl`), `AiServiceClient.goldenHours()`, `mapper/PostScheduleMapper`,
+>   `repository/{PostScheduleRepository, PostScheduleHoldRepository, IdempotencyRecordRepository, ContentVersionRepository}`,
+>   entities `PostSchedule`/`PostScheduleHold`/`Post`/`PostingJob`/`IdempotencyRecord`/`UserPublishingSettings`,
+>   `scheduler/HeldScheduleOverdueJob`, `dto/ai/{GoldenHourPayload, GoldenHourResultPayload}`. See §4 "Post Scheduling".
+> - **Maintenance (admin, Phase 6)**: `controller/MaintenanceAdminController` (`/admin/maintenance`, class-level ADMIN) →
+>   `service/ContentStatusRepairService` (+`Impl`). See §4 "Publishing foundation".
 > - **Auto-Posting (FR-52..FR-56, FR-35..FR-37)**: `scheduler/PostingDispatchJob` (quét mỗi phút),
 >   `service/{PostPublishWorkerService, PlatformPublisher}` (+ `Impl/{PostPublishWorkerServiceImpl,
 >   FacebookPublisherImpl, InstagramPublisherImpl, ThreadsPublisherImpl}`), `MetaApiClient.publishPagePost/
@@ -213,7 +217,7 @@ backend/
 >   (+ `Impl/{PaymentServiceImpl, PayOSGatewayClientImpl, MockGatewayClientImpl,
 >   AdminPaymentServiceImpl}`), `scheduler/{PaymentReconcileJob, PaymentExpiryJob,
 >   SubscriptionExpiryJob}`, `util/PayOSSignature`, `config/{PaymentProperties, PayOSProperties,
->   PayOSWebClientConfig, PaymentDataInitializer, StringToMockPaymentOutcomeConverter}`,
+>   PayOSWebClientConfig, StringToMockPaymentOutcomeConverter}`,
 >   `mapper/{PaymentMapper, AdminPaymentMapper, PayOSMapper}`, `dto/payos/*`,
 >   `enums/{PaymentStatus, PaymentGateway, GatewayLinkStatus, PlanSource, MockGatewayScenario,
 >   MockPaymentOutcome}`. See §4 "Thanh toán gói dịch vụ" và tài liệu đầy đủ
@@ -490,9 +494,9 @@ A raw `JwtException` not wrapped in an `AuthenticationException` still falls thr
 The session is **not** revoked (unlike forgot-password reset). The FE verifies the OTP at an intermediate step by reusing public `POST /users/verify-otp` before submitting the new password.
 
 ### Account deletion (30-day grace)
-`POST /users/me/deactivate-request` — set `status = PENDING_DELETE`, `deletionDate = now + 30 days`; rejects if already pending or LOCKED. **Stops publishing immediately**: `PostScheduleService.holdAllForPendingDeletion` moves SCHEDULED schedules to `ON_HOLD` and stops in-flight PENDING/RETRYING posting jobs (their POSTING schedules → `ON_HOLD`); `PostingDispatchJob` queries also exclude `PENDING_DELETE` users; creating/updating schedules is rejected (`SCHEDULING_BLOCKED_PENDING_DELETE` 1942).
-`POST /users/me/restore` — within the window, set `status = ACTIVE`, clear `deletionDate`; rejects if not pending. Held schedules are **not** re-enabled automatically — the message tells the user how many are on hold; they "Kích hoạt lại" (PUT `/schedules/{id}`) themselves.
-**Hard delete** (purge + admin `DELETE /users/{id}`) MUST call `AccountPurgeService.prepareForHardDelete(userId)` in the same transaction before deleting the user: `payments`, `token_credits`, `ai_usage` and the admin "actor" FKs reference `users` **without** cascade, so a bare delete violates FKs. Payments are **anonymized** (`user_id` NULL — column made nullable by `PaymentDataInitializer` — and `raw_payload` cleared), token credits deleted, ai_usage detached (IP/UA cleared), actor FKs nulled, Meta tokens revoked after commit. A user with a PENDING payment cannot be hard-deleted (`USER_HAS_PENDING_PAYMENT` 2099; purge skips and retries next night). Any query that joins `Payment.user` must be a LEFT join or anonymized orders disappear.
+`POST /users/me/deactivate-request` — set `status = PENDING_DELETE`, `deletionDate = now + 30 days`; rejects if already pending or LOCKED. **Stops publishing immediately**: `PostScheduleService.holdAllForPendingDeletion` adds hold reason `USER_PENDING_DELETE` to SCHEDULED/ON_HOLD schedules and stops in-flight PENDING/RETRYING posting jobs (their POSTING schedules → `ON_HOLD`); `PostingDispatchJob` queries also exclude `PENDING_DELETE` users; creating/updating schedules is rejected (`SCHEDULING_BLOCKED_PENDING_DELETE` 1942).
+`POST /users/me/restore` — within the window, set `status = ACTIVE`, clear `deletionDate`; rejects if not pending. `releasePendingDeletionHolds` removes only the `USER_PENDING_DELETE` reason; held schedules are **not** re-enabled automatically — the message tells the user how many are on hold; they "Kích hoạt lại" (PUT `/schedules/{id}`) themselves.
+**Hard delete** (purge + admin `DELETE /users/{id}`) MUST call `AccountPurgeService.prepareForHardDelete(userId)` in the same transaction before deleting the user: `payments`, `token_credits`, `ai_usage` and the admin "actor" FKs reference `users` **without** cascade, so a bare delete violates FKs. Payments are **anonymized** (`user_id` NULL — column nullable in Flyway V1 — and `raw_payload` cleared), token credits deleted, ai_usage detached (IP/UA cleared), actor FKs nulled, Meta tokens revoked after commit. A user with a PENDING payment cannot be hard-deleted (`USER_HAS_PENDING_PAYMENT` 2099; purge skips and retries next night). Any query that joins `Payment.user` must be a LEFT join or anonymized orders disappear.
 A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can restore.
 
 ### File / avatar storage (Supabase Storage)
@@ -573,19 +577,19 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 **Endpoints** (`/content-items`, auth required):
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/content-items` | **FR-87** thư viện nội dung: phân trang, lọc `status`/`platform` (theo version đã định dạng)/`industry`/`fromDate`/`toDate` + tìm `q` trong caption/script (`ContentItemRepository.search`, sentinel rỗng/null = bỏ qua) |
-| DELETE | `/content-items/{itemId}` | **FR-89** chỉ khi DRAFT/GENERATED (`CONTENT_ITEM_NOT_DELETABLE` 1947); xóa mềm item + cascade ContentVersions/MediaAssets |
+| GET | `/content-items` | **FR-87** thư viện nội dung: phân trang, lọc `status` (trạng thái tổng)/`reviewStatus`/`platform` (theo version đã định dạng)/`industry`/`fromDate`/`toDate` + tìm `q` trong caption/script (`ContentItemRepository.search`, sentinel rỗng/null = bỏ qua) |
+| DELETE | `/content-items/{itemId}` | **FR-89** chỉ khi chưa có lịch hiệu lực (DRAFT/GENERATED/FORMATTED) và `reviewStatus` NONE/CHANGES_REQUESTED (`CONTENT_ITEM_NOT_DELETABLE` 1947); xóa mềm item + cascade ContentVersions/MediaAssets |
 | POST | `/content-items/generate` | Khởi động job (strategy phải **ACTIVE**, BR-03); trả job `PENDING` ngay |
 | GET | `/content-items/jobs/{jobId}` | Poll trạng thái job — FE gọi tới khi `SUCCESS`/`FAILED` |
 | GET | `/content-items/{itemId}` | Xem một content item (scoped theo brand profile của user) — `ContentItemController` |
-| PUT | `/content-items/{itemId}` | **FR-33** sửa thủ công (partial: script/caption/hashtags/cta/mediaPrompt); chỉ khi status DRAFT/GENERATED/NEED_REVIEW/APPROVED; sửa item APPROVED → tự quay về NEED_REVIEW |
-| PATCH | `/content-items/{itemId}/status` | **FR-34** review flow; transition hợp lệ duy nhất: GENERATED→NEED_REVIEW, NEED_REVIEW→APPROVED |
-| POST | `/content-items/{itemId}/format` | **FR-40..FR-46** job async gọi AI `/format` → một `ContentVersion`/nền tảng (status FORMATTED, item → FORMATTED); item phải GENERATED/APPROVED; format lại **xóa mềm** bản cũ cùng nền tảng |
+| PUT | `/content-items/{itemId}` | **FR-33** sửa thủ công (partial: script/caption/hashtags/cta/mediaPrompt); chỉ khi trạng thái tổng DRAFT/GENERATED/FORMATTED/FAILED/PARTIALLY_POSTED; sửa bài `reviewStatus` APPROVED → tự về NEED_REVIEW |
+| PATCH | `/content-items/{itemId}/review` | **FR-34** đổi `reviewStatus`: NONE/CHANGES_REQUESTED→NEED_REVIEW, NEED_REVIEW→APPROVED/CHANGES_REQUESTED; gửi lại đúng trạng thái hiện tại = no-op (200) |
+| POST | `/content-items/{itemId}/format` | **FR-40..FR-46** job async gọi AI `/format` → một `ContentVersion`/nền tảng (status FORMATTED); được ở mọi trạng thái duyệt/lịch TRỪ nền tảng đang POSTING/POSTED (`CONTENT_ITEM_NOT_FORMATTABLE` 1925); format lại **xóa mềm** bản cũ cùng nền tảng và bản mới nhận lại lịch chưa đăng của bản cũ; kết quả về muộn so với bản đã sửa (`revision`) / đang đăng bị bỏ (2137) |
 | GET | `/content-items/format-jobs/{jobId}` | Poll job định dạng tới `SUCCESS`/`FAILED`; kèm các version hiện hành của item |
 
 **Job status** — `GenerationJobStatus`: `PENDING → RUNNING → SUCCESS | FAILED` (`ContentGenerationJob.status`).
 
-**Item status** — `ContentLifecycle` theo state machine WORKFLOWS.md, có `NEED_REVIEW`/`APPROVED` (review flow `Generated → Need Review → Approved`). `ContentItemService`/`Impl` giữ map transition; đừng thêm status ngoài WORKFLOWS.md.
+**Trạng thái (Phase 1 D2, 2026-09-30)** — ba chiều tách nhau: `ContentItemStatus` (trạng thái TỔNG, suy ra: DRAFT/GENERATED/FORMATTED/SCHEDULED/ON_HOLD/POSTING/POSTED/PARTIALLY_POSTED/FAILED), `ReviewStatus` trên `content_items.review_status` (NONE/NEED_REVIEW/APPROVED/CHANGES_REQUESTED, map transition ở `ContentItemServiceImpl.REVIEW_TRANSITIONS`), `ContentVersionStatus` (trạng thái SẢN XUẤT của bản: DRAFT/GENERATED/FORMATTED — lịch không đổi nó). **`ContentItemStatusResolver` là writer DUY NHẤT của trạng thái tổng**: `ContentItem` không có `setStatus`, chỉ `applyResolvedStatus` (test kiến trúc trong `ContentItemStatusResolverTest`). Quy tắc: có lịch POSTING → POSTING; có POSTED → POSTED nếu mọi bản đã đăng, không thì PARTIALLY_POSTED; chưa đăng: FAILED > ON_HOLD > SCHEDULED; không lịch hiệu lực: mọi bản FORMATTED → FORMATTED, có nội dung → GENERATED, còn lại DRAFT (bản xóa mềm và lịch CANCELLED không tính). Mọi luồng đổi version/lịch/job phải `lock(itemId)` TRƯỚC (thứ tự item → version → schedule → job) rồi `refresh(itemId)` sau — xem Javadoc của resolver. Analytics không đổi trạng thái.
 
 **Async worker pattern (NFR-04 + rule #24)** — the reference implementation for background AI/posting tasks:
 - `ContentGenerationServiceImpl.startGeneration` tạo job (`PENDING`) qua mapper rồi **dispatch worker sau khi transaction commit** (`TransactionSynchronization.afterCommit`) — tránh `@Async` đọc job trước khi row được ghi (cùng mẫu `UserServiceImpl.scheduleOldAvatarDeletion`).
@@ -600,19 +604,19 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 - `AiServiceClient`/`Impl` là **wrapper duy nhất** gọi AI service: `WebClient` `aiServiceWebClient` (base `ai-service.base-url`, timeout `ai-service.timeout-seconds`) → `POST /generate`; hết timeout → `AppException(ErrorCode.AI_TIMEOUT)`; 502 "cả chuỗi model thất bại" mang `detail.error_code` → ErrorCode **cùng tên** (`chainErrorCode`: `AI_PROVIDER_OVERLOADED` 1908, `AI_QUOTA_EXHAUSTED` 1909, `AI_TIMEOUT` 1907, `AI_BAD_REQUEST` 1954, `AI_UNAVAILABLE` 1955); body khác / mã lạ → `AI_SERVICE_ERROR`. FE ánh xạ tên mã → câu tiếng Việt ở `frontend/src/api/aiErrorMessages.ts` — thêm mã mới thì thêm cả ba nơi (ai/src/llm.py, ErrorCode, file FE). Worker lưu tên ErrorCode vào `ContentGenerationJob.errorCode` (FE map ra thông điệp). Retry/fallback giữa các model do AI service tự quản lý (xem `ai/CLAUDE.md` §4) — backend KHÔNG retry lời gọi AI.
 - **Chuỗi fallback nhiều model (2026-09-29)** — `ai_task_routing_fallback` (`entity/AiTaskRoutingFallback`: routing_id, model_id, position; unique (routing, position) + (routing, model)) là chuỗi dự phòng có thứ tự của `AiTaskRouting.fallbacks`; đọc qua `AiTaskRouting.fallbackChain()` (MỘT nguồn cho runtime/admin; chưa có dòng nào → cột legacy). Cột `fallback_model_id` **legacy, luôn = position 0** (backend cũ rollback vẫn đúng); `AiConfigDataInitializer.migrateLegacyFallbacks` chuyển dữ liệu cũ thành position 0 (idempotent). `PUT /admin/ai/routing/{id}` nhận `fallbackModelIds` (client cũ gửi `fallbackModelId` vẫn chạy) — trùng / chứa model chính → 2047, > 5 model (`MAX_FALLBACKS`) → 2048; thay cả chuỗi = `clear()` + `saveAndFlush` rồi mới chèn (Hibernate chạy INSERT trước DELETE — đổi thứ tự sẽ vỡ unique). Runtime (`AiRuntimeConfigServiceImpl`) gửi `llm_config.fallbacks` theo position, bỏ model tắt/xoá/provider tắt/thiếu key; `LlmConfigPayload.fallback` luôn = `fallbacks[0]` — chỉ dựng qua `AiConfigMapper.toLlmConfig(primary, fallbacks)`. Model nằm trong chuỗi không xoá được (2015).
 - **Usage theo model THỰC SỰ trả lời** — `AiUsageServiceImpl` lấy attempt `"ok"` cuối của `llm_attempts`: `ai_usage.provider_code/model_code` = model đó (chi phí + hệ số quy đổi tính theo nó, đơn giá qua `AiRuntimeConfigService.resolveModel`), cột mới `routed_model_code` = model chính theo routing (null = đường env). Khác nhau ⇔ dự phòng đã trả lời; trang "Sử dụng & chi phí" ghi "dự phòng cho …". Có breakdown input/output thì cost tính riêng từng chiều. Event lỗi / AI service cũ (không có `llm_attempts`) → model chính như trước.
-- **Kiểm tra kết nối + Free Tier (2026-09-29)** — AI service chỉ LIỆT KÊ model (không generate); `AiTestStatus` = OK / INVALID_KEY / RATE_LIMITED / DAILY_QUOTA_EXHAUSTED / PROVIDER_OVERLOADED / NETWORK_ERROR / FAILED (+ SUCCESS legacy = OK); `fromAiService` đọc `status`, AI service cũ chỉ có `success` → OK/FAILED. Cột `last_test_status` nới varchar(30) ở `AiConfigDataInitializer`, CHECK constraint đồng bộ qua `PaymentDataInitializer.ENUM_COLUMNS`. `ai_providers.free_tier_detected_at`: đặt lần đầu gặp 429 quotaId "FreeTier" (từ test-connection, hoặc `AiModelHealthServiceImpl.record` → `AiProviderRepository.markFreeTierDetected`, no-op khi đã đặt); `reset-model-health` xoá luôn cờ này.
+- **Kiểm tra kết nối + Free Tier (2026-09-29)** — AI service chỉ LIỆT KÊ model (không generate); `AiTestStatus` = OK / INVALID_KEY / RATE_LIMITED / DAILY_QUOTA_EXHAUSTED / PROVIDER_OVERLOADED / NETWORK_ERROR / FAILED (+ SUCCESS legacy = OK); `fromAiService` đọc `status`, AI service cũ chỉ có `success` → OK/FAILED. Cột `last_test_status` varchar(30) và CHECK constraint được quản lý bởi Flyway; initializer chỉ seed dữ liệu. `ai_providers.free_tier_detected_at`: đặt lần đầu gặp 429 quotaId "FreeTier" (từ test-connection, hoặc `AiModelHealthServiceImpl.record` → `AiProviderRepository.markFreeTierDetected`, no-op khi đã đặt); `reset-model-health` xoá luôn cờ này.
 - **Circuit breaker model (2026-09-29)** — `AiModelHealthService`/`Impl` (Redis `ai:model-health:{provider}:{model}`, TTL = tới `cooldown_until`): `AiServiceClientImpl.post` ghi nhận `llm_attempts` (response thành công qua `TokenAccountedPayload.getLlmAttempts()`, 502 qua `AiErrorResponsePayload`), `applyRouting` bỏ model đang nghỉ (`filterAvailable` trả BẢN SAO — không sửa config cache của `AiRuntimeConfigService`). **Fail-open bắt buộc**: Redis lỗi → mọi model khả dụng + WARN + bỏ qua Redis 30s; chỉ thao tác admin reset báo lỗi (2046). Lưu ý: xác thực JWT cũng cần Redis, nên Redis sập hẳn thì app vẫn hỏng ở tầng auth — fail-open ở đây chỉ bảo vệ luồng gọi AI.
 
 **Mapping (rule #18 — không hand-build entity/DTO):**
 - `ContentGenerationJobMapper.toContentGenerationJob(request)` — create job (contentStrategy do service set; `status` giữ default `PENDING`).
-- `ContentItemMapper.toContentItem(result)` — AI result → `ContentItem`: gộp `VideoScript` thành text, `hashtags` → chuỗi CSV, `status = GENERATED`; `brandProfile` do worker set sau khi map.
+- `ContentItemMapper.toContentItem(result)` — AI result → `ContentItem`: gộp `VideoScript` thành text, `hashtags` → chuỗi CSV; `brandProfile` do worker set sau khi map; trạng thái tổng do `ContentItemStatusResolver.initialize` đặt (entity không có setter).
 - `AiContentMapper` — `BrandProfile`/`ContentStrategy` → payload gửi AI (enum→tên, list→CSV, ghép tần suất). Một mapper cho *concern* AI-integration (không phải một mapper mỗi DTO).
 
 **MVP scope** — AI chỉ sinh **media prompt** (text mô tả), **không** tạo ảnh/video (FR-29).
 
-**Platform Formatting (FR-40..FR-46)** — cùng mẫu async: `ContentFormattingService`/`Impl` (guard GENERATED/APPROVED) → `ContentFormattingWorkerService`/`Impl` (`@Async("contentFormattingExecutor")`) → `AiServiceClient.format()` → `POST {ai}/format` (payload `dto/ai/{FormatPayload, FormatContentPayload}` mirror `FormatContentInput` phía AI — script phẳng như entity, không cần brand_voice_check); kết quả `dto/ai/{FormatResultPayload, ContentVersionPayload}` → `ContentFormattingMapper` (uses ContentItemMapper + TrendResearchMapper) → `ContentVersion` (status FORMATTED) gắn vào item qua cascade; bản cũ cùng nền tảng bị xóa mềm; entity job `ContentFormattingJob` (platforms CSV, `GenerationJobStatus`).
+**Platform Formatting (FR-40..FR-46)** — cùng mẫu async: `ContentFormattingService`/`Impl` (guard: nền tảng chưa POSTING/POSTED) → `ContentFormattingWorkerService`/`Impl` (`@Async("contentFormattingExecutor")`) → `AiServiceClient.format()` → `POST {ai}/format` (payload `dto/ai/{FormatPayload, FormatContentPayload}` mirror `FormatContentInput` phía AI — script phẳng như entity, không cần brand_voice_check); kết quả `dto/ai/{FormatResultPayload, ContentVersionPayload}` → `ContentFormattingMapper` (uses ContentItemMapper + TrendResearchMapper) → `ContentVersion` (status FORMATTED) gắn vào item qua cascade; bản cũ cùng nền tảng bị xóa mềm; entity job `ContentFormattingJob` (platforms CSV, `GenerationJobStatus`).
 
-**ErrorCodes** 1900–1907: `STRATEGY_ID_REQUIRED`, `GENERATION_PLATFORM_REQUIRED`, `STRATEGY_NOT_ACTIVE`, `CONTENT_GENERATION_JOB_NOT_FOUND`, `AI_SERVICE_ERROR`, (1905/1906 content item), `AI_TIMEOUT` 1907; lỗi chuỗi model `AI_PROVIDER_OVERLOADED` 1908, `AI_QUOTA_EXHAUSTED` 1909, `AI_BAD_REQUEST` 1954, `AI_UNAVAILABLE` 1955; `IDEMPOTENCY_KEY_INVALID` 1944; cấu hình AI `AI_ROUTING_FALLBACK_INVALID` 2047, `AI_ROUTING_FALLBACK_TOO_MANY` 2048; 1920–1923 (content item edit/review): `CONTENT_ITEM_NOT_FOUND`, `CONTENT_ITEM_NOT_EDITABLE`, `INVALID_CONTENT_STATUS_TRANSITION`, `CONTENT_STATUS_REQUIRED`; 1924–1926 (formatting): `FORMAT_PLATFORMS_REQUIRED`, `CONTENT_ITEM_NOT_FORMATTABLE`, `CONTENT_FORMATTING_JOB_NOT_FOUND`.
+**ErrorCodes** 1900–1907: `STRATEGY_ID_REQUIRED`, `GENERATION_PLATFORM_REQUIRED`, `STRATEGY_NOT_ACTIVE`, `CONTENT_GENERATION_JOB_NOT_FOUND`, `AI_SERVICE_ERROR`, (1905/1906 content item), `AI_TIMEOUT` 1907; lỗi chuỗi model `AI_PROVIDER_OVERLOADED` 1908, `AI_QUOTA_EXHAUSTED` 1909, `AI_BAD_REQUEST` 1954, `AI_UNAVAILABLE` 1955; `IDEMPOTENCY_KEY_INVALID` 1944; cấu hình AI `AI_ROUTING_FALLBACK_INVALID` 2047, `AI_ROUTING_FALLBACK_TOO_MANY` 2048; 1920–1923 (content item edit/review): `CONTENT_ITEM_NOT_FOUND`, `CONTENT_ITEM_NOT_EDITABLE`, `INVALID_CONTENT_STATUS_TRANSITION` (chuyển `reviewStatus` sai), `CONTENT_STATUS_REQUIRED`; 1924–1926 (formatting): `FORMAT_PLATFORMS_REQUIRED`, `CONTENT_ITEM_NOT_FORMATTABLE`, `CONTENT_FORMATTING_JOB_NOT_FOUND`.
 
 ### Trend Research (AI service) — FR-19..FR-23, NFR-04 async
 > "Research ngay": tạo `TrendResearchSession` (PENDING) trả về ngay, worker nền gọi AI `POST /research`
@@ -643,7 +647,7 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 
 ### Post Scheduling — FR-47..FR-51 (+ FR-48 golden hours)
 > Lên lịch đăng một `ContentVersion` đã FORMATTED lên một `PlatformAccount` ACTIVE cùng nền tảng (BR-05).
-> CRUD đồng bộ (không phải async job — việc đăng bài thật là FR-52..FR-56, chưa làm). Slice:
+> CRUD đồng bộ; việc đăng thật chạy nền (xem "Auto-Posting"). Slice:
 > `controller/PostScheduleController` → `service/PostScheduleService` (+`Impl`) → `mapper/PostScheduleMapper`
 > (uses `ContentFormattingMapper` + `TrendResearchMapper.parsePlatform`);
 > `repository/{PostScheduleRepository, ContentVersionRepository}`.
@@ -651,24 +655,36 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 **Endpoints** (`/schedules`, auth required):
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/schedules` | **FR-47** tạo lịch: version phải FORMATTED (→ version+item chuyển SCHEDULED), account phải ACTIVE và cùng `platformName` với version, `scheduledTime` phải `@Future` |
+| POST | `/schedules` | **FR-47** tạo lịch: version phải FORMATTED, account ACTIVE cùng `platformName` (Facebook chỉ PAGE — 1943), `scheduledTime` `@Future` có offset; mode SCHEDULE/NOW; header `Idempotency-Key` optional. Instagram bị chặn (2130), brand voice dưới ngưỡng khi bật chặn (2132); bắt buộc duyệt + bài chưa APPROVED → tạo ON_HOLD (`PENDING_REVIEW`). Response kèm `warnings` trùng lịch (chỉ cảnh báo) |
+| POST | `/schedules/batch` | 1–20 dòng (2142), mỗi dòng `clientRowId` (2143) + `idempotencyKey` riêng; **mỗi dòng một transaction** (`TransactionTemplate`), kết quả theo dòng `code`/`message`/`schedule`/`jobId`/`warnings` — dòng lỗi không làm hỏng dòng khác |
+| POST | `/schedules/{id}/publish-now` | Đăng ngay qua `PostingDispatchService` (cùng đường với dispatcher); chưa duyệt khi bắt buộc duyệt → 2138, còn lý do giữ → 2140 |
+| GET | `/schedules/suggested-slots?accountId=&count=` | Khung giờ vàng theo múi giờ đăng của user, bỏ giờ trong cửa sổ trùng lịch; không giữ chỗ; `count` 1–20 (2141) |
 | GET | `/schedules` | **FR-49** hàng đợi: sắp theo `scheduledTime` ASC, filter optional `?status=&platform=` (`status=SCHEDULED` = queue sắp đăng) |
 | GET | `/schedules/golden-hours?platform=` | **FR-48** gợi ý khung giờ vàng — gọi AI `POST /golden-hours`; chưa gửi analytics (đợi FR-59) nên AI trả mặc định nền tảng (`data_driven=false`) |
 | GET | `/schedules/{id}` | Xem một lịch (kèm version + account đích) |
-| PUT | `/schedules/{id}` | **FR-50** dời giờ — chỉ khi SCHEDULED/ON_HOLD |
+| PUT | `/schedules/{id}` | **FR-50** dời giờ và/hoặc đổi `platformAccountId` cùng nền tảng (gỡ ACCOUNT_REMOVED/ACCOUNT_ISSUE) — chỉ khi SCHEDULED/ON_HOLD; ON_HOLD hết lý do + giờ mới ở tương lai → SCHEDULED |
 | DELETE | `/schedules/{id}` | **FR-51** hủy — chỉ bài chưa đăng (SCHEDULED/ON_HOLD/FAILED) → CANCELLED |
 
 **Ràng buộc 1-1 version↔schedule** — cột `content_version_id` trên `post_schedules` là **unique thật** (không partial), nên hủy lịch **không xóa mềm** bản ghi: status → `CANCELLED` và bản ghi được **tái sử dụng** khi user lên lịch lại cùng version (`create` tìm schedule chưa xóa của version: đang active → `SCHEDULE_ALREADY_EXISTS`; CANCELLED → cập nhật lại account/giờ/status). Ownership scope qua `platformAccount.user` (tạo mới đã đảm bảo version + account cùng user).
 
-**Trạng thái (state machine WORKFLOWS.md)** — tạo lịch: version + item → `SCHEDULED`. Hủy: version → `FORMATTED` (lên lịch lại được, FR-39/FR-58); item chỉ hạ về `FORMATTED` khi **không còn** schedule nào khác của item ở SCHEDULED/ON_HOLD/POSTING/POSTED. `ScheduleStatus`: SCHEDULED/ON_HOLD/POSTING/POSTED/FAILED/CANCELLED (POSTING/POSTED/FAILED do auto-posting FR-52+ cập nhật sau).
+**Trạng thái** — lịch KHÔNG đổi trạng thái sản xuất của bản (vẫn FORMATTED) và không đụng duyệt; tạo/dời/hủy lịch khóa bài rồi để resolver tính lại trạng thái tổng. Hủy một hay mọi lịch giữ nguyên `reviewStatus`. `ScheduleStatus`: SCHEDULED/ON_HOLD/POSTING/POSTED/FAILED/CANCELLED.
+
+**Tạm giữ nhiều lý do (Phase 2)** — bảng `post_schedule_holds` (unique lịch + lý do), `HoldReason`: ACCOUNT_ISSUE (token hết hạn/thu hồi/lỗi, mã 190), ACCOUNT_REMOVED (ngắt kết nối, Meta deauthorize/data deletion), PENDING_REVIEW, USER_PENDING_DELETE, UNSUPPORTED_MEDIA (IG). **`ScheduleHoldService` là nơi DUY NHẤT thêm/gỡ lý do** (`hold`, `release`, `holdForAccounts`, `releaseForAccounts` — khóa các bài theo thứ tự id trước). Mỗi luồng chỉ gỡ lý do của mình (kết nối lại/xác thực lại chỉ gỡ ACCOUNT_ISSUE). Lịch về SCHEDULED chỉ khi hết lý do VÀ giờ còn ở tương lai; quá giờ → vẫn ON_HOLD, response `overdue=true`, `HeldScheduleOverdueJob` (15 phút, ShedLock) nhắc MỘT lần (`SCHEDULE_OVERDUE`, `notifications.dedupe_key`). Khôi phục tài khoản gỡ USER_PENDING_DELETE nhưng không tự đăng lại. Response `holdReasons` sắp theo tên.
+
+**Policy đăng bài** — `user_publishing_settings` (GET/PUT `/users/me/publishing-settings`, `PublishingSettingsService`): `timezone` IANA (2133), `requireApproval` (bật/tắt áp lại PENDING_REVIEW cho mọi lịch chưa đăng), `conflictWindowMinutes` (2134), `brandVoiceBlockingEnabled` + `brandVoiceThreshold` 0–100 (2135/2136).
+
+**Idempotency (Phase 3)** — Flyway V5 `idempotency_records` (unique chủ + `IdempotencyOperation` + key; FK user ON DELETE CASCADE). Chỉ lưu dòng THÀNH CÔNG kèm SHA-256 payload: cùng key + cùng payload → trả lại lịch cũ (replay), khác payload → 2139; request song song cùng key chỉ tạo một lịch (unique + bắt vi phạm trong transaction dòng).
+
+**Sửa bài đã lên lịch** — chỉ bản đang POSTING bị khóa (2131); sửa no-op không đổi `revision` và không bỏ duyệt; sửa thật tăng `revision`, APPROVED → NEED_REVIEW, policy bắt buộc duyệt → giữ lịch PENDING_REVIEW.
 
 **FR-48** — `suggestGoldenHours` **không mở transaction** (rule #24, chỉ gọi HTTP): `GoldenHourPayload{platform}` (field `posts` cố tình bỏ — pydantic default rỗng; bổ sung khi có FR-59) → `GoldenHourResultPayload` → `GoldenHourResponse` (`parsePlatform` chuẩn hoá chuỗi AI về enum).
 
-**ErrorCodes** 1930–1941: `SCHEDULE_CONTENT_VERSION_REQUIRED`, `SCHEDULE_PLATFORM_ACCOUNT_REQUIRED`, `SCHEDULE_TIME_REQUIRED`, `SCHEDULE_TIME_IN_PAST`, `CONTENT_VERSION_NOT_FOUND`, `CONTENT_VERSION_NOT_SCHEDULABLE`, `CONNECTION_NOT_ACTIVE`, `SCHEDULE_PLATFORM_MISMATCH`, `SCHEDULE_ALREADY_EXISTS`, `SCHEDULE_NOT_FOUND`, `SCHEDULE_NOT_EDITABLE`, `SCHEDULE_NOT_CANCELLABLE`.
+**ErrorCodes** 1930–1941: `SCHEDULE_CONTENT_VERSION_REQUIRED`, `SCHEDULE_PLATFORM_ACCOUNT_REQUIRED`, `SCHEDULE_TIME_REQUIRED`, `SCHEDULE_TIME_IN_PAST`, `CONTENT_VERSION_NOT_FOUND`, `CONTENT_VERSION_NOT_SCHEDULABLE`, `CONNECTION_NOT_ACTIVE`, `SCHEDULE_PLATFORM_MISMATCH`, `SCHEDULE_ALREADY_EXISTS`, `SCHEDULE_NOT_FOUND`, `SCHEDULE_NOT_EDITABLE`, `SCHEDULE_NOT_CANCELLABLE`; 2130–2143 (wizard ↔ lịch): `SCHEDULE_PLATFORM_UNSUPPORTED`, `CONTENT_VERSION_POSTING_LOCKED`, `BRAND_VOICE_BELOW_THRESHOLD`, `PUBLISHING_TIMEZONE_INVALID`, `PUBLISHING_CONFLICT_WINDOW_INVALID`, `BRAND_VOICE_THRESHOLD_INVALID`, `PUBLISHING_SETTING_REQUIRED`, `CONTENT_CHANGED_DURING_FORMAT`, `REVIEW_REQUIRED_BEFORE_PUBLISH`, `IDEMPOTENCY_KEY_REUSED`, `SCHEDULE_HELD_CANNOT_PUBLISH`, `SUGGESTED_SLOT_COUNT_INVALID`, `SCHEDULE_BATCH_INVALID`, `SCHEDULE_ROW_ID_REQUIRED`; 2144–2145 (job sửa dữ liệu): `REPAIR_PLAN_CHANGED`, `REPAIR_PLAN_TOKEN_REQUIRED`.
 
 ### Auto-Posting — FR-52..FR-56 (+ FR-35..FR-37 xử lý lỗi/vi phạm)
-> Không có endpoint — chạy hoàn toàn nền: `PostingDispatchJob` (`@Scheduled fixedDelay=60s`) quét lịch
-> đến hạn → tạo `Post` + `PostingJob` (transaction ngắn) → dispatch `PostPublishWorkerService.process(jobId)`
+> Chạy nền: `PostingDispatchJob` (`@Scheduled fixedDelay=60s`) quét lịch đến hạn → `PostingDispatchService`
+> (dùng chung với `POST /schedules/{id}/publish-now`) claim lịch + chụp snapshot + tạo `Post` + `PostingJob` trong
+> MỘT transaction ngắn → dispatch `PostPublishWorkerService.process(jobId)` sau commit
 > (`@Async("postPublishExecutor")`). Cùng tick còn: chạy các retry đến hạn và "vớt" job PENDING > 5 phút
 > (mất dispatch do crash). Mỗi item lỗi chỉ log + bỏ qua (resilient, rule #27).
 
@@ -683,7 +699,8 @@ chưa từng chạy được. Test chặn hồi quy: `PostPublishWorkerIntegrati
 - `FacebookPublisherImpl` — chỉ account type **PAGE** (Graph không cho đăng feed cá nhân; kênh USER → PERMANENT `ACCOUNT_TYPE`, không gọi Meta; tạo lịch vào USER bị chặn `SCHEDULE_TARGET_NOT_PAGE` 1943) → `MetaApiClient.publishPagePost` (`POST /{v}/{page-id}/feed`, form body, page token).
 - `ThreadsPublisherImpl` — `MetaApiClient.publishThreadsPost`: container `media_type=TEXT` → `threads_publish`.
 - `InstagramPublisherImpl` — **luôn** ném lỗi PERMANENT `IG_MEDIA_REQUIRED`: IG Content Publishing API bắt buộc image/video, MVP chỉ sinh media prompt (FR-29). Đây là hành vi đúng, không phải stub tạm.
-- Nội dung bài = `buildMessage(version)` (default method): formattedCaption + "\n\n" + hashtags CSV→"#a #b".
+- Nội dung bài = snapshot trên `Post` (`posts.snapshot_*`, chụp bởi `PostPublishMapper.captureSnapshot` lúc claim — formattedCaption + "\n\n" + hashtags CSV→"#a #b"); retry dùng snapshot, KHÔNG đọc bản đang sửa. Post trước V4 = `UNKNOWN_LEGACY` → dựng lại từ version như cũ.
+- **Chốt chặn dispatcher**: lịch IG (UNSUPPORTED_MEDIA), tài khoản đã xóa (ACCOUNT_REMOVED) / không ACTIVE (ACCOUNT_ISSUE), bài chưa duyệt khi bắt buộc duyệt (PENDING_REVIEW) → thêm lý do giữ (ON_HOLD) thay vì đăng. User PENDING_DELETE bị loại ngay trong truy vấn quét.
 
 **Phân loại lỗi (FR-37)** — publish dùng `postFormForPublish` trong `MetaApiClientImpl`: KHÔNG gộp thành `META_API_ERROR`
 mà parse body `{"error":{code,message,...}}` và ném **`PublishException`** (`exception/`, KHÔNG dùng cho luồng HTTP) mang
@@ -699,23 +716,23 @@ job còn kẹt thì `recoverStuck` vớt; `AsyncConfig` có `AsyncUncaughtExcept
 **Worker & state machine (FR-55)** — claim **nguyên tử** qua `PostingJobRepository.claim` (`UPDATE ... SET RUNNING WHERE status IN
 (PENDING, RETRYING)`, đổi được 0 row = worker khác đã nhận — chống double-publish). Tx1: claim + cả pipeline (schedule/post/version/item)
 → POSTING; gọi nền tảng **ngoài** transaction; tx2 success: job SUCCESS, post POSTED + `platformPostId` + `publishedAt` + `PublishResult`
-thành công, schedule/version/item → POSTED; tx3 failure: `PublishResult` lưu code+message gốc, job FAILED + `errorType`.
+thành công, schedule → POSTED; tx3 failure: `PublishResult` lưu code+message gốc, job FAILED + `errorType`. Mỗi tx khóa bài trước (`jobRepository.findContentItemId` → `statusResolver.lock`) và tính lại trạng thái tổng — hai nền tảng của cùng bài xong đồng thời không ghi đè nhau (PARTIALLY_POSTED/POSTED/FAILED đúng bất kể thứ tự).
 
 **Retry (FR-56, BR-07/BR-08)** — chỉ `TEMPORARY` và `retryCount < 3`: tạo `PostingJob` mới status `RETRYING`, `retryCount+1`,
-`nextRetryAt = now + {5,15,30} phút` (theo retryCount của lần fail); schedule/version/item giữ POSTING trong chu kỳ retry.
-Hết retry hoặc lỗi POLICY_VIOLATION/PERMANENT → schedule/version/item FAILED + notification `POST_FAILED` (FR-57/FR-38 — title riêng
+`nextRetryAt = now + {5,15,30} phút` (theo retryCount của lần fail); lịch giữ POSTING trong chu kỳ retry (bài vì vậy vẫn POSTING); retry dùng snapshot của Post.
+Hết retry hoặc lỗi POLICY_VIOLATION/PERMANENT → lịch FAILED (bài FAILED hoặc PARTIALLY_POSTED theo resolver) + notification `POST_FAILED` (FR-57/FR-38 — title riêng
 cho vi phạm chính sách, message gồm nền tảng + mã/lý do gốc + bước tiếp theo). Mã **190** (token hết hạn) → account `EXPIRED` + mọi lịch
-SCHEDULED của account → `ON_HOLD` (FR-70, khớp FR-18b) + notification `RECONNECT_NEEDED`. `PostingJob` có 2 cột mới: `error_type`,
+SCHEDULED của account → `ON_HOLD` với lý do ACCOUNT_ISSUE (FR-70, khớp FR-18b; chạy sau commit của kết quả job) + notification `RECONNECT_NEEDED`. `PostingJob` có 2 cột mới: `error_type`,
 `next_retry_at`. Lịch FAILED bị user hủy rồi lên lịch lại sẽ **tái sử dụng Post** cũ (unique `schedule_id`), mở chu kỳ mới retryCount=0.
-Lịch `ON_HOLD` được kích hoạt lại bằng `PUT /schedules/{id}` khi account đã ACTIVE trở lại (tự về SCHEDULED).
+Lịch `ON_HOLD` được kích hoạt lại bằng `PUT /schedules/{id}` khi đã hết lý do giữ (tự về SCHEDULED nếu giờ mới ở tương lai).
 
 ### Performance Analysis — FR-59..FR-62 (BR-09)
 > `AnalyticsCollectionJob` (`@Scheduled fixedDelay=1h`): với mỗi mốc **24/48/168h**, query bài `POSTED`
 > đã qua mốc mà **chưa có** bản ghi `PostAnalytics` của mốc đó (`PostRepository.findDueForAnalytics`,
 > "not exists" theo `milestone_hours`) → `MetaApiClient.getPostMetrics` (HTTP ngoài transaction, rule #24)
 > → lưu snapshot qua `PostAnalyticsMapper.toAnalytics` (cascade từ `Post`). Bài lỗi chỉ log + bỏ qua,
-> lần quét sau tự thử lại (idempotent nhờ query "chưa có mốc"). Snapshot đầu tiên chuyển version/item
-> `POSTED → ANALYZING` (state machine).
+> lần quét sau tự thử lại (idempotent nhờ query "chưa có mốc"). Thu analytics KHÔNG đổi trạng thái
+> lịch/bài (Phase 1): bài PARTIALLY_POSTED/FAILED vẫn được thu số liệu cho Post đã đăng.
 
 **Metric theo nền tảng** — FB Page post: `?fields=likes.summary(true),comments.summary(true),shares` + views
 (`/insights?metric=post_impressions`) **best-effort** (cần `read_insights`, thiếu quyền → views null); Threads:
@@ -731,7 +748,8 @@ mỗi bài kèm đủ snapshot các mốc — FR-61/FR-62) • GET `/analytics/p
 > cho worker/scheduler — **best-effort**: lỗi chỉ log, không ném ra (không phá luồng đăng bài/tạo nội dung).
 > Entity `Notification` (user, type, title, message, `ref_id` để FE điều hướng, `read_at`); enum
 > `NotificationType`: POST_PUBLISHED / POST_FAILED / REVIEW_NEEDED / RECONNECT_NEEDED / NEW_INSIGHT (NEW_INSIGHT
-> phát khi làm analytics FR-59+). KHÔNG có trong DATA_MODEL.md — entity bổ sung cho mục 14.
+> phát khi làm analytics FR-59+) / SCHEDULE_OVERDUE (lịch tạm giữ quá giờ). `notifyOnce(..., dedupeKey)` ghi tối đa
+> một bản ghi mỗi `dedupe_key` (unique partial index, Flyway V4). KHÔNG có trong DATA_MODEL.md — entity bổ sung cho mục 14.
 
 **Endpoints** (`/notifications`, auth required): GET `/notifications?unreadOnly=&page=&size=` (PageResponse, mới nhất trước,
 size chặn ≤ 50) • GET `/unread-count` (badge chuông) • PATCH `/{id}/read` • PATCH `/read-all` (trả số bản ghi đã cập nhật,
@@ -806,7 +824,7 @@ Có test reflection chặn việc thêm trường đối soát nội bộ vào D
 ```
 URL:      jdbc:postgresql://DB_HOST:DB_PORT/DB_NAME
 Username: DB_USERNAME / Password: DB_PASSWORD
-DDL:      hibernate.ddl-auto=update
+DDL:      Flyway db/migration + hibernate.ddl-auto=validate
 Dialect:  PostgreSQLDialect
 Timezone: APP_TIMEZONE (e.g. Asia/Ho_Chi_Minh)
 ```
@@ -979,9 +997,9 @@ AUTH_COOKIE_NAME (refresh_token), AUTH_COOKIE_SECURE (false), AUTH_COOKIE_SAME_S
 
 9. **Soft delete by default.** Entities extend `BaseEntity` (`deleted_at`); mark `deleted_at` instead of hard-deleting, except GDPR account deletion (per the root `DATA_MODEL.md`). Do not physically `delete` rows for normal flows.
 
-10. **`ddl-auto: update` is active.** Adding new entity fields auto-creates columns on startup. Do not use `create` or `create-drop` in any environment that has existing data.
+10. **Flyway owns schema; `ddl-auto: validate` is active.** Every entity/index/constraint change requires a versioned migration. Existing databases require an audited explicit baseline; never enable automatic baseline or use create/create-drop on existing data. See `docs/SCHEDULING_PHASE0_RUNBOOK.md`.
 
-    **10a. Adding a value to an `@Enumerated(STRING)` enum = you MUST fix its CHECK constraint — do NOT trust `ddl-auto: update`.** Hibernate writes the enum values into a CHECK constraint (`<table>_<column>_check`) only when the table is first created; `update` never touches it again, so the new value works in Java and is rejected by the DB (SQLState `23514`) — silently until the first INSERT. (Burned 2026-09-25: `payments.gateway` lacked `MOCK`, `payments.status` lacked `EXPIRED`/`CANCELLED`, plus `activity_logs.action` and `notifications.type`.) Register the column in `PaymentDataInitializer.ENUM_COLUMNS` (re-syncs the constraint from `pg_constraint` on startup and logs ERROR naming the column + missing values if it still drifts), or ship an explicit `ALTER TABLE` that drops and re-adds it. Same family as the NOT NULL trap: a new NOT NULL column on a populated table needs `columnDefinition = "... not null default ..."` (see `Payment.expiryGraceCount`).
+    **10a. Enum changes require migrations for CHECK constraints.** Do not restore runtime enum DDL. PostgreSQL `PublishingMigrationTest` audits mapped enum values and critical indexes; retain legacy values until existing data is audited. New NOT NULL columns on populated tables require an explicit safe backfill.
 
 11. **Service implementations live in `service/Impl/`**, not in `service/`. The pattern `FooService` (interface) + `FooServiceImpl` (class in `Impl/`) must be maintained.
 
@@ -1018,3 +1036,15 @@ AUTH_COOKIE_NAME (refresh_token), AUTH_COOKIE_SECURE (false), AUTH_COOKIE_SAME_S
 27. **Reconnect is an upsert, deletes are soft + cascade.** `MetaOAuthServiceImpl.upsert(...)` updates the existing `(user, platform, platformAccountId)` row (where `deleted_at IS NULL`) — never blindly insert (the partial unique index from `PlatformDataInitializer` will reject duplicates). Disconnect revokes only on the **root** (parent-less) connection and soft-deletes the whole Page/IG subtree. Schedulers (`scheduler/`) MUST stay resilient: a per-connection failure is logged and skipped, never propagated.
 
 28. **Background AI/posting tasks: dedicated `@Async` worker + short transactions, external call OUTSIDE the transaction.** Follow the `ContentGeneration` reference (§4): (a) the service creates the job row and dispatches the worker in `TransactionSynchronization.afterCommit` (never before commit); (b) the worker is a **separate bean** (interface in `service/` + `*Impl` in `service/Impl/`, `@Async` on a named executor) so the `@Async` proxy applies — no self-invocation; (c) the remote call (AI service, Meta, any HTTP) runs **outside** any DB `@Transactional`/`TransactionTemplate` block (rule #24), and each DB write (mark RUNNING, save result, mark FAILED) is its own short transaction via `TransactionTemplate` — commit the RUNNING state immediately so pollers can observe it; (d) all entity↔DTO/payload conversion goes through MapStruct (rule #18); (e) map every failure to an `AppException`/`ErrorCode`, never let the worker thread die silently (rule #19). Reuse `AsyncConfig`'s `TransactionTemplate` bean — do not open a transaction that wraps a network call.
+
+### Publishing foundation (Phase 0, 2026-09-30)
+
+Flyway V1/V2 owns schema and enum CHECK constraints; Hibernate only validates. Publishing timestamps (`scheduled_time`, `published_at`, posting-job start/end/retry and analytics collection) use PostgreSQL timestamptz and Java Instant. Legacy audit timestamps remain LocalDateTime. Incoming schedule times require an offset and must be in the future. GET `/users/me/publishing-settings` returns the authenticated user's publishing settings (timezone default Asia/Ho_Chi_Minh); PUT edits them (Phase 2, see "Post Scheduling").
+
+Use `isolated/start-backend.ps1` for development of this migration: standalone config, PostgreSQL :55432, backend :8092, external stubs and scheduling disabled. Never run the default `.env` against production for these tests. See `docs/SCHEDULING_PHASE0_RUNBOOK.md` for tests, explicit baseline and backup/rollback requirements. D2 and the review/status model came in Phase 1 (see "Content Generation" → Trạng thái).
+
+### Wizard ↔ lịch đăng — Flyway V3–V5 + job sửa dữ liệu (Phase 1–6, 2026-09-30)
+
+- **V3** `content_review_and_aggregate_status` (review_status + trạng thái tổng/sản xuất mới, preflight dừng khi gặp giá trị lạ), **V4** `schedule_holds_snapshot_revision` (`post_schedule_holds`, `posts.snapshot_*`, `content_versions.revision`, `notifications.dedupe_key`), **V5** `schedule_idempotency`. `PublishingMigrationTest` (PG, `-Disolated.postgres=true`) kiểm V1→V5, fixture legacy và enum CHECK.
+- **Job sửa trạng thái một lần** — `ContentStatusRepairService`/`Impl`, endpoint ADMIN `GET /admin/maintenance/content-status-repair` (dry-run, không ghi) và `POST` cùng path với `{planToken}`. **Không bao giờ chạy khi boot.** Duyệt bài theo keyset id (batch 200), so trạng thái lưu với `ContentItemStatusResolver.preview` (tính, không ghi); lịch IG SCHEDULED/ON_HOLD chưa có UNSUPPORTED_MEDIA → giữ. `planToken` = SHA-256 của kế hoạch; apply tính lại kế hoạch, lệch token → 409/2144; áp theo batch bằng `refreshAll` (khóa theo thứ tự id). Báo cáo thêm hold chưa phân loại, bài duyệt không xác định (chỉ báo, không tự sửa/không tự duyệt), `enumUsage` (JdbcTemplate) và phiên bản Flyway. Log/response chỉ id + trạng thái. Test: `ContentStatusRepairIntegrationTest`; smoke isolated chạy dry-run → apply → dry-run rỗng.
+- Quy trình production (backup, dừng worker bằng `APP_SCHEDULING_ENABLED=false`, migrate, repair, kiểm chứng, restore): `../docs/SCHEDULING_PRODUCTION_RUNBOOK.md`.

@@ -1,3 +1,4 @@
+import { zonedTimestamp } from '../utils/publishingTime';
 import type { Lang } from '../types';
 import type { Tone } from '../components/admin/StatusBadge';
 import client, { type ApiError, type ApiResponse, type PageResponse } from './apiClient';
@@ -73,7 +74,8 @@ interface BeUser {
   role: { roleName: UserRole } | null;
 }
 
-const beDateTime = (iso: string | null): string | null => (iso ? iso.slice(0, 16).replace('T', ' ') : null);
+const beDateTime = (iso: string | null): string | null => (iso ?
+  (/(Z|[+-]\d{2}:\d{2})$/.test(iso) ? zonedTimestamp(iso, 'Asia/Ho_Chi_Minh') : iso).slice(0, 16).replace('T', ' ') : null);
 
 const toRow = (u: BeUser): AdminUserRow => ({
   id: u.id,

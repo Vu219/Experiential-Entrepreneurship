@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Download, Plus, Send, SlidersHorizontal, Sparkles, Trash2, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
@@ -9,22 +10,30 @@ import SearchSuggestInput from '../brand/SearchSuggestInput';
 import ConfirmDialog from '../brand/ConfirmDialog';
 import type { PageResponse, ApiError } from '../../api/apiClient';
 import type { Platform } from '../../api/brandProfile';
-import { type ContentLifecycle, ERR_CONTENT_ITEM_NOT_DELETABLE } from '../../api/contentGeneration';
+import { type ContentItemStatus, type ReviewStatus, ERR_CONTENT_ITEM_NOT_DELETABLE } from '../../api/contentGeneration';
 import {
   listContents,
   deleteContent,
-  changeContentStatus,
+  changeReviewStatus,
+  getContentDetail,
   type ContentListItem,
 } from '../../api/contentCreationService';
 import ContentTable from './ContentTable';
 import ContentFilterDrawer, { DEFAULT_FILTERS, activeFilterCount, type ContentFilters } from './ContentFilterDrawer';
 import ContentViewPanel from './ContentViewPanel';
 import CreateSkeleton, { ContentTableSkeleton } from './CreateSkeleton';
-import { CONTENT_STATUS_META } from './statusMeta';
+import { CONTENT_STATUS_META, REVIEW_STATUS_META } from './statusMeta';
 
 // Tabs nhanh theo trạng thái (trục lọc đổi nhiều nhất — để NGOÀI, không chôn trong drawer).
 // Các trạng thái pipeline hiếm gặp (Posting/Failed/...) vẫn lọc được gián tiếp qua tab Tất cả.
-const TAB_STATUSES: ('all' | ContentLifecycle)[] = ['all', 'DRAFT', 'GENERATED', 'NEED_REVIEW', 'APPROVED', 'POSTED'];
+// Tab nhanh: trạng thái tổng HOẶC trạng thái duyệt (hai chiều độc lập, lọc server-side).
+type StatusTab = 'all' | 'DRAFT' | 'GENERATED' | 'NEED_REVIEW' | 'APPROVED' | 'POSTED';
+const TAB_STATUSES: StatusTab[] = ['all', 'DRAFT', 'GENERATED', 'NEED_REVIEW', 'APPROVED', 'POSTED'];
+const REVIEW_TABS: ReadonlySet<StatusTab> = new Set(['NEED_REVIEW', 'APPROVED']);
+const tabFilter = (tab: StatusTab): { status?: ContentItemStatus; reviewStatus?: ReviewStatus } =>
+  tab === 'all' ? {} : REVIEW_TABS.has(tab) ? { reviewStatus: tab as ReviewStatus } : { status: tab as ContentItemStatus };
+const tabLabelKey = (tab: Exclude<StatusTab, 'all'>) =>
+  REVIEW_TABS.has(tab) ? REVIEW_STATUS_META[tab as ReviewStatus].labelKey : CONTENT_STATUS_META[tab as ContentItemStatus].labelKey;
 
 const PLATFORM_NAMES: Record<string, string> = { FACEBOOK: 'Facebook', INSTAGRAM: 'Instagram', THREADS: 'Threads' };
 
@@ -41,9 +50,12 @@ const PAGE_SIZE = 10;
 export default function ContentList({
   onCreate,
   onContinue,
+  onSchedule,
 }: {
   onCreate: () => void;
   onContinue: (item: ContentListItem) => void;
+  /** Mở bước 4 (SchedulePlanner) cho bài đã có bản định dạng. */
+  onSchedule: (item: ContentListItem) => void;
 }) {
   const { t, brandGradient } = useApp();
   const toast = useToast();
@@ -53,12 +65,28 @@ export default function ContentList({
   const [allItems, setAllItems] = useState<ContentListItem[]>([]); // nguồn gợi ý + option lọc + số đếm tab
   const [query, setQuery] = useState('');
   const [submittedQ, setSubmittedQ] = useState('');
-  const [statusTab, setStatusTab] = useState<'all' | ContentLifecycle>('all');
+  const [statusTab, setStatusTab] = useState<StatusTab>('all');
   const [filters, setFilters] = useState<ContentFilters>(DEFAULT_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1); // UI 1-based ↔ service/Pageable 0-based
   const [reloadKey, setReloadKey] = useState(0);
   const [viewing, setViewing] = useState<{ item: ContentListItem; edit: boolean } | null>(null);
+  // Deep link ?view=<id>[&edit=1] (vd "Sửa nội dung" từ Lịch đăng, màn chỉ đọc của wizard) → mở đúng bài.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewParam = searchParams.get('view');
+  const editParam = searchParams.get('edit') === '1';
+  useEffect(() => {
+    if (!viewParam) return;
+    let cancelled = false;
+    getContentDetail(viewParam)
+      .then(({ item }) => { if (!cancelled) setViewing({ item, edit: editParam }); })
+      .catch((e) => { if (!cancelled) toast.error((e as ApiError).message); });
+    return () => { cancelled = true; };
+  }, [viewParam]); // eslint-disable-line react-hooks/exhaustive-deps
+  const closeViewing = () => {
+    setViewing(null);
+    if (viewParam) setSearchParams({}, { replace: true });
+  };
   // Xóa (đơn lẻ hoặc hàng loạt) dùng chung một ConfirmDialog — mảng các bài sẽ xóa.
   const [deleting, setDeleting] = useState<ContentListItem[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -80,7 +108,7 @@ export default function ContentList({
     listContents({
       q: submittedQ || undefined,
       platform: filters.platform === 'all' ? undefined : (filters.platform as Platform),
-      status: statusTab === 'all' ? undefined : statusTab,
+      ...tabFilter(statusTab),
       brandId: filters.brandId === 'all' ? undefined : filters.brandId,
       sort: filters.sort,
       page: page - 1,
@@ -109,7 +137,11 @@ export default function ContentList({
   // Số đếm từng tab trạng thái (client-side từ allItems — cùng nguồn với option lọc).
   const tabCounts = useMemo(() => {
     const c: Record<string, number> = { all: allItems.length };
-    for (const s of TAB_STATUSES) if (s !== 'all') c[s] = allItems.filter((it) => it.status === s).length;
+    for (const s of TAB_STATUSES) {
+      if (s === 'all') continue;
+      const f = tabFilter(s);
+      c[s] = allItems.filter((it) => (f.status ? it.status === f.status : it.reviewStatus === f.reviewStatus)).length;
+    }
     return c;
   }, [allItems]);
   const selectedItems = items.filter((it) => selected.has(it.id));
@@ -149,15 +181,15 @@ export default function ContentList({
   };
   const closeDelete = () => setDeleting(null);
 
-  // ===== Gửi duyệt hàng loạt (chỉ DRAFT/GENERATED hợp lệ theo review flow FR-34) =====
+  // ===== Gửi duyệt hàng loạt (chỉ bài chưa gửi / bị trả về sửa — review flow FR-34) =====
   const bulkReview = async () => {
     if (bulkBusy) return;
-    const eligible = selectedItems.filter((it) => it.status === 'DRAFT' || it.status === 'GENERATED');
+    const eligible = selectedItems.filter((it) => it.reviewStatus === 'NONE' || it.reviewStatus === 'CHANGES_REQUESTED');
     const skipped = selectedItems.length - eligible.length;
     setBulkBusy(true);
     let failed = 0;
     for (const it of eligible) {
-      try { await changeContentStatus(it.id, 'NEED_REVIEW'); } catch { failed += 1; }
+      try { await changeReviewStatus(it.id, 'NEED_REVIEW'); } catch { failed += 1; }
     }
     setBulkBusy(false);
     setSelected(new Set());
@@ -169,8 +201,8 @@ export default function ContentList({
   // ===== Xuất CSV các dòng đã chọn (client-side, BOM cho Excel) =====
   const bulkExport = () => {
     const rows = [
-      ['ID', 'Title', 'Platforms', 'Status', 'Brand', 'BrandVoice', 'UpdatedAt'],
-      ...selectedItems.map((it) => [it.id, it.title, it.platforms.join('|'), it.status, it.brandName, String(it.brandVoice), it.updatedAt]),
+      ['ID', 'Title', 'Platforms', 'Status', 'Review', 'Brand', 'BrandVoice', 'UpdatedAt'],
+      ...selectedItems.map((it) => [it.id, it.title, it.platforms.join('|'), it.status, it.reviewStatus, it.brandName, String(it.brandVoice), it.updatedAt]),
     ];
     const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
     const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })); // BOM để Excel nhận UTF-8
@@ -189,7 +221,7 @@ export default function ContentList({
       <ContentViewPanel
         item={viewing.item}
         startInEdit={viewing.edit}
-        onClose={() => setViewing(null)}
+        onClose={closeViewing}
         onChanged={refresh}
       />
     );
@@ -258,7 +290,7 @@ export default function ContentList({
       <div role="tablist" style={{ display: 'flex', gap: 4, background: '#f6f3fc', borderRadius: 12, padding: 4, overflowX: 'auto', alignSelf: 'flex-start', maxWidth: '100%' }}>
         {TAB_STATUSES.map((s) => {
           const on = statusTab === s;
-          const label = s === 'all' ? t.clTabAll : t[CONTENT_STATUS_META[s].labelKey];
+          const label = s === 'all' ? t.clTabAll : t[tabLabelKey(s)];
           return (
             <button
               key={s}
@@ -322,6 +354,7 @@ export default function ContentList({
               onView={(it) => setViewing({ item: it, edit: false })}
               onEdit={(it) => setViewing({ item: it, edit: true })}
               onContinue={onContinue}
+              onSchedule={onSchedule}
               onDelete={(it) => setDeleting([it])}
             />
           </Card>

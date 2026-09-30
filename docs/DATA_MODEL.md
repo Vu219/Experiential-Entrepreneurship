@@ -28,20 +28,34 @@
 `ContentIdeaID, TrendID, IdeaTitle, IdeaDescription, Platform, SuitabilityLevel`
 
 ### ContentItem (original content)
-`ContentItemID, BrandProfileID, ContentIdeaID, Script, Caption, Hashtag, CTA, Status, CreatedAt`
+`ContentItemID, BrandProfileID, ContentIdeaID, Script, Caption, Hashtag, CTA, Status, ReviewStatus, CreatedAt`
+- `Status` = aggregate `ContentItemStatus` (DRAFT/GENERATED/FORMATTED/SCHEDULED/ON_HOLD/POSTING/POSTED/PARTIALLY_POSTED/FAILED), **derived** by `ContentItemStatusResolver` from versions + schedules — never set directly.
+- `ReviewStatus`: NONE / NEED_REVIEW / APPROVED / CHANGES_REQUESTED (Flyway V3).
 
 ### ContentVersion (formatted per platform)
-`ContentVersionID, ContentItemID, PlatformName, FormattedCaption, FormattedHashtag, MediaFormat, Status`
+`ContentVersionID, ContentItemID, PlatformName, FormattedCaption, FormattedHashtag, MediaFormat, Status, Revision`
+- `Status` = production status only: DRAFT / GENERATED / FORMATTED. `Revision` increases on every real edit (detects late formatting results).
 
 ### MediaAsset
 `MediaAssetID, ContentItemID, MediaType, MediaURL, MediaPrompt, Format, Size, Duration`
 (MVP: primarily stores `MediaPrompt` — a text description; no media generation)
 
 ### PostSchedule
-`ScheduleID, ContentVersionID, PlatformAccountID, ScheduledTime, Status`
+`ScheduleID, ContentVersionID, PlatformAccountID, ScheduledTime (timestamptz), Status`
+- `Status`: SCHEDULED / ON_HOLD / POSTING / POSTED / FAILED / CANCELLED. ON_HOLD reasons live in PostScheduleHold.
+
+### PostScheduleHold (V4)
+`ScheduleID, Reason, CreatedAt` — unique (schedule, reason). Reason: ACCOUNT_ISSUE / ACCOUNT_REMOVED / PENDING_REVIEW / USER_PENDING_DELETE / UNSUPPORTED_MEDIA. A schedule returns to SCHEDULED only when no reason remains and its time is still in the future.
+
+### UserPublishingSettings (V2)
+`UserID, Timezone, RequireApproval, ConflictWindowMinutes, BrandVoiceBlockingEnabled, BrandVoiceThreshold`
+
+### IdempotencyRecord (V5)
+`OwnerID, Operation (SCHEDULE_CREATE/PUBLISH_NOW), IdempotencyKey, RequestHash, ScheduleID, JobID, CreatedAt` — unique (owner, operation, key); only successful rows are stored.
 
 ### Post
-`PostID, ScheduleID, PlatformName, PlatformPostID, PublishedAt, Status`
+`PostID, ScheduleID, PlatformName, PlatformPostID, PublishedAt, Status, Snapshot*`
+- `Snapshot*` (V4): content captured when the schedule is claimed for posting; retries use it. `SnapshotState` CAPTURED / UNKNOWN_LEGACY (posts before V4).
 
 ### PostingJob
 `PostingJobID, PostID, StartTime, EndTime, RetryCount, ErrorMessage, Status`
@@ -86,8 +100,8 @@
 |-----------|---------|---------|
 | Delete BrandProfile | ContentStrategy, ContentItem, ContentVersion, **unpublished** PostSchedule | Do NOT delete `Posted` posts (keep the history) |
 | Delete ContentStrategy | No cascade | Content & schedules are kept |
-| Delete ContentItem | Related ContentVersion, MediaAsset | Only deletable when `Draft`/`Generated` |
-| Delete PlatformAccount | `Scheduled` PostSchedules → move to `On Hold` | Do NOT delete `Posted` posts |
+| Delete ContentItem | Related ContentVersion, MediaAsset | Only when `Draft`/`Generated`/`Formatted` (no active schedule) and review NONE/CHANGES_REQUESTED |
+| Delete PlatformAccount | `Scheduled` PostSchedules → `On Hold` (reason ACCOUNT_REMOVED; retarget to another account of the same platform removes it) | Do NOT delete `Posted` posts |
 | Delete User | All data (soft delete) | Keep anonymized data for aggregate analytics |
 
 > Hard delete only when the user requests full account deletion under GDPR.

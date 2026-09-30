@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, ArrowRight, Eye, Layers, Pencil, RefreshCw, Save, Sparkles } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import { Card, Icon } from '../../ui';
-import type { ContentLifecycle } from '../../../api/contentGeneration';
+import type { SaveReviewChoice } from '../../../api/contentCreationService';
 import type { Platform } from '../../../api/brandProfile';
 import { emptyScript, type ContentVersion, type GenerationResult } from '../../../api/contentCreationService';
 import type { SourceSelection } from './SourceStep';
@@ -15,16 +15,17 @@ import VersionContent from '../VersionContent';
 import PostImagePreview from '../PostImagePreview';
 import BrandVoicePanel from '../BrandVoicePanel';
 import AutoGrowTextarea from '../AutoGrowTextarea';
-import { CONTENT_STATUS_META } from '../statusMeta';
+import { SAVE_CHOICE_META } from '../statusMeta';
 import { CaptionCounter, HashtagCounter, parseHashtags } from '../platformLimits';
 import { useBrandVoiceCheck } from '../useBrandVoiceCheck';
 import { useScriptRegen } from '../useScriptRegen';
+import ReadinessChecklist from '../ReadinessChecklist';
 
 /** Phạm vi một lượt định dạng: 'all' = mọi nền tảng đang chọn, hoặc đúng MỘT nền tảng. */
 export type FormatScope = 'all' | Platform;
 
 // Trạng thái được phép gắn khi lưu (theo state machine: trước khi vào pipeline đăng).
-const SAVE_STATUSES: ContentLifecycle[] = ['DRAFT', 'NEED_REVIEW', 'APPROVED'];
+const SAVE_STATUSES: SaveReviewChoice[] = ['DRAFT', 'NEED_REVIEW', 'APPROVED'];
 
 const groupLabel = { fontSize: 12, fontWeight: 800, letterSpacing: '.04em', color: '#a59fbb' } as const;
 const fieldLabel = { display: 'block', fontSize: 11.5, fontWeight: 700, color: '#a59fbb', marginBottom: 6 } as const;
@@ -75,8 +76,8 @@ export default function FinalizeStep({
   itemId: string | null;
   /** Điểm brand voice lúc AI sinh từng version (versionId → %) để so sánh sau khi sửa. */
   baselines: Record<string, number>;
-  status: ContentLifecycle;
-  setStatus: (s: ContentLifecycle) => void;
+  status: SaveReviewChoice;
+  setStatus: (s: SaveReviewChoice) => void;
   /** Lượt định dạng đang chạy (null = rảnh) — khoá nút + spinner đúng nút được bấm. */
   formatting: FormatScope | null;
   onFormat: (scope: FormatScope) => void;
@@ -249,7 +250,7 @@ export default function FinalizeStep({
         <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#574f6e', marginBottom: 10 }}>{t.cwReviewStatus}</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {SAVE_STATUSES.map((s) => {
-            const meta = CONTENT_STATUS_META[s];
+            const meta = SAVE_CHOICE_META[s];
             const on = status === s;
             return (
               <button
@@ -270,6 +271,14 @@ export default function FinalizeStep({
 
   const action = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <ReadinessChecklist
+        platforms={source.platforms}
+        versions={gen.versions}
+        status={status}
+        busy={busy}
+        onFormat={onFormat}
+        onApprove={() => setStatus('APPROVED')}
+      />
       <div style={{ display: 'flex', gap: 10 }}>
         <button
           disabled={saving || busy}
@@ -289,13 +298,14 @@ export default function FinalizeStep({
           {saving ? t.cwSaving : t.cwSave}
         </button>
       </div>
-      {/* Lên lịch cần bản đã ĐỊNH DẠNG cho mọi nền tảng (backend chỉ nhận version FORMATTED) */}
+      {/* Vào mốc 4 được cả khi còn nền tảng chưa định dạng — planner chỉ gửi nền tảng đủ điều kiện (backend
+          chỉ nhận version FORMATTED) và hiện lý do cho nền tảng còn thiếu. */}
       <button
         onClick={onGoSchedule}
-        disabled={!allFormatted || saving || busy}
+        disabled={saving || busy}
         title={allFormatted ? undefined : t.cwFormatMissing}
         className="link-underline"
-        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: 'none', background: 'transparent', padding: 4, fontSize: 12.5, fontWeight: 700, color: '#7c3aed', cursor: !allFormatted || saving || busy ? 'not-allowed' : 'pointer', opacity: !allFormatted || saving || busy ? 0.45 : 1 }}
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: 'none', background: 'transparent', padding: 4, fontSize: 12.5, fontWeight: 700, color: '#7c3aed', cursor: saving || busy ? 'not-allowed' : 'pointer', opacity: saving || busy ? 0.45 : 1 }}
       >
         {t.cwNextSchedule}<Icon icon={ArrowRight} size={13} stroke="#7c3aed" />
       </button>

@@ -59,6 +59,7 @@ public interface ContentFormattingMapper {
 
     @Mapping(target = "script", source = "script", qualifiedByName = "parseScript")
     @Mapping(target = "formattedHashtags", source = "formattedHashtag", qualifiedByName = "splitHashtags")
+    @Mapping(target = "scheduleStatus", source = "postSchedule", qualifiedByName = "liveScheduleStatus")
     ContentVersionResponse toContentVersionResponse(ContentVersion version);
 
     @Mapping(target = "id", source = "job.id")

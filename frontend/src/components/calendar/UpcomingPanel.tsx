@@ -93,7 +93,8 @@ export default function UpcomingPanel({
   confirmCancelId: string | null;
   onReschedule: (s: PostSchedule) => void;
   onCancel: (s: PostSchedule) => void;
-  onEditContent: () => void;
+  /** Mở đúng bài của lịch để sửa nội dung. */
+  onEditContent: (schedule: PostSchedule) => void;
   onSelectSchedule: (s: PostSchedule) => void;
 }) {
   const { t } = useApp();

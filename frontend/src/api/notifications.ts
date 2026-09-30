@@ -8,6 +8,8 @@ export type NotificationType =
   | "REVIEW_NEEDED"
   | "RECONNECT_NEEDED"
   | "NEW_INSIGHT"
+  /** Lịch đang tạm giữ đã qua giờ đăng — sẽ không tự đăng, cần chọn giờ mới. */
+  | "SCHEDULE_OVERDUE"
   | "PAYMENT_SUCCEEDED"
   | "PLAN_EXPIRED"
   /** Chỉ admin nhận: webhook payOS đang bị từ chối bất thường. */

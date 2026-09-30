@@ -9,7 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,7 +40,7 @@ public class AnalyzedPostResponse {
     String formattedCaption;
 
     @Schema(description = "When it was published.")
-    LocalDateTime publishedAt;
+    Instant publishedAt;
 
     @Schema(description = "Metric snapshots ordered by milestone (24h → 48h → 7d).")
     List<PostAnalyticsResponse> analytics;

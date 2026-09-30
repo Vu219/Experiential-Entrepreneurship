@@ -6,7 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Async publishing job for a {@link Post}, including retry bookkeeping
@@ -27,10 +27,10 @@ public class PostingJob extends BaseEntity {
     Post post;
 
     @Column(name = "start_time")
-    LocalDateTime startTime;
+    Instant startTime;
 
     @Column(name = "end_time")
-    LocalDateTime endTime;
+    Instant endTime;
 
     @Column(name = "retry_count", nullable = false)
     Integer retryCount = 0;
@@ -45,7 +45,7 @@ public class PostingJob extends BaseEntity {
 
     // FR-56: thời điểm chạy lại — chỉ set trên job RETRYING (5/15/30 phút sau lần thất bại).
     @Column(name = "next_retry_at")
-    LocalDateTime nextRetryAt;
+    Instant nextRetryAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)

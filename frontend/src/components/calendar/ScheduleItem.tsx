@@ -19,7 +19,8 @@ function ScheduleItemBase({ schedule: s, busy, confirmingCancel, onReschedule, o
   confirmingCancel: boolean;
   onReschedule: (s: PostSchedule) => void;
   onCancel: (s: PostSchedule) => void;
-  onEditContent: () => void;
+  /** Mở đúng bài của lịch để sửa nội dung. */
+  onEditContent: (schedule: PostSchedule) => void;
   onSelect?: (s: PostSchedule) => void;
 }) {
   const { t } = useApp();
@@ -114,7 +115,7 @@ function ScheduleItemBase({ schedule: s, busy, confirmingCancel, onReschedule, o
             <ActionBtn icon={<Clock size={13} />} label={s.status === 'ON_HOLD' ? t.schReactivate : t.schReschedule} onClick={() => onReschedule(s)} disabled={busy} />
           )}
           {s.status === 'FAILED' && (
-            <ActionBtn icon={<PencilLine size={13} />} label={t.schEditContent} onClick={onEditContent} disabled={busy} />
+            <ActionBtn icon={<PencilLine size={13} />} label={t.schEditContent} onClick={() => onEditContent(s)} disabled={busy} />
           )}
           {canCancel && (
             <ActionBtn

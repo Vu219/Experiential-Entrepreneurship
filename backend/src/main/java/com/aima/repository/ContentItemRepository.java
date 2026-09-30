@@ -1,6 +1,7 @@
 package com.aima.repository;
 
 import com.aima.entity.ContentItem;
+import com.aima.enums.ContentItemStatus;
 import com.aima.repository.projection.DailyCountProjection;
 import com.aima.repository.projection.DailyStatusCountProjection;
 import com.aima.repository.projection.StatusCountProjection;
@@ -32,7 +33,21 @@ public interface ContentItemRepository extends JpaRepository<ContentItem, UUID> 
     @Query("select c from ContentItem c where c.id = :id and c.brandProfile.user.id = :userId and c.deletedAt is null")
     Optional<ContentItem> findOwnedForUpdate(@Param("id") UUID id, @Param("userId") UUID userId);
 
-    // FR-87: thư viện nội dung — lọc status/platform/thương hiệu/ngành/khoảng ngày + tìm trong caption/script
+    // Job sửa trạng thái (Phase 6): duyệt bài chưa xóa theo keyset id, chia batch.
+    @Query("select i.id from ContentItem i where i.deletedAt is null and i.id > :after order by i.id")
+    List<UUID> findActiveIdsAfter(@Param("after") UUID after, Pageable pageable);
+
+    // Báo cáo "duyệt không xác định": đã vào pipeline đăng mà không có bằng chứng duyệt (V3 để NONE).
+    @Query("select i.id from ContentItem i where i.deletedAt is null "
+            + "and i.reviewStatus = com.aima.enums.ReviewStatus.NONE and i.status in :statuses order by i.id")
+    List<UUID> findUnreviewedInStatuses(@Param("statuses") Collection<ContentItemStatus> statuses);
+
+    // ContentItemStatusResolver: khóa bài trước khi đổi version/lịch/job (thứ tự item → version → schedule → job).
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select c from ContentItem c where c.id = :id")
+    Optional<ContentItem> findByIdForUpdate(@Param("id") UUID id);
+
+    // FR-87: thư viện nội dung — lọc status/reviewStatus/platform/thương hiệu/ngành/khoảng ngày + tìm trong caption/script
     // (q rỗng / industry rỗng / param null = bỏ qua điều kiện, cùng mẫu BrandProfileRepository.search).
     // Sắp xếp server-side (phân trang đúng): :sort = 'voice' (điểm brand-voice cao nhất của các bản còn
     // hiệu lực) / 'status' (gom theo trạng thái) / còn lại = mới nhất; mọi kiểu tie-break bằng createdAt desc.
@@ -44,6 +59,7 @@ public interface ContentItemRepository extends JpaRepository<ContentItem, UUID> 
             join brand_profiles bp on bp.id = i.brand_profile_id
             where bp.user_id = :userId and i.deleted_at is null
               and (CAST(:status as varchar) is null or i.status = CAST(:status as varchar))
+              and (CAST(:reviewStatus as varchar) is null or i.review_status = CAST(:reviewStatus as varchar))
               and (CAST(:brandProfileId as uuid) is null or i.brand_profile_id = CAST(:brandProfileId as uuid))
               and (CAST(:industry as varchar) = '' or bp.industry = CAST(:industry as varchar))
               and (CAST(:platform as varchar) is null or exists (
@@ -62,6 +78,7 @@ public interface ContentItemRepository extends JpaRepository<ContentItem, UUID> 
             """, nativeQuery = true)
     Page<ContentItem> search(@Param("userId") UUID userId,
                              @Param("status") String status,
+                             @Param("reviewStatus") String reviewStatus,
                              @Param("brandProfileId") UUID brandProfileId,
                              @Param("platform") String platform,
                              @Param("industry") String industry,
@@ -71,13 +88,13 @@ public interface ContentItemRepository extends JpaRepository<ContentItem, UUID> 
                              @Param("sort") String sort,
                              Pageable pageable);
 
-    // Bảng điều khiển — 4 thẻ số liệu: đếm bài theo trạng thái HIỆN TẠI trong MỘT truy vấn
+    // Bảng điều khiển — 4 thẻ số liệu: đếm bài theo (trạng thái tổng, duyệt) HIỆN TẠI trong MỘT truy vấn
     // (service gộp thành tổng / đã đăng / đang chờ / bị từ chối), tránh N lần count.
     @Query("""
-            select i.status as status, count(i) as total from ContentItem i
+            select i.status as status, i.reviewStatus as reviewStatus, count(i) as total from ContentItem i
             where i.brandProfile.user.id = :userId
               and i.deletedAt is null and i.brandProfile.deletedAt is null
-            group by i.status
+            group by i.status, i.reviewStatus
             """)
     List<StatusCountProjection> countByStatusForUser(@Param("userId") UUID userId);
 
@@ -85,11 +102,12 @@ public interface ContentItemRepository extends JpaRepository<ContentItem, UUID> 
     // trạng thái. Service gọi với from = 14 ngày trước để dùng chung cho cả sparkline (7 ngày
     // gần nhất) lẫn so sánh 7 ngày qua vs 7 ngày liền trước — một truy vấn cho cả 4 thẻ.
     @Query(value = """
-            select to_char(i.created_at, 'YYYY-MM-DD') as day, i.status as status, count(*) as total
+            select to_char(i.created_at, 'YYYY-MM-DD') as day, i.status as status,
+                   i.review_status as reviewStatus, count(*) as total
             from content_items i
             join brand_profiles bp on bp.id = i.brand_profile_id and bp.deleted_at is null
             where bp.user_id = :userId and i.deleted_at is null and i.created_at >= :from
-            group by 1, 2
+            group by 1, 2, 3
             """, nativeQuery = true)
     List<DailyStatusCountProjection> countDailyByStatusForUser(@Param("userId") UUID userId,
                                                                @Param("from") LocalDateTime from);

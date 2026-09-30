@@ -1,5 +1,7 @@
 import client, { type ApiResponse, type PageResponse } from "./apiClient";
 import type { Platform } from "./brandProfile";
+import { loadPublishingTimezone } from './schedules';
+import { zonedTimestamp } from '../utils/publishingTime';
 
 // Trang "Bài lỗi & cần xử lý" (FR-35..FR-39) — trung tâm hồi phục bài của CHÍNH user.
 // Backend FailedPostController (/me/failed-posts). Khác admin (FR-82/83/84) và NotificationBell.
@@ -34,8 +36,11 @@ export interface FailedPostListParams {
 
 // GET /me/failed-posts — bài lỗi của user, mới nhất trước, phân trang server-side.
 export async function listFailedPosts(params: FailedPostListParams = {}): Promise<PageResponse<FailedPost>> {
+  await loadPublishingTimezone();
   const { data } = await client.get<ApiResponse<PageResponse<FailedPost>>>("/me/failed-posts", {
     params: { filter: params.filter ?? "ALL", page: params.page ?? 0, size: params.size ?? 8 },
   });
-  return data.result;
+  return { ...data.result, content: data.result.content.map(post => ({
+    ...post, failedAt: post.failedAt ? zonedTimestamp(post.failedAt) : null,
+  })) };
 }

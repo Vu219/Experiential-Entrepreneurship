@@ -1,0 +1,97 @@
+# Standalone config: launch with --spring.config.location=file:./isolated/application.yml
+# Never imports backend/.env. Credentials below belong ONLY to the isolated stack.
+spring:
+  application:
+    name: aima-scheduling-isolated
+  profiles:
+    active: isolated
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:55432/aima_isolated
+    username: aima_isolated
+    password: isolated-only
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    clean-disabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: Asia/Ho_Chi_Minh
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 56379
+      password: ""
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: isolated
+            client-secret: isolated
+            provider: isolated
+            authorization-grant-type: authorization_code
+            redirect-uri: http://localhost:8092/api/aima/login/oauth2/code/google
+            scope: profile,email
+        provider:
+          isolated:
+            authorization-uri: http://127.0.0.1:58080/oauth/authorize
+            token-uri: http://127.0.0.1:58080/oauth/token
+            user-info-uri: http://127.0.0.1:58080/oauth/user
+            user-name-attribute: sub
+server:
+  address: 127.0.0.1
+  port: 8092
+  servlet:
+    context-path: /api/aima
+APP_TIMEZONE: Asia/Ho_Chi_Minh
+jwt:
+  signerKey: isolated-only-signing-key-01234567890123456789012345678901234567890123456789
+  accessTokenExpiration: 3600
+  refreshTokenExpiration: 604800
+supabase:
+  url: http://127.0.0.1:58080
+  anon-key: isolated
+  service-key: isolated
+brevo:
+  api-url: http://127.0.0.1:58080/email
+  api-key: isolated
+  sender:
+    email: test@aima.invalid
+    name: AIMA Isolated
+app:
+  cors:
+    allowed-origins: http://localhost:3100,http://127.0.0.1:3100
+  scheduling:
+    enabled: false
+  frontend:
+    base-url: http://localhost:3100
+  oauth2:
+    frontend-callback-url: http://localhost:3100/auth/google/callback
+meta:
+  graph-base-url: http://127.0.0.1:58080
+  threads-base-url: http://127.0.0.1:58080
+  facebook:
+    app-id: isolated
+    app-secret: isolated
+  threads:
+    app-id: isolated
+    app-secret: isolated
+ai-service:
+  base-url: http://127.0.0.1:58080
+  timeout-seconds: 3
+  internal-token: isolated
+payment:
+  gateway: mock
+payos:
+  base-url: http://127.0.0.1:58080
+aima:
+  production-mode: false
+  encryption:
+    key: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+  oauth:
+    state-ttl-minutes: 10
+    frontend-success-redirect: http://localhost:3100/settings?tab=connections
+    frontend-error-redirect: http://localhost:3100/settings?tab=connections&error=oauth_failed

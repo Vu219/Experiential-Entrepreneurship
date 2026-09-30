@@ -10,7 +10,8 @@ import com.aima.entity.PostingJob;
 import com.aima.entity.Role;
 import com.aima.entity.User;
 import com.aima.enums.ConnectionStatus;
-import com.aima.enums.ContentLifecycle;
+import com.aima.enums.ContentItemStatus;
+import com.aima.enums.ContentVersionStatus;
 import com.aima.enums.Platform;
 import com.aima.enums.PlatformAccountType;
 import com.aima.enums.PostStatus;
@@ -118,13 +119,13 @@ class MetaIntegrationTest {
 
         ContentItem item = new ContentItem();
         item.setBrandProfile(brand);
-        item.setStatus(ContentLifecycle.SCHEDULED);
+        item.applyResolvedStatus(ContentItemStatus.SCHEDULED);
         item = contentItemRepository.save(item);
 
         ContentVersion version = new ContentVersion();
         version.setContentItem(item);
         version.setPlatformName(Platform.FACEBOOK);
-        version.setStatus(ContentLifecycle.SCHEDULED);
+        version.setStatus(ContentVersionStatus.FORMATTED);
         version = contentVersionRepository.save(version);
 
         PlatformAccount root = accountRepository.save(account(user, fbUserId, PlatformAccountType.USER, null));
@@ -133,7 +134,7 @@ class MetaIntegrationTest {
         PostSchedule schedule = new PostSchedule();
         schedule.setContentVersion(version);
         schedule.setPlatformAccount(page);
-        schedule.setScheduledTime(LocalDateTime.now().plusDays(3));
+        schedule.setScheduledTime(java.time.Instant.now().plus(java.time.Duration.ofDays(3)));
         schedule.setStatus(ScheduleStatus.SCHEDULED);
         schedule = scheduleRepository.save(schedule);
         return new Graph(user, root, page, schedule);
@@ -319,9 +320,9 @@ class MetaIntegrationTest {
         job.setPost(post);
         job.setRetryCount(0);
         job.setStatus(PostingJobStatus.RUNNING);
-        job.setStartTime(LocalDateTime.now().minusMinutes(20));
+        job.setStartTime(java.time.Instant.now().minus(java.time.Duration.ofMinutes(20)));
         job = jobRepository.save(job);
-        LocalDateTime threshold = LocalDateTime.now().minusMinutes(10);
+        java.time.Instant threshold = java.time.Instant.now().minus(java.time.Duration.ofMinutes(10));
 
         postPublishWorkerService.recoverStuck(job.getId(), threshold);
         postPublishWorkerService.recoverStuck(job.getId(), threshold); // gọi lặp (2 instance) — không nhân đôi retry
@@ -342,10 +343,10 @@ class MetaIntegrationTest {
         job.setPost(post);
         job.setRetryCount(0);
         job.setStatus(PostingJobStatus.RUNNING);
-        job.setStartTime(LocalDateTime.now().minusMinutes(2));
+        job.setStartTime(java.time.Instant.now().minus(java.time.Duration.ofMinutes(2)));
         job = jobRepository.save(job);
 
-        postPublishWorkerService.recoverStuck(job.getId(), LocalDateTime.now().minusMinutes(10));
+        postPublishWorkerService.recoverStuck(job.getId(), java.time.Instant.now().minus(java.time.Duration.ofMinutes(10)));
 
         assertEquals(PostingJobStatus.RUNNING, jobRepository.findById(job.getId()).orElseThrow().getStatus());
     }

@@ -1,18 +1,16 @@
 package com.aima.service.Impl;
 
 import com.aima.config.MetaProperties;
-import com.aima.entity.ContentItem;
-import com.aima.entity.ContentVersion;
 import com.aima.entity.PlatformAccount;
 import com.aima.entity.Post;
 import com.aima.entity.PostSchedule;
-import com.aima.enums.ContentLifecycle;
 import com.aima.enums.NotificationType;
 import com.aima.enums.PostStatus;
 import com.aima.enums.ScheduleStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.repository.PostRepository;
+import com.aima.service.ContentItemStatusResolver;
 import com.aima.service.MetaWebhookService;
 import com.aima.service.NotificationService;
 import com.aima.service.SystemLogService;
@@ -32,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Webhook Meta (SEC-06/EX-02): thông báo vi phạm SAU khi đăng. Không có custom content filter —
@@ -56,6 +55,7 @@ public class MetaWebhookServiceImpl implements MetaWebhookService {
     NotificationService notificationService;
     SystemLogService systemLogService;
     ObjectMapper objectMapper;
+    ContentItemStatusResolver statusResolver;
 
     @Override
     public String verify(String mode, String verifyToken, String challenge) {
@@ -107,13 +107,12 @@ public class MetaWebhookServiceImpl implements MetaWebhookService {
 
     // EX-02 sau khi đăng: bài bị nền tảng gỡ → pipeline FAILED (BR-07: dừng, không retry) + báo user.
     private void markRemoved(Post post, String platformPostId) {
-        post.setStatus(PostStatus.FAILED);
         PostSchedule schedule = post.getSchedule();
+        UUID itemId = schedule.getContentVersion().getContentItem().getId();
+        statusResolver.lock(itemId);
+        post.setStatus(PostStatus.FAILED);
         schedule.setStatus(ScheduleStatus.FAILED);
-        ContentVersion version = schedule.getContentVersion();
-        version.setStatus(ContentLifecycle.FAILED);
-        ContentItem item = version.getContentItem();
-        item.setStatus(ContentLifecycle.FAILED);
+        statusResolver.refresh(itemId);
 
         PlatformAccount account = schedule.getPlatformAccount();
         log.warn("[Webhook] Bài {} ({}) đã bị {} gỡ sau khi đăng", post.getId(), platformPostId, post.getPlatformName());

@@ -1,31 +1,33 @@
-import { ArrowRight, Eye, Pencil, Trash2 } from 'lucide-react';
+import { ArrowRight, CalendarPlus, Eye, Pencil, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Icon, PlatformTag } from '../ui';
 import { PLATFORM_BG } from '../../theme';
 import { DataTable } from '../admin/AdminListPage';
 import RowActionsMenu from '../admin/RowActionsMenu';
 import StatusBadge from '../admin/StatusBadge';
-import type { ContentLifecycle } from '../../api/contentGeneration';
+import type { ContentItemStatus } from '../../api/contentGeneration';
 import type { ContentListItem } from '../../api/contentCreationService';
-import { CONTENT_STATUS_META } from './statusMeta';
+import { CONTENT_STATUS_META, REVIEW_STATUS_META } from './statusMeta';
 import { STEP_KEYS } from './WizardStepper';
 import { tagOfPlatform } from './PlatformTabs';
 
-// FR-33: trạng thái còn sửa tại chỗ được (khớp EDITABLE_STATUSES của ContentViewPanel/backend).
-const EDITABLE_STATUSES: ContentLifecycle[] = ['DRAFT', 'GENERATED', 'NEED_REVIEW', 'APPROVED'];
+// FR-33: chỉ bài ĐANG đăng mới khóa sửa (khớp ContentViewPanel/backend).
+const isEditable = (status: ContentItemStatus) => status !== 'POSTING';
+
+// "Lên lịch" khi bài đã có bản định dạng và còn nền tảng có thể lên lịch (planner hiện lý do từng nền tảng).
+const SCHEDULABLE: ContentItemStatus[] = ['FORMATTED', 'SCHEDULED', 'ON_HOLD', 'PARTIALLY_POSTED', 'FAILED'];
 
 /**
  * Bước hiện tại của bài trên hành trình 4 mốc (cột "Tiến trình") — khớp STEP_KEYS của wizard
  * (Chọn nguồn → Tạo nội dung → Hoàn thiện → Lên lịch đăng bài):
  * - Bản nháp wizard → đúng mốc đang dừng (auto-save, chỉ 1–3).
- * - GENERATED/FORMATTED/NEED_REVIEW/APPROVED → mốc 3 Hoàn thiện (định dạng + sửa + duyệt đã gộp
- *   vào một mốc, nên cả bốn trạng thái này đều đang ở đó).
- * - Từ SCHEDULED trở đi → mốc 4 Lên lịch/đăng.
+ * - Chưa có lịch (DRAFT/GENERATED/FORMATTED, ở bất kỳ trạng thái duyệt nào) → mốc 3 Hoàn thiện
+ *   (định dạng + sửa + duyệt đã gộp vào một mốc).
+ * - Đã có lịch / đã đăng → mốc 4 Lên lịch/đăng.
  */
 function progressStep(item: ContentListItem): number {
   if (item.isDraft) return item.draftStep ?? 1;
-  if (item.status === 'GENERATED' || item.status === 'FORMATTED') return 3;
-  if (item.status === 'NEED_REVIEW' || item.status === 'APPROVED') return 3;
+  if (item.status === 'DRAFT' || item.status === 'GENERATED' || item.status === 'FORMATTED') return 3;
   return 4;
 }
 
@@ -71,6 +73,7 @@ export default function ContentTable({
   onView,
   onEdit,
   onContinue,
+  onSchedule,
   onDelete,
 }: {
   items: ContentListItem[];
@@ -82,6 +85,7 @@ export default function ContentTable({
   onView: (item: ContentListItem) => void;
   onEdit: (item: ContentListItem) => void;
   onContinue: (item: ContentListItem) => void;
+  onSchedule: (item: ContentListItem) => void;
   onDelete: (item: ContentListItem) => void;
 }) {
   const { t, lang, brandGradient } = useApp();
@@ -153,6 +157,11 @@ export default function ContentTable({
             <td style={{ padding: '12px 16px' }}><ProgressCell item={it} /></td>
             <td style={{ padding: '12px 16px' }}>
               <StatusBadge tone={st.tone} label={t[st.labelKey]} />
+              {it.reviewStatus !== 'NONE' && (
+                <span style={{ display: 'inline-block', marginLeft: 6 }}>
+                  <StatusBadge tone={REVIEW_STATUS_META[it.reviewStatus].tone} label={t[REVIEW_STATUS_META[it.reviewStatus].labelKey]} />
+                </span>
+              )}
             </td>
             <td style={{ padding: '12px 16px' }}>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -165,12 +174,17 @@ export default function ContentTable({
                     <button onClick={() => onView(it)} className="btn-soft" title={t.clView} aria-label={t.clView} style={iconBtn}>
                       <Icon icon={Eye} size={15} stroke="#574f6e" />
                     </button>
-                    {EDITABLE_STATUSES.includes(it.status) && (
+                    {isEditable(it.status) && (
                       <button onClick={() => onEdit(it)} className="btn-soft" title={t.cvEdit} aria-label={t.cvEdit} style={iconBtn}>
                         <Icon icon={Pencil} size={14} stroke="#574f6e" />
                       </button>
                     )}
                   </>
+                )}
+                {SCHEDULABLE.includes(it.status) && (
+                  <button onClick={() => onSchedule(it)} className="btn-soft" title={t.clSchedule} aria-label={t.clSchedule} style={{ ...iconBtn, color: '#7c3aed' }}>
+                    <Icon icon={CalendarPlus} size={14} stroke="#7c3aed" />
+                  </button>
                 )}
                 <RowActionsMenu
                   ariaLabel={t.clRowMenu}

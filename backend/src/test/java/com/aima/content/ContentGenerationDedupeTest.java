@@ -7,7 +7,7 @@ import com.aima.entity.ContentGenerationJob;
 import com.aima.entity.ContentItem;
 import com.aima.entity.ContentStrategy;
 import com.aima.entity.User;
-import com.aima.enums.ContentLifecycle;
+import com.aima.enums.ContentItemStatus;
 import com.aima.enums.GenerationJobStatus;
 import com.aima.enums.Platform;
 import com.aima.enums.StrategyStatus;
@@ -62,7 +62,7 @@ class ContentGenerationDedupeTest {
         user.setId(UUID.randomUUID());
         item = new ContentItem();
         item.setId(UUID.randomUUID());
-        item.setStatus(ContentLifecycle.DRAFT);
+        item.applyResolvedStatus(ContentItemStatus.DRAFT);
         strategy = new ContentStrategy();
         strategy.setId(UUID.randomUUID());
         strategy.setStatus(StrategyStatus.ACTIVE);

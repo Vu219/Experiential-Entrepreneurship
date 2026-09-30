@@ -64,26 +64,69 @@ Detect the error → log it → move the post to `Failed` → if temporary, retr
 
 ---
 
-## Post State Machine
+## Post State Machine (D2 — 2026-09-30)
+
+Trạng thái được tách thành **ba chiều độc lập** (thay cho một chuỗi Draft → … → Optimized). Không thêm giá trị ngoài các enum dưới đây.
+
+**1. Trạng thái tổng của bài — `ContentItemStatus` (suy ra, không set tay).** `ContentItemStatusResolver` là writer duy nhất; mọi luồng đổi bản/lịch/job khóa bài trước (thứ tự item → version → schedule → job) rồi tính lại:
 
 ```
-Normal:        Draft → Generated → Formatted → Scheduled → Posting → Posted → Analyzing → Optimized
-Review:        Generated → Need Review → Approved → Scheduled
-Failure:       Posting → Failed → Retrying → Posted
-Token expired: Scheduled → On Hold (waiting for the user to reconnect)
+có lịch POSTING                         → POSTING
+có lịch POSTED  → mọi bản đã đăng       → POSTED
+                → còn bản chưa đăng     → PARTIALLY_POSTED
+chưa đăng bản nào: FAILED > ON_HOLD > SCHEDULED (theo lịch hiệu lực)
+không có lịch hiệu lực: mọi bản FORMATTED → FORMATTED; có nội dung → GENERATED; còn lại → DRAFT
 ```
 
-| State | Meaning |
-|-----------|---------|
-| Draft | Draft content |
-| Generated | Created by the AI |
-| Need Review | Awaiting review |
-| Approved | Approved |
-| Formatted | Formatted per platform |
-| Scheduled | Scheduled for posting |
-| Posting | Being published |
-| Posted | Published successfully |
-| Failed | Failed |
-| Retrying | Being retried |
-| Analyzing | Being analyzed |
-| Optimized | Used to optimize the strategy |
+Bản xóa mềm và lịch CANCELLED không tính. Hủy lịch đưa bài về FORMATTED (hoặc GENERATED/DRAFT). Analytics **không** đổi trạng thái — `Analyzing`/`Optimized` cũ được V3 chuyển thành POSTED; việc tối ưu chiến lược là dữ liệu riêng (insight), không phải trạng thái bài.
+
+**2. Duyệt — `ReviewStatus` trên bài.**
+
+```
+NONE / CHANGES_REQUESTED → NEED_REVIEW → APPROVED
+                                       → CHANGES_REQUESTED
+APPROVED --(sửa nội dung thật)--> NEED_REVIEW      (sửa no-op giữ nguyên duyệt)
+```
+
+Gửi lại đúng trạng thái hiện tại là no-op. Khi user bật "Bắt buộc duyệt" (`user_publishing_settings.require_approval`), lịch của bài chưa APPROVED bị giữ với lý do `PENDING_REVIEW`.
+
+**3. Trạng thái sản xuất của bản nền tảng — `ContentVersionStatus`:** `DRAFT → GENERATED → FORMATTED`. Lịch không đổi trạng thái này. Mỗi lần sửa thật tăng `revision`; job định dạng về muộn so với bản đã sửa/đang đăng bị bỏ.
+
+**Lịch — `ScheduleStatus`:**
+
+```
+SCHEDULED → POSTING → POSTED
+                    → FAILED  (lỗi vĩnh viễn / vi phạm chính sách / hết 3 lần retry — lịch giữ POSTING trong chu kỳ retry 5/15/30 phút)
+SCHEDULED ⇄ ON_HOLD         (theo tập lý do giữ, xem dưới)
+SCHEDULED / ON_HOLD / FAILED → CANCELLED (bản ghi được tái sử dụng khi lên lịch lại)
+```
+
+**Lý do tạm giữ — `post_schedule_holds` (nhiều lý do cùng lúc):** `ACCOUNT_ISSUE` (token hết hạn/bị thu hồi/lỗi), `ACCOUNT_REMOVED` (ngắt kết nối, Meta deauthorize/data deletion), `PENDING_REVIEW`, `USER_PENDING_DELETE`, `UNSUPPORTED_MEDIA` (Instagram cần ảnh/video — MVP không tạo media). `ScheduleHoldService` là nơi duy nhất thêm/gỡ lý do; mỗi luồng chỉ gỡ lý do của mình (kết nối lại chỉ gỡ `ACCOUNT_ISSUE`). Lịch về SCHEDULED **chỉ khi hết lý do và giờ đăng còn ở tương lai**; quá giờ thì giữ ON_HOLD + nhắc một lần (`SCHEDULE_OVERDUE`) và user chọn giờ mới. Khôi phục tài khoản gỡ `USER_PENDING_DELETE` nhưng không tự đăng lại.
+
+**Snapshot khi đăng:** nội dung được chụp vào `posts.snapshot_*` trong cùng transaction claim lịch; retry dùng snapshot, không đọc bản đang sửa. Post cũ trước V4 = `UNKNOWN_LEGACY`.
+
+| Trạng thái tổng | Ý nghĩa |
+|---|---|
+| DRAFT | Chưa có nội dung |
+| GENERATED | Đã có nội dung, chưa định dạng đủ các nền tảng |
+| FORMATTED | Mọi bản nền tảng đã định dạng, chưa có lịch |
+| SCHEDULED | Có lịch chờ đăng |
+| ON_HOLD | Có lịch bị tạm giữ (xem lý do) |
+| POSTING | Đang đăng (kể cả trong chu kỳ retry) |
+| POSTED | Mọi bản đã đăng |
+| PARTIALLY_POSTED | Một phần nền tảng đã đăng, phần còn lại lỗi/chưa đăng |
+| FAILED | Đăng thất bại chung cuộc, chưa bản nào đăng |
+
+Sửa nội dung được khi bài không ở POSTING (bản đang POSTING bị khóa — 2131); PARTIALLY_POSTED/FAILED vẫn sửa được để đăng lại phần lỗi.
+
+### BF — Tạo nội dung → lên lịch (wizard, 2026-09-30)
+
+Wizard `/create/:id?step=N`: (1) nguồn/chiến lược → (2) nội dung → (3) định dạng + `ReadinessChecklist` theo nền tảng (định dạng, tài khoản ACTIVE, IG, brand voice, bắt buộc duyệt) → (4) `SchedulePlanner` — mỗi nền tảng một dòng, chế độ Đăng ngay / Chọn giờ / Gợi ý giờ / Không đăng, gửi `POST /schedules/batch` (mỗi dòng một transaction, idempotency theo dòng). Dòng lỗi được thử lại với cùng key. Trùng lịch trong cửa sổ `conflict_window_minutes` chỉ cảnh báo. Bài đã gửi duyệt/lên lịch mở lại ở chế độ chỉ lên lịch (bước 1–3 chỉ đọc). Modal tạo lịch của Calendar dùng cùng planner.
+
+### Sửa dữ liệu cũ (một lần, admin)
+
+`GET /admin/maintenance/content-status-repair` (dry-run, không ghi) → xem kế hoạch → `POST` cùng endpoint với `planToken` (dữ liệu đổi từ lúc dry-run → 409/2144). Job tính lại trạng thái tổng bằng chính resolver và giữ lịch Instagram chưa đăng bằng `UNSUPPORTED_MEDIA`; hold cũ chưa phân loại và bài duyệt không xác định chỉ được báo cáo. Quy trình production: `SCHEDULING_PRODUCTION_RUNBOOK.md`.
+
+## Publishing time contract — Phase 0 (2026-09-30)
+
+Lịch đăng và thời điểm đăng/thu thập analytics được lưu dưới dạng instant UTC (`timestamptz`). Người dùng nhập ngày giờ theo `user_publishing_settings.timezone`, mặc định `Asia/Ho_Chi_Minh`; frontend gửi ISO-8601 có offset, backend từ chối thời gian quá khứ hoặc chuỗi thiếu offset. Các báo cáo theo ngày Việt Nam giữ timezone tường minh. State machine D2/duyệt/tạm giữ ở mục trên (Phase 1–2 của `CREATE_SCHEDULE_IMPLEMENTATION_PLAN.md`). Quy trình baseline dữ liệu cũ, kiểm chứng và rollback: `SCHEDULING_PHASE0_RUNBOOK.md`.

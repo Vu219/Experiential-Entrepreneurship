@@ -5,7 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,7 +59,7 @@ public class PostAnalytics extends BaseEntity {
     Integer milestoneHours;
 
     @Column(name = "collected_at", nullable = false)
-    LocalDateTime collectedAt;
+    Instant collectedAt;
 
     @OneToMany(mappedBy = "analytics", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude

@@ -10,7 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Data
@@ -47,8 +47,8 @@ public class AdminFailedPostResponse {
     Integer retryCount;
 
     @Schema(description = "When the next retry is due; null once retries are exhausted or the error is permanent.")
-    LocalDateTime nextRetryAt;
+    Instant nextRetryAt;
 
     @Schema(description = "When the final failure happened.")
-    LocalDateTime failedAt;
+    Instant failedAt;
 }
