@@ -1,5 +1,6 @@
 import { useApp } from '../../context/AppContext';
 import { PAGE_SIZE_OPTIONS } from '../../hooks/usePageSize';
+import { C } from '../../styles/colors';
 
 /** Số nút trang hiển thị quanh trang hiện tại trước khi rút gọn bằng "…". */
 const WINDOW = 1;
@@ -63,12 +64,12 @@ export default function Pagination({
         height: 34,
         padding: '0 10px',
         borderRadius: 9,
-        border: '1px solid #ece8f6',
+        border: `1px solid ${C.border}`,
         fontSize: 13,
         fontWeight: 700,
         cursor: disabled || active ? 'default' : 'pointer',
-        background: active ? brandGradient : '#fff',
-        color: active ? '#fff' : disabled ? '#c4bdd6' : '#5b5670',
+        background: active ? brandGradient : C.surface,
+        color: active ? C.onBrand : disabled ? C.ink200 : C.ink550,
       }}
     >
       {label}
@@ -78,12 +79,12 @@ export default function Pagination({
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: showSizePicker ? 'space-between' : 'flex-end', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
       {showSizePicker && (
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#8a85a0' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: C.textMuted }}>
           {t.pgPerPage}
           <select
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            style={{ height: 34, border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '0 8px', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}
+            style={{ height: 34, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '0 8px', fontSize: 12.5, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}
           >
             {/* Giá trị khởi tạo trên mobile (5) không nằm trong danh sách chuẩn — thêm vào để
                 select không rơi về rỗng khi chưa ai bấm đổi. */}
@@ -96,11 +97,11 @@ export default function Pagination({
 
       {pageCount > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12.5, color: '#8a85a0', marginRight: 6 }}>{t.pgInfo} {page}/{pageCount}</span>
+          <span style={{ fontSize: 12.5, color: C.textMuted, marginRight: 6 }}>{t.pgInfo} {page}/{pageCount}</span>
           {btn(t.pgPrev, page - 1, page <= 1)}
           {pageItems(page, pageCount).map((p, i) =>
             p === null ? (
-              <span key={`gap${i}`} style={{ minWidth: 20, textAlign: 'center', fontSize: 13, color: '#c4bdd6' }}>…</span>
+              <span key={`gap${i}`} style={{ minWidth: 20, textAlign: 'center', fontSize: 13, color: C.ink200 }}>…</span>
             ) : (
               btn(String(p), p, false, p === page)
             ),

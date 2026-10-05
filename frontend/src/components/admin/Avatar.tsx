@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { C } from '../../styles/colors';
 
 /**
  * Avatar người dùng: hiển thị ảnh thật; nếu không có URL hoặc ảnh lỗi (onError) thì
@@ -33,7 +34,7 @@ export default function Avatar({
       style={{
         ...base,
         background: gradient,
-        color: '#fff',
+        color: C.onBrand,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

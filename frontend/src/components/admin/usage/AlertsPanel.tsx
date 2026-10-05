@@ -15,12 +15,13 @@ import {
   type UsageAlert,
   type UsageAlertRule,
 } from '../../../api/adminUsage';
+import { C } from '../../../styles/colors';
 
 // Khối "Cảnh báo bất thường" trên tab Tổng quan (pha 5A — alert-only): danh sách OPEN
 // (ACK + cờ báo nhầm), báo cáo đo FP theo rule, và bảng chỉnh ngưỡng (đọc/ghi system_config).
 
-const tdStyle: CSSProperties = { padding: '10px 14px', fontSize: 13, color: '#2b2543' };
-const tdMuted: CSSProperties = { ...tdStyle, color: '#8a85a0', fontSize: 12.5 };
+const tdStyle: CSSProperties = { padding: '10px 14px', fontSize: 13, color: C.ink750 };
+const tdMuted: CSSProperties = { ...tdStyle, color: C.textMuted, fontSize: 12.5 };
 
 const fmtDateTime = (iso: string) => iso.slice(0, 16).replace('T', ' ');
 const sevTone = (s: UsageAlert['severity']) => (s === 'CRITICAL' ? 'danger' : s === 'WARNING' ? 'warning' : 'info');
@@ -91,7 +92,7 @@ export default function AlertsPanel() {
 
   const smallBtn = (label: string, onClick: () => void, danger = false, disabled = false): JSX.Element => (
     <button onClick={onClick} disabled={disabled}
-      style={{ border: `1px solid ${danger ? '#fecaca' : '#ece8f6'}`, background: '#fff', borderRadius: 9, padding: '5px 10px', fontSize: 12, fontWeight: 700, color: danger ? '#dc2626' : '#5b5670', cursor: disabled ? 'wait' : 'pointer', opacity: disabled ? 0.6 : 1 }}>
+      style={{ border: `1px solid ${danger ? C.legacyBorderfecaca : C.border}`, background: C.surface, borderRadius: 9, padding: '5px 10px', fontSize: 12, fontWeight: 700, color: danger ? C.danger : C.ink550, cursor: disabled ? 'wait' : 'pointer', opacity: disabled ? 0.6 : 1 }}>
       {label}
     </button>
   );
@@ -101,30 +102,30 @@ export default function AlertsPanel() {
       title={t.alrTitle}
       action={
         <button onClick={() => setShowConfig((v) => !v)}
-          style={{ border: '1px solid #ece8f6', background: showConfig ? '#f4f1fa' : '#fff', borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>
+          style={{ border: `1px solid ${C.border}`, background: showConfig ? C.surfaceMuted : C.surface, borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>
           {t.alrConfigTitle}
         </button>
       }
     >
-      <div style={{ fontSize: 12, color: '#8a85a0', marginBottom: 12 }}>{t.alrNote}</div>
+      <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 12 }}>{t.alrNote}</div>
 
       {/* Chỉnh ngưỡng (system_config — 0 = tắt rule) */}
       {showConfig && (
-        <div style={{ border: '1px solid #eee9f6', background: '#f8f6fd', borderRadius: 12, padding: 12, marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: '#8a85a0', marginBottom: 10 }}>{t.alrConfigNote}</div>
+        <div style={{ border: `1px solid ${C.border}`, background: C.bg, borderRadius: 12, padding: 12, marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 10 }}>{t.alrConfigNote}</div>
           {config === null ? <Loader label={t.listLoading} /> : (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 8 }}>
                 {Object.entries(configDraft).map(([key, value]) => (
-                  <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#5b5670' }}>
+                  <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.ink550 }}>
                     <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={key}>{key.replace('alert.', '')}</span>
                     <input value={value} onChange={(e) => setConfigDraft((d) => ({ ...d, [key]: e.target.value }))}
-                      style={{ width: 90, border: '1px solid #ece8f6', borderRadius: 8, padding: '5px 8px', fontSize: 12.5, textAlign: 'right' }} />
+                      style={{ width: 90, border: `1px solid ${C.border}`, borderRadius: 8, padding: '5px 8px', fontSize: 12.5, textAlign: 'right' }} />
                   </label>
                 ))}
               </div>
               <button onClick={doSaveConfig} disabled={savingConfig}
-                style={{ marginTop: 10, border: 'none', borderRadius: 10, padding: '8px 16px', fontWeight: 700, fontSize: 12.5, color: '#fff', background: brandGradient, cursor: savingConfig ? 'wait' : 'pointer', opacity: savingConfig ? 0.7 : 1 }}>
+                style={{ marginTop: 10, border: 'none', borderRadius: 10, padding: '8px 16px', fontWeight: 700, fontSize: 12.5, color: C.onBrand, background: brandGradient, cursor: savingConfig ? 'wait' : 'pointer', opacity: savingConfig ? 0.7 : 1 }}>
                 {t.alrConfigSave}
               </button>
             </>
@@ -134,15 +135,15 @@ export default function AlertsPanel() {
 
       {/* Danh sách OPEN */}
       {alerts === null ? <Loader label={t.listLoading} /> : alerts.length === 0 ? (
-        <div style={{ fontSize: 13, color: '#a59fbb', marginBottom: 12 }}>{t.alrEmpty}</div>
+        <div style={{ fontSize: 13, color: C.textFaint, marginBottom: 12 }}>{t.alrEmpty}</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
           {alerts.map((a) => (
-            <div key={a.id} style={{ border: '1px solid #f1eef8', borderRadius: 12, padding: '10px 12px', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+            <div key={a.id} style={{ border: `1px solid ${C.surfaceMuted}`, borderRadius: 12, padding: '10px 12px', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
               <StatusBadge tone={sevTone(a.severity)} label={alertRuleLabel(t, a.ruleCode)} />
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: '#3f3a55' }}>{a.userEmail ?? t.alrSystem}</span>
-              <span style={{ fontSize: 12.5, color: '#5b5670', flex: 1, minWidth: 200 }}>{a.message}</span>
-              <span style={{ fontSize: 11.5, color: '#a59fbb', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: C.text }}>{a.userEmail ?? t.alrSystem}</span>
+              <span style={{ fontSize: 12.5, color: C.ink550, flex: 1, minWidth: 200 }}>{a.message}</span>
+              <span style={{ fontSize: 11.5, color: C.textFaint, whiteSpace: 'nowrap' }}>
                 {t.alrTimes.replace('{n}', String(a.occurrenceCount))} · {t.alrLast} {fmtDateTime(a.lastSeen)}
               </span>
               {smallBtn(t.alrAck, () => doAck(a, false), false, busyId === a.id)}
@@ -153,13 +154,13 @@ export default function AlertsPanel() {
       )}
 
       {/* Báo cáo đo FP theo rule — căn cứ quyết định rule nào sang 5B */}
-      <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.03em', color: '#7d6aa3', marginBottom: 8 }}>{t.alrStatsTitle}</div>
+      <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.03em', color: C.accentTextMuted, marginBottom: 8 }}>{t.alrStatsTitle}</div>
       {stats === null ? <Loader label={t.listLoading} /> : stats.length === 0 ? (
-        <div style={{ fontSize: 13, color: '#a59fbb' }}>{t.alrStatsEmpty}</div>
+        <div style={{ fontSize: 13, color: C.textFaint }}>{t.alrStatsEmpty}</div>
       ) : (
         <DataTable head={[t.alrColRule, t.alrColTotal, t.alrColFp, t.alrColFpPct]} minWidth={420}>
           {stats.map((s) => (
-            <tr key={s.ruleCode} style={{ borderTop: '1px solid #f1eef8' }}>
+            <tr key={s.ruleCode} style={{ borderTop: `1px solid ${C.surfaceMuted}` }}>
               <td style={{ ...tdStyle, fontWeight: 600 }}>{alertRuleLabel(t, s.ruleCode)}</td>
               <td style={tdStyle}>{s.total}</td>
               <td style={tdStyle}>{s.falsePositives}</td>

@@ -170,14 +170,14 @@ export const notifLabels = (lang: Lang) =>
     ? ['Post published', 'New AI content ideas', 'Weekly performance report', 'New trend alerts']
     : ['Bài đăng đã xuất bản', 'Ý tưởng nội dung mới từ AI', 'Báo cáo hiệu quả hàng tuần', 'Cảnh báo xu hướng mới'];
 
-// Swatch xem trước = dải AMBIENT (--theme-surface-*) đã làm dịu của mỗi theme —
-// đúng thứ đổi khi chọn theme (đồng bộ styles/tokens.css). Dải brand tươi độc lập theme.
+// Mẫu màu trong Cài đặt: hai palette mới dùng dải brand trong styles/tokens.css.
+// Giữ nguyên mẫu màu Đại dương đã có.
 export function themeOptions(lang: Lang) {
   // Đại dương (Ocean) là theme mặc định → xếp đầu tiên.
   return [
     { key: 'ocean' as const, label: P(lang, 'Đại dương', 'Ocean'), grad: 'linear-gradient(135deg,#5BD8EC,#6AA1F2,#7E86F1)' },
-    { key: 'aurora' as const, label: 'Aurora', grad: 'linear-gradient(135deg,#6FA8A3,#8098C4,#9E90C2)' },
-    { key: 'sunset' as const, label: P(lang, 'Hoàng hôn', 'Sunset'), grad: 'linear-gradient(135deg,#E0A583,#CF8E93,#B983A6)' },
+    { key: 'aurora' as const, label: P(lang, 'Tím sương', 'Lilac Mist'), grad: 'linear-gradient(135deg,#B7A6DA,#C6B6E6,#D5C6EF)' },
+    { key: 'sunset' as const, label: P(lang, 'Hồng sương', 'Rose Mist'), grad: 'linear-gradient(135deg,#DFA9C0,#D6AFD5,#C9B8E3)' },
   ];
 }
 

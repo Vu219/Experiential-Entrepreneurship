@@ -1,3 +1,4 @@
+import { C } from '../../styles/colors';
 import {
   createContext,
   useCallback,
@@ -52,7 +53,7 @@ const VARIANT_STYLE: Record<
 > = {
   success: {
     primary: '#22c55e',
-    titleColor: '#1F2937',
+    titleColor: C.toastTitle,
     progressBg: 'linear-gradient(90deg, #4ade80, #22c55e, #16a34a)',
     iconTint: 'rgba(34,197,94,0.12)',
     icon: CheckCircle,
@@ -60,7 +61,7 @@ const VARIANT_STYLE: Record<
   },
   error: {
     primary: '#ef4444',
-    titleColor: '#1F2937',
+    titleColor: C.toastTitle,
     progressBg: 'linear-gradient(90deg, #f87171, #ef4444, #dc2626)',
     iconTint: 'rgba(239,68,68,0.12)',
     icon: XCircle,
@@ -68,7 +69,7 @@ const VARIANT_STYLE: Record<
   },
   warning: {
     primary: '#f59e0b',
-    titleColor: '#1F2937',
+    titleColor: C.toastTitle,
     progressBg: 'linear-gradient(90deg, #fbbf24, #f59e0b, #d97706)',
     iconTint: 'rgba(245,158,11,0.12)',
     icon: AlertTriangle,
@@ -76,7 +77,7 @@ const VARIANT_STYLE: Record<
   },
   info: {
     primary: '#06b6d4',
-    titleColor: '#1F2937',
+    titleColor: C.toastTitle,
     progressBg: 'linear-gradient(90deg, #22d3ee, #06b6d4, #0891b2)',
     iconTint: 'rgba(6,182,212,0.12)',
     icon: Info,
@@ -84,7 +85,7 @@ const VARIANT_STYLE: Record<
   },
   loading: {
     primary: '#6366f1',
-    titleColor: '#1F2937',
+    titleColor: C.toastTitle,
     progressBg: 'linear-gradient(90deg, #818cf8, #6366f1, #4f46e5)',
     iconTint: 'rgba(99,102,241,0.12)',
     icon: Loader2,
@@ -161,9 +162,9 @@ function ToastContainer({ toasts, onRemove }: { toasts: ToastData[]; onRemove: (
   // transform (.view-pop). z-index 1100 > Modal (1000) — toast hiện cả trên modal.
   return createPortal(
     <div
+      className="toast-stack"
       style={{
         position: 'fixed',
-        top: 16,
         right: 16,
         zIndex: 1100,
         display: 'flex',
@@ -242,11 +243,11 @@ function ToastItem({ toast, onRemove }: { toast: ToastData; onRemove: (id: numbe
         display: 'flex',
         alignItems: 'center',
         gap: 14,
-        background: 'rgba(255,255,255,0.98)',
-        border: '1px solid rgba(15,23,42,0.08)',
+        background: C.toastSurface,
+        border: `1px solid ${C.toastBorder}`,
         borderRadius: 14,
         padding: '14px 16px',
-        boxShadow: '0 12px 32px rgba(15,23,42,0.12), 0 2px 8px rgba(15,23,42,0.06)',
+        boxShadow: C.shadowToast,
       }}
     >
       <span
@@ -267,10 +268,10 @@ function ToastItem({ toast, onRemove }: { toast: ToastData; onRemove: (id: numbe
         <IconCmp size={20} strokeWidth={2.5} style={toast.variant === 'loading' ? { animation: 'toast-spin 1s linear infinite' } : {}} />
       </span>
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <div style={{ fontSize: 15, color: '#1F2937', fontWeight: 600, lineHeight: 1.2 }}>
+        <div style={{ fontSize: 15, color: C.toastTitle, fontWeight: 600, lineHeight: 1.2 }}>
           {toast.title || t[titleKey]}
         </div>
-        <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.45, overflowWrap: 'break-word' }}>
+        <div style={{ fontSize: 13, color: C.gray, lineHeight: 1.45, overflowWrap: 'break-word' }}>
           {toast.message}
         </div>
       </div>
@@ -285,7 +286,7 @@ function ToastItem({ toast, onRemove }: { toast: ToastData; onRemove: (id: numbe
           border: 'none',
           borderRadius: 8,
           background: 'transparent',
-          color: '#9ca3af',
+          color: C.toastClose,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',

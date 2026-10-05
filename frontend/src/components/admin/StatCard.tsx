@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Card, Icon } from '../ui';
 import { TONE_COLORS, type Tone } from '../../statusTokens';
+import { C } from '../../styles/colors';
 
 /**
  * Stat card chuẩn cho mọi trang Quản trị (gộp từ các bản inline của Overview/Users/Revenue):
@@ -40,8 +41,8 @@ export default function StatCard({
           </span>
         )}
       </div>
-      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: valueFontSize, color: '#211c38', margin: '14px 0 2px' }}>{value}</div>
-      <div style={{ fontSize: 13, color: '#8a85a0' }}>{label}</div>
+      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: valueFontSize, color: C.textStrong, margin: '14px 0 2px' }}>{value}</div>
+      <div style={{ fontSize: 13, color: C.textMuted }}>{label}</div>
     </Card>
   );
 }

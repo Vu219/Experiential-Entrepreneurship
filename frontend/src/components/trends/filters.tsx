@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { C } from '../../styles/colors';
 
 /**
  * Dropdown lọc dùng chung cho các sub-tab trang Xu hướng.
@@ -19,12 +20,12 @@ export function FilterSelect({
   fullWidth?: boolean;
 }) {
   return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: '#fff', border: '1px solid #ece8f6', borderRadius: 10, padding: '8px 12px', cursor: 'pointer', ...(fullWidth ? { width: '100%' } : {}) }}>
-      <span style={{ fontSize: 12, fontWeight: 600, color: '#8a85a0', whiteSpace: 'nowrap' }}>{label}</span>
+    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 12px', cursor: 'pointer', ...(fullWidth ? { width: '100%' } : {}) }}>
+      <span style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, whiteSpace: 'nowrap' }}>{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 13, fontWeight: 600, color: '#2b2543', cursor: 'pointer', ...(fullWidth ? { flex: 1, minWidth: 0 } : { maxWidth: 170 }) }}
+        style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 13, fontWeight: 600, color: C.ink750, cursor: 'pointer', ...(fullWidth ? { flex: 1, minWidth: 0 } : { maxWidth: 170 }) }}
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>{o.label}</option>

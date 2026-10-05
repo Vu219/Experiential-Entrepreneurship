@@ -6,6 +6,7 @@ import ActivityList from './ActivityList';
 import { Icon, Loader } from '../ui';
 import { useApp } from '../../context/AppContext';
 import { listNotifications, type AppNotification } from '../../api/notifications';
+import { C } from '../../styles/colors';
 
 /**
  * Modal "Xem tất cả" hoạt động — phân trang SERVER-SIDE qua GET /notifications (page 0-based ở BE,
@@ -43,13 +44,13 @@ export default function ActivityAllModal({ onClose }: { onClose: () => void }) {
         <Loader />
       ) : status === 'error' ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '28px 0' }}>
-          <Icon icon={AlertTriangle} size={26} stroke="#e23d6e" />
-          <div style={{ fontSize: 14, color: '#5b5670' }}>{t.ntfErr}</div>
+          <Icon icon={AlertTriangle} size={26} stroke={C.rose} />
+          <div style={{ fontSize: 14, color: C.ink550 }}>{t.ntfErr}</div>
           <button
             onClick={() => setReload((r) => r + 1)}
             className="btn-soft"
             style={{
-              border: '1px solid #ece8f6', background: '#faf9fd', color: '#6d28d9', fontWeight: 700,
+              border: `1px solid ${C.border}`, background: C.surfaceSubtle, color: C.primaryStrong, fontWeight: 700,
               fontSize: 13, borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
             }}
           >
@@ -59,9 +60,9 @@ export default function ActivityAllModal({ onClose }: { onClose: () => void }) {
       ) : items.length === 0 ? (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-          height: 120, fontSize: 13.5, color: '#8a85a0',
+          height: 120, fontSize: 13.5, color: C.textMuted,
         }}>
-          <Icon icon={History} size={18} stroke="#a39bbf" />
+          <Icon icon={History} size={18} stroke={C.ink350} />
           {t.dbActivityEmpty}
         </div>
       ) : (

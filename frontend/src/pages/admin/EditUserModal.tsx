@@ -15,6 +15,7 @@ import {
 } from '../../api/admin';
 import { withToast } from '../../utils/toastFlow';
 import UserPlanTab from '../../components/admin/users/UserPlanTab';
+import { C } from '../../styles/colors';
 
 
 /**
@@ -169,16 +170,16 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
         <Avatar url={avatarUrl} initials={user.initials} size={52} gradient={brandGradient} />
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#211c38' }}>{user.name}</div>
-          <div style={{ fontSize: 13, color: '#8a85a0' }}>{user.email}</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: C.textStrong }}>{user.name}</div>
+          <div style={{ fontSize: 13, color: C.textMuted }}>{user.email}</div>
         </div>
       </div>
 
       {/* Banner tài khoản đang chờ xóa */}
       {user.status === 'PENDING_DELETE' && (
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: '#fdf0dc', border: '1px solid #f7dca6', borderRadius: 12, padding: '10px 14px', marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: C.warningSoft, border: `1px solid ${C.legacyBorderf7dca6}`, borderRadius: 12, padding: '10px 14px', marginBottom: 16 }}>
           <span style={{ fontSize: 16, lineHeight: 1.3 }}>⚠</span>
-          <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 13, color: C.legacyText92400e, lineHeight: 1.5 }}>
             <b>{t.usrPendingTitle}</b>
             {pendingDays !== null && <> · {t.usrPendingLeft} <b>{pendingDays}</b> {t.usrPendingDaysUnit}</>}
             {user.deletionDate && (
@@ -189,7 +190,7 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid #efeaf8', marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 6, borderBottom: `1px solid ${C.border}`, marginBottom: 16 }}>
         {([['info', t.usrTabInfo], ['plan', t.usrTabPlan], ['account', t.usrTabAccount]] as const).map(([k, label]) => (
           <button
             key={k}
@@ -198,8 +199,8 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
             style={{
               border: 'none', background: 'transparent', cursor: 'pointer', padding: '9px 12px',
               fontSize: 13.5, fontWeight: 700, marginBottom: -1,
-              color: tab === k ? '#6d28d9' : '#a59fbb',
-              borderBottom: `2px solid ${tab === k ? '#7c3aed' : 'transparent'}`,
+              color: tab === k ? C.primaryStrong : C.textFaint,
+              borderBottom: `2px solid ${tab === k ? C.primary : 'transparent'}`,
             }}
           >
             {label}
@@ -289,7 +290,7 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
             <div style={noteBox}>{t.usrGoogleNoPassword}</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <p style={{ fontSize: 13, color: '#6b6680', lineHeight: 1.6, margin: 0 }}>{t.usrResetPwDesc}</p>
+              <p style={{ fontSize: 13, color: C.textSecondary, lineHeight: 1.6, margin: 0 }}>{t.usrResetPwDesc}</p>
               <button type="button" onClick={() => setConfirmReset(true)} disabled={resetBusy}
                 style={{ ...outlineBtn, alignSelf: 'flex-start' }}>
                 {t.usrResetPwBtn}
@@ -319,29 +320,29 @@ export default function EditUserModal({ user, currentAdminId, onClose, onSaved }
 function Field({ label, error, style, children }: { label: string; error?: string; style?: React.CSSProperties; children: ReactNode }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6, ...style }}>
-      <span style={{ fontSize: 12, fontWeight: 700, color: '#8a85a0', letterSpacing: 0.3, textTransform: 'uppercase' }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, letterSpacing: 0.3, textTransform: 'uppercase' }}>{label}</span>
       {children}
-      {error && <span style={{ fontSize: 12, fontWeight: 600, color: '#dc2626' }}>{error}</span>}
+      {error && <span style={{ fontSize: 12, fontWeight: 600, color: C.danger }}>{error}</span>}
     </label>
   );
 }
 
 function InfoLine({ label, value, badge }: { label: string; value?: string; badge?: { tone: Tone; label: string } }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: '#faf9fe', border: '1px solid #f1eef8', borderRadius: 12, padding: '10px 14px' }}>
-      <span style={{ fontSize: 12.5, color: '#8a85a0', fontWeight: 600 }}>{label}</span>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: C.surfaceSubtle, border: `1px solid ${C.surfaceMuted}`, borderRadius: 12, padding: '10px 14px' }}>
+      <span style={{ fontSize: 12.5, color: C.textMuted, fontWeight: 600 }}>{label}</span>
       {badge ? <StatusBadge tone={badge.tone} label={badge.label} />
-        : <span style={{ fontSize: 13, fontWeight: 600, color: '#2b2543' }}>{value}</span>}
+        : <span style={{ fontSize: 13, fontWeight: 600, color: C.ink750 }}>{value}</span>}
     </div>
   );
 }
 
-const input = { width: '100%', height: 40, border: '1px solid #ece8f6', borderRadius: 10, padding: '0 12px', fontSize: 13.5, color: '#241f3a', outline: 'none', background: '#fff' } as const;
-const inputDisabled = { ...input, background: '#f4f2fb', color: '#8a85a0', cursor: 'not-allowed' } as const;
-const hint = { fontSize: 11.5, color: '#a59fbb' } as const;
-const roLabel = { fontSize: 11.5, fontWeight: 700 as const, color: '#a59fbb', letterSpacing: 0.3, textTransform: 'uppercase' as const, marginTop: 2 };
-const noteBox = { background: '#f4f2fb', border: '1px solid #ece8f6', borderRadius: 10, padding: '11px 14px', fontSize: 13, color: '#6b6680' } as const;
-const outlineBtn = { border: '1px solid #ece8f6', background: '#fff', color: '#5b5670', fontWeight: 700, fontSize: 12.5, borderRadius: 10, padding: '8px 14px', cursor: 'pointer' } as const;
-const ghostBtn = { ...outlineBtn, color: '#dc2626' } as const;
-const cancelBtn = { flex: 1, border: '1px solid #ece8f6', background: '#fff', borderRadius: 11, padding: '11px 0', fontSize: 14, fontWeight: 700, color: '#5b5670', cursor: 'pointer' } as const;
-const primaryBtn = (busy: boolean) => ({ flex: 1, border: 'none', background: 'var(--brand)', borderRadius: 11, padding: '11px 0', fontSize: 14, fontWeight: 700, color: '#fff', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 } as const);
+const input = { width: '100%', height: 40, border: `1px solid ${C.border}`, borderRadius: 10, padding: '0 12px', fontSize: 13.5, color: C.textStrong, outline: 'none', background: C.surface } as const;
+const inputDisabled = { ...input, background: C.surfaceMuted, color: C.textMuted, cursor: 'not-allowed' } as const;
+const hint = { fontSize: 11.5, color: C.textFaint } as const;
+const roLabel = { fontSize: 11.5, fontWeight: 700 as const, color: C.textFaint, letterSpacing: 0.3, textTransform: 'uppercase' as const, marginTop: 2 };
+const noteBox = { background: C.surfaceMuted, border: `1px solid ${C.border}`, borderRadius: 10, padding: '11px 14px', fontSize: 13, color: C.textSecondary } as const;
+const outlineBtn = { border: `1px solid ${C.border}`, background: C.surface, color: C.ink550, fontWeight: 700, fontSize: 12.5, borderRadius: 10, padding: '8px 14px', cursor: 'pointer' } as const;
+const ghostBtn = { ...outlineBtn, color: C.danger } as const;
+const cancelBtn = { flex: 1, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 11, padding: '11px 0', fontSize: 14, fontWeight: 700, color: C.ink550, cursor: 'pointer' } as const;
+const primaryBtn = (busy: boolean) => ({ flex: 1, border: 'none', background: 'var(--brand)', borderRadius: 11, padding: '11px 0', fontSize: 14, fontWeight: 700, color: C.onBrand, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 } as const);

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { cardStyle } from './ui';
+import { C } from '../styles/colors';
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
@@ -102,18 +103,18 @@ export default function Drawer({
   const header = (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 9, padding: '16px 18px',
-      borderBottom: '1px solid #f1eef8', flex: 'none',
+      borderBottom: `1px solid ${C.surfaceMuted}`, flex: 'none',
     }}>
       {icon}
-      <div style={{ flex: 1, minWidth: 0, fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15.5, color: '#211c38' }}>
+      <div style={{ flex: 1, minWidth: 0, fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15.5, color: C.textStrong }}>
         {title}
       </div>
       <button
         onClick={onClose}
         aria-label={closeLabel}
         style={{
-          width: 30, height: 30, flex: 'none', border: 'none', borderRadius: 9, background: '#f4f1fb',
-          color: '#6b6680', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 30, height: 30, flex: 'none', border: 'none', borderRadius: 9, background: C.surfaceMuted,
+          color: C.textSecondary, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
         <X size={15} strokeWidth={2} />
@@ -123,7 +124,7 @@ export default function Drawer({
 
   const body = <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 18px' }}>{children}</div>;
   const footerNode = footer && (
-    <div style={{ flex: 'none', borderTop: '1px solid #f1eef8', padding: '13px 18px' }}>{footer}</div>
+    <div style={{ flex: 'none', borderTop: `1px solid ${C.surfaceMuted}`, padding: '13px 18px' }}>{footer}</div>
   );
 
   // ---- Docked: một cột trong layout, cao bằng hàng chứa nó (align-items: stretch của cha) ----
@@ -168,7 +169,7 @@ export default function Drawer({
       className="modal-fade-in"
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(26,18,48,.42)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+        background: C.drawerOverlay, backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
         display: 'flex', alignItems: isMobile ? 'flex-end' : 'stretch', justifyContent: 'flex-end',
       }}
     >
@@ -180,14 +181,14 @@ export default function Drawer({
         onMouseDown={(e) => e.stopPropagation()}
         className={isMobile ? 'drawer-sheet-in' : 'drawer-slide-in'}
         style={{
-          display: 'flex', flexDirection: 'column', background: '#fff',
+          display: 'flex', flexDirection: 'column', background: C.surface,
           width: isMobile ? '100%' : width,
           maxWidth: '100%',
           height: isMobile ? '88vh' : '100%',
           borderTopLeftRadius: isMobile ? 22 : 20,
           borderBottomLeftRadius: isMobile ? 0 : 20,
           borderTopRightRadius: isMobile ? 22 : 0,
-          boxShadow: '0 40px 80px -30px rgba(60,30,110,.55)',
+          boxShadow: C.shadowModal,
         }}
       >
         {header}

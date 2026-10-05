@@ -6,6 +6,7 @@ import { PLATFORM_BG } from '../../theme.ts';
 import { PLATFORM_TO_TAG } from '../../api/connections.ts';
 import type { PostSchedule } from '../../api/schedules.ts';
 import { absDayLabel, dateKey, fmtTime } from './dateUtils.ts';
+import { C } from '../../styles/colors';
 
 // Lưới tháng (UI-07 redesign): mỗi ngày hiển thị chip "giờ + màu nền tảng", quá CHIP_LIMIT thì "+N".
 // compact (mobile) rút về dot màu như bản cũ. Cell là button: click chọn ngày, điều hướng bằng
@@ -97,7 +98,7 @@ export default function MonthGrid({ cells, selectedDay, onSelectDay, compact, on
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 6, marginBottom: 8 }}>
         {weekdays(lang).map((w, i) => (
-          <div key={i} aria-hidden="true" style={{ textAlign: 'center', fontSize: 11.5, fontWeight: 700, color: '#a59fbb' }}>{w}</div>
+          <div key={i} aria-hidden="true" style={{ textAlign: 'center', fontSize: 11.5, fontWeight: 700, color: C.textFaint }}>{w}</div>
         ))}
       </div>
       <div onKeyDown={onKeyDown} style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 6 }}>
@@ -123,14 +124,14 @@ export default function MonthGrid({ cells, selectedDay, onSelectDay, compact, on
                 minHeight: compact ? 48 : 84,
                 borderRadius: 11,
                 padding: compact ? '5px 6px' : '6px 7px',
-                border: `1px solid ${selected ? '#8b5cf6' : d.today ? '#c4b5fd' : past ? 'transparent' : '#f1eef8'}`,
-                background: selected ? '#f1e9ff' : d.today ? '#f6f1ff' : past ? '#f4f3f8' : '#fcfbfe',
+                border: `1px solid ${selected ? C.violetLight : d.today ? C.legacyBorderc4b5fd : past ? 'transparent' : C.surfaceMuted}`,
+                background: selected ? C.purpleSoft : d.today ? C.border : past ? C.bg : C.surfaceSubtle,
                 opacity: past ? 0.45 : d.muted ? 0.38 : 1,
                 cursor: past ? 'not-allowed' : 'pointer',
                 minWidth: 0,
               }}
             >
-              <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: d.today || selected ? '#7c3aed' : past ? '#a39fb3' : '#3f3a55' }}>{d.day}</span>
+              <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: d.today || selected ? C.primary : past ? C.legacyTexta39fb3 : C.text }}>{d.day}</span>
               {compact ? (
                 <span style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginTop: 5 }}>
                   {d.items.slice(0, 4).map((it) => (
@@ -153,36 +154,27 @@ export default function MonthGrid({ cells, selectedDay, onSelectDay, compact, on
                         display: 'flex',
                         alignItems: 'center',
                         gap: 4,
-                        background: '#f4f1fb',
+                        background: C.surfaceMuted,
                         borderRadius: 6,
                         padding: '2px 6px',
                         fontSize: 10,
                         fontWeight: 700,
-                        color: '#4b4660',
+                        color: C.ink650,
                         lineHeight: 1.4,
                         fontVariantNumeric: 'tabular-nums',
                         cursor: onSelectSchedule ? 'pointer' : 'default',
                         transition: 'all 0.15s ease',
                       }}
-                      onMouseEnter={(e) => {
-                        if (onSelectSchedule) {
-                          e.currentTarget.style.background = '#ebe4f9';
-                          e.currentTarget.style.color = '#7c3aed';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (onSelectSchedule) {
-                          e.currentTarget.style.background = '#f4f1fb';
-                          e.currentTarget.style.color = '#4b4660';
-                        }
-                      }}
+                      className={(onSelectSchedule ? "dm-hover-f1ea0bc" : '')}
+
+
                     >
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: it.bg, flex: 'none' }} />
                       {it.time}
                     </span>
                   ))}
                   {extra > 0 && (
-                    <span style={{ background: '#f4f1fb', borderRadius: 6, padding: '2px 6px', fontSize: 10, fontWeight: 800, color: '#8a85a0', lineHeight: 1.4, width: 'fit-content' }}>
+                    <span style={{ background: C.surfaceMuted, borderRadius: 6, padding: '2px 6px', fontSize: 10, fontWeight: 800, color: C.textMuted, lineHeight: 1.4, width: 'fit-content' }}>
                       +{extra}
                     </span>
                   )}

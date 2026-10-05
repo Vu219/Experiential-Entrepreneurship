@@ -10,6 +10,7 @@ import type { ContentListItem } from '../../api/contentCreationService';
 import { CONTENT_STATUS_META, REVIEW_STATUS_META } from './statusMeta';
 import { STEP_KEYS } from './WizardStepper';
 import { tagOfPlatform } from './PlatformTabs';
+import { C } from '../../styles/colors';
 
 // FR-33: chỉ bài ĐANG đăng mới khóa sửa (khớp ContentViewPanel/backend).
 const isEditable = (status: ContentItemStatus) => status !== 'POSTING';
@@ -33,7 +34,7 @@ function progressStep(item: ContentListItem): number {
 
 const iconBtn = {
   width: 32, height: 32, flex: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-  border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, cursor: 'pointer',
+  border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, cursor: 'pointer',
 } as const;
 
 /** Stepper mini + nhãn "n/N · Tên mốc"; tổng số mốc N lấy từ STEP_KEYS (một nguồn với wizard). */
@@ -47,11 +48,11 @@ function ProgressCell({ item }: { item: ContentListItem }) {
       <div style={{ display: 'flex', gap: 3 }} aria-hidden>
         {STEP_KEYS.map((_, i) => {
           const n = i + 1;
-          return <span key={n} style={{ width: 14, height: 5, borderRadius: 99, background: n <= step ? brandGradient : '#e7e2f2' }} />;
+          return <span key={n} style={{ width: 14, height: 5, borderRadius: 99, background: n <= step ? brandGradient : C.border }} />;
         })}
       </div>
-      <span style={{ fontSize: 11.5, color: '#8a85a0', whiteSpace: 'nowrap' }}>
-        {step}/{total} · <span style={{ fontWeight: 700, color: '#574f6e' }}>{t[STEP_KEYS[step - 1]]}</span>
+      <span style={{ fontSize: 11.5, color: C.textMuted, whiteSpace: 'nowrap' }}>
+        {step}/{total} · <span style={{ fontWeight: 700, color: C.ink600 }}>{t[STEP_KEYS[step - 1]]}</span>
       </span>
     </div>
   );
@@ -121,27 +122,27 @@ export default function ContentTable({
         const updated = new Date(it.updatedAt).toLocaleDateString(lang === 'en' ? 'en-GB' : 'vi-VN');
         const checked = selected.has(it.id);
         return (
-          <tr key={it.id} style={{ borderTop: '1px solid #f1eef8', background: checked ? '#faf7ff' : undefined }}>
+          <tr key={it.id} style={{ borderTop: `1px solid ${C.surfaceMuted}`, background: checked ? C.bg : undefined }}>
             <td style={{ padding: '12px 16px' }}>
               <input type="checkbox" checked={checked} onChange={() => onToggle(it.id)} aria-label={t.clSelectRow} style={checkbox} />
             </td>
-            <td style={{ padding: '12px 8px 12px 16px', fontSize: 12.5, color: '#a59fbb' }}>{pageOffset + i + 1}</td>
+            <td style={{ padding: '12px 8px 12px 16px', fontSize: 12.5, color: C.textFaint }}>{pageOffset + i + 1}</td>
             <td style={{ padding: '12px 16px', minWidth: 220, maxWidth: 340 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
                 {/* Thumbnail placeholder: chữ cái đầu nguồn/thương hiệu (không sinh ảnh — FR-29) */}
-                <span aria-hidden style={{ width: 36, height: 36, flex: 'none', borderRadius: 10, background: brandGradient, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15 }}>
+                <span aria-hidden style={{ width: 36, height: 36, flex: 'none', borderRadius: 10, background: brandGradient, color: C.onBrand, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15 }}>
                   {(it.brandName || it.title || 'A').trim()[0]?.toUpperCase()}
                 </span>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13.5, color: '#211c38', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.title}</div>
-                  <div style={{ fontSize: 11, color: '#a59fbb', marginTop: 2 }}>ID: {it.id.slice(0, 8)}</div>
+                  <div style={{ fontWeight: 700, fontSize: 13.5, color: C.textStrong, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.title}</div>
+                  <div style={{ fontSize: 11, color: C.textFaint, marginTop: 2 }}>ID: {it.id.slice(0, 8)}</div>
                 </div>
               </div>
             </td>
             <td style={{ padding: '12px 16px' }}>
               <div style={{ display: 'flex', gap: 5 }}>
                 {it.platforms.length === 0 ? (
-                  <span style={{ fontSize: 12.5, color: '#b3acc6' }}>—</span>
+                  <span style={{ fontSize: 12.5, color: C.ink250 }}>—</span>
                 ) : (
                   it.platforms.map((p) => {
                     const tag = tagOfPlatform(p);
@@ -150,10 +151,10 @@ export default function ContentTable({
                 )}
               </div>
             </td>
-            <td style={{ padding: '12px 16px', fontSize: 13, color: '#3f3a55', maxWidth: 180 }}>
+            <td style={{ padding: '12px 16px', fontSize: 13, color: C.text, maxWidth: 180 }}>
               <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.brandName || '—'}</span>
             </td>
-            <td style={{ padding: '12px 16px', fontSize: 12.5, color: '#8a85a0', whiteSpace: 'nowrap' }}>{updated}</td>
+            <td style={{ padding: '12px 16px', fontSize: 12.5, color: C.textMuted, whiteSpace: 'nowrap' }}>{updated}</td>
             <td style={{ padding: '12px 16px' }}><ProgressCell item={it} /></td>
             <td style={{ padding: '12px 16px' }}>
               <StatusBadge tone={st.tone} label={t[st.labelKey]} />
@@ -166,24 +167,24 @@ export default function ContentTable({
             <td style={{ padding: '12px 16px' }}>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 {it.isDraft ? (
-                  <button onClick={() => onContinue(it)} className="btn-soft" title={t.clContinue} aria-label={t.clContinue} style={{ ...iconBtn, color: '#7c3aed' }}>
-                    <Icon icon={ArrowRight} size={15} stroke="#7c3aed" />
+                  <button onClick={() => onContinue(it)} className="btn-soft" title={t.clContinue} aria-label={t.clContinue} style={{ ...iconBtn, color: C.primary }}>
+                    <Icon icon={ArrowRight} size={15} stroke={C.primary} />
                   </button>
                 ) : (
                   <>
                     <button onClick={() => onView(it)} className="btn-soft" title={t.clView} aria-label={t.clView} style={iconBtn}>
-                      <Icon icon={Eye} size={15} stroke="#574f6e" />
+                      <Icon icon={Eye} size={15} stroke={C.ink600} />
                     </button>
                     {isEditable(it.status) && (
                       <button onClick={() => onEdit(it)} className="btn-soft" title={t.cvEdit} aria-label={t.cvEdit} style={iconBtn}>
-                        <Icon icon={Pencil} size={14} stroke="#574f6e" />
+                        <Icon icon={Pencil} size={14} stroke={C.ink600} />
                       </button>
                     )}
                   </>
                 )}
                 {SCHEDULABLE.includes(it.status) && (
-                  <button onClick={() => onSchedule(it)} className="btn-soft" title={t.clSchedule} aria-label={t.clSchedule} style={{ ...iconBtn, color: '#7c3aed' }}>
-                    <Icon icon={CalendarPlus} size={14} stroke="#7c3aed" />
+                  <button onClick={() => onSchedule(it)} className="btn-soft" title={t.clSchedule} aria-label={t.clSchedule} style={{ ...iconBtn, color: C.primary }}>
+                    <Icon icon={CalendarPlus} size={14} stroke={C.primary} />
                   </button>
                 )}
                 <RowActionsMenu

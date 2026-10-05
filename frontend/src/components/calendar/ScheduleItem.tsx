@@ -8,6 +8,7 @@ import { PLATFORM_TO_TAG } from '../../api/connections.ts';
 import type { PostSchedule } from '../../api/schedules.ts';
 import { fmtDate, fmtTime } from './dateUtils.ts';
 import { STATUS_TONE } from './statusMeta.ts';
+import { C } from '../../styles/colors';
 
 // Một dòng lịch đăng trong hàng đợi (UI-07) — tách từ pages/app/Calendar.tsx:
 // giờ + ngày | nền tảng | caption + tài khoản | badge trạng thái; hint và hành động theo state machine.
@@ -47,53 +48,39 @@ function ScheduleItemBase({ schedule: s, busy, confirmingCancel, onReschedule, o
           onSelect(s);
         }
       }}
-      className="group"
+      className={"group" + ' ' + (onSelect ? "dm-hover-4529d5b" : '')}
       style={{
-        border: '1px solid #efeaf8',
+        border: `1px solid ${C.border}`,
         borderRadius: 14,
         padding: 13,
-        background: '#fcfbfe',
+        background: C.surfaceSubtle,
         opacity: busy ? 0.6 : 1,
         cursor: onSelect ? 'pointer' : 'default',
         transition: 'all 0.18s ease-in-out',
         position: 'relative',
       }}
-      onMouseEnter={(e) => {
-        if (onSelect) {
-          e.currentTarget.style.borderColor = '#c4b5fd';
-          e.currentTarget.style.background = '#ffffff';
-          e.currentTarget.style.boxShadow = '0 6px 16px -6px rgba(124, 58, 237, 0.15)';
-          e.currentTarget.style.transform = 'translateY(-1px)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (onSelect) {
-          e.currentTarget.style.borderColor = '#efeaf8';
-          e.currentTarget.style.background = '#fcfbfe';
-          e.currentTarget.style.boxShadow = 'none';
-          e.currentTarget.style.transform = 'none';
-        }
-      }}
+
+
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
         <div style={{ textAlign: 'center', flex: 'none', width: 50 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#211c38' }}>{fmtTime(s.scheduledTime)}</div>
-          <div style={{ fontSize: 10.5, color: '#a59fbb' }}>{fmtDate(s.scheduledTime)}</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: C.textStrong }}>{fmtTime(s.scheduledTime)}</div>
+          <div style={{ fontSize: 10.5, color: C.textFaint }}>{fmtDate(s.scheduledTime)}</div>
         </div>
-        <div style={{ width: 1, alignSelf: 'stretch', background: '#efeaf8' }} />
+        <div style={{ width: 1, alignSelf: 'stretch', background: C.border }} />
         <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={30} radius={8} fontSize={11} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#2b2543', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.ink750, lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {caption || t.schNoCaption}
           </div>
-          <div style={{ fontSize: 11, color: '#a59fbb', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.platformAccountName}</div>
+          <div style={{ fontSize: 11, color: C.textFaint, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.platformAccountName}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 'none' }}>
           <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 999, color: tone.color, background: tone.bg }}>
             {t[`schSt${s.status}` as keyof typeof t] as string}
           </span>
           {onSelect && (
-            <span style={{ color: '#c4bdd6', display: 'flex', alignItems: 'center' }}>
+            <span style={{ color: C.ink200, display: 'flex', alignItems: 'center' }}>
               <ChevronRight size={15} />
             </span>
           )}
@@ -101,7 +88,7 @@ function ScheduleItemBase({ schedule: s, busy, confirmingCancel, onReschedule, o
       </div>
 
       {(s.status === 'ON_HOLD' || s.status === 'FAILED') && (
-        <div style={{ fontSize: 11.5, color: s.status === 'FAILED' ? '#b91c1c' : '#b45309', background: s.status === 'FAILED' ? '#fdf1f1' : '#fdf6e7', borderRadius: 9, padding: '7px 10px', marginTop: 9, lineHeight: 1.45 }}>
+        <div style={{ fontSize: 11.5, color: s.status === 'FAILED' ? C.legacyTextb91c1c : C.amberText, background: s.status === 'FAILED' ? C.legacyBgfdf1f1 : C.legacyBgfdf6e7, borderRadius: 9, padding: '7px 10px', marginTop: 9, lineHeight: 1.45 }}>
           {s.status === 'ON_HOLD' ? t.schOnHoldHint : t.schFailedHint}
         </div>
       )}
@@ -146,10 +133,10 @@ function ActionBtn({ icon, label, onClick, disabled, danger = false, emphasized 
       }}
       disabled={disabled}
       style={{
-        display: 'flex', alignItems: 'center', gap: 5, border: `1px solid ${emphasized ? '#e23d6e' : '#ece8f6'}`,
+        display: 'flex', alignItems: 'center', gap: 5, border: `1px solid ${emphasized ? C.rose : C.border}`,
         borderRadius: 9, padding: '6px 11px', fontSize: 12, fontWeight: 700,
-        background: emphasized ? '#e23d6e' : '#fff',
-        color: emphasized ? '#fff' : danger ? '#e23d6e' : '#5b5670',
+        background: emphasized ? '#e23d6e' : C.surface,
+        color: emphasized ? '#fff' : danger ? C.rose : C.ink550,
         cursor: disabled ? 'default' : 'pointer',
       }}
     >

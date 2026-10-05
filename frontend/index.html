@@ -17,6 +17,22 @@
           document.documentElement.setAttribute('data-theme', 'ocean');
         }
       })();
+      // Chế độ sáng/tối (class "dark") — cũng áp trước paint. Đồng bộ với store/colorMode.ts
+      // (cờ VITE_ENABLE_DARK_MODE, key "aima-color-mode", mặc định "light", danh sách route).
+      (function () {
+        try {
+          if ('%VITE_ENABLE_DARK_MODE%' !== 'true') return;
+          var prefixes = ['/dashboard', '/create', '/calendar', '/failed-posts', '/analytics', '/trends', '/brand',
+            '/billing', '/usage', '/profile', '/settings', '/admin',
+            '/', '/pricing', '/login', '/register', '/logout', '/forgot-password',
+            '/auth/google/callback', '/complete-profile', '/privacy', '/terms', '/data-deletion'];
+          var path = location.pathname;
+          var capable = prefixes.some(function (p) { return path === p || path.indexOf(p + '/') === 0; });
+          var mode = localStorage.getItem('aima-color-mode');
+          var dark = mode === 'dark' || (mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+          if (capable && dark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
     </script>
   </head>
   <body>

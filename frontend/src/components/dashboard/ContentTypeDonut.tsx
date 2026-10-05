@@ -5,6 +5,7 @@ import { Card } from '../ui';
 import { formatGroupedNumber } from '../../utils/format';
 import { typeColor } from './dashboardTokens';
 import type { DashboardDistribution } from '../../api/dashboard';
+import { C } from '../../styles/colors';
 
 /**
  * Donut "Loại nội dung": phân bổ bản nền tảng theo định dạng media, tâm hiển thị tổng số bản.
@@ -29,13 +30,13 @@ function ContentTypeDonut({ rows }: { rows: DashboardDistribution[] }) {
 
   return (
     <Card>
-      <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.dbTypesTitle}</div>
-      <div style={{ fontSize: 12.5, color: '#6b6680', marginTop: 2 }}>{t.dbTypesSub}</div>
+      <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.dbTypesTitle}</div>
+      <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 2 }}>{t.dbTypesSub}</div>
 
       {total === 0 ? (
         <div style={{
           height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          textAlign: 'center', fontSize: 13.5, color: '#8a85a0',
+          textAlign: 'center', fontSize: 13.5, color: C.textMuted,
         }}>
           {t.dbTypesEmpty}
         </div>
@@ -57,10 +58,10 @@ function ContentTypeDonut({ rows }: { rows: DashboardDistribution[] }) {
               position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
             }}>
-              <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 24, color: '#211c38' }}>
+              <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 24, color: C.textStrong }}>
                 {formatGroupedNumber(total, lang)}
               </div>
-              <div style={{ fontSize: 11.5, color: '#8a85a0' }}>{t.colPost}</div>
+              <div style={{ fontSize: 11.5, color: C.textMuted }}>{t.colPost}</div>
             </div>
           </div>
 
@@ -71,12 +72,12 @@ function ContentTypeDonut({ rows }: { rows: DashboardDistribution[] }) {
                   width: 9, height: 9, borderRadius: 3, flex: 'none', background: typeColor(i),
                 }} />
                 <span style={{
-                  flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: '#3f3a55',
+                  flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: C.text,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {labelOf(row.label)}
                 </span>
-                <span style={{ fontSize: 12.5, color: '#8a85a0', flex: 'none' }}>
+                <span style={{ fontSize: 12.5, color: C.textMuted, flex: 'none' }}>
                   {row.value} · {row.sharePct}%
                 </span>
               </div>

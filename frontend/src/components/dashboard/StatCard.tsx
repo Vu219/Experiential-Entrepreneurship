@@ -6,6 +6,7 @@ import Sparkline from '../Sparkline';
 import { formatCompactNumber, formatDeltaPct, formatGroupedNumber } from '../../utils/format';
 import { STAT_TONES, type StatTone } from './dashboardTokens';
 import type { DashboardStat } from '../../api/dashboard';
+import { C } from '../../styles/colors';
 
 /**
  * Một thẻ trong hàng 4 thẻ thống kê: số tích lũy + % thay đổi 7 ngày + sparkline 7 ngày.
@@ -32,10 +33,10 @@ function StatCard({
   const flat = stat.deltaPct === null || stat.deltaPct === 0;
   // Badge đổi màu theo CHIỀU thay đổi, không theo tone của thẻ — tăng là xanh, giảm là đỏ.
   const badge = flat
-    ? { color: '#64748b', bg: '#f1f5f9' }
+    ? { color: C.slate, bg: C.slateTint }
     : up
-      ? { color: '#16a34a', bg: '#eafbf1' }
-      : { color: '#e23d6e', bg: '#fdecf1' };
+      ? { color: C.success, bg: C.successTint }
+      : { color: C.rose, bg: C.roseSoft };
 
   return (
     <div style={{ ...cardStyle, padding: 20, borderRadius: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -46,14 +47,14 @@ function StatCard({
         }}>
           <Icon icon={icon} size={19} stroke={color} />
         </span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#8a85a0' }}>{label}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: C.textMuted }}>{label}</span>
       </div>
 
       {/* Số lớn rút gọn (7K) cho gọn thẻ; số ĐẦY ĐỦ theo ngôn ngữ nằm ở title để tra cứu chính xác —
           hai cách hiển thị cùng một con số, không còn lẫn lộn định dạng giữa thẻ và bảng. */}
       <div
         title={formatGroupedNumber(stat.total, lang)}
-        style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 28, color: '#211c38', lineHeight: 1.1 }}
+        style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 28, color: C.textStrong, lineHeight: 1.1 }}
       >
         {formatCompactNumber(stat.total)}
       </div>
@@ -66,7 +67,7 @@ function StatCard({
           {!flat && <span aria-hidden>{up ? '↑' : '↓'}</span>}
           {formatDeltaPct(stat.deltaPct)}
         </span>
-        <span style={{ fontSize: 11.5, color: '#a39bbf' }}>{comparisonLabel}</span>
+        <span style={{ fontSize: 11.5, color: C.ink350 }}>{comparisonLabel}</span>
       </div>
 
       {/* Chiều cao cố định để 4 thẻ luôn bằng nhau, kể cả thẻ chưa đủ dữ liệu vẽ đường.

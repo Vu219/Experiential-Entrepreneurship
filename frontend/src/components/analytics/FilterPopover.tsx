@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
+import { C } from '../../styles/colors';
 
 /**
  * Khuôn popover cho hàng công cụ trang Phân tích: portal ra body (không bị cắt bởi card cha),
@@ -67,8 +68,8 @@ export default function FilterPopover({
       style={{
         position: 'fixed', top: coords.top, left: coords.left, width,
         maxHeight: `calc(100vh - ${coords.top + 16}px)`, overflowY: 'auto',
-        background: '#fff', borderRadius: 16, border: '1px solid #efeaf8',
-        boxShadow: '0 24px 50px -22px rgba(80,40,140,.5)', zIndex: 1000, padding: 14,
+        background: C.surface, borderRadius: 16, border: `1px solid ${C.border}`,
+        boxShadow: `0 24px 50px -22px ${C.legacyShadowrgba8040140_5_}`, zIndex: 1000, padding: 14,
       }}
     >
       {children}

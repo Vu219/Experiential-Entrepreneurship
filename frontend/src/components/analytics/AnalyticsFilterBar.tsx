@@ -12,6 +12,7 @@ import type { Platform } from '../../api/brandProfile';
 import FilterPopover from './FilterPopover';
 import RangeCalendar from './RangeCalendar';
 import { PRESETS, activePreset, formatRangeLabel, rangeOfPreset, todayISO, type PresetKey } from './dateRange';
+import { C } from '../../styles/colors';
 
 /**
  * Hàng công cụ trang Phân tích (v2) — **một nguồn filter duy nhất cho cả trang**: không card nào có
@@ -137,7 +138,7 @@ export default function AnalyticsFilterBar({
               position: 'absolute', top: -7, left: -7,
               minWidth: 19, height: 19, borderRadius: 999, background: '#7c3aed', color: '#fff',
               fontSize: 11, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              padding: '0 5px', border: '2px solid #fff',
+              padding: '0 5px', border: `2px solid ${C.shell}`,
             }}>
               {activeCount}
             </span>
@@ -235,7 +236,7 @@ function RangePanel({
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <input type="date" value={filter.from} max={filter.to} aria-label={t.anaFrom} style={dateInput}
               onChange={(e) => e.target.value && onChange(e.target.value, filter.to)} />
-            <span style={{ fontSize: 13, color: '#8a85a0' }}>—</span>
+            <span style={{ fontSize: 13, color: C.textMuted }}>—</span>
             <input type="date" value={filter.to} min={filter.from} max={todayISO()} aria-label={t.anaTo} style={dateInput}
               onChange={(e) => e.target.value && onChange(filter.from, e.target.value)} />
           </div>
@@ -259,8 +260,8 @@ function ActiveChip({ label, onRemove, children }: { label: string; onRemove: ()
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 32, padding: '0 6px 0 8px',
-      border: '1px solid #e4dbfa', background: '#f8f5ff', borderRadius: 999,
-      fontSize: 12.5, fontWeight: 700, color: '#5b21b6', whiteSpace: 'nowrap',
+      border: `1px solid ${C.legacyBordere4dbfa}`, background: C.surfaceMuted, borderRadius: 999,
+      fontSize: 12.5, fontWeight: 700, color: C.legacyText5b21b6, whiteSpace: 'nowrap',
     }}>
       {children}
       {label}
@@ -268,7 +269,7 @@ function ActiveChip({ label, onRemove, children }: { label: string; onRemove: ()
         style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none',
           width: 18, height: 18, border: 'none', borderRadius: 999, background: 'transparent',
-          color: '#7c3aed', cursor: 'pointer', padding: 0,
+          color: C.primary, cursor: 'pointer', padding: 0,
         }}>
         <X size={13} strokeWidth={2.4} />
       </button>
@@ -329,8 +330,8 @@ function CheckBox({ checked }: { checked: boolean }) {
     <span aria-hidden style={{
       width: 18, height: 18, flex: 'none', borderRadius: 6, display: 'inline-flex',
       alignItems: 'center', justifyContent: 'center',
-      border: checked ? 'none' : '1.5px solid #dcd6ec',
-      background: checked ? 'linear-gradient(135deg,#8b5cf6,#d946ef)' : '#fff',
+      border: checked ? 'none' : `1.5px solid ${C.legacyBorderdcd6ec}`,
+      background: checked ? 'linear-gradient(135deg,#8b5cf6,#d946ef)' : C.surface,
     }}>
       {checked && <Check size={12} color="#fff" strokeWidth={3} />}
     </span>
@@ -360,7 +361,7 @@ function MobileFilterSheet({
       footer={
         <div style={{ display: 'flex', gap: 10 }}>
           <button type="button" onClick={() => setDraft({ ...draft, platforms: [], contentTypes: [] })}
-            style={{ ...sheetBtn, background: '#fff', color: '#6b6680', border: '1px solid #ece8f6' }}>
+            style={{ ...sheetBtn, background: C.surface, color: C.textSecondary, border: `1px solid ${C.border}` }}>
             {t.anaFilterClear}
           </button>
           <button type="button" onClick={() => onApply(draft)}
@@ -383,32 +384,32 @@ function MobileFilterSheet({
 const triggerStyle = (open: boolean, isMobile: boolean): CSSProperties => ({
   display: 'inline-flex', alignItems: 'center', gap: 7,
   minHeight: 44, padding: isMobile ? '0 12px' : '0 14px',
-  border: '1px solid', borderColor: open ? '#d8c9ff' : '#ece8f6',
-  background: open ? '#f6f2ff' : '#fff', color: open ? '#6d28d9' : '#4b4660',
+  border: '1px solid', borderColor: open ? C.legacyBorderd8c9ff : C.border,
+  background: open ? C.surfaceMuted : C.surface, color: open ? C.primaryStrong : C.ink650,
   borderRadius: 12, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
 });
 
 const presetBtn = (active: boolean): CSSProperties => ({
-  border: '1px solid', borderColor: active ? 'transparent' : '#ece8f6',
-  background: active ? 'linear-gradient(135deg,#8b5cf6,#d946ef)' : '#fff',
-  color: active ? '#fff' : '#5b5670',
+  border: '1px solid', borderColor: active ? 'transparent' : C.border,
+  background: active ? 'linear-gradient(135deg,#8b5cf6,#d946ef)' : C.surface,
+  color: active ? '#fff' : C.ink550,
   borderRadius: 10, padding: '9px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', textAlign: 'left',
 });
 
 const optionRow: CSSProperties = {
   width: '100%', display: 'flex', alignItems: 'center', gap: 10, minHeight: 44,
   padding: '6px 8px', border: 'none', background: 'transparent', borderRadius: 10,
-  fontSize: 13.5, fontWeight: 600, color: '#3f3a55', cursor: 'pointer',
+  fontSize: 13.5, fontWeight: 600, color: C.text, cursor: 'pointer',
 };
 
 const groupTitle: CSSProperties = {
-  fontSize: 11.5, fontWeight: 800, color: '#a59fbb', textTransform: 'uppercase',
+  fontSize: 11.5, fontWeight: 800, color: C.textFaint, textTransform: 'uppercase',
   letterSpacing: '.04em', margin: '2px 8px 6px',
 };
 
 const clearBtn: CSSProperties = {
-  flex: 1, minHeight: 40, border: '1px solid #ece8f6', background: '#fff',
-  borderRadius: 10, fontSize: 13, fontWeight: 700, color: '#e23d6e', cursor: 'pointer',
+  flex: 1, minHeight: 40, border: `1px solid ${C.border}`, background: C.surface,
+  borderRadius: 10, fontSize: 13, fontWeight: 700, color: C.rose, cursor: 'pointer',
 };
 
 const applyBtn: CSSProperties = {
@@ -419,12 +420,12 @@ const applyBtn: CSSProperties = {
 const menuItem: CSSProperties = {
   width: '100%', display: 'flex', alignItems: 'center', minHeight: 44, padding: '0 10px',
   border: 'none', background: 'transparent', borderRadius: 10,
-  fontSize: 13.5, fontWeight: 600, color: '#3f3a55', cursor: 'pointer', textAlign: 'left',
+  fontSize: 13.5, fontWeight: 600, color: C.text, cursor: 'pointer', textAlign: 'left',
 };
 
 const dateInput: CSSProperties = {
-  flex: 1, minWidth: 0, border: '1px solid #e7e2f2', borderRadius: 10, padding: '8px 10px',
-  fontSize: 13, color: '#241f3a', background: '#fbfaff',
+  flex: 1, minWidth: 0, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px',
+  fontSize: 13, color: C.textStrong, background: C.surfaceSubtle,
 };
 
 const sheetBtn: CSSProperties = {

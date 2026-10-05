@@ -4,6 +4,7 @@ import { PlatformTag } from '../../ui';
 import { PLATFORM_BG } from '../../../theme';
 import { AP_PLATFORMS } from './platforms';
 import type { AdminPostPlatform, PostProblemSort, PublishErrorType } from '../../../api/admin';
+import { C } from '../../../styles/colors';
 
 // Khối D: dropdown nền tảng + chip nền tảng có logo + dropdown loại lỗi + dropdown sắp xếp.
 // Chip và dropdown nền tảng đọc CÙNG một danh sách (AP_PLATFORMS) nên không thể lệch nhau.
@@ -61,9 +62,9 @@ export default function PostProblemFilterBar({
               aria-pressed={active}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8, height: 38, padding: '0 14px 0 8px',
-                border: `1px solid ${active ? '#c4b5fd' : '#ece8f6'}`, borderRadius: 999,
-                background: active ? '#f1e9ff' : '#fff', cursor: 'pointer',
-                fontSize: 13, fontWeight: 700, color: active ? '#7c3aed' : '#5b5670',
+                border: `1px solid ${active ? C.legacyBorderc4b5fd : C.border}`, borderRadius: 999,
+                background: active ? C.purpleSoft : C.surface, cursor: 'pointer',
+                fontSize: 13, fontWeight: 700, color: active ? C.primary : C.ink550,
               }}
             >
               <PlatformTag tag={p.tag} bg={PLATFORM_BG[p.tag]} size={22} radius={999} />
@@ -97,9 +98,9 @@ export default function PostProblemFilterBar({
             disabled={activeFilters === 0}
             className="btn-soft"
             style={{
-              height: 38, padding: '0 14px', border: '1px solid #ece8f6', borderRadius: 10, background: '#fff',
+              height: 38, padding: '0 14px', border: `1px solid ${C.border}`, borderRadius: 10, background: C.surface,
               fontSize: 13, fontWeight: 700,
-              color: activeFilters > 0 ? '#7c3aed' : '#c4bdd6',
+              color: activeFilters > 0 ? C.primary : C.ink200,
               cursor: activeFilters > 0 ? 'pointer' : 'default',
             }}
           >

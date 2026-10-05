@@ -5,18 +5,19 @@ import {
   aiBlockReasonLabel, aiFallbackText, modelBlockReason, suggestedFallbackChain, MAX_FALLBACKS,
   type AiModelInfo, type AiProviderInfo,
 } from '../../api/adminAi';
+import { C } from '../../styles/colors';
 
 const rowStyle: CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 6, padding: '5px 6px 5px 8px', borderRadius: 8,
-  border: '1px solid #ece8f6', background: '#faf9fe', minWidth: 0,
+  border: `1px solid ${C.border}`, background: C.surfaceSubtle, minWidth: 0,
 };
 const iconBtn: CSSProperties = {
   width: 24, height: 24, flex: 'none', display: 'grid', placeItems: 'center', borderRadius: 6,
-  border: '1px solid #ece8f6', background: '#fff', cursor: 'pointer', padding: 0,
+  border: `1px solid ${C.border}`, background: C.surface, cursor: 'pointer', padding: 0,
 };
 const posBadge: CSSProperties = {
   width: 18, height: 18, flex: 'none', display: 'grid', placeItems: 'center', borderRadius: 5,
-  fontSize: 10.5, fontWeight: 800, color: '#7c3aed', background: '#f1e9ff',
+  fontSize: 10.5, fontWeight: 800, color: C.primary, background: C.purpleSoft,
 };
 
 /**
@@ -63,20 +64,20 @@ export default function FallbackChainEditor({
           <div key={id} style={{ ...rowStyle, opacity: reason ? 0.55 : 1 }} title={reason ? aiBlockReasonLabel(lang, reason) : undefined}>
             <span style={posBadge}>{i + 1}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: 'monospace', fontSize, color: '#2b2543', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontFamily: 'monospace', fontSize, color: C.ink750, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {m ? m.modelCode : id}
-                {m && <span style={{ color: '#a59fbb' }}> · {m.providerCode}</span>}
+                {m && <span style={{ color: C.textFaint }}> · {m.providerCode}</span>}
               </div>
-              {reason && <div style={{ fontSize: 11, color: '#b45309', fontWeight: 600 }}>{aiBlockReasonLabel(lang, reason)}</div>}
+              {reason && <div style={{ fontSize: 11, color: C.amberText, fontWeight: 600 }}>{aiBlockReasonLabel(lang, reason)}</div>}
             </div>
             <button type="button" aria-label={tx.up} title={tx.up} disabled={i === 0} onClick={() => move(i, -1)} style={{ ...iconBtn, opacity: i === 0 ? 0.35 : 1 }}>
-              <ArrowUp size={13} stroke="#5b5670" />
+              <ArrowUp size={13} stroke={C.ink550} />
             </button>
             <button type="button" aria-label={tx.down} title={tx.down} disabled={i === value.length - 1} onClick={() => move(i, 1)} style={{ ...iconBtn, opacity: i === value.length - 1 ? 0.35 : 1 }}>
-              <ArrowDown size={13} stroke="#5b5670" />
+              <ArrowDown size={13} stroke={C.ink550} />
             </button>
             <button type="button" aria-label={tx.remove} title={tx.remove} onClick={() => remove(i)} style={iconBtn}>
-              <X size={13} stroke="#dc2626" />
+              <X size={13} stroke={C.danger} />
             </button>
           </div>
         );
@@ -86,7 +87,7 @@ export default function FallbackChainEditor({
         <select
           value=""
           onChange={(e) => add(e.target.value)}
-          style={{ width: '100%', border: '1px dashed #d9cef7', borderRadius: 8, padding: compact ? '6px 8px' : '8px 10px', fontSize, color: '#7c3aed', background: '#fff', cursor: 'pointer', fontFamily: 'monospace' }}
+          style={{ width: '100%', border: `1px dashed ${C.legacyBorderd9cef7}`, borderRadius: 8, padding: compact ? '6px 8px' : '8px 10px', fontSize, color: C.primary, background: C.surface, cursor: 'pointer', fontFamily: 'monospace' }}
         >
           <option value="">{tx.add}</option>
           {candidates.map((m) => {
@@ -99,7 +100,7 @@ export default function FallbackChainEditor({
           })}
         </select>
       ) : (
-        <div style={{ fontSize: 11.5, color: '#a59fbb' }}>{tx.max}</div>
+        <div style={{ fontSize: 11.5, color: C.textFaint }}>{tx.max}</div>
       )}
 
       <button
@@ -109,14 +110,14 @@ export default function FallbackChainEditor({
         title={suggestion.length === 0 ? tx.suggestEmpty : tx.suggestHint}
         style={{
           alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 5, border: 'none', background: 'transparent',
-          padding: '2px 0', fontSize: 11.5, fontWeight: 700, color: '#7c3aed',
+          padding: '2px 0', fontSize: 11.5, fontWeight: 700, color: C.primary,
           cursor: suggestion.length === 0 || sameAsSuggestion ? 'not-allowed' : 'pointer',
           opacity: suggestion.length === 0 || sameAsSuggestion ? 0.45 : 1,
         }}
       >
-        <Sparkles size={12} stroke="#7c3aed" />{tx.suggest}
+        <Sparkles size={12} stroke={C.primary} />{tx.suggest}
       </button>
-      {!compact && <div style={{ fontSize: 11.5, color: '#8a85a0' }}>{tx.chainHint} {tx.suggestHint}.</div>}
+      {!compact && <div style={{ fontSize: 11.5, color: C.textMuted }}>{tx.chainHint} {tx.suggestHint}.</div>}
     </div>
   );
 }

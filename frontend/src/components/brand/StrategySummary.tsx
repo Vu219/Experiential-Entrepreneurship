@@ -1,6 +1,7 @@
 import { useApp } from '../../context/AppContext';
 import type { ContentStrategy } from '../../api/contentStrategy';
 import { FREQUENCY_UNIT_OPTIONS } from '../../data';
+import { C } from '../../styles/colors';
 
 /** "Tóm tắt chiến lược" — 6 ô đếm (Mục tiêu / Tần suất / Nền tảng / Đối tượng / Phong cách / CTA). */
 export default function StrategySummary({ s }: { s: Pick<ContentStrategy, 'goals' | 'frequencyCount' | 'frequencyUnit' | 'platforms' | 'audiences' | 'styles' | 'ctas'> }) {
@@ -15,14 +16,14 @@ export default function StrategySummary({ s }: { s: Pick<ContentStrategy, 'goals
     [t.csSumCta, `${s.ctas.length} ${t.csUnitCta}`],
   ];
   return (
-    <div style={{ background: 'linear-gradient(150deg,#f6f2ff,#fcf1fc)', border: '1px solid #efe6fb', borderRadius: 16, padding: 18 }}>
-      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: '#5b2b9e', marginBottom: 14 }}>{t.csSummary}</div>
+    <div style={{ background: `linear-gradient(150deg,${C.legacyBgf6f2ff},${C.legacyBgfcf1fc})`, border: `1px solid ${C.promoBorder}`, borderRadius: 16, padding: 18 }}>
+      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: C.accentText, marginBottom: 14 }}>{t.csSummary}</div>
       {/* Cap mỗi ô ở 200px (auto-fit + canh giữa): 6 ô không giãn ngang full-width, tự wrap 3 ô/hàng khi rộng (#4.2). */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 200px))', justifyContent: 'center', gap: 12 }}>
         {tiles.map(([label, value]) => (
-          <div key={label} style={{ background: '#fff', border: '1px solid #efe6fb', borderRadius: 12, padding: '12px 14px' }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: '#9b94b5' }}>{label}</div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#211c38', marginTop: 3 }}>{value}</div>
+          <div key={label} style={{ background: C.surface, border: `1px solid ${C.promoBorder}`, borderRadius: 12, padding: '12px 14px' }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: C.ink350 }}>{label}</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.textStrong, marginTop: 3 }}>{value}</div>
           </div>
         ))}
       </div>

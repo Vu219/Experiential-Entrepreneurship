@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import PageContainer from '../../components/PageContainer';
 import ErrorLogTab from '../../components/admin/logs/ErrorLogTab';
 import ActivityLogTab from '../../components/admin/logs/ActivityLogTab';
+import { C } from '../../styles/colors';
 
 // Trang "Log hệ thống" = khung 2 tab. Tab đang chọn nằm trên URL (?tab=error|activity)
 // để chia sẻ link được. Mỗi tab tự lo dữ liệu + bộ lọc + phân trang của nó; khung này
@@ -29,8 +30,8 @@ export default function Logs() {
         onClick={() => selectTab(key)}
         aria-pressed={active}
         style={{
-          border: '1px solid', borderColor: active ? 'transparent' : '#ece8f6',
-          background: active ? brandGradient : '#fff', color: active ? '#fff' : '#5b5670',
+          border: '1px solid', borderColor: active ? 'transparent' : C.border,
+          background: active ? brandGradient : C.surface, color: active ? C.onBrand : C.ink550,
           borderRadius: 9, padding: '7px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
         }}
       >

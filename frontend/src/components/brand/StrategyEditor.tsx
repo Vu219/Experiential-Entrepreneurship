@@ -8,6 +8,7 @@ import type { Dict } from '../../i18n';
 import StrategySummary from './StrategySummary';
 import { Field, ChipMultiSelect, TagInput, PlatformSelect, fieldInput } from './chips';
 import { useToast } from '../toast/ToastProvider';
+import { C } from '../../styles/colors';
 
 /** Form Tạo/Sửa chiến lược (panel phải) — 8 mục thuộc tính + tóm tắt sống + nút lưu/hủy/xóa. */
 export default function StrategyEditor({ strategy, brandId, brandName, onCancel, onSaved, onDelete }: {
@@ -79,8 +80,8 @@ export default function StrategyEditor({ strategy, brandId, brandName, onCancel,
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 18, color: '#211c38' }}>{strategy ? t.csEditBtn : t.csCreate}</div>
-        <span style={{ fontSize: 12.5, color: '#8a85a0' }}>{t.csForBrand}: <strong style={{ color: '#5b4b86' }}>{brandName}</strong></span>
+        <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 18, color: C.textStrong }}>{strategy ? t.csEditBtn : t.csCreate}</div>
+        <span style={{ fontSize: 12.5, color: C.textMuted }}>{t.csForBrand}: <strong style={{ color: C.legacyText5b4b86 }}>{brandName}</strong></span>
       </div>
 
       <Field label={t.csName} required error={err('name')}>
@@ -113,7 +114,7 @@ export default function StrategyEditor({ strategy, brandId, brandName, onCancel,
               onChange={(e) => setFrequencyCount(Math.max(1, Math.min(100, Number(e.target.value) || 1)))}
               style={{ ...fieldInput, width: 90, textAlign: 'center', padding: '9px 10px' }}
             />
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: '#5b5670' }}>{t.csPostsPer}</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: C.ink550 }}>{t.csPostsPer}</span>
             <select
               value={frequencyUnit}
               onChange={(e) => setFrequencyUnit(e.target.value as FrequencyUnit)}
@@ -134,22 +135,22 @@ export default function StrategyEditor({ strategy, brandId, brandName, onCancel,
         bottom: -22,
         margin: '32px -22px -22px -22px',
         padding: '20px 22px',
-        background: '#fff',
-        borderTop: '1px solid #efeaf8',
+        background: C.surface,
+        borderTop: `1px solid ${C.border}`,
         borderBottomLeftRadius: 20,
         borderBottomRightRadius: 20,
         zIndex: 10,
         display: 'flex',
         flexDirection: 'column',
         gap: 16,
-        boxShadow: '0 -10px 30px rgba(0,0,0,0.03)'
+        boxShadow: `0 -10px 30px ${C.legacyShadowrgba000003_}`
       }}>
         <StrategySummary s={summaryLike} />
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {strategy && onDelete && <button onClick={onDelete} disabled={busy} style={{ border: '1px solid #f3c9d6', background: '#fff', borderRadius: 12, padding: '11px 18px', fontSize: 14, fontWeight: 700, color: '#d6336c', cursor: 'pointer' }}>{t.csDeleteBtn}</button>}
-          <button onClick={onCancel} disabled={busy} className="btn-soft" style={{ marginLeft: 'auto', border: '1px solid #ece8f6', background: '#fff', borderRadius: 12, padding: '11px 22px', fontSize: 14, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>{t.csCancel}</button>
-          <button onClick={saveDraft} disabled={busy} className="btn-outline" style={{ border: '1.5px solid #d6cdf0', background: '#faf8ff', borderRadius: 12, padding: '11px 22px', fontSize: 14, fontWeight: 700, color: '#7c5cff', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{saving === 'draft' ? t.processing : t.bpSaveDraft}</button>
-          <button onClick={submit} disabled={busy} className="btn-grad" style={{ border: 'none', borderRadius: 12, padding: '11px 26px', fontSize: 14, fontWeight: 700, color: '#fff', background: 'var(--brand)', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{saving === 'full' ? t.processing : t.csSave}</button>
+          {strategy && onDelete && <button onClick={onDelete} disabled={busy} style={{ border: `1px solid ${C.legacyBorderf3c9d6}`, background: C.surface, borderRadius: 12, padding: '11px 18px', fontSize: 14, fontWeight: 700, color: C.legacyTextd6336c, cursor: 'pointer' }}>{t.csDeleteBtn}</button>}
+          <button onClick={onCancel} disabled={busy} className="btn-soft" style={{ marginLeft: 'auto', border: `1px solid ${C.border}`, background: C.surface, borderRadius: 12, padding: '11px 22px', fontSize: 14, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>{t.csCancel}</button>
+          <button onClick={saveDraft} disabled={busy} className="btn-outline" style={{ border: `1.5px solid ${C.legacyBorderd6cdf0}`, background: C.bg, borderRadius: 12, padding: '11px 22px', fontSize: 14, fontWeight: 700, color: C.violet, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{saving === 'draft' ? t.processing : t.bpSaveDraft}</button>
+          <button onClick={submit} disabled={busy} className="btn-grad" style={{ border: 'none', borderRadius: 12, padding: '11px 26px', fontSize: 14, fontWeight: 700, color: C.onBrand, background: 'var(--brand)', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{saving === 'full' ? t.processing : t.csSave}</button>
         </div>
       </div>
     </div>
@@ -157,5 +158,5 @@ export default function StrategyEditor({ strategy, brandId, brandName, onCancel,
 }
 
 function Box({ children }: { children: ReactNode }) {
-  return <div style={{ border: '1px solid #efeaf8', borderRadius: 13, padding: 15 }}>{children}</div>;
+  return <div style={{ border: `1px solid ${C.border}`, borderRadius: 13, padding: 15 }}>{children}</div>;
 }

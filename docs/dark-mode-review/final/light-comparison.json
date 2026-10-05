@@ -1,0 +1,905 @@
+[
+  {
+    "file": "00-_dashboard-1440-baseline.png",
+    "width": 1440,
+    "height": 1266,
+    "changed": 482316,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1266,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "01-_create-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 978745,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "02-_create_new-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 638589,
+    "above3": 203169,
+    "max": 21.171134779182367,
+    "regions": {
+      "content": 203169
+    },
+    "bounds": [
+      939,
+      180,
+      1415,
+      665
+    ],
+    "largestPairs": [
+      {
+        "before": "#ffffff",
+        "after": "#f9f1fd",
+        "count": 24575
+      },
+      {
+        "before": "#ffffff",
+        "after": "#faf1fd",
+        "count": 23039
+      },
+      {
+        "before": "#ffffff",
+        "after": "#f9f2fe",
+        "count": 22911
+      },
+      {
+        "before": "#ffffff",
+        "after": "#f8f2fe",
+        "count": 19033
+      },
+      {
+        "before": "#ffffff",
+        "after": "#faf2fd",
+        "count": 9930
+      },
+      {
+        "before": "#ffffff",
+        "after": "#f8f1fe",
+        "count": 8478
+      }
+    ]
+  },
+  {
+    "file": "03-_create_qa-draft-1440-baseline.png",
+    "width": 1440,
+    "height": 1195,
+    "changed": 710654,
+    "above3": 164513,
+    "max": 58.008866334794654,
+    "regions": {
+      "content": 164513
+    },
+    "bounds": [
+      939,
+      180,
+      1415,
+      987
+    ],
+    "largestPairs": [
+      {
+        "before": "#faf8fe",
+        "after": "#f9f2fe",
+        "count": 15835
+      },
+      {
+        "before": "#faf8fe",
+        "after": "#f9f1fd",
+        "count": 13493
+      },
+      {
+        "before": "#faf8fe",
+        "after": "#f8f2fe",
+        "count": 12484
+      },
+      {
+        "before": "#faf8fe",
+        "after": "#faf1fd",
+        "count": 8919
+      },
+      {
+        "before": "#faf8fe",
+        "after": "#f8f1fd",
+        "count": 5782
+      },
+      {
+        "before": "#faf8fe",
+        "after": "#f8f1fe",
+        "count": 5689
+      }
+    ]
+  },
+  {
+    "file": "04-_create_qa-content-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 635000,
+    "above3": 37837,
+    "max": 21.242801401080293,
+    "regions": {
+      "content": 37837
+    },
+    "bounds": [
+      1022,
+      180,
+      1415,
+      578
+    ],
+    "largestPairs": [
+      {
+        "before": "#ffffff",
+        "after": "#f8f2fe",
+        "count": 4781
+      },
+      {
+        "before": "#ffffff",
+        "after": "#f7f2ff",
+        "count": 4164
+      },
+      {
+        "before": "#ffffff",
+        "after": "#f7f2fe",
+        "count": 2870
+      },
+      {
+        "before": "#ffffff",
+        "after": "#f7f1fe",
+        "count": 2310
+      },
+      {
+        "before": "#ffffff",
+        "after": "#fbf1fc",
+        "count": 2245
+      },
+      {
+        "before": "#ffffff",
+        "after": "#f9f2fe",
+        "count": 2133
+      }
+    ]
+  },
+  {
+    "file": "05-_calendar-1440-baseline.png",
+    "width": 1440,
+    "height": 1100,
+    "changed": 611172,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1100,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "06-_analytics-1440-baseline.png",
+    "width": 1440,
+    "height": 1684,
+    "changed": 574064,
+    "above3": 0,
+    "max": 2.8873674759140333,
+    "regions": {},
+    "bounds": [
+      1440,
+      1684,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "07-_trends-1440-baseline.png",
+    "width": 1440,
+    "height": 1938,
+    "changed": 828537,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1938,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "08-_brand-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 1194224,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "09-_failed-posts-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 1069288,
+    "above3": 95400,
+    "max": 83.16197523953652,
+    "regions": {
+      "content": 95400
+    },
+    "bounds": [
+      922,
+      265,
+      1415,
+      669
+    ],
+    "largestPairs": [
+      {
+        "before": "#ffffff",
+        "after": "#f1eef8",
+        "count": 20781
+      },
+      {
+        "before": "#ffffff",
+        "after": "#fdf1f1",
+        "count": 13979
+      },
+      {
+        "before": "#fdf1f1",
+        "after": "#f1eef8",
+        "count": 8949
+      },
+      {
+        "before": "#ffffff",
+        "after": "#f7f6fd",
+        "count": 7224
+      },
+      {
+        "before": "#fdf1f1",
+        "after": "#ffffff",
+        "count": 6861
+      },
+      {
+        "before": "#f8f7fc",
+        "after": "#ffffff",
+        "count": 2808
+      }
+    ]
+  },
+  {
+    "file": "10-_settings-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 898126,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "11-_settings_usage-1440-baseline.png",
+    "width": 1440,
+    "height": 1102,
+    "changed": 524587,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1102,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "12-_profile-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 755963,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "13-_billing-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 778381,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "14-_billing_checkout-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 870047,
+    "above3": 0,
+    "max": 2.5677398662255575,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "15-_billing_return-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 1190799,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "16-_billing_mock_qa-payment-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 1110006,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "17-_admin-1440-baseline.png",
+    "width": 1440,
+    "height": 1125,
+    "changed": 660644,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1125,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "18-_admin_users-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 1002270,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "19-_admin_posts-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 726254,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "20-_admin_system-1440-baseline.png",
+    "width": 1440,
+    "height": 1032,
+    "changed": 431277,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1032,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "21-_admin_logs-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 966518,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "22-_admin_api-versions-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 1056282,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "23-_admin_revenue-1440-baseline.png",
+    "width": 1440,
+    "height": 1619,
+    "changed": 988241,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1619,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "24-_admin_revenue-orders-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 818521,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "25-_admin_plans-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 1066899,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "26-_admin_landing-1440-baseline.png",
+    "width": 1440,
+    "height": 1706,
+    "changed": 710891,
+    "above3": 0,
+    "max": 2.5913339729986387,
+    "regions": {},
+    "bounds": [
+      1440,
+      1706,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "27-_admin_usage-1440-baseline.png",
+    "width": 1440,
+    "height": 1323,
+    "changed": 691145,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1323,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "28-_admin_usage_users_qa-admin-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 703739,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "29-_admin_ai_providers-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 1009715,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "30-_admin_ai_models-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 1145691,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "31-_admin_ai_usage-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 515054,
+    "above3": 0,
+    "max": 2.5039041734236442,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "32-_-1440-baseline.png",
+    "width": 1440,
+    "height": 4002,
+    "changed": 3461727,
+    "above3": 0,
+    "max": 2.4725034119368963,
+    "regions": {},
+    "bounds": [
+      1440,
+      4002,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "33-_pricing-1440-baseline.png",
+    "width": 1440,
+    "height": 2500,
+    "changed": 1811505,
+    "above3": 0,
+    "max": 2.4725034119368963,
+    "regions": {},
+    "bounds": [
+      1440,
+      2500,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "34-_login-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 687036,
+    "above3": 1103,
+    "max": 57.77092513003545,
+    "regions": {
+      "header": 1103
+    },
+    "bounds": [
+      1254,
+      34,
+      1391,
+      51
+    ],
+    "largestPairs": [
+      {
+        "before": "#4b4660",
+        "after": "#ffffff",
+        "count": 49
+      },
+      {
+        "before": "#ffffff",
+        "after": "#4b4660",
+        "count": 36
+      },
+      {
+        "before": "#ffffff",
+        "after": "#6b6680",
+        "count": 24
+      },
+      {
+        "before": "#ffffff",
+        "after": "#c5c4cc",
+        "count": 22
+      },
+      {
+        "before": "#c5c4cc",
+        "after": "#ffffff",
+        "count": 21
+      },
+      {
+        "before": "#ffffff",
+        "after": "#ecebee",
+        "count": 18
+      }
+    ]
+  },
+  {
+    "file": "35-_register-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 691289,
+    "above3": 1103,
+    "max": 57.77092513003545,
+    "regions": {
+      "header": 1103
+    },
+    "bounds": [
+      1254,
+      34,
+      1391,
+      51
+    ],
+    "largestPairs": [
+      {
+        "before": "#4b4660",
+        "after": "#ffffff",
+        "count": 49
+      },
+      {
+        "before": "#ffffff",
+        "after": "#4b4660",
+        "count": 36
+      },
+      {
+        "before": "#ffffff",
+        "after": "#6b6680",
+        "count": 24
+      },
+      {
+        "before": "#ffffff",
+        "after": "#c5c4cc",
+        "count": 22
+      },
+      {
+        "before": "#c5c4cc",
+        "after": "#ffffff",
+        "count": 21
+      },
+      {
+        "before": "#ffffff",
+        "after": "#ecebee",
+        "count": 18
+      }
+    ]
+  },
+  {
+    "file": "36-_forgot-password-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 697719,
+    "above3": 1103,
+    "max": 57.77092513003545,
+    "regions": {
+      "header": 1103
+    },
+    "bounds": [
+      1254,
+      34,
+      1391,
+      51
+    ],
+    "largestPairs": [
+      {
+        "before": "#4b4660",
+        "after": "#ffffff",
+        "count": 49
+      },
+      {
+        "before": "#ffffff",
+        "after": "#4b4660",
+        "count": 36
+      },
+      {
+        "before": "#ffffff",
+        "after": "#6b6680",
+        "count": 24
+      },
+      {
+        "before": "#ffffff",
+        "after": "#c5c4cc",
+        "count": 22
+      },
+      {
+        "before": "#c5c4cc",
+        "after": "#ffffff",
+        "count": 21
+      },
+      {
+        "before": "#ffffff",
+        "after": "#ecebee",
+        "count": 18
+      }
+    ]
+  },
+  {
+    "file": "37-_complete-profile-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 1141611,
+    "above3": 0,
+    "max": 2.7468928503331886,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "38-_privacy-1440-baseline.png",
+    "width": 1440,
+    "height": 3172,
+    "changed": 1980080,
+    "above3": 0,
+    "max": 2.4725034119368963,
+    "regions": {},
+    "bounds": [
+      1440,
+      3172,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "39-_terms-1440-baseline.png",
+    "width": 1440,
+    "height": 2413,
+    "changed": 1493170,
+    "above3": 0,
+    "max": 2.4725034119368963,
+    "regions": {},
+    "bounds": [
+      1440,
+      2413,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "40-_data-deletion-1440-baseline.png",
+    "width": 1440,
+    "height": 1704,
+    "changed": 1038416,
+    "above3": 0,
+    "max": 2.4725034119368963,
+    "regions": {},
+    "bounds": [
+      1440,
+      1704,
+      0,
+      0
+    ],
+    "largestPairs": []
+  },
+  {
+    "file": "41-_auth_google_callback-1440-baseline.png",
+    "width": 1440,
+    "height": 1000,
+    "changed": 0,
+    "above3": 0,
+    "max": 0,
+    "regions": {},
+    "bounds": [
+      1440,
+      1000,
+      0,
+      0
+    ],
+    "largestPairs": []
+  }
+]

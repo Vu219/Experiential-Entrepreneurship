@@ -23,6 +23,7 @@ import ContentFilterDrawer, { DEFAULT_FILTERS, activeFilterCount, type ContentFi
 import ContentViewPanel from './ContentViewPanel';
 import CreateSkeleton, { ContentTableSkeleton } from './CreateSkeleton';
 import { CONTENT_STATUS_META, REVIEW_STATUS_META } from './statusMeta';
+import { C } from '../../styles/colors';
 
 // Tabs nhanh theo trạng thái (trục lọc đổi nhiều nhất — để NGOÀI, không chôn trong drawer).
 // Các trạng thái pipeline hiếm gặp (Posting/Failed/...) vẫn lọc được gián tiếp qua tab Tất cả.
@@ -229,9 +230,9 @@ export default function ContentList({
   if (load === 'loading' && !data) return <CreateSkeleton />;
   if (load === 'error')
     return (
-      <div style={{ textAlign: 'center', padding: '54px 16px', color: '#8a85a0' }}>
+      <div style={{ textAlign: 'center', padding: '54px 16px', color: C.textMuted }}>
         <div style={{ fontSize: 14.5, fontWeight: 600, marginBottom: 14 }}>{t.listError}</div>
-        <button onClick={refresh} className="btn-grad" style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
+        <button onClick={refresh} className="btn-grad" style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
       </div>
     );
 
@@ -245,8 +246,8 @@ export default function ContentList({
     chips.push({ key: 'sort', label: filters.sort === 'voice' ? t.clSortVoice : t.clSortStatus, clear: () => setFilters({ ...filters, sort: 'newest' }) });
 
   const bulkBtn = {
-    display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #e0d5fb', background: '#fff',
-    borderRadius: 9, padding: '7px 12px', fontSize: 12.5, fontWeight: 700, color: '#5b2b9e',
+    display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.legacyBordere0d5fb}`, background: C.surface,
+    borderRadius: 9, padding: '7px 12px', fontSize: 12.5, fontWeight: 700, color: C.accentText,
     cursor: bulkBusy ? 'not-allowed' : 'pointer', opacity: bulkBusy ? 0.6 : 1,
   } as const;
 
@@ -258,14 +259,14 @@ export default function ContentList({
         <button
           onClick={() => setFilterOpen(true)}
           className="btn-soft"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: filterCount > 0 ? '#6d28d9' : '#574f6e', cursor: 'pointer' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: filterCount > 0 ? C.primaryStrong : C.ink600, cursor: 'pointer' }}
         >
-          <Icon icon={SlidersHorizontal} size={15} stroke={filterCount > 0 ? '#6d28d9' : '#574f6e'} />
+          <Icon icon={SlidersHorizontal} size={15} stroke={filterCount > 0 ? C.primaryStrong : C.ink600} />
           {t.clFilterBtn}{filterCount > 0 ? ` · ${filterCount}` : ''}
         </button>
         {/* Mobile: nút tạo full-width xuống hàng riêng cho dễ bấm; desktop giữ góc phải. */}
-        <button onClick={onCreate} className="btn-grad" style={{ marginLeft: isMobile ? 0 : 'auto', width: isMobile ? '100%' : undefined, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: 'none', borderRadius: 11, padding: '10px 18px', fontSize: 14, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer' }}>
-          <Icon icon={Plus} size={17} stroke="#fff" />{t.clCreate}
+        <button onClick={onCreate} className="btn-grad" style={{ marginLeft: isMobile ? 0 : 'auto', width: isMobile ? '100%' : undefined, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: 'none', borderRadius: 11, padding: '10px 18px', fontSize: 14, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>
+          <Icon icon={Plus} size={17} stroke={C.onBrand} />{t.clCreate}
         </button>
       </div>
 
@@ -273,21 +274,21 @@ export default function ContentList({
       {chips.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           {chips.map((c) => (
-            <span key={c.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f4f1fb', borderRadius: 999, padding: '5px 7px 5px 12px', fontSize: 12.5, fontWeight: 600, color: '#5b4b86' }}>
+            <span key={c.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.surfaceMuted, borderRadius: 999, padding: '5px 7px 5px 12px', fontSize: 12.5, fontWeight: 600, color: C.legacyText5b4b86 }}>
               {c.label}
-              <button onClick={c.clear} aria-label={`${t.clearFilters}: ${c.label}`} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, border: 'none', borderRadius: '50%', background: '#e5ddf6', color: '#5b4b86', cursor: 'pointer', padding: 0 }}>
-                <Icon icon={X} size={11} stroke="#5b4b86" />
+              <button onClick={c.clear} aria-label={`${t.clearFilters}: ${c.label}`} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, border: 'none', borderRadius: '50%', background: C.legacyBge5ddf6, color: C.legacyText5b4b86, cursor: 'pointer', padding: 0 }}>
+                <Icon icon={X} size={11} stroke={C.legacyText5b4b86} />
               </button>
             </span>
           ))}
-          <button onClick={clearAll} className="link-underline" style={{ border: 'none', background: 'transparent', fontSize: 12.5, fontWeight: 700, color: '#7c3aed', cursor: 'pointer', padding: 2 }}>
+          <button onClick={clearAll} className="link-underline" style={{ border: 'none', background: 'transparent', fontSize: 12.5, fontWeight: 700, color: C.primary, cursor: 'pointer', padding: 2 }}>
             {t.clearFilters}
           </button>
         </div>
       )}
 
       {/* Tabs nhanh theo trạng thái + số đếm (cuộn ngang trên màn hẹp) */}
-      <div role="tablist" style={{ display: 'flex', gap: 4, background: '#f6f3fc', borderRadius: 12, padding: 4, overflowX: 'auto', alignSelf: 'flex-start', maxWidth: '100%' }}>
+      <div role="tablist" style={{ display: 'flex', gap: 4, background: C.surfaceMuted, borderRadius: 12, padding: 4, overflowX: 'auto', alignSelf: 'flex-start', maxWidth: '100%' }}>
         {TAB_STATUSES.map((s) => {
           const on = statusTab === s;
           const label = s === 'all' ? t.clTabAll : t[tabLabelKey(s)];
@@ -300,12 +301,12 @@ export default function ContentList({
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 7, flex: 'none',
                 border: 'none', borderRadius: 9, padding: '7px 13px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
-                background: on ? '#fff' : 'transparent', color: on ? '#7c3aed' : '#8a85a0',
-                boxShadow: on ? '0 2px 8px -3px rgba(80,60,140,.25)' : 'none', whiteSpace: 'nowrap',
+                background: on ? C.surface : 'transparent', color: on ? C.primary : C.textMuted,
+                boxShadow: on ? `0 2px 8px -3px ${C.legacyShadowrgba8060140_25_}` : 'none', whiteSpace: 'nowrap',
               }}
             >
               {label}
-              <span style={{ background: on ? '#f3edff' : '#ece8f6', color: on ? '#7c3aed' : '#8a85a0', borderRadius: 999, padding: '1px 7px', fontSize: 10.5, fontWeight: 800 }}>
+              <span style={{ background: on ? C.primarySoft : C.border, color: on ? C.primary : C.textMuted, borderRadius: 999, padding: '1px 7px', fontSize: 10.5, fontWeight: 800 }}>
                 {tabCounts[s] ?? 0}
               </span>
             </button>
@@ -315,19 +316,19 @@ export default function ContentList({
 
       {/* Thanh thao tác hàng loạt — hiện khi có dòng được chọn */}
       {selected.size > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, background: '#f6f1ff', border: '1px solid #e0d5fb', borderRadius: 12, padding: '9px 14px' }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#5b2b9e', marginRight: 4 }}>{t.clSelected} {selected.size}</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, background: C.border, border: `1px solid ${C.legacyBordere0d5fb}`, borderRadius: 12, padding: '9px 14px' }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.accentText, marginRight: 4 }}>{t.clSelected} {selected.size}</span>
           <button onClick={bulkReview} disabled={bulkBusy} className="btn-soft" style={bulkBtn}>
-            <Icon icon={Send} size={13} stroke="#5b2b9e" />{t.cvSubmitReview}
+            <Icon icon={Send} size={13} stroke={C.accentText} />{t.cvSubmitReview}
           </button>
           <button onClick={bulkExport} disabled={bulkBusy} className="btn-soft" style={bulkBtn}>
-            <Icon icon={Download} size={13} stroke="#5b2b9e" />{t.clBulkExport}
+            <Icon icon={Download} size={13} stroke={C.accentText} />{t.clBulkExport}
           </button>
-          <button onClick={() => setDeleting(selectedItems)} disabled={bulkBusy} className="btn-soft" style={{ ...bulkBtn, color: '#d6336c', borderColor: '#f3c9d6' }}>
-            <Icon icon={Trash2} size={13} stroke="#d6336c" />{t.clDelete}
+          <button onClick={() => setDeleting(selectedItems)} disabled={bulkBusy} className="btn-soft" style={{ ...bulkBtn, color: C.legacyTextd6336c, borderColor: C.legacyBorderf3c9d6 }}>
+            <Icon icon={Trash2} size={13} stroke={C.legacyTextd6336c} />{t.clDelete}
           </button>
-          <button onClick={() => setSelected(new Set())} disabled={bulkBusy} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, border: 'none', background: 'transparent', fontSize: 12.5, fontWeight: 700, color: '#7d6aa3', cursor: 'pointer' }}>
-            <Icon icon={X} size={13} stroke="#7d6aa3" />{t.clBulkClear}
+          <button onClick={() => setSelected(new Set())} disabled={bulkBusy} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, border: 'none', background: 'transparent', fontSize: 12.5, fontWeight: 700, color: C.accentTextMuted, cursor: 'pointer' }}>
+            <Icon icon={X} size={13} stroke={C.accentTextMuted} />{t.clBulkClear}
           </button>
         </div>
       )}
@@ -338,12 +339,12 @@ export default function ContentList({
         <Empty onCreate={onCreate} />
       ) : items.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: '#8a85a0', fontSize: 14 }}>{t.listEmpty}</span>
-          <button onClick={clearAll} className="btn-soft" style={{ border: 'none', background: '#f4f2fb', color: '#5b5670', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{t.clearFilters}</button>
+          <span style={{ color: C.textMuted, fontSize: 14 }}>{t.listEmpty}</span>
+          <button onClick={clearAll} className="btn-soft" style={{ border: 'none', background: C.surfaceMuted, color: C.ink550, borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{t.clearFilters}</button>
         </div>
       ) : (
         <>
-          <div style={{ fontSize: 12.5, color: '#8a85a0' }}>{t.clShowing} {total} {t.clItemsWord}</div>
+          <div style={{ fontSize: 12.5, color: C.textMuted }}>{t.clShowing} {total} {t.clItemsWord}</div>
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             <ContentTable
               items={items}
@@ -366,16 +367,16 @@ export default function ContentList({
                   onClick={() => setPage(page - 1)}
                   disabled={page <= 1}
                   aria-label={t.pgPrev}
-                  style={{ width: 38, height: 38, borderRadius: 10, border: '1px solid #ece8f6', background: '#fff', fontSize: 17, fontWeight: 700, color: page <= 1 ? '#c4bdd6' : '#5b5670', cursor: page <= 1 ? 'default' : 'pointer' }}
+                  style={{ width: 38, height: 38, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, fontSize: 17, fontWeight: 700, color: page <= 1 ? C.ink200 : C.ink550, cursor: page <= 1 ? 'default' : 'pointer' }}
                 >
                   ‹
                 </button>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#574f6e' }}>{page}/{pageCount}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: C.ink600 }}>{page}/{pageCount}</span>
                 <button
                   onClick={() => setPage(page + 1)}
                   disabled={page >= pageCount}
                   aria-label={t.pgNext}
-                  style={{ width: 38, height: 38, borderRadius: 10, border: '1px solid #ece8f6', background: '#fff', fontSize: 17, fontWeight: 700, color: page >= pageCount ? '#c4bdd6' : '#5b5670', cursor: page >= pageCount ? 'default' : 'pointer' }}
+                  style={{ width: 38, height: 38, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, fontSize: 17, fontWeight: 700, color: page >= pageCount ? C.ink200 : C.ink550, cursor: page >= pageCount ? 'default' : 'pointer' }}
                 >
                   ›
                 </button>
@@ -414,13 +415,13 @@ function Empty({ onCreate }: { onCreate: () => void }) {
   const { t, brandGradient } = useApp();
   return (
     <div style={{ textAlign: 'center', padding: '64px 16px' }}>
-      <div style={{ width: 72, height: 72, borderRadius: 20, background: 'linear-gradient(150deg,#f6f2ff,#fcf1fc)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
-        <Icon icon={Sparkles} size={32} stroke="#a78bfa" />
+      <div style={{ width: 72, height: 72, borderRadius: 20, background: `linear-gradient(150deg,${C.legacyBgf6f2ff},${C.legacyBgfcf1fc})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
+        <Icon icon={Sparkles} size={32} stroke={C.legacyTexta78bfa} />
       </div>
-      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 18, color: '#211c38' }}>{t.clEmptyTitle}</div>
-      <div style={{ fontSize: 13.5, color: '#8a85a0', margin: '8px auto 22px', maxWidth: 380 }}>{t.clEmptyDesc}</div>
-      <button onClick={onCreate} className="btn-grad" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: 'none', borderRadius: 12, padding: '12px 24px', fontSize: 14, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer' }}>
-        <Icon icon={Plus} size={17} stroke="#fff" />{t.clCreateFirst}
+      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 18, color: C.textStrong }}>{t.clEmptyTitle}</div>
+      <div style={{ fontSize: 13.5, color: C.textMuted, margin: '8px auto 22px', maxWidth: 380 }}>{t.clEmptyDesc}</div>
+      <button onClick={onCreate} className="btn-grad" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: 'none', borderRadius: 12, padding: '12px 24px', fontSize: 14, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>
+        <Icon icon={Plus} size={17} stroke={C.onBrand} />{t.clCreateFirst}
       </button>
     </div>
   );

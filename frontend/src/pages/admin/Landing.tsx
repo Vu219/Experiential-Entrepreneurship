@@ -18,6 +18,7 @@ import {
   ERR_LANDING_CONTENT_INVALID,
   type LandingContent, type LandingSectionDto, type LandingSectionKey,
 } from '../../api/landing';
+import { C } from '../../styles/colors';
 
 // Trang admin "Quản lý Landing Page": mỗi tab một section (không gồm "Chọn gói" — đã có Quản lý gói).
 // Lưu nháp → landing chưa đổi; Xuất bản (từng tab hoặc tất cả) → landing đổi. Sửa dở giữa các tab
@@ -39,9 +40,9 @@ type Drafts = Partial<{ [K in LandingSectionKey]: LandingContent[K] }>;
 const btn = (variant: 'primary' | 'soft' | 'danger', bg: string, disabled: boolean): CSSProperties => ({
   display: 'flex', alignItems: 'center', gap: 6, borderRadius: 9, padding: '8px 14px', fontSize: 12.5, fontWeight: 700,
   cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1, whiteSpace: 'nowrap',
-  ...(variant === 'primary' ? { border: 'none', color: '#fff', background: bg }
-    : variant === 'danger' ? { border: '1px solid #fbdce7', color: '#d6336c', background: '#fff' }
-    : { border: '1px solid #ece8f6', color: '#5b5670', background: '#fff' }),
+  ...(variant === 'primary' ? { border: 'none', color: C.onBrand, background: bg }
+    : variant === 'danger' ? { border: `1px solid ${C.legacyBorderfbdce7}`, color: C.legacyTextd6336c, background: C.surface }
+    : { border: `1px solid ${C.border}`, color: C.ink550, background: C.surface }),
 });
 
 export default function Landing() {
@@ -160,8 +161,8 @@ export default function Landing() {
   if (load === 'error') return (
     <PageContainer>
       <Card style={{ textAlign: 'center', padding: '54px 16px' }}>
-        <div style={{ fontSize: 14.5, fontWeight: 600, color: '#5b5670', marginBottom: 14 }}>{t.listError}</div>
-        <button onClick={fetchAll} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
+        <div style={{ fontSize: 14.5, fontWeight: 600, color: C.ink550, marginBottom: 14 }}>{t.listError}</div>
+        <button onClick={fetchAll} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
       </Card>
     </PageContainer>
   );
@@ -184,13 +185,13 @@ export default function Landing() {
                 role="tab"
                 aria-selected={active}
                 onClick={() => setTab(key)}
-                style={{ display: 'flex', alignItems: 'center', gap: 7, border: '1px solid', borderColor: active ? 'transparent' : '#ece8f6', background: active ? brandGradient : '#fff', color: active ? '#fff' : '#5b5670', borderRadius: 9, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, border: '1px solid', borderColor: active ? 'transparent' : C.border, background: active ? brandGradient : C.surface, color: active ? C.onBrand : C.ink550, borderRadius: 9, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
               >
                 {t[label]}
                 {(unsaved || pending) && (
                   <span
                     title={unsaved ? t.lpUnsaved : t.lpUnpublished}
-                    style={{ width: 7, height: 7, borderRadius: '50%', background: unsaved ? '#e25c84' : '#f59e0b', boxShadow: active ? '0 0 0 2px rgba(255,255,255,.8)' : 'none' }}
+                    style={{ width: 7, height: 7, borderRadius: '50%', background: unsaved ? '#e25c84' : '#f59e0b', boxShadow: active ? `0 0 0 2px ${C.legacyShadowrgba255255255_8_}` : 'none' }}
                   />
                 )}
               </button>
@@ -209,13 +210,13 @@ export default function Landing() {
 
       {current && content && (
         <Card style={{ display: 'grid', gap: 18 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between', paddingBottom: 14, borderBottom: '1px solid #f0ecf8' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between', paddingBottom: 14, borderBottom: `1px solid ${C.surfaceMuted}` }}>
             <div style={{ display: 'grid', gap: 6 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {dirty && <StatusBadge tone="danger" label={t.lpUnsaved} />}
                 <StatusBadge tone={current.hasUnpublishedChanges ? 'warning' : 'success'} label={current.hasUnpublishedChanges ? t.lpUnpublished : t.lpPublished} />
               </div>
-              <div style={{ fontSize: 12, color: '#8a85a0' }}>
+              <div style={{ fontSize: 12, color: C.textMuted }}>
                 {t.lpLastPublished}: {formatDateTimeVN(current.publishedAt)}{current.publishedBy ? ` ${t.lpBy} ${current.publishedBy}` : ''}
                 {current.updatedBy && <> · {t.lpLastSaved}: {formatDateTimeVN(current.updatedAt)} {t.lpBy} {current.updatedBy}</>}
               </div>

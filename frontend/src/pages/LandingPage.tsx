@@ -19,6 +19,7 @@ import { featureIcon } from '../components/landing/landingIcons';
 import { useLandingContent } from '../hooks/useLandingContent';
 import { usePauseWhenOffscreen } from '../hooks/usePauseWhenOffscreen';
 import { tr } from '../api/landing';
+import { C } from '../styles/colors';
 
 // Ô icon thẻ tính năng phóng ra khi thẻ reveal — variant kế thừa từ RevealGroup (hidden/show).
 // Tween ease-out (không spring nảy — DESIGN.md).
@@ -79,13 +80,13 @@ export default function LandingPage() {
         <section ref={heroRef} id="home" className="scroll-anchor" onMouseMove={onHeroMove} onMouseLeave={onHeroLeave} style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '96px 18px 44px' : '120px 28px 60px', display: 'grid', gridTemplateColumns: stacked ? '1fr' : '1.05fr .95fr', gap: stacked ? 28 : 40, alignItems: 'center' }}>
           <RevealGroup className="min-w-0 max-w-full" style={{ textAlign: isMobile ? 'center' : 'left' }}>
             <RevealItem y={16}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: '#fff', border: '1px solid #ece8f7', borderRadius: 999, padding: '7px 15px', fontSize: 13, fontWeight: 600, color: '#7c3aed', boxShadow: '0 6px 18px -12px rgba(124,58,237,.5)' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 999, padding: '7px 15px', fontSize: 13, fontWeight: 600, color: C.primary, boxShadow: `0 6px 18px -12px ${C.legacyShadowrgba12458237_5_}` }}>
                 <span className="hero-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: brandGradient }} />
                 {tr(hero.badge, lang)}
               </div>
             </RevealItem>
             <RevealItem y={20}>
-              <h1 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: isMobile ? (width >= 640 ? 36 : 30) : 62, lineHeight: 1.06, letterSpacing: '-.02em', margin: '20px 0 0', color: '#171327', overflowWrap: 'break-word', textWrap: 'balance' }}>
+              <h1 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: isMobile ? (width >= 640 ? 36 : 30) : 62, lineHeight: 1.06, letterSpacing: '-.02em', margin: '20px 0 0', color: C.ink900, overflowWrap: 'break-word', textWrap: 'balance' }}>
                 {tr(hero.titleLine1, lang)}
                 <br />
                 <span className="gradtext hero-grad">
@@ -94,12 +95,12 @@ export default function LandingPage() {
               </h1>
             </RevealItem>
             <RevealItem y={20}>
-              <p style={{ fontSize: isMobile ? 16 : 18, lineHeight: 1.6, color: '#5b5670', maxWidth: 480, margin: isMobile ? '20px auto 0' : '22px 0 0', padding: isMobile ? '0 6px' : 0 }}>{tr(hero.subtitle, lang)}</p>
+              <p style={{ fontSize: isMobile ? 16 : 18, lineHeight: 1.6, color: C.ink550, maxWidth: 480, margin: isMobile ? '20px auto 0' : '22px 0 0', padding: isMobile ? '0 6px' : 0 }}>{tr(hero.subtitle, lang)}</p>
             </RevealItem>
             <RevealItem y={20}>
               <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 14, marginTop: 34, flexWrap: 'wrap', alignItems: isMobile ? 'stretch' : 'center' }}>
-                <LandingLink href={hero.primaryCta.href} className="btn-grad btn-shine" style={{ ...ctaBase, border: 'none', color: '#fff', background: brandGradient, boxShadow: '0 18px 34px -14px rgba(139,92,246,.65)' }}>{tr(hero.primaryCta.label, lang)}</LandingLink>
-                <LandingLink href={hero.secondaryCta.href} className="btn-outline" style={{ ...ctaBase, border: '1.5px solid #d9cef5', color: '#7c3aed', background: '#fff' }}>{tr(hero.secondaryCta.label, lang)}</LandingLink>
+                <LandingLink href={hero.primaryCta.href} className="btn-grad btn-shine" style={{ ...ctaBase, border: 'none', color: C.onBrand, background: brandGradient, boxShadow: `0 18px 34px -14px ${C.legacyShadowrgba13992246_65_}` }}>{tr(hero.primaryCta.label, lang)}</LandingLink>
+                <LandingLink href={hero.secondaryCta.href} className="btn-outline" style={{ ...ctaBase, border: `1.5px solid ${C.legacyBorderd9cef5}`, color: C.primary, background: C.surface }}>{tr(hero.secondaryCta.label, lang)}</LandingLink>
               </div>
             </RevealItem>
             {/* 2. Thống kê — count-up khi vào viewport lần đầu */}
@@ -107,12 +108,12 @@ export default function LandingPage() {
               <div style={{ display: isMobile ? 'grid' : 'flex', gridTemplateColumns: isMobile ? `repeat(${hero.stats.length},1fr)` : undefined, gap: isMobile ? 10 : 30, marginTop: isMobile ? 38 : 46, justifyContent: isMobile ? undefined : 'flex-start' }}>
                 {hero.stats.map((s, i) => (
                   <div key={i} style={{ display: 'flex', gap: isMobile ? 0 : 30, minWidth: 0 }}>
-                    {i > 0 && !isMobile && <div style={{ width: 1, background: '#e7e2f2' }} />}
+                    {i > 0 && !isMobile && <div style={{ width: 1, background: C.border }} />}
                     <div style={{ minWidth: 0, textAlign: isMobile ? 'center' : 'left' }}>
-                      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 24 : 30, color: '#171327' }}>
+                      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 24 : 30, color: C.ink900 }}>
                         <StatNumber value={s.value} suffix={s.suffix} />
                       </div>
-                      <div style={{ fontSize: isMobile ? 12 : 13, color: '#6b6680', marginTop: 2 }}>{tr(s.label, lang)}</div>
+                      <div style={{ fontSize: isMobile ? 12 : 13, color: C.textSecondary, marginTop: 2 }}>{tr(s.label, lang)}</div>
                     </div>
                   </div>
                 ))}
@@ -130,24 +131,24 @@ export default function LandingPage() {
         <section id="features" className="scroll-anchor cv-auto" style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '10px 18px 50px' : '10px 28px 70px' }}>
           <Reveal>
             <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto 40px' }}>
-              <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 30 : 38, letterSpacing: '-.02em', margin: 0, color: '#171327', textWrap: 'balance' }}>{tr(features.title, lang)}</h2>
-              <p style={{ fontSize: 17, color: '#5b5670', margin: '12px 0 0' }}>{tr(features.subtitle, lang)}</p>
+              <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 30 : 38, letterSpacing: '-.02em', margin: 0, color: C.ink900, textWrap: 'balance' }}>{tr(features.title, lang)}</h2>
+              <p style={{ fontSize: 17, color: C.ink550, margin: '12px 0 0' }}>{tr(features.subtitle, lang)}</p>
             </div>
           </Reveal>
           <RevealGroup style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2,1fr)' : 'repeat(3,1fr)', gap: 20 }}>
             {features.items.map((c, i) => (
               <RevealItem key={i} style={{ display: 'flex' }}>
-                <div className="lift-card feat-card" style={{ flex: 1, background: '#fff', border: '1px solid #efeaf8', borderRadius: 20, padding: 26, boxShadow: '0 22px 44px -34px rgba(80,40,140,.5)' }}>
+                <div className="lift-card feat-card" style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, padding: 26, boxShadow: `0 22px 44px -34px ${C.legacyShadowrgba8040140_5_}` }}>
                   {/* Hover: vạch brand chạy ra ở đỉnh + vệt sáng quét ngang (CSS .feat-*) */}
                   <span aria-hidden className="feat-bar" />
                   <span aria-hidden className="feat-sheen" />
                   <motion.div variants={reduced ? undefined : featIconVariants} style={{ display: 'inline-flex' }}>
-                    <div className="feat-icon" style={{ width: 48, height: 48, borderRadius: 13, background: 'linear-gradient(135deg,#edf9ff,#f6effc)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="feat-icon" style={{ width: 48, height: 48, borderRadius: 13, background: `linear-gradient(135deg,${C.legacyBgedf9ff},${C.legacyBgf6effc})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <GradIcon icon={featureIcon(c.icon)} size={24} />
                     </div>
                   </motion.div>
-                  <div style={{ fontWeight: 700, fontSize: 17, margin: '16px 0 6px', color: '#211c38' }}>{tr(c.title, lang)}</div>
-                  <div style={{ fontSize: 14, lineHeight: 1.55, color: '#6b6680' }}>{tr(c.description, lang)}</div>
+                  <div style={{ fontWeight: 700, fontSize: 17, margin: '16px 0 6px', color: C.textStrong }}>{tr(c.title, lang)}</div>
+                  <div style={{ fontSize: 14, lineHeight: 1.55, color: C.textSecondary }}>{tr(c.description, lang)}</div>
                 </div>
               </RevealItem>
             ))}

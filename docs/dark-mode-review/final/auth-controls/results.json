@@ -1,0 +1,1022 @@
+[
+  {
+    "width": 1919,
+    "mode": "light",
+    "route": "/login",
+    "lang": "vi",
+    "language": {
+      "x": 1733.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1859,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1919,
+    "mode": "light",
+    "route": "/login",
+    "lang": "en",
+    "language": {
+      "x": 1756.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1859,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1919,
+    "mode": "light",
+    "route": "/register",
+    "lang": "vi",
+    "language": {
+      "x": 1733.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1859,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1919,
+    "mode": "light",
+    "route": "/register",
+    "lang": "en",
+    "language": {
+      "x": 1756.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1859,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1919,
+    "mode": "light",
+    "route": "/forgot-password",
+    "lang": "vi",
+    "language": {
+      "x": 1733.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1859,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1919,
+    "mode": "light",
+    "route": "/forgot-password",
+    "lang": "en",
+    "language": {
+      "x": 1756.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1859,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1919,
+    "mode": "dark",
+    "route": "/login",
+    "lang": "vi",
+    "language": {
+      "x": 1733.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1859,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1919,
+    "mode": "dark",
+    "route": "/login",
+    "lang": "en",
+    "language": {
+      "x": 1756.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1859,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1919,
+    "mode": "dark",
+    "route": "/register",
+    "lang": "vi",
+    "language": {
+      "x": 1733.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1859,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1919,
+    "mode": "dark",
+    "route": "/register",
+    "lang": "en",
+    "language": {
+      "x": 1756.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1859,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1919,
+    "mode": "dark",
+    "route": "/forgot-password",
+    "lang": "vi",
+    "language": {
+      "x": 1733.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1859,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1919,
+    "mode": "dark",
+    "route": "/forgot-password",
+    "lang": "en",
+    "language": {
+      "x": 1756.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1859,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "light",
+    "route": "/login",
+    "lang": "vi",
+    "language": {
+      "x": 1254.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1380,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "light",
+    "route": "/login",
+    "lang": "en",
+    "language": {
+      "x": 1277.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1380,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "light",
+    "route": "/register",
+    "lang": "vi",
+    "language": {
+      "x": 1254.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1380,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "light",
+    "route": "/register",
+    "lang": "en",
+    "language": {
+      "x": 1277.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1380,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "light",
+    "route": "/forgot-password",
+    "lang": "vi",
+    "language": {
+      "x": 1254.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1380,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "light",
+    "route": "/forgot-password",
+    "lang": "en",
+    "language": {
+      "x": 1277.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1380,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "route": "/login",
+    "lang": "vi",
+    "language": {
+      "x": 1254.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1380,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "route": "/login",
+    "lang": "en",
+    "language": {
+      "x": 1277.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1380,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "route": "/register",
+    "lang": "vi",
+    "language": {
+      "x": 1254.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1380,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "route": "/register",
+    "lang": "en",
+    "language": {
+      "x": 1277.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1380,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "route": "/forgot-password",
+    "lang": "vi",
+    "language": {
+      "x": 1254.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1380,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "route": "/forgot-password",
+    "lang": "en",
+    "language": {
+      "x": 1277.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 1380,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1024,
+    "mode": "light",
+    "route": "/login",
+    "lang": "vi",
+    "language": {
+      "x": 838.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 964,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1024,
+    "mode": "light",
+    "route": "/login",
+    "lang": "en",
+    "language": {
+      "x": 861.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 964,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1024,
+    "mode": "light",
+    "route": "/register",
+    "lang": "vi",
+    "language": {
+      "x": 838.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 964,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1024,
+    "mode": "light",
+    "route": "/register",
+    "lang": "en",
+    "language": {
+      "x": 861.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 964,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1024,
+    "mode": "light",
+    "route": "/forgot-password",
+    "lang": "vi",
+    "language": {
+      "x": 838.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 964,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1024,
+    "mode": "light",
+    "route": "/forgot-password",
+    "lang": "en",
+    "language": {
+      "x": 861.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 964,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1024,
+    "mode": "dark",
+    "route": "/login",
+    "lang": "vi",
+    "language": {
+      "x": 838.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 964,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1024,
+    "mode": "dark",
+    "route": "/login",
+    "lang": "en",
+    "language": {
+      "x": 861.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 964,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1024,
+    "mode": "dark",
+    "route": "/register",
+    "lang": "vi",
+    "language": {
+      "x": 838.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 964,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1024,
+    "mode": "dark",
+    "route": "/register",
+    "lang": "en",
+    "language": {
+      "x": 861.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 964,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1024,
+    "mode": "dark",
+    "route": "/forgot-password",
+    "lang": "vi",
+    "language": {
+      "x": 838.34375,
+      "y": 32,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 964,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 1024,
+    "mode": "dark",
+    "route": "/forgot-password",
+    "lang": "en",
+    "language": {
+      "x": 861.609375,
+      "y": 32,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": {
+      "x": 964,
+      "y": 16,
+      "width": 42,
+      "height": 42
+    },
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "light",
+    "route": "/login",
+    "lang": "vi",
+    "language": {
+      "x": 270.34375,
+      "y": 18,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "light",
+    "route": "/login",
+    "lang": "en",
+    "language": {
+      "x": 293.609375,
+      "y": 18,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "light",
+    "route": "/register",
+    "lang": "vi",
+    "language": {
+      "x": 270.34375,
+      "y": 18,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "light",
+    "route": "/register",
+    "lang": "en",
+    "language": {
+      "x": 293.609375,
+      "y": 18,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "light",
+    "route": "/forgot-password",
+    "lang": "vi",
+    "language": {
+      "x": 270.34375,
+      "y": 18,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "light",
+    "route": "/forgot-password",
+    "lang": "en",
+    "language": {
+      "x": 293.609375,
+      "y": 18,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "route": "/login",
+    "lang": "vi",
+    "language": {
+      "x": 270.34375,
+      "y": 18,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "route": "/login",
+    "lang": "en",
+    "language": {
+      "x": 293.609375,
+      "y": 18,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "route": "/register",
+    "lang": "vi",
+    "language": {
+      "x": 270.34375,
+      "y": 18,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "route": "/register",
+    "lang": "en",
+    "language": {
+      "x": 293.609375,
+      "y": 18,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "route": "/forgot-password",
+    "lang": "vi",
+    "language": {
+      "x": 270.34375,
+      "y": 18,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "route": "/forgot-password",
+    "lang": "en",
+    "language": {
+      "x": 293.609375,
+      "y": 18,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 320,
+    "mode": "light",
+    "route": "/login",
+    "lang": "vi",
+    "language": {
+      "x": 200.34375,
+      "y": 18,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 320,
+    "mode": "light",
+    "route": "/login",
+    "lang": "en",
+    "language": {
+      "x": 223.609375,
+      "y": 18,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 320,
+    "mode": "light",
+    "route": "/register",
+    "lang": "vi",
+    "language": {
+      "x": 200.34375,
+      "y": 18,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 320,
+    "mode": "light",
+    "route": "/register",
+    "lang": "en",
+    "language": {
+      "x": 223.609375,
+      "y": 18,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 320,
+    "mode": "light",
+    "route": "/forgot-password",
+    "lang": "vi",
+    "language": {
+      "x": 200.34375,
+      "y": 18,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 320,
+    "mode": "light",
+    "route": "/forgot-password",
+    "lang": "en",
+    "language": {
+      "x": 223.609375,
+      "y": 18,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 320,
+    "mode": "dark",
+    "route": "/login",
+    "lang": "vi",
+    "language": {
+      "x": 200.34375,
+      "y": 18,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 320,
+    "mode": "dark",
+    "route": "/login",
+    "lang": "en",
+    "language": {
+      "x": 223.609375,
+      "y": 18,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 320,
+    "mode": "dark",
+    "route": "/register",
+    "lang": "vi",
+    "language": {
+      "x": 200.34375,
+      "y": 18,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 320,
+    "mode": "dark",
+    "route": "/register",
+    "lang": "en",
+    "language": {
+      "x": 223.609375,
+      "y": 18,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 320,
+    "mode": "dark",
+    "route": "/forgot-password",
+    "lang": "vi",
+    "language": {
+      "x": 200.34375,
+      "y": 18,
+      "width": 101.65625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  },
+  {
+    "width": 320,
+    "mode": "dark",
+    "route": "/forgot-password",
+    "lang": "en",
+    "language": {
+      "x": 223.609375,
+      "y": 18,
+      "width": 78.390625,
+      "height": 22.5
+    },
+    "toggle": null,
+    "errors": []
+  }
+]

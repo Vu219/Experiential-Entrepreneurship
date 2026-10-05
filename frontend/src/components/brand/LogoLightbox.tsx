@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { C } from '../../styles/colors';
 
 /**
  * Lightbox xem logo thương hiệu full size — mở khi bấm vào ảnh logo ở màn Xem hồ sơ.
@@ -31,7 +32,7 @@ export default function LogoLightbox({ src, alt, onClose }: { src: string; alt: 
       aria-label={alt}
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(16,10,32,.78)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+        background: C.legacyBgrgba161032_78_, backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
       }}
     >
@@ -39,7 +40,7 @@ export default function LogoLightbox({ src, alt, onClose }: { src: string; alt: 
         onClick={onClose}
         aria-label={t.close}
         title={t.close}
-        style={{ position: 'absolute', top: 18, right: 18, width: 40, height: 40, borderRadius: 12, border: '1px solid rgba(255,255,255,.25)', background: 'rgba(255,255,255,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+        style={{ position: 'absolute', top: 18, right: 18, width: 40, height: 40, borderRadius: 12, border: `1px solid ${C.legacyBorderrgba255255255_25_}`, background: C.legacyBgrgba255255255_12_, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
       >
         <X size={20} color="#fff" />
       </button>
@@ -48,7 +49,7 @@ export default function LogoLightbox({ src, alt, onClose }: { src: string; alt: 
         alt={alt}
         onMouseDown={(e) => e.stopPropagation()}
         className="view-pop"
-        style={{ maxWidth: 'min(92vw, 720px)', maxHeight: '82vh', objectFit: 'contain', borderRadius: 18, background: '#fff', boxShadow: '0 32px 80px -24px rgba(0,0,0,.6)' }}
+        style={{ maxWidth: 'min(92vw, 720px)', maxHeight: '82vh', objectFit: 'contain', borderRadius: 18, background: C.surface, boxShadow: `0 32px 80px -24px ${C.legacyShadowrgba000_6_}` }}
       />
     </div>,
     document.body,

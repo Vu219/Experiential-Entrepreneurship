@@ -1,0 +1,230 @@
+[
+  {
+    "name": "calendar-reschedule",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "calendar-confirm",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "analytics-all",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "analytics-filter",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "analytics-range",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "trends-schedule",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "trends-session",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "trends-idea",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "brand-view",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "brand-edit",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "brand-new",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "settings-publishing",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "settings-notifications",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "settings-connections",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "profile-password",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "admin-user-create",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "admin-user-menu",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "admin-plan-edit",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "admin-model-new",
+    "width": 1440,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "calendar-reschedule",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "calendar-confirm",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "analytics-all",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "analytics-filter",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "analytics-range",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "trends-schedule",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "trends-session",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "trends-idea",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "brand-view",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "brand-edit",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "brand-new",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "settings-publishing",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "settings-notifications",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "settings-connections",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "profile-password",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "admin-user-create",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "admin-user-menu",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "admin-plan-edit",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  },
+  {
+    "name": "admin-model-new",
+    "width": 390,
+    "errors": [],
+    "failure": null
+  }
+]

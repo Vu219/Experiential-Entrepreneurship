@@ -6,6 +6,7 @@ import { formatGroupedNumber } from '../../utils/format';
 import { typeColor } from '../dashboard/dashboardTokens';
 import RangeBadge from './RangeBadge';
 import type { AnalyticsContentType } from '../../api/analytics';
+import { C } from '../../styles/colors';
 
 /**
  * Khối F — "Hiệu suất theo loại nội dung": donut BÊN TRÁI + legend BÊN PHẢI (kèm số bài và %).
@@ -34,9 +35,9 @@ function ContentTypeBreakdown({ rows, from, to }: { rows: AnalyticsContentType[]
     <Card style={{ display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.anaTypesTitle}</div>
-          <div style={{ fontSize: 12.5, color: '#6b6680', marginTop: 2 }}>{t.anaTypesSub}</div>
-          <div style={{ fontSize: 11.5, color: '#a59fbb', marginTop: 4 }}>{t.anaAllTypesNote}</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.anaTypesTitle}</div>
+          <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 2 }}>{t.anaTypesSub}</div>
+          <div style={{ fontSize: 11.5, color: C.textFaint, marginTop: 4 }}>{t.anaAllTypesNote}</div>
         </div>
         <RangeBadge from={from} to={to} />
       </div>
@@ -44,7 +45,7 @@ function ContentTypeBreakdown({ rows, from, to }: { rows: AnalyticsContentType[]
       {totalEngagement === 0 ? (
         <div style={{
           flex: 1, minHeight: 150, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          textAlign: 'center', fontSize: 13.5, color: '#8a85a0', padding: '0 20px',
+          textAlign: 'center', fontSize: 13.5, color: C.textMuted, padding: '0 20px',
         }}>
           {t.anaTypesEmpty}
         </div>
@@ -68,12 +69,12 @@ function ContentTypeBreakdown({ rows, from, to }: { rows: AnalyticsContentType[]
               alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', padding: '0 8px',
             }}>
               <div style={{
-                fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: '#211c38',
+                fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: C.textStrong,
                 maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>
                 {formatGroupedNumber(totalEngagement, lang)}
               </div>
-              <div style={{ fontSize: 10.5, color: '#8a85a0' }}>{t.anaEngagement}</div>
+              <div style={{ fontSize: 10.5, color: C.textMuted }}>{t.anaEngagement}</div>
             </div>
           </div>
 
@@ -82,12 +83,12 @@ function ContentTypeBreakdown({ rows, from, to }: { rows: AnalyticsContentType[]
               <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                 <span aria-hidden style={{ width: 9, height: 9, borderRadius: 3, flex: 'none', background: typeColor(i) }} />
                 <span style={{
-                  flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: '#3f3a55',
+                  flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: C.text,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {labelOf(r.label)}
                 </span>
-                <span style={{ fontSize: 12.5, color: '#8a85a0', flex: 'none' }}>
+                <span style={{ fontSize: 12.5, color: C.textMuted, flex: 'none' }}>
                   {formatGroupedNumber(r.posts, lang)} · {r.sharePct}%
                 </span>
               </div>

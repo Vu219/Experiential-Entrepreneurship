@@ -4,6 +4,7 @@ import { Icon } from '../ui';
 import { ROUTE_BY_TYPE, TYPE_META } from '../notificationMeta';
 import { formatRelativeTime } from '../../utils/format';
 import type { AppNotification } from '../../api/notifications';
+import { C } from '../../styles/colors';
 
 /**
  * Danh sách timeline hoạt động (icon + tiêu đề + thời gian tương đối) — DÙNG CHUNG cho khối
@@ -25,7 +26,7 @@ export default function ActivityList({
       {items.map((item, i) => {
         // Fallback phòng khi backend thêm loại thông báo mới mà FE chưa cập nhật —
         // không có ErrorBoundary nên một type lạ mà thiếu fallback sẽ làm trắng cả trang.
-        const meta = TYPE_META[item.type] ?? { icon: History, color: '#8a85a0', bg: '#f1f5f9' };
+        const meta = TYPE_META[item.type] ?? { icon: History, color: C.textMuted, bg: C.slateTint };
         const isLast = i === items.length - 1;
         return (
           <li key={item.id} style={{ display: 'flex', gap: 12 }}>
@@ -37,7 +38,7 @@ export default function ActivityList({
               }}>
                 <Icon icon={meta.icon} size={16} stroke={meta.color} />
               </span>
-              {!isLast && <span aria-hidden style={{ width: 2, flex: 1, minHeight: 14, background: '#f1eef9' }} />}
+              {!isLast && <span aria-hidden style={{ width: 2, flex: 1, minHeight: 14, background: C.surfaceMuted }} />}
             </div>
 
             <button
@@ -49,20 +50,20 @@ export default function ActivityList({
               }}
             >
               <span style={{
-                display: 'block', fontSize: 13.5, fontWeight: 600, color: '#2b2543',
+                display: 'block', fontSize: 13.5, fontWeight: 600, color: C.ink750,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
                 {item.title}
               </span>
               {item.message && (
                 <span style={{
-                  display: 'block', fontSize: 12.5, color: '#6b6680', marginTop: 2,
+                  display: 'block', fontSize: 12.5, color: C.textSecondary, marginTop: 2,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {item.message}
                 </span>
               )}
-              <span style={{ display: 'block', fontSize: 11, color: '#a39bbf', marginTop: 4 }}>
+              <span style={{ display: 'block', fontSize: 11, color: C.ink350, marginTop: 4 }}>
                 {formatRelativeTime(item.createdAt, t)}
               </span>
             </button>

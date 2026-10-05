@@ -1,0 +1,13 @@
+{
+  "width": 1440,
+  "height": 1285,
+  "exact": 516536,
+  "de76Above3": 317,
+  "de2000Above3": 0,
+  "maxDe2000": 2.5039041734236442,
+  "regions": {
+    "topbar": 30,
+    "stat comparison labels": 256,
+    "activity empty icon": 31
+  }
+}

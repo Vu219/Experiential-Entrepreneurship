@@ -5,6 +5,7 @@ import { Icon } from '../ui';
 import type { ScriptSection, ScriptStep, VideoScript } from '../../api/contentCreationService';
 import type { Dict } from '../../i18n';
 import AutoGrowTextarea from './AutoGrowTextarea';
+import { C } from '../../styles/colors';
 
 /** Ba SECTION cố định của kịch bản video. */
 export type SectionKind = 'hook' | 'body' | 'cta';
@@ -14,20 +15,20 @@ export type RegenKey = `${SectionKind}:content` | `${SectionKind}:scene` | `body
 export const stepRegenKey = (index: number): RegenKey => `body:step:${index}`;
 
 const SECTION_META: Record<SectionKind, { labelKey: keyof Dict; dot: string; badgeBg: string; badgeColor: string }> = {
-  hook: { labelKey: 'cwHook', dot: '#7c3aed', badgeBg: '#f3edff', badgeColor: '#7c3aed' },
-  body: { labelKey: 'cwSectionMain', dot: '#0e7490', badgeBg: '#e0f7fb', badgeColor: '#0e7490' },
-  cta: { labelKey: 'cwEndCta', dot: '#be185d', badgeBg: '#fdeef5', badgeColor: '#be185d' },
+  hook: { labelKey: 'cwHook', dot: '#7c3aed', badgeBg: C.primarySoft, badgeColor: C.primary },
+  body: { labelKey: 'cwSectionMain', dot: '#0e7490', badgeBg: C.infoSoft, badgeColor: C.info },
+  cta: { labelKey: 'cwEndCta', dot: '#be185d', badgeBg: C.legacyBgfdeef5, badgeColor: C.legacyTextbe185d },
 };
 
 const inputBase = {
-  width: '100%', border: '1.5px solid #e7e2f2', borderRadius: 10, padding: '10px 12px',
-  fontSize: 13.5, lineHeight: 1.55, color: '#241f3a', background: '#fbfaff', outline: 'none',
+  width: '100%', border: `1.5px solid ${C.border}`, borderRadius: 10, padding: '10px 12px',
+  fontSize: 13.5, lineHeight: 1.55, color: C.textStrong, background: C.surfaceSubtle, outline: 'none',
 } as const;
-const card = { background: '#fff', border: '1px solid #ece7f6', borderRadius: 14, padding: '12px 14px' } as const;
-const sceneCard = { background: '#faf8fe', border: '1px dashed #e3dcf4', borderRadius: 14, padding: '12px 14px' } as const;
+const card = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px' } as const;
+const sceneCard = { background: C.bg, border: `1px dashed ${C.legacyBordere3dcf4}`, borderRadius: 14, padding: '12px 14px' } as const;
 const timingChip = {
-  display: 'inline-block', flex: 'none', background: '#fff', border: '1px solid #ece7f6',
-  color: '#8a85a0', borderRadius: 7, padding: '1px 8px', fontSize: 10.5, fontWeight: 700,
+  display: 'inline-block', flex: 'none', background: C.surface, border: `1px solid ${C.border}`,
+  color: C.textMuted, borderRadius: 7, padding: '1px 8px', fontSize: 10.5, fontWeight: 700,
 } as const;
 
 /** Nút "Tạo lại" nhỏ (dùng cho cả section, cảnh quay, và từng bước). Chỉ hiện khi có handler. */
@@ -42,13 +43,13 @@ function RegenButton({ label, busy, disabled, onClick, subtle = false }: { label
       className="btn-soft"
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none',
-        border: subtle ? 'none' : '1px solid #ece8f6', background: subtle ? 'transparent' : '#fff',
+        border: subtle ? 'none' : `1px solid ${C.border}`, background: subtle ? 'transparent' : C.surface,
         borderRadius: 8, padding: subtle ? 3 : '5px 10px', fontSize: 11.5, fontWeight: 700,
-        color: '#7c3aed', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled && !busy ? 0.5 : 1,
+        color: C.primary, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled && !busy ? 0.5 : 1,
       }}
     >
       <span style={{ display: 'inline-flex', animation: busy ? 'spinslow 0.8s linear infinite' : undefined }}>
-        <Icon icon={RefreshCw} size={12.5} stroke="#7c3aed" />
+        <Icon icon={RefreshCw} size={12.5} stroke={C.primary} />
       </span>
       {!subtle && label}
     </button>
@@ -140,7 +141,7 @@ export default function ScriptSections({
     return (
       <div style={{ ...sceneCard, opacity: busy ? 0.55 : 1, transition: 'opacity .15s' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <div style={{ fontSize: 11.5, fontWeight: 800, color: '#8a85a0' }}>🎬 {t.cwScene}</div>
+          <div style={{ fontSize: 11.5, fontWeight: 800, color: C.textMuted }}>🎬 {t.cwScene}</div>
           {onRegenerateScene && (
             <span style={{ marginLeft: 'auto' }}>
               <RegenButton label={t.cwSceneRegen} busy={busy} disabled={anyBusy} onClick={() => onRegenerateScene(kind)} />
@@ -153,7 +154,7 @@ export default function ScriptSections({
   };
 
   const sceneText = (value: string) => (
-    <div style={{ fontSize: 12.5, lineHeight: 1.55, color: '#6b6680', whiteSpace: 'pre-line' }}>{value || '—'}</div>
+    <div style={{ fontSize: 12.5, lineHeight: 1.55, color: C.textSecondary, whiteSpace: 'pre-line' }}>{value || '—'}</div>
   );
 
   // Nội dung một section hook/cta: card nội dung + card cảnh quay (2 cột).
@@ -165,7 +166,7 @@ export default function ScriptSections({
         {editable ? (
           <AutoGrowTextarea value={sec.content} onChange={(v) => patchSection(kind)({ content: v })} aria-label={t[SECTION_META[kind].labelKey]} minHeight={70} style={inputBase} />
         ) : (
-          <div style={{ fontSize: 13.5, lineHeight: 1.55, color: '#3f3a55', whiteSpace: 'pre-line' }}>{sec.content}</div>
+          <div style={{ fontSize: 13.5, lineHeight: 1.55, color: C.text, whiteSpace: 'pre-line' }}>{sec.content}</div>
         )}
       </div>
     );
@@ -188,29 +189,29 @@ export default function ScriptSections({
           return (
             <div key={i} style={{ opacity: busyStep ? 0.55 : 1, transition: 'opacity .15s' }} className="step-row">
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#0e7490' }}>{t.cwStepWord} {step.index}</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: C.info }}>{t.cwStepWord} {step.index}</span>
                 {onRegenerateStep && (
                   <span className="step-regen" style={{ marginLeft: 'auto' }}>
                     <RegenButton label={t.cwRegenStep} busy={busyStep} disabled={anyBusy} onClick={() => onRegenerateStep(step.index)} subtle />
                   </span>
                 )}
                 {editable && (
-                  <button onClick={() => removeStep(i)} aria-label={t.cwRemoveStep} title={t.cwRemoveStep} style={{ marginLeft: onRegenerateStep ? 0 : 'auto', display: 'inline-flex', alignItems: 'center', border: 'none', background: 'transparent', color: '#b7b2c8', cursor: 'pointer', padding: 3 }}>
-                    <Icon icon={X} size={13} stroke="#b7b2c8" />
+                  <button onClick={() => removeStep(i)} aria-label={t.cwRemoveStep} title={t.cwRemoveStep} style={{ marginLeft: onRegenerateStep ? 0 : 'auto', display: 'inline-flex', alignItems: 'center', border: 'none', background: 'transparent', color: C.ink250, cursor: 'pointer', padding: 3 }}>
+                    <Icon icon={X} size={13} stroke={C.ink250} />
                   </button>
                 )}
               </div>
               {editable ? (
                 <AutoGrowTextarea value={step.content} onChange={(v) => patchStep(i)({ content: v })} aria-label={`${t.cwStepWord} ${step.index}`} minHeight={54} style={inputBase} />
               ) : (
-                <div style={{ fontSize: 13.5, lineHeight: 1.55, color: '#3f3a55', whiteSpace: 'pre-line' }}>{step.content}</div>
+                <div style={{ fontSize: 13.5, lineHeight: 1.55, color: C.text, whiteSpace: 'pre-line' }}>{step.content}</div>
               )}
             </div>
           );
         })}
         {editable && (
-          <button onClick={addStep} className="btn-soft" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: '1.5px dashed #d9cef5', background: '#fdfcff', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontWeight: 700, color: '#7c3aed', cursor: 'pointer' }}>
-            <Icon icon={Plus} size={14} stroke="#7c3aed" />{t.cwAddStep}
+          <button onClick={addStep} className="btn-soft" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: `1.5px dashed ${C.legacyBorderd9cef5}`, background: C.surfaceSubtle, borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontWeight: 700, color: C.primary, cursor: 'pointer' }}>
+            <Icon icon={Plus} size={14} stroke={C.primary} />{t.cwAddStep}
           </button>
         )}
       </div>
@@ -222,7 +223,7 @@ export default function ScriptSections({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {script.steps.map((step, i) => (
             <div key={i}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, color: '#a59fbb', marginBottom: 3 }}>{t.cwStepWord} {step.index}</div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: C.textFaint, marginBottom: 3 }}>{t.cwStepWord} {step.index}</div>
               <AutoGrowTextarea value={step.sceneSuggestion} onChange={(v) => patchStep(i)({ sceneSuggestion: v })} aria-label={`${t.cwScene} — ${t.cwStepWord} ${step.index}`} minHeight={48} style={{ ...inputBase, fontSize: 12 }} />
             </div>
           ))}
@@ -234,8 +235,8 @@ export default function ScriptSections({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {script.steps.map((step, i) => step.sceneSuggestion.trim() && (
             <div key={i} style={{ display: 'flex', gap: 7 }}>
-              <span style={{ flex: 'none', fontSize: 10.5, fontWeight: 800, color: '#0e7490', background: '#e0f7fb', borderRadius: 6, padding: '1px 7px', height: 'fit-content', marginTop: 1 }}>{t.cwStepWord} {step.index}</span>
-              <span style={{ fontSize: 12.5, lineHeight: 1.5, color: '#6b6680' }}>{step.sceneSuggestion}</span>
+              <span style={{ flex: 'none', fontSize: 10.5, fontWeight: 800, color: C.info, background: C.infoSoft, borderRadius: 6, padding: '1px 7px', height: 'fit-content', marginTop: 1 }}>{t.cwStepWord} {step.index}</span>
+              <span style={{ fontSize: 12.5, lineHeight: 1.5, color: C.textSecondary }}>{step.sceneSuggestion}</span>
             </div>
           ))}
         </div>
@@ -257,7 +258,7 @@ export default function ScriptSections({
   // Một hàng timeline: dot màu section + phần thân bên phải.
   const timelineRow = (kind: SectionKind, timing: string, onTiming: ((v: string) => void) | undefined, body: React.ReactNode) => (
     <div style={{ position: 'relative', paddingLeft: 34 }}>
-      <span aria-hidden style={{ position: 'absolute', left: 8, top: 4, width: 15, height: 15, borderRadius: '50%', background: SECTION_META[kind].dot, border: '3px solid #fff', boxShadow: '0 0 0 1.5px ' + SECTION_META[kind].dot, zIndex: 1 }} />
+      <span aria-hidden style={{ position: 'absolute', left: 8, top: 4, width: 15, height: 15, borderRadius: '50%', background: SECTION_META[kind].dot, border: `3px solid ${C.shell}`, boxShadow: '0 0 0 1.5px ' + SECTION_META[kind].dot, zIndex: 1 }} />
       {sectionHeader(kind, timing, onTiming)}
       {body}
     </div>
@@ -266,7 +267,7 @@ export default function ScriptSections({
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 22 }}>
       {/* Đường nối dọc liên kết 3 section theo thứ tự Mở đầu → Nội dung chính → Kết bài */}
-      <span aria-hidden style={{ position: 'absolute', left: 15, top: 12, bottom: 12, width: 2, background: 'linear-gradient(#d9cef5,#e3dcf4)', borderRadius: 2 }} />
+      <span aria-hidden style={{ position: 'absolute', left: 15, top: 12, bottom: 12, width: 2, background: `linear-gradient(${C.legacyBgd9cef5},${C.legacyBge3dcf4})`, borderRadius: 2 }} />
       {timelineRow('hook', script.hook.timing, editable ? (v) => patchSection('hook')({ timing: v }) : undefined, simpleSection('hook'))}
       {timelineRow('body', '', undefined, bodySection())}
       {timelineRow('cta', script.cta.timing, editable ? (v) => patchSection('cta')({ timing: v }) : undefined, simpleSection('cta'))}

@@ -13,12 +13,13 @@ import {
 } from '../../trendsData';
 import { type TrendSchedule } from '../../trendsSchedule';
 import { Pill } from './filters';
+import { C } from '../../styles/colors';
 
 const SOURCE_ICONS = [Globe, Hash, Newspaper, TrendingUp];
 
 const rowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 } as const;
-const labelStyle = { fontSize: 12.5, color: '#8a85a0', fontWeight: 600 } as const;
-const valueStyle = { fontSize: 13, fontWeight: 700, color: '#2b2543', textAlign: 'right' } as const;
+const labelStyle = { fontSize: 12.5, color: C.textMuted, fontWeight: 600 } as const;
+const valueStyle = { fontSize: 13, fontWeight: 700, color: C.ink750, textAlign: 'right' } as const;
 
 /**
  * Sidebar phải của trang Xu hướng. Thứ tự ưu tiên: "Lịch research tự động" (toggle
@@ -62,13 +63,13 @@ export default memo(function TrendsSidebar({
       {/* 2. Trạng thái research — theo phiên gần nhất, cố định ở mọi sub-tab */}
       <Card style={{ padding: 20 }}>
         <div style={{ ...rowStyle, marginBottom: 14 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#211c38' }}>{t.trSideStatus}</div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: C.textStrong }}>{t.trSideStatus}</div>
           {latest && latestSt && (
             <Pill text={latest.status === 'done' ? t.trDone : t.trCancelled} color={latestSt.color} bg={latestSt.bg} />
           )}
         </div>
         {!latest ? (
-          <div style={{ fontSize: 13, color: '#8a85a0' }}>{t.trNoSession}</div>
+          <div style={{ fontSize: 13, color: C.textMuted }}>{t.trNoSession}</div>
         ) : (
           <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
@@ -104,8 +105,8 @@ export default memo(function TrendsSidebar({
                 <span style={labelStyle}>{t.trSideSources}</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   {SOURCE_ICONS.map((Ic, i) => (
-                    <span key={i} style={{ width: 22, height: 22, borderRadius: 7, background: '#f4f2fb', border: '1px solid #ece8f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon icon={Ic} size={12} stroke="#7c3aed" />
+                    <span key={i} style={{ width: 22, height: 22, borderRadius: 7, background: C.surfaceMuted, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon icon={Ic} size={12} stroke={C.primary} />
                     </span>
                   ))}
                 </span>
@@ -115,7 +116,7 @@ export default memo(function TrendsSidebar({
               type="button"
               onClick={() => onViewSession(latest)}
               className="btn-soft"
-              style={{ width: '100%', marginTop: 16, border: '1px solid #e7d9fb', background: '#f3edff', color: '#6d28d9', fontWeight: 700, fontSize: 12.5, borderRadius: 10, padding: '10px 12px', cursor: 'pointer' }}
+              style={{ width: '100%', marginTop: 16, border: `1px solid ${C.accentLine}`, background: C.primarySoft, color: C.primaryStrong, fontWeight: 700, fontSize: 12.5, borderRadius: 10, padding: '10px 12px', cursor: 'pointer' }}
             >
               {t.trSideDetail}
             </button>
@@ -147,26 +148,26 @@ function AutoScheduleCard({ schedule, onEdit }: { schedule: TrendSchedule | null
   return (
     <Card style={{ padding: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-        <div style={{ width: 36, height: 36, flex: 'none', borderRadius: 10, background: 'linear-gradient(135deg,#f1e9ff,#e9f0ff)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon icon={CalendarClock} size={18} stroke="#8b5cf6" />
+        <div style={{ width: 36, height: 36, flex: 'none', borderRadius: 10, background: `linear-gradient(135deg,${C.purpleSoft},${C.legacyBge9f0ff})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon icon={CalendarClock} size={18} stroke={C.violetLight} />
         </div>
-        <div style={{ flex: 1, fontWeight: 700, fontSize: 15, color: '#211c38' }}>{t.trSideSchedule}</div>
+        <div style={{ flex: 1, fontWeight: 700, fontSize: 15, color: C.textStrong }}>{t.trSideSchedule}</div>
         <Pill text={pill.text} color={pill.color} bg={pill.bg} />
       </div>
-      <div style={{ fontSize: 12.5, color: '#6b6680', lineHeight: 1.55, marginBottom: schedule ? 6 : 14 }}>{desc}</div>
+      <div style={{ fontSize: 12.5, color: C.textSecondary, lineHeight: 1.55, marginBottom: schedule ? 6 : 14 }}>{desc}</div>
       {schedule && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
           {schedule.platforms.map((tag) => (
             <PlatformTag key={tag} tag={tag} bg={PLATFORM_BG[tag]} size={20} radius={6} fontSize={9.5} />
           ))}
-          <span style={{ fontSize: 11.5, color: '#8a85a0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{schedule.strategyName}</span>
+          <span style={{ fontSize: 11.5, color: C.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{schedule.strategyName}</span>
         </div>
       )}
       <button
         type="button"
         onClick={onEdit}
         className="btn-outline"
-        style={{ width: '100%', border: '1px solid #ece8f6', background: '#fff', color: '#4b4660', fontWeight: 700, fontSize: 12.5, borderRadius: 10, padding: '10px 12px', cursor: 'pointer' }}
+        style={{ width: '100%', border: `1px solid ${C.border}`, background: C.surface, color: C.ink650, fontWeight: 700, fontSize: 12.5, borderRadius: 10, padding: '10px 12px', cursor: 'pointer' }}
       >
         {t.trScheduleBtn}
       </button>
@@ -190,15 +191,15 @@ function HistoryBrief({
   return (
     <Card style={{ padding: 20 }}>
       <div style={{ ...rowStyle, marginBottom: 12 }}>
-        <div style={{ fontWeight: 700, fontSize: 15, color: '#211c38' }}>{t.trSideHistory}</div>
+        <div style={{ fontWeight: 700, fontSize: 15, color: C.textStrong }}>{t.trSideHistory}</div>
         <button
           type="button"
           onClick={onViewHistory}
           className="link-underline"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 2, border: 'none', background: 'transparent', padding: '2px 0', fontSize: 12.5, fontWeight: 600, color: '#7c3aed', cursor: 'pointer' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 2, border: 'none', background: 'transparent', padding: '2px 0', fontSize: 12.5, fontWeight: 600, color: C.primary, cursor: 'pointer' }}
         >
           {t.viewAll}
-          <Icon icon={ChevronRight} size={13} stroke="#7c3aed" />
+          <Icon icon={ChevronRight} size={13} stroke={C.primary} />
         </button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -209,13 +210,13 @@ function HistoryBrief({
               key={s.id}
               type="button"
               onClick={() => onViewSession(s)}
-              style={{ display: 'block', width: '100%', textAlign: 'left', border: 'none', background: 'transparent', padding: '10px 0', borderTop: i > 0 ? '1px solid #f4f1fa' : 'none', cursor: 'pointer' }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', border: 'none', background: 'transparent', padding: '10px 0', borderTop: i > 0 ? `1px solid ${C.surfaceMuted}` : 'none', cursor: 'pointer' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#2b2543' }}>{s.date}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: C.ink750 }}>{s.date}</span>
                 <Pill text={s.status === 'done' ? t.trDone : t.trCancelled} color={st.color} bg={st.bg} style={{ fontSize: 10.5, padding: '3px 8px' }} />
               </div>
-              <div style={{ fontSize: 11.5, color: '#8a85a0', marginTop: 3 }}>
+              <div style={{ fontSize: 11.5, color: C.textMuted, marginTop: 3 }}>
                 {s.industry} · {s.platforms} {t.trPlatformUnit} · {s.trendsFound} {t.trTrendUnit} · {s.ideasCreated} {t.trIdeaUnit}
               </div>
             </button>
@@ -240,34 +241,34 @@ function IdeaStats({ ideas, trends, savedIds }: { ideas: ContentIdea[]; trends: 
 
   return (
     <Card style={{ padding: 20 }}>
-      <div style={{ fontWeight: 700, fontSize: 15, color: '#211c38', marginBottom: 12 }}>{t.trSideIdeaStats}</div>
+      <div style={{ fontWeight: 700, fontSize: 15, color: C.textStrong, marginBottom: 12 }}>{t.trSideIdeaStats}</div>
       <div style={{ ...rowStyle, marginBottom: 14 }}>
         <span style={labelStyle}>{t.trSavedTotal}</span>
-        <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 20, color: '#211c38' }}>{savedCount}</span>
+        <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 20, color: C.textStrong }}>{savedCount}</span>
       </div>
-      <div style={{ fontSize: 11.5, fontWeight: 700, color: '#8a85a0', letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 8 }}>{t.trByFormat}</div>
+      <div style={{ fontSize: 11.5, fontWeight: 700, color: C.textMuted, letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 8 }}>{t.trByFormat}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
         {formats.map(([fmt, count]) => (
           <div key={fmt}>
             <div style={{ ...rowStyle, marginBottom: 4 }}>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: '#3f3a55' }}>{fmt}</span>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: '#211c38' }}>{count}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text }}>{fmt}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: C.textStrong }}>{count}</span>
             </div>
-            <div style={{ height: 6, borderRadius: 99, background: '#f1eef9', overflow: 'hidden' }}>
+            <div style={{ height: 6, borderRadius: 99, background: C.surfaceMuted, overflow: 'hidden' }}>
               <div style={{ height: '100%', borderRadius: 99, width: `${Math.round((count / maxFormat) * 100)}%`, background: 'var(--brand)' }} />
             </div>
           </div>
         ))}
       </div>
-      <div style={{ fontSize: 11.5, fontWeight: 700, color: '#8a85a0', letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 8 }}>{t.trTopTrends}</div>
+      <div style={{ fontSize: 11.5, fontWeight: 700, color: C.textMuted, letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 8 }}>{t.trTopTrends}</div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {topTrends.map((tr, i) => (
-          <div key={tr.id} style={{ ...rowStyle, padding: '8px 0', borderTop: i > 0 ? '1px solid #f4f1fa' : 'none' }}>
+          <div key={tr.id} style={{ ...rowStyle, padding: '8px 0', borderTop: i > 0 ? `1px solid ${C.surfaceMuted}` : 'none' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
               <span aria-hidden style={{ width: 26, height: 26, flex: 'none', borderRadius: 8, background: tr.tint, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>{tr.emoji}</span>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: '#3f3a55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tr.name}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tr.name}</span>
             </span>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#7c3aed', whiteSpace: 'nowrap' }}>{tr.ideaCount} {t.trIdeaUnit}</span>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: C.primary, whiteSpace: 'nowrap' }}>{tr.ideaCount} {t.trIdeaUnit}</span>
           </div>
         ))}
       </div>
@@ -284,11 +285,11 @@ function SessionStats({ sessions }: { sessions: ResearchSession[] }) {
 
   return (
     <Card style={{ padding: 20 }}>
-      <div style={{ fontWeight: 700, fontSize: 15, color: '#211c38', marginBottom: 12 }}>{t.trSideSessionStats}</div>
+      <div style={{ fontWeight: 700, fontSize: 15, color: C.textStrong, marginBottom: 12 }}>{t.trSideSessionStats}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
         <div style={rowStyle}>
           <span style={labelStyle}>{t.trTotalSessions}</span>
-          <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 20, color: '#211c38' }}>{sessions.length}</span>
+          <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 20, color: C.textStrong }}>{sessions.length}</span>
         </div>
         <div style={rowStyle}>
           <span style={{ ...labelStyle, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -309,7 +310,7 @@ function SessionStats({ sessions }: { sessions: ResearchSession[] }) {
             <span style={labelStyle}>{t.trSuccessRate}</span>
             <span style={valueStyle}>{rate}%</span>
           </div>
-          <div style={{ height: 7, borderRadius: 99, background: '#f1eef9', overflow: 'hidden' }}>
+          <div style={{ height: 7, borderRadius: 99, background: C.surfaceMuted, overflow: 'hidden' }}>
             <div style={{ height: '100%', borderRadius: 99, width: `${rate}%`, background: 'var(--brand)' }} />
           </div>
         </div>

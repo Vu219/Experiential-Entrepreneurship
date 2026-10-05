@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { C } from '../styles/colors';
 
 // ---- helpers ----
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -19,7 +20,7 @@ function firstDayOfWeek(year: number, month: number) {
 }
 
 // ---- styles ----
-const dropShadow = '0 18px 38px -12px rgba(80,40,140,.35)';
+const dropShadow = C.shadowDatepicker;
 const brandGrad = 'linear-gradient(135deg,#8b5cf6,#d946ef)';
 
 const cellBase: CSSProperties = {
@@ -34,7 +35,7 @@ const cellBase: CSSProperties = {
   cursor: 'pointer',
   border: 'none',
   background: 'transparent',
-  color: '#3f3a55',
+  color: C.text,
   transition: 'background .15s, color .15s, transform .1s',
   position: 'relative',
 };
@@ -207,10 +208,10 @@ export default function DatePicker({
           display: 'flex',
           alignItems: 'center',
           gap: 10,
-          border: `1.5px solid ${error ? '#f3aabf' : '#e7e2f2'}`,
+          border: `1.5px solid ${error ? C.inputErrorBorder : C.border}`,
           borderRadius: 13,
           padding: '0 15px',
-          background: '#fbfaff',
+          background: C.surfaceSubtle,
           transition: 'border .2s',
           cursor: 'pointer',
           ...style,
@@ -229,12 +230,12 @@ export default function DatePicker({
             background: 'transparent',
             fontSize: 15,
             padding: '14px 0',
-            color: '#241f3a',
+            color: C.textStrong,
             cursor: 'pointer',
             ...inputStyleOverride,
           }}
         />
-        <CalendarIcon size={17} color="#a39bbf" strokeWidth={1.7} />
+        <CalendarIcon size={17} color={C.ink350} strokeWidth={1.7} />
       </div>
 
       {open &&
@@ -251,9 +252,9 @@ export default function DatePicker({
               left: pos.left,
               zIndex: 9999,
               width: 300,
-              background: '#fff',
+              background: C.surface,
               borderRadius: 16,
-              border: '1px solid #efeaf8',
+              border: `1px solid ${C.border}`,
               boxShadow: dropShadow,
               padding: '16px 16px 12px',
             }}
@@ -262,36 +263,35 @@ export default function DatePicker({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <button
                 type="button"
+                className="date-picker-nav"
                 onClick={prevMonth}
                 style={{
                   width: 32,
                   height: 32,
                   borderRadius: 8,
                   border: 'none',
-                  background: '#f6f3fc',
+                  background: C.surfaceMuted,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
                   transition: 'background .15s',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#ece8f6'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#f6f3fc'; }}
               >
-                <ChevronLeft size={16} color="#6b6680" strokeWidth={2} />
+                <ChevronLeft size={16} color={C.textSecondary} strokeWidth={2} />
               </button>
               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                 <select
                   value={viewMonth}
                   onChange={(e) => setViewMonth(Number(e.target.value))}
-                  style={{ appearance: 'none', background: 'transparent', border: 'none', outline: 'none', fontWeight: 700, fontSize: 14.5, color: '#211c38', cursor: 'pointer', padding: 0 }}
+                  style={{ appearance: 'none', background: 'transparent', border: 'none', outline: 'none', fontWeight: 700, fontSize: 14.5, color: C.textStrong, cursor: 'pointer', padding: 0 }}
                 >
                   {monthNames.map((m, i) => <option key={i} value={i}>{m}</option>)}
                 </select>
                 <select
                   value={viewYear}
                   onChange={(e) => setViewYear(Number(e.target.value))}
-                  style={{ appearance: 'none', background: 'transparent', border: 'none', outline: 'none', fontWeight: 700, fontSize: 14.5, color: '#211c38', cursor: 'pointer', padding: 0 }}
+                  style={{ appearance: 'none', background: 'transparent', border: 'none', outline: 'none', fontWeight: 700, fontSize: 14.5, color: C.textStrong, cursor: 'pointer', padding: 0 }}
                 >
                   {Array.from({ length: 120 }, (_, i) => today.getFullYear() - 100 + i).map((y) => (
                     <option key={y} value={y}>{y}</option>
@@ -300,23 +300,22 @@ export default function DatePicker({
               </div>
               <button
                 type="button"
+                className="date-picker-nav"
                 onClick={nextMonth}
                 style={{
                   width: 32,
                   height: 32,
                   borderRadius: 8,
                   border: 'none',
-                  background: '#f6f3fc',
+                  background: C.surfaceMuted,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
                   transition: 'background .15s',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#ece8f6'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#f6f3fc'; }}
               >
-                <ChevronRight size={16} color="#6b6680" strokeWidth={2} />
+                <ChevronRight size={16} color={C.textSecondary} strokeWidth={2} />
               </button>
             </div>
 
@@ -329,7 +328,7 @@ export default function DatePicker({
                     textAlign: 'center',
                     fontSize: 11.5,
                     fontWeight: 700,
-                    color: '#a39bbf',
+                    color: C.ink350,
                     padding: '4px 0',
                   }}
                 >
@@ -349,25 +348,18 @@ export default function DatePicker({
                   <button
                     type="button"
                     key={idx}
+                    className={!cell.disabled && !isSelected && cell.current ? 'date-picker-day' : undefined}
                     disabled={cell.disabled}
                     onClick={() => { if (cell.current && !cell.disabled) selectDay(cell.day); }}
                     style={{
                       ...cellBase,
-                      color: isSelected ? '#fff' : cell.current ? (cell.disabled ? '#d0cce0' : '#3f3a55') : '#d0cce0',
+                      color: isSelected ? '#fff' : cell.current ? (cell.disabled ? C.dateDisabled : C.text) : C.dateDisabled,
                       background: isSelected ? brandGrad : 'transparent',
                       boxShadow: isSelected ? '0 6px 16px -6px rgba(139,92,246,.5)' : 'none',
                       cursor: cell.disabled ? 'default' : 'pointer',
-                      outline: isToday && !isSelected ? '2px solid #d8cdf2' : 'none',
+                      outline: isToday && !isSelected ? `2px solid ${C.violetLine}` : 'none',
                       outlineOffset: -2,
                       fontWeight: isToday || isSelected ? 800 : 600,
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!cell.disabled && !isSelected && cell.current)
-                        e.currentTarget.style.background = '#f6f3fc';
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected)
-                        e.currentTarget.style.background = 'transparent';
                     }}
                   >
                     {cell.day}
@@ -380,39 +372,37 @@ export default function DatePicker({
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, padding: '0 2px' }}>
               <button
                 type="button"
+                className="date-picker-clear"
                 onClick={clear}
                 style={{
                   background: 'none',
                   border: 'none',
                   fontSize: 12.5,
                   fontWeight: 600,
-                  color: '#e23d6e',
+                  color: C.rose,
                   cursor: 'pointer',
                   padding: '4px 8px',
                   borderRadius: 6,
                   transition: 'background .15s',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#fdeef2'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >
                 {t.dpClear}
               </button>
               <button
                 type="button"
+                className="date-picker-today"
                 onClick={selectToday}
                 style={{
                   background: 'none',
                   border: 'none',
                   fontSize: 12.5,
                   fontWeight: 600,
-                  color: '#8b5cf6',
+                  color: C.violetLight,
                   cursor: 'pointer',
                   padding: '4px 8px',
                   borderRadius: 6,
                   transition: 'background .15s',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#f6f3fc'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >
                 {t.dpToday}
               </button>

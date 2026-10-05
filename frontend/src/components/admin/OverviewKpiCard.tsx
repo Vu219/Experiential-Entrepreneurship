@@ -4,6 +4,7 @@ import { Card, Icon } from '../ui';
 import Sparkline from '../Sparkline';
 import { TONE_COLORS, type Tone } from '../../statusTokens';
 import { SPARK_TONES, type SparkTone } from './revenue/chartTokens';
+import { C } from '../../styles/colors';
 
 /** Tone ngữ nghĩa → tone nét sparkline, để chữ và đường luôn cùng màu. */
 const SPARK_BY_TONE: Partial<Record<Tone, SparkTone>> = {
@@ -82,10 +83,10 @@ export default function OverviewKpiCard({
         <div style={{ width: 38, height: 38, flex: 'none', borderRadius: 11, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Icon icon={icon} size={19} stroke={iconColor} />
         </div>
-        <div style={{ fontSize: 13, color: '#8a85a0', fontWeight: 600 }}>{label}</div>
+        <div style={{ fontSize: 13, color: C.textMuted, fontWeight: 600 }}>{label}</div>
       </div>
 
-      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 26, color: '#211c38', margin: '14px 0 0' }}>
+      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 26, color: C.textStrong, margin: '14px 0 0' }}>
         {value}
       </div>
 
@@ -94,16 +95,16 @@ export default function OverviewKpiCard({
           {deltaOverride ? (
             <>
               <span style={{ color: deltaTone.color, fontWeight: 700 }}>{deltaOverride.label}</span>{' '}
-              <span style={{ color: '#a59fbb' }}>{comparisonLabel}</span>
+              <span style={{ color: C.textFaint }}>{comparisonLabel}</span>
             </>
           ) : deltaPct === null ? (
-            <span style={{ color: '#a59fbb' }}>{emptyDeltaLabel}</span>
+            <span style={{ color: C.textFaint }}>{emptyDeltaLabel}</span>
           ) : (
             <>
               <span style={{ color: deltaTone.color, fontWeight: 700 }}>
                 {up ? '+' : ''}{deltaPct}%
               </span>{' '}
-              <span style={{ color: '#a59fbb' }}>{comparisonLabel}</span>
+              <span style={{ color: C.textFaint }}>{comparisonLabel}</span>
             </>
           )}
         </div>

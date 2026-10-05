@@ -21,6 +21,7 @@ import {
   type UsageEventFilter,
   type UsageEventMeta,
 } from '../../../api/adminUsage';
+import { C } from '../../../styles/colors';
 
 // Bảng "Nhật ký sử dụng" dùng chung: tab admin (đủ filter + user picker) và trang chi tiết
 // user (fixedUserId — ẩn picker). Phân trang SERVER-SIDE có số trang (offset), dùng chung
@@ -29,9 +30,9 @@ import {
 // Truyền `range` (thanh lọc thời gian dùng chung của trang Token & hạn mức) thì bảng ẩn 2 ô ngày
 // riêng và luôn lọc theo khoảng đó.
 
-const tdStyle: CSSProperties = { padding: '10px 14px', fontSize: 13, color: '#2b2543', whiteSpace: 'nowrap' };
-const tdMuted: CSSProperties = { ...tdStyle, color: '#8a85a0', fontSize: 12.5 };
-const inputStyle: CSSProperties = { border: '1px solid #ece8f6', borderRadius: 10, padding: '7px 10px', fontSize: 12.5, color: '#2b2543', background: '#fff' };
+const tdStyle: CSSProperties = { padding: '10px 14px', fontSize: 13, color: C.ink750, whiteSpace: 'nowrap' };
+const tdMuted: CSSProperties = { ...tdStyle, color: C.textMuted, fontSize: 12.5 };
+const inputStyle: CSSProperties = { border: `1px solid ${C.border}`, borderRadius: 10, padding: '7px 10px', fontSize: 12.5, color: C.ink750, background: C.surface };
 
 const TASKS: AiTaskCode[] = [
   'CONTENT_GENERATION', 'PLATFORM_FORMATTING', 'TREND_RESEARCH',
@@ -54,7 +55,7 @@ function TableSkeleton({ rows, cols }: { rows: number; cols: number }) {
   return (
     <div style={{ padding: '0 16px 16px' }} role="status" aria-busy="true">
       {Array.from({ length: rows }, (_, r) => (
-        <div key={r} style={{ display: 'flex', gap: 12, padding: '11px 0', borderTop: '1px solid #f1eef8' }}>
+        <div key={r} style={{ display: 'flex', gap: 12, padding: '11px 0', borderTop: `1px solid ${C.surfaceMuted}` }}>
           {Array.from({ length: cols }, (_, c) => (
             <span key={c} className="skeleton" style={{ height: 12, borderRadius: 6, flex: c === 0 ? '0 0 130px' : 1 }} />
           ))}
@@ -239,14 +240,14 @@ export default function UsageEventsTable({ fixedUserId, syncUrl = false, range }
       title={t.auTabEvents}
       action={
         <button onClick={doExport} disabled={exporting}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '7px 12px', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: exporting ? 'wait' : 'pointer', opacity: exporting ? 0.6 : 1 }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '7px 12px', fontSize: 12.5, fontWeight: 700, color: C.ink550, cursor: exporting ? 'wait' : 'pointer', opacity: exporting ? 0.6 : 1 }}>
           <Download size={14} /> {t.aueExport}
         </button>
       }
     >
-      <div style={{ padding: '8px 16px 0', fontSize: 12, color: '#8a85a0' }}>{t.aueRetentionNote}</div>
+      <div style={{ padding: '8px 16px 0', fontSize: 12, color: C.textMuted }}>{t.aueRetentionNote}</div>
       {beyondRetention && (
-        <div style={{ margin: '8px 16px 0', padding: '8px 12px', borderRadius: 10, background: '#fff7ed', border: '1px solid #fed7aa', fontSize: 12.5, color: '#b45309', fontWeight: 600 }}>
+        <div style={{ margin: '8px 16px 0', padding: '8px 12px', borderRadius: 10, background: C.legacyBgfff7ed, border: `1px solid ${C.legacyBorderfed7aa}`, fontSize: 12.5, color: C.amberText, fontWeight: 600 }}>
           {t.aueRetentionWarn}
         </div>
       )}
@@ -274,17 +275,17 @@ export default function UsageEventsTable({ fixedUserId, syncUrl = false, range }
           <div style={{ position: 'relative' }}>
             {userId ? (
               <button onClick={() => { setUserId(''); setUserLabel(''); setUserQ(''); }} title={t.aueUserClear}
-                style={{ ...inputStyle, cursor: 'pointer', fontWeight: 700, color: '#7d6aa3' }}>
+                style={{ ...inputStyle, cursor: 'pointer', fontWeight: 700, color: C.accentTextMuted }}>
                 {userLabel || userId} ✕
               </button>
             ) : (
               <input placeholder={t.aueUserPh} value={userQ} onChange={(e) => setUserQ(e.target.value)} style={{ ...inputStyle, width: 210 }} />
             )}
             {userSuggests.length > 0 && !userId && (
-              <div style={{ position: 'absolute', top: '110%', left: 0, zIndex: 20, background: '#fff', border: '1px solid #ece8f6', borderRadius: 10, boxShadow: '0 8px 24px rgba(43,37,67,.12)', minWidth: 220, overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: '110%', left: 0, zIndex: 20, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: `0 8px 24px ${C.legacyShadowrgba433767_12_}`, minWidth: 220, overflow: 'hidden' }}>
                 {userSuggests.map((s) => (
                   <button key={s.userId} onClick={() => { setUserId(s.userId); setUserLabel(s.label); setUserSuggests([]); }}
-                    style={{ display: 'block', width: '100%', textAlign: 'left', border: 'none', background: 'none', padding: '8px 12px', fontSize: 12.5, color: '#2b2543', cursor: 'pointer' }}>
+                    style={{ display: 'block', width: '100%', textAlign: 'left', border: 'none', background: 'none', padding: '8px 12px', fontSize: 12.5, color: C.ink750, cursor: 'pointer' }}>
                     {s.label}
                   </button>
                 ))}
@@ -292,19 +293,19 @@ export default function UsageEventsTable({ fixedUserId, syncUrl = false, range }
             )}
           </div>
         )}
-        <button onClick={apply} style={{ border: 'none', borderRadius: 10, padding: '8px 16px', fontWeight: 700, fontSize: 12.5, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.aueApply}</button>
+        <button onClick={apply} style={{ border: 'none', borderRadius: 10, padding: '8px 16px', fontWeight: 700, fontSize: 12.5, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>{t.aueApply}</button>
       </div>
 
       {load === 'loading' ? (
         <TableSkeleton rows={Math.min(pageSize, 8)} cols={colCount} />
       ) : load === 'error' ? (
         <div style={{ textAlign: 'center', padding: '30px 16px' }}>
-          <div style={{ fontSize: 13.5, color: '#8a85a0', marginBottom: 12 }}>{t.listError}</div>
-          <button onClick={fetchPage} style={{ border: 'none', borderRadius: 10, padding: '8px 16px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
+          <div style={{ fontSize: 13.5, color: C.textMuted, marginBottom: 12 }}>{t.listError}</div>
+          <button onClick={fetchPage} style={{ border: 'none', borderRadius: 10, padding: '8px 16px', fontWeight: 700, fontSize: 13, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
         </div>
       ) : rows.length === 0 ? (
         <>
-          <div style={{ padding: '26px 16px', textAlign: 'center', fontSize: 13, color: '#a59fbb' }}>{t.aueEmpty}</div>
+          <div style={{ padding: '26px 16px', textAlign: 'center', fontSize: 13, color: C.textFaint }}>{t.aueEmpty}</div>
           <div style={{ padding: '0 16px 16px' }}>
             <Pagination page={page + 1} pageCount={pageCount} onChange={(p) => setPage(p - 1)}
               pageSize={pageSize} onPageSizeChange={setPageSize} />
@@ -318,7 +319,7 @@ export default function UsageEventsTable({ fixedUserId, syncUrl = false, range }
           >
             {rows.map((r) => (
               <Fragment key={r.id}>
-                <tr onClick={() => toggleExpand(r.id)} style={{ borderTop: '1px solid #f1eef8', cursor: 'pointer', background: expanded === r.id ? '#faf8ff' : undefined }}>
+                <tr onClick={() => toggleExpand(r.id)} style={{ borderTop: `1px solid ${C.surfaceMuted}`, cursor: 'pointer', background: expanded === r.id ? C.bg : undefined }}>
                   <td style={tdMuted}>{fmtDateTime(r.createdAt)}</td>
                   {!fixedUserId && <td style={tdStyle}>{r.userFullName || r.userEmail || '—'}</td>}
                   <td style={tdStyle}>{aiTaskLabel(lang, r.taskCode)}</td>
@@ -331,20 +332,20 @@ export default function UsageEventsTable({ fixedUserId, syncUrl = false, range }
                   <td style={tdStyle}><StatusBadge tone={statusTone(r.status)} label={r.status} /></td>
                 </tr>
                 {expanded === r.id && (
-                  <tr style={{ background: '#faf8ff' }}>
+                  <tr style={{ background: C.bg }}>
                     <td colSpan={colCount} style={{ padding: '10px 16px', fontSize: 12.5 }}>
                       {metaById[r.id] === 'loading' || metaById[r.id] === undefined ? (
-                        <span style={{ color: '#a59fbb' }}>{t.listLoading}</span>
+                        <span style={{ color: C.textFaint }}>{t.listLoading}</span>
                       ) : metaById[r.id] === 'error' ? (
-                        <span style={{ color: '#dc2626' }}>{t.listError}</span>
+                        <span style={{ color: C.danger }}>{t.listError}</span>
                       ) : (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, color: '#5b5670' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, color: C.ink550 }}>
                           <span><b>{t.aueIp}:</b> {(metaById[r.id] as UsageEventMeta).clientIp || t.aueUnknown}</span>
                           <span><b>{t.aueUa}:</b> {(metaById[r.id] as UsageEventMeta).userAgent || t.aueUnknown}</span>
                           {r.creditUnits != null && r.creditUnits > 0 && (
                             <span><b>{t.auCreditUsed}:</b> {fmtTokens(r.creditUnits)}</span>
                           )}
-                          <span style={{ color: '#a59fbb' }}>{t.aueMetaNote}</span>
+                          <span style={{ color: C.textFaint }}>{t.aueMetaNote}</span>
                         </div>
                       )}
                     </td>

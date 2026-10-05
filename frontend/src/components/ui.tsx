@@ -1,5 +1,6 @@
 import { useId, type CSSProperties, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { C } from '../styles/colors';
 
 /** Render a Lucide icon with the app's default sizing/stroke. */
 export function Icon({
@@ -50,17 +51,17 @@ export function Loader({ label, fullScreen = false }: { label?: string; fullScre
       }}
     >
       <div className="loader" />
-      {label && <div style={{ color: '#8a85a0', fontSize: 14, fontWeight: 600 }}>{label}</div>}
+      {label && <div style={{ color: C.textMuted, fontSize: 14, fontWeight: 600 }}>{label}</div>}
     </div>
   );
 }
 
 export const cardStyle: CSSProperties = {
-  background: '#fff',
-  border: '1px solid #efeaf8',
+  background: C.surface,
+  border: `1px solid ${C.border}`,
   borderRadius: 20,
   padding: 24,
-  boxShadow: '0 18px 38px -34px rgba(80,40,140,.5)',
+  boxShadow: C.shadowCard, // sáng: 0 18px 38px -34px rgba(80,40,140,.5) · tối: không shadow
   minWidth: 0,
 };
 
@@ -100,6 +101,7 @@ export function PlatformTag({ tag, bg, size = 26, radius = 8, fontSize = 12 }: {
         flex: 'none',
         borderRadius: radius,
         background: bg,
+        boxShadow: `inset 0 0 0 1px ${C.platformRing}`,
         color: '#fff',
         display: 'flex',
         alignItems: 'center',

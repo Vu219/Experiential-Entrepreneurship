@@ -29,6 +29,7 @@ import {
   userPlanMeta, userStatusMeta, type AdminUserRow, type SystemStatus,
 } from '../../api/admin';
 import { formatCompactNumber, formatDateVN, formatGroupedNumber } from '../../utils/format';
+import { C } from '../../styles/colors';
 
 /**
  * Trang Quản trị → Tổng quan (UI-10). Số liệu THẬT từ DB, không còn mock.
@@ -108,23 +109,18 @@ export default function Overview() {
           width: 32,
           height: 32,
           borderRadius: 10,
-          border: '1px solid #ece8f6',
-          background: '#fff',
-          color: '#8b5cf6',
+          border: `1px solid ${C.border}`,
+          background: C.surface,
+          color: C.violetLight,
           cursor: 'pointer',
-          boxShadow: '0 2px 6px -2px rgba(139,92,246,0.15)',
+          boxShadow: `0 2px 6px -2px ${C.legacyShadowrgba13992246015_}`,
           transition: 'all 0.15s ease',
         }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = '#f5f3ff';
-          e.currentTarget.style.borderColor = '#ddd6fe';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = '#fff';
-          e.currentTarget.style.borderColor = '#ece8f6';
-        }}
+        className={"dm-hover-3986d49"}
+
+
       >
-        <Icon icon={RefreshCw} size={15} stroke="#8b5cf6" />
+        <Icon icon={RefreshCw} size={15} stroke={C.violetLight} />
       </button>
     );
     return () => setHeaderAction(null);
@@ -171,7 +167,7 @@ export default function Overview() {
   const stacked = isMobile || isTablet;
   const kpiColumns = isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)';
 
-  const linkStyle = { fontSize: 13, fontWeight: 600, color: '#8b5cf6', cursor: 'pointer', border: 'none', background: 'none', padding: 0 } as const;
+  const linkStyle = { fontSize: 13, fontWeight: 600, color: C.violetLight, cursor: 'pointer', border: 'none', background: 'none', padding: 0 } as const;
 
   return (
     <PageContainer>
@@ -181,25 +177,25 @@ export default function Overview() {
       {summaryState === 'ok' && summary && (
         <div style={{ display: 'grid', gridTemplateColumns: kpiColumns, gap: 18 }}>
           <OverviewKpiCard
-            icon={UsersIcon} iconBg="#ede9fe" iconColor="#7c3aed"
+            icon={UsersIcon} iconBg={C.legacyBgede9fe} iconColor={C.primary}
             label={t.ovrKpiUsers}
             value={formatGroupedNumber(summary.stats.totalUsers.total, lang)}
             {...deltaProps(summary.stats.totalUsers, t)}
           />
           <OverviewKpiCard
-            icon={TrendingUp} iconBg="#dcfce7" iconColor="#16a34a"
+            icon={TrendingUp} iconBg={C.successSoft2} iconColor={C.success}
             label={t.ovrKpiActive}
             value={formatGroupedNumber(summary.stats.activeToday.total, lang)}
             {...deltaProps(summary.stats.activeToday, t)}
           />
           <OverviewKpiCard
-            icon={Sparkles} iconBg="#e0f7fb" iconColor="#0e7490"
+            icon={Sparkles} iconBg={C.infoSoft} iconColor={C.info}
             label={t.ovrKpiContent}
             value={formatCompactNumber(summary.stats.contentCreated.total)}
             {...deltaProps(summary.stats.contentCreated, t)}
           />
           <OverviewKpiCard
-            icon={Wallet} iconBg="#fdf0dc" iconColor="#d97706"
+            icon={Wallet} iconBg={C.warningSoft} iconColor={C.warning}
             label={t.ovrKpiMrr}
             value={formatVND(summary.stats.monthlyRecurringRevenue.total)}
             {...deltaProps(summary.stats.monthlyRecurringRevenue, t)}
@@ -218,7 +214,7 @@ export default function Overview() {
           {summaryState === 'error' && <BlockError onRetry={loadSummary} />}
           {summaryState === 'ok' && summary && (
             summary.recentUsers.length === 0 ? (
-              <div style={{ padding: '44px 16px', textAlign: 'center', fontSize: 13.5, fontWeight: 600, color: '#8a85a0' }}>
+              <div style={{ padding: '44px 16px', textAlign: 'center', fontSize: 13.5, fontWeight: 600, color: C.textMuted }}>
                 {t.ovrEmptyUsers}
               </div>
             ) : (
@@ -228,22 +224,22 @@ export default function Overview() {
                     const planMeta = userPlanMeta(u.plan ?? 'FREE');
                     const statusMeta = userStatusMeta(lang, u.status);
                     return (
-                      <tr key={u.id} style={{ borderTop: '1px solid #f1eef8' }}>
+                      <tr key={u.id} style={{ borderTop: `1px solid ${C.surfaceMuted}` }}>
                         <td style={{ padding: '13px 16px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                             <Avatar url={u.avatarUrl ?? undefined} initials={initialsOf(u.fullName ?? u.email)} size={32} gradient={brandGradient} />
                             <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: 13.5, fontWeight: 600, color: '#2b2543' }}>{u.fullName ?? u.email}</div>
-                              <div style={{ fontSize: 11.5, color: '#a59fbb' }}>{u.email}</div>
+                              <div style={{ fontSize: 13.5, fontWeight: 600, color: C.ink750 }}>{u.fullName ?? u.email}</div>
+                              <div style={{ fontSize: 11.5, color: C.textFaint }}>{u.email}</div>
                             </div>
                           </div>
                         </td>
                         <td style={{ padding: '13px 16px' }}><StatusBadge tone={planMeta.tone} label={planMeta.label} /></td>
                         <td style={{ padding: '13px 16px' }}><StatusBadge tone={statusMeta.tone} label={statusMeta.label} /></td>
-                        <td style={{ padding: '13px 16px', fontSize: 13.5, fontWeight: 600, color: '#2b2543' }}>
+                        <td style={{ padding: '13px 16px', fontSize: 13.5, fontWeight: 600, color: C.ink750 }}>
                           {formatGroupedNumber(u.postCount, lang)}
                         </td>
-                        <td style={{ padding: '13px 16px', fontSize: 13, color: '#8a85a0' }}>{formatDateVN(u.createdAt)}</td>
+                        <td style={{ padding: '13px 16px', fontSize: 13, color: C.textMuted }}>{formatDateVN(u.createdAt)}</td>
                         <td style={{ padding: '13px 16px', textAlign: 'right' }}>
                           <RowActionsMenu actions={rowActions(u)} ariaLabel={`${t.usrMoreActions} — ${u.fullName ?? u.email}`} />
                         </td>
@@ -253,7 +249,7 @@ export default function Overview() {
                 </DataTable>
                 <button
                   onClick={() => go('adminUsers')}
-                  style={{ width: '100%', border: 'none', borderTop: '1px solid #f1eef8', background: '#faf9fe', padding: '13px 16px', fontSize: 13, fontWeight: 700, color: '#7c3aed', cursor: 'pointer' }}
+                  style={{ width: '100%', border: 'none', borderTop: `1px solid ${C.surfaceMuted}`, background: C.surfaceSubtle, padding: '13px 16px', fontSize: 13, fontWeight: 700, color: C.primary, cursor: 'pointer' }}
                 >
                   {t.ovrViewAllUsers} →
                 </button>
@@ -272,28 +268,28 @@ export default function Overview() {
             {summaryState === 'error' && <BlockError onRetry={loadSummary} />}
             {summaryState === 'ok' && summary && (
               summary.planDistribution.length === 0 ? (
-                <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 13, color: '#8a85a0' }}>{t.ovrEmptyPlans}</div>
+                <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 13, color: C.textMuted }}>{t.ovrEmptyPlans}</div>
               ) : (
                 <>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
                     {summary.planDistribution.map((p, i) => (
                       <div key={p.planId}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 7 }}>
-                          <span style={{ fontSize: 13.5, fontWeight: 600, color: '#3f3a55' }}>{lang === 'en' ? p.nameEn : p.nameVi}</span>
-                          <span style={{ fontSize: 13, color: '#8a85a0' }}>
+                          <span style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>{lang === 'en' ? p.nameEn : p.nameVi}</span>
+                          <span style={{ fontSize: 13, color: C.textMuted }}>
                             {formatGroupedNumber(p.userCount, lang)} ({p.sharePct}%)
                           </span>
                         </div>
-                        <div style={{ height: 9, borderRadius: 99, background: '#f1eef9', overflow: 'hidden' }}>
+                        <div style={{ height: 9, borderRadius: 99, background: C.surfaceMuted, overflow: 'hidden' }}>
                           {/* Màu theo THỨ TỰ gói — cùng bảng màu với donut trang Doanh thu. */}
                           <div style={{ height: '100%', borderRadius: 99, width: `${p.sharePct}%`, background: planColor(i) }} />
                         </div>
                       </div>
                     ))}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 16, padding: '11px 13px', background: '#f8f6fd', border: '1px solid #eee9f6', borderRadius: 12 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#5b5670' }}>{t.ovrKpiUsers}</span>
-                    <span style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: 15, fontWeight: 800, color: '#211c38' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 16, padding: '11px 13px', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: C.ink550 }}>{t.ovrKpiUsers}</span>
+                    <span style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: 15, fontWeight: 800, color: C.textStrong }}>
                       {formatGroupedNumber(summary.totalSubscribedUsers, lang)}
                     </span>
                   </div>
@@ -323,12 +319,12 @@ export default function Overview() {
             <button
               key={s.key}
               onClick={() => go(s.key)}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9, border: '1px solid #eee9f6', background: '#fff', borderRadius: 14, padding: '16px 10px', cursor: 'pointer' }}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 14, padding: '16px 10px', cursor: 'pointer' }}
             >
-              <span style={{ width: 38, height: 38, borderRadius: 11, background: '#f4f1fb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon icon={s.icon} size={19} stroke="#7c3aed" />
+              <span style={{ width: 38, height: 38, borderRadius: 11, background: C.surfaceMuted, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon icon={s.icon} size={19} stroke={C.primary} />
               </span>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: '#3f3a55', textAlign: 'center', lineHeight: 1.35 }}>{t[s.labelKey]}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text, textAlign: 'center', lineHeight: 1.35 }}>{t[s.labelKey]}</span>
             </button>
           ))}
         </div>
@@ -429,12 +425,12 @@ function HealthList({ health, apiLatencyMs, checkedAt }: {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
       {rows.map((r) => (
         <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ width: 30, height: 30, flex: 'none', borderRadius: 9, background: '#f4f1fb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon icon={r.icon} size={16} stroke="#7c3aed" />
+          <span style={{ width: 30, height: 30, flex: 'none', borderRadius: 9, background: C.surfaceMuted, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon icon={r.icon} size={16} stroke={C.primary} />
           </span>
-          <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: '#3f3a55' }}>{r.label}</span>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: C.text }}>{r.label}</span>
           <StatusBadge tone={r.tone} label={r.badge} />
-          <span style={{ flex: 'none', minWidth: 76, textAlign: 'right', fontSize: 12.5, fontWeight: 600, color: '#5b5670' }}>
+          <span style={{ flex: 'none', minWidth: 76, textAlign: 'right', fontSize: 12.5, fontWeight: 600, color: C.ink550 }}>
             {r.value}
           </span>
         </div>
@@ -443,7 +439,7 @@ function HealthList({ health, apiLatencyMs, checkedAt }: {
       <div style={{ marginTop: 4, padding: '11px 13px', borderRadius: 14, background: bannerColors.bg }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: bannerColors.color }}>{bannerText}</div>
         {checkedAt && (
-          <div style={{ fontSize: 11.5, color: '#8a85a0', marginTop: 3 }}>
+          <div style={{ fontSize: 11.5, color: C.textMuted, marginTop: 3 }}>
             {t.ovrLastUpdated}: {checkedAt.toLocaleTimeString(lang === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' })}
             {' • '}{formatDateVN(checkedAt)}
           </div>

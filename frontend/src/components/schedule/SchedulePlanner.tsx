@@ -20,6 +20,7 @@ import {
   MIN_LEAD_MINUTES, applyBatchResult, earliestTimeOn, initialRows, localConflicts, submitSummary, toBatchRows, validateRow, wallDateTime, wallDiffMinutes,
   type PlannerAccount, type PlannerRow, type RowError, type SharedTime,
 } from './plannerLogic.ts';
+import { C } from '../../styles/colors';
 
 // SchedulePlanner dùng chung (Phase 4): bước 4 wizard, nút "Lên lịch" ở danh sách và modal tạo lịch của Calendar.
 // Một dòng mỗi nền tảng của bài; gửi một lần qua POST /schedules/batch — kết quả theo dòng, thử lại chỉ dòng lỗi
@@ -202,11 +203,11 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
       </div>
     );
   }
-  if (load === 'error') return <div role="alert" style={{ ...note, color: '#e23d6e' }}>{loadError ?? t.planLoadError}</div>;
+  if (load === 'error') return <div role="alert" style={{ ...note, color: C.rose }}>{loadError ?? t.planLoadError}</div>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#8a85a0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.textMuted }}>
         <Globe size={13} aria-hidden="true" />{t.schTimezone}: {getPublishingTimezone()}
       </div>
 
@@ -214,20 +215,20 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
         <div>
           <div style={lbl} id="plan-item-label">{t.planPickItem}</div>
           {items.length === 0 ? <div style={note}>{t.planNoItems}</div> : (
-            <div role="radiogroup" aria-labelledby="plan-item-label" style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #ece8f6', borderRadius: 12, padding: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div role="radiogroup" aria-labelledby="plan-item-label" style={{ maxHeight: 200, overflowY: 'auto', border: `1px solid ${C.border}`, borderRadius: 12, padding: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {items.map((item) => {
                 const on = item.id === selectedItemId;
                 const caption = item.versions.find((v) => v.formattedCaption)?.formattedCaption ?? item.caption ?? item.id.slice(0, 8);
                 return (
                   <button key={item.id} type="button" role="radio" aria-checked={on} onClick={() => setSelectedItemId(item.id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', width: '100%', border: `1px solid ${on ? '#c4b5fd' : '#f1eef8'}`, borderRadius: 10, padding: '8px 10px', background: on ? '#f1e9ff' : '#fcfbfe', cursor: 'pointer', font: 'inherit' }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', width: '100%', border: `1px solid ${on ? C.legacyBorderc4b5fd : C.surfaceMuted}`, borderRadius: 10, padding: '8px 10px', background: on ? C.purpleSoft : C.surfaceSubtle, cursor: 'pointer', font: 'inherit' }}>
                     <span style={{ display: 'flex', gap: 3, flex: 'none' }}>
                       {item.versions.map((v) => {
                         const tag = PLATFORM_TO_TAG[v.platformName] ?? '';
                         return <PlatformTag key={v.id} tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={20} radius={6} fontSize={9} />;
                       })}
                     </span>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, lineHeight: 1.45, color: on ? '#4c1d95' : '#3f3a55', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{caption}</span>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, lineHeight: 1.45, color: on ? C.legacyText4c1d95 : C.text, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{caption}</span>
                   </button>
                 );
               })}
@@ -239,11 +240,11 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
       {rows.length > 0 && (
         <>
           {/* Giờ chung cho mọi nền tảng ở chế độ Chọn giờ */}
-          <div style={{ border: '1px solid #ece8f6', borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
               <div>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#211c38' }}>{t.planShared}</div>
-                <div style={{ fontSize: 12, color: '#8a85a0', marginTop: 2 }}>{t.planSharedSub}</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: C.textStrong }}>{t.planShared}</div>
+                <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{t.planSharedSub}</div>
               </div>
               <Switch checked={shared.enabled} onChange={(v) => setShared((s) => ({ ...s, enabled: v }))} title={t.planShared} />
             </div>
@@ -290,21 +291,21 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
           </div>
 
           {lastResult && (
-            <div role="status" style={{ ...note, color: lastResult.failed ? '#b45309' : '#15803d', background: lastResult.failed ? '#fdf6e7' : '#eafbf1' }}>
+            <div role="status" style={{ ...note, color: lastResult.failed ? C.amberText : C.legacyText15803d, background: lastResult.failed ? C.legacyBgfdf6e7 : C.successTint }}>
               {t.planDone.replace('{ok}', String(lastResult.succeeded)).replace('{fail}', String(lastResult.failed))}
             </div>
           )}
-          {submitError && <div role="alert" style={{ ...note, color: '#e23d6e', background: '#fdecf1' }}>{submitError}</div>}
+          {submitError && <div role="alert" style={{ ...note, color: C.rose, background: C.roseSoft }}>{submitError}</div>}
 
           {/* Nút gửi trong planner (Calendar / danh sách); wizard lấy trạng thái nút qua onActionChange */}
           {!onActionChange && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <button type="button" onClick={submit} disabled={disabled} className="btn-grad"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: 'none', borderRadius: 11, padding: '11px 16px', fontWeight: 800, fontSize: 14, color: '#fff', background: brandGradient, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.55 : 1 }}>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: 'none', borderRadius: 11, padding: '11px 16px', fontWeight: 800, fontSize: 14, color: C.onBrand, background: brandGradient, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.55 : 1 }}>
                 {submitting ? <Loader2 size={15} className="icon-spin" aria-hidden="true" /> : summary.kind === 'retry' ? <RotateCcw size={15} aria-hidden="true" /> : null}
                 {label}
               </button>
-              {reason && !submitting && <div style={{ fontSize: 12, color: '#8a85a0', textAlign: 'center' }}>{reason}</div>}
+              {reason && !submitting && <div style={{ fontSize: 12, color: C.textMuted, textAlign: 'center' }}>{reason}</div>}
             </div>
           )}
         </>
@@ -313,5 +314,5 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
   );
 }
 
-const lbl: CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 700, color: '#4b4660', marginBottom: 6 };
-const note: CSSProperties = { fontSize: 12.5, color: '#8a85a0', background: '#f7f6fd', borderRadius: 9, padding: '8px 11px', lineHeight: 1.5 };
+const lbl: CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 700, color: C.ink650, marginBottom: 6 };
+const note: CSSProperties = { fontSize: 12.5, color: C.textMuted, background: C.bg, borderRadius: 9, padding: '8px 11px', lineHeight: 1.5 };

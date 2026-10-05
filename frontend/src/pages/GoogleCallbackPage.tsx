@@ -40,10 +40,10 @@ export default function GoogleCallbackPage() {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--c-legacy-bg-f9fafb)] px-4 text-center">
       {error ? (
         <div className="space-y-3">
-          <p className="text-red-600">{error}</p>
+          <p className="text-[var(--c-danger)]">{error}</p>
           <button
             onClick={() => navigate("/login", { replace: true })}
             className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"

@@ -1,0 +1,26 @@
+[
+  {
+    "section": "cta",
+    "width": 1440,
+    "above3": 0,
+    "max": 0.8033612721867163
+  },
+  {
+    "section": "cta",
+    "width": 390,
+    "above3": 0,
+    "max": 0.8137689354924594
+  },
+  {
+    "section": "footer",
+    "width": 1440,
+    "above3": 0,
+    "max": 1.7579242288766255
+  },
+  {
+    "section": "footer",
+    "width": 390,
+    "above3": 0,
+    "max": 1.577602159055705
+  }
+]

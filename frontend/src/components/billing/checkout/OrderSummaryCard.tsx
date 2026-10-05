@@ -6,6 +6,7 @@ import { formatVND } from '../../../api/admin';
 import { formatDateVN } from '../../../utils/format';
 import { TONE_COLORS } from '../../../statusTokens';
 import type { CheckoutQuote } from '../../../api/payments';
+import { C } from '../../../styles/colors';
 
 /**
  * Khối "Tóm tắt đơn hàng" + nút "Thanh toán ngay".
@@ -43,7 +44,7 @@ export default function OrderSummaryCard({
 
   return (
     <Card style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <p style={{ margin: 0, fontSize: 12.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8a85a0' }}>
+      <p style={{ margin: 0, fontSize: 12.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: C.textMuted }}>
         {t.coSummary}
       </p>
 
@@ -70,11 +71,11 @@ export default function OrderSummaryCard({
         )}
       </div>
 
-      <div style={{ height: 1, background: '#f0ecf8' }} />
+      <div style={{ height: 1, background: C.surfaceMuted }} />
 
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
-        <span style={{ fontWeight: 800, fontSize: 15, color: '#1b1730' }}>{t.coTotal}</span>
-        <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 28, color: '#171327' }}>
+        <span style={{ fontWeight: 800, fontSize: 15, color: C.textStrong }}>{t.coTotal}</span>
+        <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 28, color: C.ink900 }}>
           {/* Đơn bị chặn có thể ra tổng ≤ 0 — không hiện một "số tiền" không bao giờ bị thu. */}
           {quote.purchasable ? formatVND(quote.total) : '—'}
         </span>
@@ -100,13 +101,13 @@ export default function OrderSummaryCard({
         style={{
           width: '100%', border: 'none', borderRadius: 13, padding: 14,
           fontWeight: 700, fontSize: 15, cursor: canPay ? 'pointer' : 'not-allowed',
-          color: canPay ? '#fff' : '#a39bbf', background: canPay ? brandGradient : '#f2f0f8',
+          color: canPay ? C.onBrand : C.ink350, background: canPay ? brandGradient : C.surfaceMuted,
         }}
       >
         {paying ? t.coPaying : t.coPayNow}
       </button>
 
-      <p style={{ margin: 0, display: 'flex', gap: 7, fontSize: 12.5, lineHeight: 1.5, color: '#8a85a0' }}>
+      <p style={{ margin: 0, display: 'flex', gap: 7, fontSize: 12.5, lineHeight: 1.5, color: C.textMuted }}>
         <ShieldCheck size={15} strokeWidth={1.8} style={{ flex: 'none', marginTop: 1 }} />
         {t.coServerNote}
       </p>
@@ -118,10 +119,10 @@ function Row({ label, sub, value, accent }: { label: string; sub?: string; value
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 14, color: '#4b4660' }}>{label}</div>
-        {sub && <div style={{ marginTop: 2, fontSize: 12.5, color: '#8a85a0' }}>{sub}</div>}
+        <div style={{ fontSize: 14, color: C.ink650 }}>{label}</div>
+        {sub && <div style={{ marginTop: 2, fontSize: 12.5, color: C.textMuted }}>{sub}</div>}
       </div>
-      <span style={{ flex: 'none', fontSize: 14, fontWeight: 700, color: accent ? TONE_COLORS.success.color : '#1b1730' }}>{value}</span>
+      <span style={{ flex: 'none', fontSize: 14, fontWeight: 700, color: accent ? TONE_COLORS.success.color : C.textStrong }}>{value}</span>
     </div>
   );
 }

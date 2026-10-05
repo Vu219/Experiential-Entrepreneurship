@@ -4,6 +4,7 @@ import { TONE_COLORS } from '../../statusTokens.ts';
 import type { PostSchedule, ScheduleStatus } from '../../api/schedules.ts';
 import { FILTERS, STATUS_TONE } from './statusMeta.ts';
 import ScheduleQueueList from './ScheduleQueueList.tsx';
+import { C } from '../../styles/colors';
 
 // Panel "Hàng đợi đăng bài" (cột phải, desktop/tablet — UI-07 redesign): pill tự động đăng,
 // banner lối vào trang Bài lỗi (chỉ hiện khi có bài lỗi — thẻ KPI "Thất bại" luôn là lối vào),
@@ -23,10 +24,10 @@ export function StatusChips({ value, onChange }: { value: ScheduleStatus | 'ALL'
             onClick={() => onChange(f)}
             aria-pressed={active}
             style={{
-              border: `1px solid ${active ? '#c4b5fd' : '#ece8f6'}`, borderRadius: 999, padding: '5px 11px',
+              border: `1px solid ${active ? C.legacyBorderc4b5fd : C.border}`, borderRadius: 999, padding: '5px 11px',
               fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-              background: active ? '#f1e9ff' : '#fff',
-              color: active ? '#7c3aed' : tone ? tone.color : '#6b6680',
+              background: active ? C.purpleSoft : C.surface,
+              color: active ? C.primary : tone ? tone.color : C.textSecondary,
             }}
           >
             {f === 'ALL' ? t.schAll : t[`schSt${f}` as keyof typeof t] as string}
@@ -43,7 +44,7 @@ export function FailedBanner({ count, onClick }: { count: number; onClick: () =>
   return (
     <button
       onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', border: '1px solid #f2d9df', background: '#fdf5f7', borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontWeight: 700, color: '#c0356a', cursor: 'pointer' }}
+      style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', border: `1px solid ${C.legacyBorderf2d9df}`, background: C.legacyBgfdf5f7, borderRadius: 10, padding: '9px 12px', fontSize: 12.5, fontWeight: 700, color: C.legacyTextc0356a, cursor: 'pointer' }}
     >
       <AlertTriangle size={14} aria-hidden="true" />
       {t.fpNavFailed}
@@ -56,7 +57,7 @@ export function FailedBanner({ count, onClick }: { count: number; onClick: () =>
 export function AutoPill({ count }: { count: number }) {
   const { t } = useApp();
   return (
-    <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: '#16a34a', background: '#e8f8ee', borderRadius: 999, padding: '4px 10px', width: 'fit-content' }}>
+    <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: C.success, background: C.successSoft, borderRadius: 999, padding: '4px 10px', width: 'fit-content' }}>
       <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a' }} />
       {t.calAuto}
       {count > 0 && <span>· {count}</span>}
@@ -103,7 +104,7 @@ export default function UpcomingPanel({
       {/* Header cố định của Hàng đợi (flex-shrink-0) */}
       <div className="flex-shrink-0" style={{ flexShrink: 0, marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-          <div style={{ fontWeight: 800, fontSize: 16.5, color: '#211c38', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <div style={{ fontWeight: 800, fontSize: 16.5, color: C.textStrong, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             {t.schQueue}
           </div>
           <AutoPill count={autoCount} />

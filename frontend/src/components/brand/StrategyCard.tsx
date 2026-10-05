@@ -5,6 +5,7 @@ import StatusBadge, { type Tone } from '../admin/StatusBadge';
 import type { ContentStrategy, StrategyStatus } from '../../api/contentStrategy';
 import { FREQUENCY_UNIT_OPTIONS } from '../../data';
 import { useToast } from '../toast/ToastProvider';
+import { C } from '../../styles/colors';
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
@@ -74,14 +75,14 @@ export default function StrategyCard({ s, selected, onSelect, onToggleStatus, on
         overflow: 'visible',
         cursor: 'pointer',
         // Active: viền đều 4 cạnh + nền tím nhạt + shadow bao đều (#3). Không active: viền slate-200 luôn rõ trên nền trắng (#4.1).
-        border: selected ? '1.5px solid #a855f7' : '1px solid #e2e8f0',
-        background: selected ? 'rgba(168, 85, 247, 0.06)' : '#fff',
+        border: selected ? `1.5px solid ${C.legacyBordera855f7}` : `1px solid ${C.legacyBordere2e8f0}`,
+        background: selected ? C.legacyBgrgba16885247006_ : C.surface,
         borderRadius: 14,
         padding: 15,
         display: 'flex',
         flexDirection: 'column',
         gap: 9,
-        boxShadow: selected ? '0 2px 8px rgba(168, 85, 247, 0.12)' : undefined,
+        boxShadow: selected ? `0 2px 8px ${C.legacyShadowrgba16885247012_}` : undefined,
       }}
     >
       {/* Accent bar dọc trái (gradient brand cyan→purple) để nhận biết card đang chọn (#3). */}
@@ -95,7 +96,7 @@ export default function StrategyCard({ s, selected, onSelect, onToggleStatus, on
           type="button"
           onClick={(e) => { e.stopPropagation(); onSelect(); }}
           aria-current={selected ? 'true' : undefined}
-          style={{ flex: 1, textAlign: 'left', border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 14.5, color: '#211c38' }}
+          style={{ flex: 1, textAlign: 'left', border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 14.5, color: C.textStrong }}
         >
           {s.name || '—'}
         </button>
@@ -111,16 +112,16 @@ export default function StrategyCard({ s, selected, onSelect, onToggleStatus, on
             aria-expanded={open}
             aria-label={t.csMenu}
             aria-busy={pending}
-            style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid #ece8f6', background: open ? '#f4f1fb' : '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: pending ? 'wait' : 'pointer', opacity: pending ? 0.6 : 1 }}
+            style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${C.border}`, background: open ? C.surfaceMuted : C.surface, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: pending ? 'wait' : 'pointer', opacity: pending ? 0.6 : 1 }}
           >
-            <MoreVertical size={16} color="#5b5670" />
+            <MoreVertical size={16} color={C.ink550} />
           </button>
           {open && (
             <div
               role="menu"
               className="menu-pop"
               onClick={(e) => e.stopPropagation()}
-              style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, minWidth: 168, background: '#fff', border: '1px solid #ece8f6', borderRadius: 12, boxShadow: '0 12px 32px -10px rgba(40,20,90,.28)', padding: 6, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 2 }}
+              style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, minWidth: 168, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, boxShadow: `0 12px 32px -10px ${C.legacyShadowrgba402090_28_}`, padding: 6, zIndex: 30, display: 'flex', flexDirection: 'column', gap: 2 }}
             >
               <MenuItem icon={statusAction.icon} label={statusAction.label} onClick={(e) => changeStatus(e, statusAction.next)} />
               <MenuItem icon={Pencil} label={t.csEditBtn} onClick={(e) => { e.stopPropagation(); setOpen(false); onEdit(); }} />
@@ -130,12 +131,12 @@ export default function StrategyCard({ s, selected, onSelect, onToggleStatus, on
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#8a85a0' }}>
-        <span style={{ background: '#f4f1fb', color: '#5b4b86', borderRadius: 7, padding: '3px 9px', fontWeight: 700 }}>{s.frequencyCount ?? 3} {t.csPostsPer} {unitLabel}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: C.textMuted }}>
+        <span style={{ background: C.surfaceMuted, color: C.legacyText5b4b86, borderRadius: 7, padding: '3px 9px', fontWeight: 700 }}>{s.frequencyCount ?? 3} {t.csPostsPer} {unitLabel}</span>
         <span>{t.csUpdatedAt}: {fmtDate(s.updatedAt)}</span>
       </div>
 
-      {!runnable && <div style={{ fontSize: 11.5, color: '#b08968', background: '#fdf6ec', borderRadius: 8, padding: '6px 9px' }}>{t.csPausedNote}</div>}
+      {!runnable && <div style={{ fontSize: 11.5, color: C.legacyTextb08968, background: C.legacyBgfdf6ec, borderRadius: 8, padding: '6px 9px' }}>{t.csPausedNote}</div>}
     </div>
   );
 }
@@ -146,11 +147,12 @@ function MenuItem({ icon: IconCmp, label, danger, onClick }: { icon: typeof Play
       type="button"
       role="menuitem"
       onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', border: 'none', background: 'transparent', borderRadius: 8, padding: '8px 10px', fontSize: 13, fontWeight: 600, color: danger ? '#d6336c' : '#3f3a55', cursor: 'pointer' }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = danger ? '#fdeef2' : '#f4f1fb')}
-      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+      style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', border: 'none', background: 'transparent', borderRadius: 8, padding: '8px 10px', fontSize: 13, fontWeight: 600, color: danger ? C.legacyTextd6336c : C.text, cursor: 'pointer' }}
+      className={(danger ? 'dm-hover-18a5609-yes' : 'dm-hover-18a5609-no')}
+
+
     >
-      <IconCmp size={15} color={danger ? '#d6336c' : '#7c5cff'} />
+      <IconCmp size={15} color={danger ? C.legacyTextd6336c : C.violet} />
       {label}
     </button>
   );

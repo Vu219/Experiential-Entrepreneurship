@@ -1,0 +1,2276 @@
+{
+  "replacements": 1126,
+  "files": [
+    {
+      "file": "pages/Profile.tsx",
+      "replacements": 29
+    },
+    {
+      "file": "pages/Settings.tsx",
+      "replacements": 21
+    },
+    {
+      "file": "components/admin/AdminListPage.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "components/admin/AiProviderCard.tsx",
+      "replacements": 26
+    },
+    {
+      "file": "components/admin/AiStatusBanner.tsx",
+      "replacements": 6
+    },
+    {
+      "file": "components/admin/BlockSkeleton.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/admin/FallbackChainEditor.tsx",
+      "replacements": 8
+    },
+    {
+      "file": "components/admin/FilterMenu.tsx",
+      "replacements": 5
+    },
+    {
+      "file": "components/admin/Heatmap.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/admin/PaymentDetailModal.tsx",
+      "replacements": 4
+    },
+    {
+      "file": "components/admin/RouteHealthBadge.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/admin/RowActionsMenu.tsx",
+      "replacements": 9
+    },
+    {
+      "file": "components/admin/Switch.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/analytics/ActivityHeatmap.tsx",
+      "replacements": 7
+    },
+    {
+      "file": "components/analytics/AllPostsModal.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/analytics/AnalyticsFilterBar.tsx",
+      "replacements": 8
+    },
+    {
+      "file": "components/analytics/AnalyticsSkeleton.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/analytics/AnalyticsTrendChart.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/analytics/BlockError.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/analytics/FilterPopover.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/analytics/InsightsStrip.tsx",
+      "replacements": 7
+    },
+    {
+      "file": "components/analytics/KpiCard.tsx",
+      "replacements": 6
+    },
+    {
+      "file": "components/analytics/PlatformBreakdown.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/analytics/PostDetailModal.tsx",
+      "replacements": 8
+    },
+    {
+      "file": "components/analytics/PostDetailPanel.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "components/analytics/PostsTable.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "components/analytics/RangeCalendar.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/analytics/TopPostsTable.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/billing/PendingOrderCard.tsx",
+      "replacements": 10
+    },
+    {
+      "file": "components/billing/PlanChoiceGrid.tsx",
+      "replacements": 6
+    },
+    {
+      "file": "components/brand/AiBrandPanel.tsx",
+      "replacements": 13
+    },
+    {
+      "file": "components/brand/BrandHealthBar.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/brand/BrandProfileCard.tsx",
+      "replacements": 6
+    },
+    {
+      "file": "components/brand/BrandProfileForm.tsx",
+      "replacements": 4
+    },
+    {
+      "file": "components/brand/BrandProfileList.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/brand/BrandSkeleton.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/brand/chips.tsx",
+      "replacements": 18
+    },
+    {
+      "file": "components/brand/LogoLightbox.tsx",
+      "replacements": 4
+    },
+    {
+      "file": "components/brand/SearchSuggestInput.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/brand/SlideOver.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "components/brand/StrategyCard.tsx",
+      "replacements": 13
+    },
+    {
+      "file": "components/brand/StrategyDetail.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/brand/StrategyEditor.tsx",
+      "replacements": 6
+    },
+    {
+      "file": "components/brand/StrategyManager.tsx",
+      "replacements": 19
+    },
+    {
+      "file": "components/brand/StrategyOptimization.tsx",
+      "replacements": 6
+    },
+    {
+      "file": "components/brand/StrategySummary.tsx",
+      "replacements": 5
+    },
+    {
+      "file": "components/calendar/AgendaView.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "components/calendar/DaySheet.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "components/calendar/MonthGrid.tsx",
+      "replacements": 9
+    },
+    {
+      "file": "components/calendar/ScheduleDetailModal.tsx",
+      "replacements": 45
+    },
+    {
+      "file": "components/calendar/ScheduleDetailView.tsx",
+      "replacements": 74
+    },
+    {
+      "file": "components/calendar/ScheduleItem.tsx",
+      "replacements": 11
+    },
+    {
+      "file": "components/calendar/ScheduleModals.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "components/calendar/ScheduleQueueList.tsx",
+      "replacements": 9
+    },
+    {
+      "file": "components/calendar/UpcomingPanel.tsx",
+      "replacements": 8
+    },
+    {
+      "file": "components/create/BrandVoicePanel.tsx",
+      "replacements": 9
+    },
+    {
+      "file": "components/create/ContentList.tsx",
+      "replacements": 25
+    },
+    {
+      "file": "components/create/ContentTable.tsx",
+      "replacements": 4
+    },
+    {
+      "file": "components/create/ContentViewPanel.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "components/create/platformLimits.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/create/PlatformTabs.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "components/create/PostImagePreview.tsx",
+      "replacements": 4
+    },
+    {
+      "file": "components/create/ReadinessChecklist.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "components/create/ScriptSections.tsx",
+      "replacements": 18
+    },
+    {
+      "file": "components/create/SourceInfoCard.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/create/StepLayout.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "components/create/VersionContent.tsx",
+      "replacements": 7
+    },
+    {
+      "file": "components/create/WizardStepper.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/failedPosts/ErrorDetailModal.tsx",
+      "replacements": 11
+    },
+    {
+      "file": "components/failedPosts/ErrorOverviewPanel.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/failedPosts/FailedPostRow.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "components/failedPosts/FilterBar.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/failedPosts/TabBar.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/profile/RecentActivityCard.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/schedule/ScheduleDateField.tsx",
+      "replacements": 5
+    },
+    {
+      "file": "components/schedule/SchedulePlanner.tsx",
+      "replacements": 10
+    },
+    {
+      "file": "components/schedule/SchedulePlatformRow.tsx",
+      "replacements": 25
+    },
+    {
+      "file": "components/schedule/ScheduleTimeField.tsx",
+      "replacements": 6
+    },
+    {
+      "file": "components/settings/PublishingTab.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "components/settings/UsageTab.tsx",
+      "replacements": 20
+    },
+    {
+      "file": "components/trends/HowItWorks.tsx",
+      "replacements": 15
+    },
+    {
+      "file": "components/trends/IdeaCard.tsx",
+      "replacements": 10
+    },
+    {
+      "file": "components/trends/IdeaDetailModal.tsx",
+      "replacements": 5
+    },
+    {
+      "file": "components/trends/ResearchHistoryItem.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "components/trends/ResearchStartModal.tsx",
+      "replacements": 10
+    },
+    {
+      "file": "components/trends/ScheduleModal.tsx",
+      "replacements": 7
+    },
+    {
+      "file": "components/trends/SessionDetailModal.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "components/trends/TrendsSidebar.tsx",
+      "replacements": 10
+    },
+    {
+      "file": "components/trends/TrendTable.tsx",
+      "replacements": 18
+    },
+    {
+      "file": "pages/admin/AiModels.tsx",
+      "replacements": 15
+    },
+    {
+      "file": "pages/admin/AiProviders.tsx",
+      "replacements": 15
+    },
+    {
+      "file": "pages/admin/AiUsage.tsx",
+      "replacements": 7
+    },
+    {
+      "file": "pages/admin/ApiVersions.tsx",
+      "replacements": 8
+    },
+    {
+      "file": "pages/admin/EditUserModal.tsx",
+      "replacements": 7
+    },
+    {
+      "file": "pages/admin/Landing.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "pages/admin/Overview.tsx",
+      "replacements": 19
+    },
+    {
+      "file": "pages/admin/Plans.tsx",
+      "replacements": 30
+    },
+    {
+      "file": "pages/admin/Revenue.tsx",
+      "replacements": 18
+    },
+    {
+      "file": "pages/admin/SystemStatus.tsx",
+      "replacements": 26
+    },
+    {
+      "file": "pages/admin/UsageOverview.tsx",
+      "replacements": 20
+    },
+    {
+      "file": "pages/admin/Users.tsx",
+      "replacements": 13
+    },
+    {
+      "file": "pages/admin/UserUsageDetail.tsx",
+      "replacements": 15
+    },
+    {
+      "file": "pages/app/BillingCheckout.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "pages/app/BillingMock.tsx",
+      "replacements": 8
+    },
+    {
+      "file": "pages/app/BillingReturn.tsx",
+      "replacements": 12
+    },
+    {
+      "file": "pages/app/Brand.tsx",
+      "replacements": 5
+    },
+    {
+      "file": "pages/app/Calendar.tsx",
+      "replacements": 6
+    },
+    {
+      "file": "pages/app/CreateWizard.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "pages/app/FailedPosts.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "pages/app/Trends.tsx",
+      "replacements": 10
+    },
+    {
+      "file": "components/admin/landing/LandingFields.tsx",
+      "replacements": 12
+    },
+    {
+      "file": "components/admin/landing/LandingSectionEditor.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/admin/logs/ActivityLogDetailModal.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/admin/logs/ActivityLogTab.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/admin/logs/ErrorLogTab.tsx",
+      "replacements": 7
+    },
+    {
+      "file": "components/admin/posts/DateRangePill.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/admin/posts/PostProblemDetail.tsx",
+      "replacements": 5
+    },
+    {
+      "file": "components/admin/posts/PostProblemFilterBar.tsx",
+      "replacements": 4
+    },
+    {
+      "file": "components/admin/posts/PostProblemKpis.tsx",
+      "replacements": 21
+    },
+    {
+      "file": "components/admin/posts/PostProblemTable.tsx",
+      "replacements": 4
+    },
+    {
+      "file": "components/admin/posts/PostProblemToolbar.tsx",
+      "replacements": 7
+    },
+    {
+      "file": "components/admin/revenue/chartTokens.ts",
+      "replacements": 8
+    },
+    {
+      "file": "components/admin/revenue/ForecastCard.tsx",
+      "replacements": 4
+    },
+    {
+      "file": "components/admin/revenue/OrdersTab.tsx",
+      "replacements": 11
+    },
+    {
+      "file": "components/admin/revenue/RevenueChart.tsx",
+      "replacements": 5
+    },
+    {
+      "file": "components/admin/revenue/RevenueFilterBar.tsx",
+      "replacements": 4
+    },
+    {
+      "file": "components/admin/revenue/SparklineCard.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/admin/revenue/TransactionsTable.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/admin/usage/AlertsPanel.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/admin/usage/UsageEventsTable.tsx",
+      "replacements": 6
+    },
+    {
+      "file": "components/admin/usage/UsageRangeBar.tsx",
+      "replacements": 4
+    },
+    {
+      "file": "components/admin/users/UserPlanTab.tsx",
+      "replacements": 12
+    },
+    {
+      "file": "components/billing/checkout/PaymentMethodList.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/billing/checkout/SelectedPlanCard.tsx",
+      "replacements": 4
+    },
+    {
+      "file": "components/create/steps/FinalizeStep.tsx",
+      "replacements": 17
+    },
+    {
+      "file": "components/create/steps/GenerateStep.tsx",
+      "replacements": 12
+    },
+    {
+      "file": "components/create/steps/ScheduleStep.tsx",
+      "replacements": 4
+    },
+    {
+      "file": "components/create/steps/SourceStep.tsx",
+      "replacements": 11
+    }
+  ],
+  "tokens": [
+    {
+      "key": "--c-legacy-border-f3c9d6",
+      "field": "legacyBorderf3c9d6",
+      "light": "#f3c9d6",
+      "dark": "color-mix(in srgb, #f9a8d4 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-c0285a",
+      "field": "legacyTextc0285a",
+      "light": "#c0285a",
+      "dark": "#f9a8d4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-8a5566",
+      "field": "legacyText8a5566",
+      "light": "#8a5566",
+      "dark": "#f9a8d4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_139_92_246__6_",
+      "field": "legacyShadowrgba13992246_6_",
+      "light": "rgba(139,92,246,.6)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_139_92_246__7_",
+      "field": "legacyShadowrgba13992246_7_",
+      "light": "rgba(139,92,246,.7)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_20_12_40__45_",
+      "field": "legacyBgrgba201240_45_",
+      "light": "rgba(20,12,40,.45)",
+      "dark": "rgba(20,12,40,.45)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_60_30_110__4_",
+      "field": "legacyShadowrgba6030110_4_",
+      "light": "rgba(60,30,110,.4)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_80_40_140__5_",
+      "field": "legacyShadowrgba8040140_5_",
+      "light": "rgba(80,40,140,.5)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_26_18_48__5_",
+      "field": "legacyBgrgba261848_5_",
+      "light": "rgba(26,18,48,.5)",
+      "dark": "rgba(26,18,48,.5)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_0_0_0__6_",
+      "field": "legacyShadowrgba000_6_",
+      "light": "rgba(0,0,0,.6)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_226_61_110__6_",
+      "field": "legacyShadowrgba22661110_6_",
+      "light": "rgba(226,61,110,.6)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_0_0_0__25_",
+      "field": "legacyShadowrgba000_25_",
+      "light": "rgba(0,0,0,.25)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-e9f0ff",
+      "field": "legacyBge9f0ff",
+      "light": "#e9f0ff",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-f4f1fb",
+      "field": "legacyBgf4f1fb",
+      "light": "#f4f1fb",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_0_0_0__15_",
+      "field": "legacyShadowrgba000_15_",
+      "light": "rgba(0,0,0,.15)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-fff5f5",
+      "field": "legacyBgfff5f5",
+      "light": "#fff5f5",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_40_20_90__22_",
+      "field": "legacyShadowrgba402090_22_",
+      "light": "rgba(40,20,90,.22)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_40_20_90__05_",
+      "field": "legacyShadowrgba402090_05_",
+      "light": "rgba(40,20,90,.05)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_255_255_255__3_",
+      "field": "legacyShadowrgba255255255_3_",
+      "light": "rgba(255,255,255,.3)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-border-f4cccc",
+      "field": "legacyBorderf4cccc",
+      "light": "#f4cccc",
+      "dark": "color-mix(in srgb, #f87171 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-fdf6ea",
+      "field": "legacyBgfdf6ea",
+      "light": "#fdf6ea",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-f6e2c2",
+      "field": "legacyBorderf6e2c2",
+      "light": "#f6e2c2",
+      "dark": "color-mix(in srgb, #fb923c 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-fdf1dd",
+      "field": "legacyBgfdf1dd",
+      "light": "#fdf1dd",
+      "dark": "color-mix(in srgb, #fb923c 14%, #121829)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-f3d9a8",
+      "field": "legacyBorderf3d9a8",
+      "light": "#f3d9a8",
+      "dark": "color-mix(in srgb, #fb923c 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-92400e",
+      "field": "legacyText92400e",
+      "light": "#92400e",
+      "dark": "#fb923c",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-a16207",
+      "field": "legacyTexta16207",
+      "light": "#a16207",
+      "dark": "#fb923c",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-border-d9cef7",
+      "field": "legacyBorderd9cef7",
+      "light": "#d9cef7",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-border-ddd0fb",
+      "field": "legacyBorderddd0fb",
+      "light": "#ddd0fb",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-fff7ed",
+      "field": "legacyBgfff7ed",
+      "light": "#fff7ed",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-fed7aa",
+      "field": "legacyBorderfed7aa",
+      "light": "#fed7aa",
+      "dark": "color-mix(in srgb, #fb923c 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-border-f6dfae",
+      "field": "legacyBorderf6dfae",
+      "light": "#f6dfae",
+      "dark": "color-mix(in srgb, #fb923c 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-7c4a08",
+      "field": "legacyText7c4a08",
+      "light": "#7c4a08",
+      "dark": "#fb923c",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_26_18_48__42_",
+      "field": "legacyBgrgba261848_42_",
+      "light": "rgba(26,18,48,.42)",
+      "dark": "rgba(26,18,48,.42)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_60_30_110__5_",
+      "field": "legacyShadowrgba6030110_5_",
+      "light": "rgba(60,30,110,.5)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-border-b9a7ea",
+      "field": "legacyBorderb9a7ea",
+      "light": "#b9a7ea",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_139_92_246__45_",
+      "field": "legacyBgrgba13992246_45_",
+      "light": "rgba(139,92,246,.45)",
+      "dark": "rgba(139,92,246,.45)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-fffaf0",
+      "field": "legacyBgfffaf0",
+      "light": "#fffaf0",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-fce7c3",
+      "field": "legacyBorderfce7c3",
+      "light": "#fce7c3",
+      "dark": "color-mix(in srgb, #fb923c 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_80_40_140__6_",
+      "field": "legacyShadowrgba8040140_6_",
+      "light": "rgba(80,40,140,.6)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-text-d5cfe8",
+      "field": "legacyTextd5cfe8",
+      "light": "#d5cfe8",
+      "dark": "#a3abc4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-border-e4dbfa",
+      "field": "legacyBordere4dbfa",
+      "light": "#e4dbfa",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-5b21b6",
+      "field": "legacyText5b21b6",
+      "light": "#5b21b6",
+      "dark": "#c4b5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-border-dcd6ec",
+      "field": "legacyBorderdcd6ec",
+      "light": "#dcd6ec",
+      "dark": "#2e3752",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-border-d8c9ff",
+      "field": "legacyBorderd8c9ff",
+      "light": "#d8c9ff",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-cfc9e0",
+      "field": "legacyBgcfc9e0",
+      "light": "#cfc9e0",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-fdf7f9",
+      "field": "legacyBgfdf7f9",
+      "light": "#fdf7f9",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-ecfdf5",
+      "field": "legacyBgecfdf5",
+      "light": "#ecfdf5",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-text-047857",
+      "field": "legacyText047857",
+      "light": "#047857",
+      "dark": "#4ade80",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-border-a7f3d0",
+      "field": "legacyBordera7f3d0",
+      "light": "#a7f3d0",
+      "dark": "color-mix(in srgb, #4ade80 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-fef2f2",
+      "field": "legacyBgfef2f2",
+      "light": "#fef2f2",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-text-b91c1c",
+      "field": "legacyTextb91c1c",
+      "light": "#b91c1c",
+      "dark": "#f87171",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-border-fecaca",
+      "field": "legacyBorderfecaca",
+      "light": "#fecaca",
+      "dark": "color-mix(in srgb, #f87171 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-border-e5e7eb",
+      "field": "legacyBordere5e7eb",
+      "light": "#e5e7eb",
+      "dark": "#2e3752",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_124_58_237_0_4_",
+      "field": "legacyShadowrgba1245823704_",
+      "light": "rgba(124, 58, 237, 0.4)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-faf8fe",
+      "field": "legacyBgfaf8fe",
+      "light": "#faf8fe",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-f6f3fc",
+      "field": "legacyBgf6f3fc",
+      "light": "#f6f3fc",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-fffdf7",
+      "field": "legacyBgfffdf7",
+      "light": "#fffdf7",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-f6f2ff",
+      "field": "legacyBgf6f2ff",
+      "light": "#f6f2ff",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-fcf1fc",
+      "field": "legacyBgfcf1fc",
+      "light": "#fcf1fc",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-d6cdf0",
+      "field": "legacyBorderd6cdf0",
+      "light": "#d6cdf0",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-9b7fd6",
+      "field": "legacyText9b7fd6",
+      "light": "#9b7fd6",
+      "dark": "#c4b5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-d6336c",
+      "field": "legacyTextd6336c",
+      "light": "#d6336c",
+      "dark": "#f9a8d4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-border-ece2fb",
+      "field": "legacyBorderece2fb",
+      "light": "#ece2fb",
+      "dark": "#2e3752",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-5b4b86",
+      "field": "legacyText5b4b86",
+      "light": "#5b4b86",
+      "dark": "#c3c9db",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-a78bfa",
+      "field": "legacyTexta78bfa",
+      "light": "#a78bfa",
+      "dark": "#c4b5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-border-e0d5fb",
+      "field": "legacyBordere0d5fb",
+      "light": "#e0d5fb",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-border-e2e8f0",
+      "field": "legacyBordere2e8f0",
+      "light": "#e2e8f0",
+      "dark": "#2e3752",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_255_255_255__25_",
+      "field": "legacyBgrgba255255255_25_",
+      "light": "rgba(255,255,255,.25)",
+      "dark": "rgba(18, 24, 41, .25)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_40_20_90__28_",
+      "field": "legacyShadowrgba402090_28_",
+      "light": "rgba(40,20,90,.28)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-border-c9bdf3",
+      "field": "legacyBorderc9bdf3",
+      "light": "#c9bdf3",
+      "dark": "color-mix(in srgb, #93c5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_16_10_32__78_",
+      "field": "legacyBgrgba161032_78_",
+      "light": "rgba(16,10,32,.78)",
+      "dark": "rgba(16,10,32,.78)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-rgba_255_255_255__25_",
+      "field": "legacyBorderrgba255255255_25_",
+      "light": "rgba(255,255,255,.25)",
+      "dark": "#2e3752",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_255_255_255__12_",
+      "field": "legacyBgrgba255255255_12_",
+      "light": "rgba(255,255,255,.12)",
+      "dark": "rgba(18, 24, 41, .12)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-a855f7",
+      "field": "legacyBordera855f7",
+      "light": "#a855f7",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_168_85_247_0_06_",
+      "field": "legacyBgrgba16885247006_",
+      "light": "rgba(168, 85, 247, 0.06)",
+      "dark": "rgba(168, 85, 247, 0.06)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_168_85_247_0_12_",
+      "field": "legacyShadowrgba16885247012_",
+      "light": "rgba(168, 85, 247, 0.12)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-text-b08968",
+      "field": "legacyTextb08968",
+      "light": "#b08968",
+      "dark": "#fb923c",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-fdf6ec",
+      "field": "legacyBgfdf6ec",
+      "light": "#fdf6ec",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_0_0_0_0_03_",
+      "field": "legacyShadowrgba000003_",
+      "light": "rgba(0,0,0,0.03)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-fdfbff",
+      "field": "legacyBgfdfbff",
+      "light": "#fdfbff",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_139_92_246_0_25_",
+      "field": "legacyShadowrgba13992246025_",
+      "light": "rgba(139,92,246,0.25)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_20_16_40__42_",
+      "field": "legacyBgrgba201640_42_",
+      "light": "rgba(20,16,40,.42)",
+      "dark": "rgba(20,16,40,.42)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_40_20_90__5_",
+      "field": "legacyShadowrgba402090_5_",
+      "light": "rgba(40,20,90,.5)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-border-e9defb",
+      "field": "legacyBordere9defb",
+      "light": "#e9defb",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-border-e3d9fb",
+      "field": "legacyBordere3d9fb",
+      "light": "#e3d9fb",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_60_30_110__45_",
+      "field": "legacyShadowrgba6030110_45_",
+      "light": "rgba(60,30,110,.45)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-border-c4b5fd",
+      "field": "legacyBorderc4b5fd",
+      "light": "#c4b5fd",
+      "dark": "color-mix(in srgb, #93c5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-a39fb3",
+      "field": "legacyTexta39fb3",
+      "light": "#a39fb3",
+      "dark": "#a3abc4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-ebe4f9",
+      "field": "legacyBgebe4f9",
+      "light": "#ebe4f9",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_20_14_38_0_55_",
+      "field": "legacyBgrgba201438055_",
+      "light": "rgba(20, 14, 38, 0.55)",
+      "dark": "rgba(20, 14, 38, 0.55)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_40_20_90_0_45_",
+      "field": "legacyShadowrgba402090045_",
+      "light": "rgba(40, 20, 90, 0.45)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_124_58_237_0_08_",
+      "field": "legacyShadowrgba12458237008_",
+      "light": "rgba(124,58,237,0.08)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-ebe5f8",
+      "field": "legacyBgebe5f8",
+      "light": "#ebe5f8",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_0_0_0_0_08_",
+      "field": "legacyShadowrgba000008_",
+      "light": "rgba(0,0,0,0.08)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-fdf1f1",
+      "field": "legacyBgfdf1f1",
+      "light": "#fdf1f1",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-f9d2d8",
+      "field": "legacyBorderf9d2d8",
+      "light": "#f9d2d8",
+      "dark": "color-mix(in srgb, #f87171 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-991b1b",
+      "field": "legacyText991b1b",
+      "light": "#991b1b",
+      "dark": "#f87171",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-fdf6e7",
+      "field": "legacyBgfdf6e7",
+      "light": "#fdf6e7",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-f6e2b3",
+      "field": "legacyBorderf6e2b3",
+      "light": "#f6e2b3",
+      "dark": "color-mix(in srgb, #fb923c 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-border-e5e0f2",
+      "field": "legacyBordere5e0f2",
+      "light": "#e5e0f2",
+      "dark": "#2e3752",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-efe9fb",
+      "field": "legacyBgefe9fb",
+      "light": "#efe9fb",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_70_40_120_0_12_",
+      "field": "legacyShadowrgba7040120012_",
+      "light": "rgba(70,40,120,0.12)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_255_255_255_0_18_",
+      "field": "legacyBgrgba255255255018_",
+      "light": "rgba(255,255,255,0.18)",
+      "dark": "rgba(18, 24, 41, 0.18)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_0_0_0_0_2_",
+      "field": "legacyShadowrgba00002_",
+      "light": "rgba(0,0,0,0.2)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-text-f3efff",
+      "field": "legacyTextf3efff",
+      "light": "#f3efff",
+      "dark": "#a3abc4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-c9bce8",
+      "field": "legacyTextc9bce8",
+      "light": "#c9bce8",
+      "dark": "#c4b5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_0_0_0_0_5_",
+      "field": "legacyBgrgba00005_",
+      "light": "rgba(0,0,0,0.5)",
+      "dark": "rgba(18, 24, 41, 0.5)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-f2c9d4",
+      "field": "legacyBorderf2c9d4",
+      "light": "#f2c9d4",
+      "dark": "color-mix(in srgb, #f9a8d4 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-border-d4cbf2",
+      "field": "legacyBorderd4cbf2",
+      "light": "#d4cbf2",
+      "dark": "color-mix(in srgb, #93c5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-6025d8",
+      "field": "legacyText6025d8",
+      "light": "#6025d8",
+      "dark": "#c4b5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-c4b5fd",
+      "field": "legacyTextc4b5fd",
+      "light": "#c4b5fd",
+      "dark": "#93c5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_33_28_56_0_05_",
+      "field": "legacyShadowrgba332856005_",
+      "light": "rgba(33, 28, 56, 0.05)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_0_0_0_0_02_",
+      "field": "legacyShadowrgba000002_",
+      "light": "rgba(0, 0, 0, 0.02)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-border-ddd7ed",
+      "field": "legacyBorderddd7ed",
+      "light": "#ddd7ed",
+      "dark": "#2e3752",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_35_20_65_0_16_",
+      "field": "legacyShadowrgba352065016_",
+      "light": "rgba(35, 20, 65, 0.16)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-f7f5fc",
+      "field": "legacyBgf7f5fc",
+      "light": "#f7f5fc",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-fdf1f4",
+      "field": "legacyBgfdf1f4",
+      "light": "#fdf1f4",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-eaf8ef",
+      "field": "legacyBgeaf8ef",
+      "light": "#eaf8ef",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-e5ddf5",
+      "field": "legacyBordere5ddf5",
+      "light": "#e5ddf5",
+      "dark": "#2e3752",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-border-e0daee",
+      "field": "legacyBordere0daee",
+      "light": "#e0daee",
+      "dark": "#2e3752",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-f5f2fa",
+      "field": "legacyBgf5f2fa",
+      "light": "#f5f2fa",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-d2c8ea",
+      "field": "legacyBorderd2c8ea",
+      "light": "#d2c8ea",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_70_40_120_0_08_",
+      "field": "legacyShadowrgba7040120008_",
+      "light": "rgba(70,40,120,0.08)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-text-65676b",
+      "field": "legacyText65676b",
+      "light": "#65676b",
+      "dark": "#c3c9db",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_0_0_0_0_45_",
+      "field": "legacyBgrgba000045_",
+      "light": "rgba(0,0,0,0.45)",
+      "dark": "rgba(18, 24, 41, 0.45)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_255_255_255_0_22_",
+      "field": "legacyBgrgba255255255022_",
+      "light": "rgba(255, 255, 255, 0.22)",
+      "dark": "rgba(18, 24, 41, 0.22)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-rgba_255_255_255_0_35_",
+      "field": "legacyBorderrgba255255255035_",
+      "light": "rgba(255, 255, 255, 0.35)",
+      "dark": "#2e3752",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_0_0_0_0_3_",
+      "field": "legacyShadowrgba00003_",
+      "light": "rgba(0, 0, 0, 0.3)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_0_0_0_0_6_",
+      "field": "legacyBgrgba00006_",
+      "light": "rgba(0,0,0,0.6)",
+      "dark": "rgba(18, 24, 41, 0.6)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_124_58_237_0_28_",
+      "field": "legacyShadowrgba12458237028_",
+      "light": "rgba(124, 58, 237, 0.28)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_124_58_237_0_15_",
+      "field": "legacyShadowrgba12458237015_",
+      "light": "rgba(124, 58, 237, 0.15)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-border-efeaf8",
+      "field": "legacyBorderefeaf8",
+      "light": "#efeaf8",
+      "dark": "#2e3752",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-fcfbfe",
+      "field": "legacyBgfcfbfe",
+      "light": "#fcfbfe",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-dcd4f0",
+      "field": "legacyBorderdcd4f0",
+      "light": "#dcd4f0",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-f4effe",
+      "field": "legacyBgf4effe",
+      "light": "#f4effe",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-f2d9df",
+      "field": "legacyBorderf2d9df",
+      "light": "#f2d9df",
+      "dark": "#2e3752",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-fdf5f7",
+      "field": "legacyBgfdf5f7",
+      "light": "#fdf5f7",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-text-c0356a",
+      "field": "legacyTextc0356a",
+      "light": "#c0356a",
+      "dark": "#f9a8d4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-92600a",
+      "field": "legacyText92600a",
+      "light": "#92600a",
+      "dark": "#fb923c",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-border-d9cef5",
+      "field": "legacyBorderd9cef5",
+      "light": "#d9cef5",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-e5ddf6",
+      "field": "legacyBge5ddf6",
+      "light": "#e5ddf6",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_80_60_140__25_",
+      "field": "legacyShadowrgba8060140_25_",
+      "light": "rgba(80,60,140,.25)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_255_255_255__5_",
+      "field": "legacyShadowrgba255255255_5_",
+      "light": "rgba(255,255,255,.5)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-fdeef5",
+      "field": "legacyBgfdeef5",
+      "light": "#fdeef5",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-text-be185d",
+      "field": "legacyTextbe185d",
+      "light": "#be185d",
+      "dark": "#f9a8d4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-border-e3dcf4",
+      "field": "legacyBordere3dcf4",
+      "light": "#e3dcf4",
+      "dark": "#2e3752",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-d9cef5",
+      "field": "legacyBgd9cef5",
+      "light": "#d9cef5",
+      "dark": "color-mix(in srgb, #c4b5fd 14%, #121829)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-e3dcf4",
+      "field": "legacyBge3dcf4",
+      "light": "#e3dcf4",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_80_40_140__35_",
+      "field": "legacyShadowrgba8040140_35_",
+      "light": "rgba(80,40,140,.35)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_0_0_0__45_",
+      "field": "legacyBgrgba000_45_",
+      "light": "rgba(0,0,0,.45)",
+      "dark": "rgba(18, 24, 41, .45)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_60_30_110__55_",
+      "field": "legacyShadowrgba6030110_55_",
+      "light": "rgba(60,30,110,.55)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-text-e9e4f9",
+      "field": "legacyTexte9e4f9",
+      "light": "#e9e4f9",
+      "dark": "#a3abc4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-4c1d95",
+      "field": "legacyText4c1d95",
+      "light": "#4c1d95",
+      "dark": "#c4b5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-15803d",
+      "field": "legacyText15803d",
+      "light": "#15803d",
+      "dark": "#4ade80",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-border-bbf7d0",
+      "field": "legacyBorderbbf7d0",
+      "light": "#bbf7d0",
+      "dark": "color-mix(in srgb, #4ade80 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-c9c4d8",
+      "field": "legacyTextc9c4d8",
+      "light": "#c9c4d8",
+      "dark": "#a3abc4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-fdeaea",
+      "field": "legacyBgfdeaea",
+      "light": "#fdeaea",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-fae9ff",
+      "field": "legacyBgfae9ff",
+      "light": "#fae9ff",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-text-6366f1",
+      "field": "legacyText6366f1",
+      "light": "#6366f1",
+      "dark": "#93c5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-e7fff4",
+      "field": "legacyBge7fff4",
+      "light": "#e7fff4",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-e9f7ff",
+      "field": "legacyBge9f7ff",
+      "light": "#e9f7ff",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-text-10b981",
+      "field": "legacyText10b981",
+      "light": "#10b981",
+      "dark": "#4ade80",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-e7f6ff",
+      "field": "legacyBge7f6ff",
+      "light": "#e7f6ff",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-eef2ff",
+      "field": "legacyBgeef2ff",
+      "light": "#eef2ff",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-text-3b82f6",
+      "field": "legacyText3b82f6",
+      "light": "#3b82f6",
+      "dark": "#93c5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-fff3e0",
+      "field": "legacyBgfff3e0",
+      "light": "#fff3e0",
+      "dark": "color-mix(in srgb, #fb923c 14%, #121829)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-ffe9f3",
+      "field": "legacyBgffe9f3",
+      "light": "#ffe9f3",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-text-d9cef0",
+      "field": "legacyTextd9cef0",
+      "light": "#d9cef0",
+      "dark": "#c4b5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-b9a8e6",
+      "field": "legacyTextb9a8e6",
+      "light": "#b9a8e6",
+      "dark": "#c4b5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_80_40_140__4_",
+      "field": "legacyShadowrgba8040140_4_",
+      "light": "rgba(80,40,140,.4)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-f1eef9",
+      "field": "legacyBgf1eef9",
+      "light": "#f1eef9",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-fdecec",
+      "field": "legacyBgfdecec",
+      "light": "#fdecec",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-f6c6c6",
+      "field": "legacyBorderf6c6c6",
+      "light": "#f6c6c6",
+      "dark": "color-mix(in srgb, #f87171 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-border-ded7ee",
+      "field": "legacyBorderded7ee",
+      "light": "#ded7ee",
+      "dark": "#2e3752",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-f1ecfe",
+      "field": "legacyBgf1ecfe",
+      "light": "#f1ecfe",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-e3f3f6",
+      "field": "legacyBge3f3f6",
+      "light": "#e3f3f6",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-e8f0fe",
+      "field": "legacyBge8f0fe",
+      "light": "#e8f0fe",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-ddc9fb",
+      "field": "legacyBorderddc9fb",
+      "light": "#ddc9fb",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-ec4899",
+      "field": "legacyTextec4899",
+      "light": "#ec4899",
+      "dark": "#f9a8d4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-border-f7dca6",
+      "field": "legacyBorderf7dca6",
+      "light": "#f7dca6",
+      "dark": "color-mix(in srgb, #fb923c 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-border-fbdce7",
+      "field": "legacyBorderfbdce7",
+      "light": "#fbdce7",
+      "dark": "color-mix(in srgb, #f9a8d4 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_255_255_255__8_",
+      "field": "legacyShadowrgba255255255_8_",
+      "light": "rgba(255,255,255,.8)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_139_92_246_0_15_",
+      "field": "legacyShadowrgba13992246015_",
+      "light": "rgba(139,92,246,0.15)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-f5f3ff",
+      "field": "legacyBgf5f3ff",
+      "light": "#f5f3ff",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-ddd6fe",
+      "field": "legacyBorderddd6fe",
+      "light": "#ddd6fe",
+      "dark": "color-mix(in srgb, #93c5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-ede9fe",
+      "field": "legacyBgede9fe",
+      "light": "#ede9fe",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-text-e3ddf2",
+      "field": "legacyTexte3ddf2",
+      "light": "#e3ddf2",
+      "dark": "#a3abc4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-e25c84",
+      "field": "legacyTexte25c84",
+      "light": "#e25c84",
+      "dark": "#f9a8d4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_124_58_237__035_",
+      "field": "legacyBgrgba12458237_035_",
+      "light": "rgba(124,58,237,.035)",
+      "dark": "rgba(124,58,237,.035)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-fef3e2",
+      "field": "legacyBgfef3e2",
+      "light": "#fef3e2",
+      "dark": "color-mix(in srgb, #fb923c 14%, #121829)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-fef8ee",
+      "field": "legacyBgfef8ee",
+      "light": "#fef8ee",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-f6e2bf",
+      "field": "legacyBorderf6e2bf",
+      "light": "#f6e2bf",
+      "dark": "color-mix(in srgb, #fb923c 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-6b5ca8",
+      "field": "legacyText6b5ca8",
+      "light": "#6b5ca8",
+      "dark": "#c3c9db",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-border-rgba_124_58_237__35_",
+      "field": "legacyBorderrgba12458237_35_",
+      "light": "rgba(124,58,237,.35)",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-border-e4d9fb",
+      "field": "legacyBordere4d9fb",
+      "light": "#e4d9fb",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-5b3fa8",
+      "field": "legacyText5b3fa8",
+      "light": "#5b3fa8",
+      "dark": "#c4b5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-fff1e9",
+      "field": "legacyBgfff1e9",
+      "light": "#fff1e9",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-ffe9f1",
+      "field": "legacyBgffe9f1",
+      "light": "#ffe9f1",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-fff0f0",
+      "field": "legacyBgfff0f0",
+      "light": "#fff0f0",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-text-059669",
+      "field": "legacyText059669",
+      "light": "#059669",
+      "dark": "#4ade80",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_139_92_246__8_",
+      "field": "legacyShadowrgba13992246_8_",
+      "light": "rgba(139,92,246,.8)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-text-7c6f4f",
+      "field": "legacyText7c6f4f",
+      "light": "#7c6f4f",
+      "dark": "#fb923c",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-border-f3e6c4",
+      "field": "legacyBorderf3e6c4",
+      "light": "#f3e6c4",
+      "dark": "color-mix(in srgb, #fb923c 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-border-f6d9d9",
+      "field": "legacyBorderf6d9d9",
+      "light": "#f6d9d9",
+      "dark": "color-mix(in srgb, #f87171 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-fff7fa",
+      "field": "legacyBgfff7fa",
+      "light": "#fff7fa",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-e25c84",
+      "field": "legacyBordere25c84",
+      "light": "#e25c84",
+      "dark": "color-mix(in srgb, #f9a8d4 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-c9c2e8",
+      "field": "legacyTextc9c2e8",
+      "light": "#c9c2e8",
+      "dark": "#93c5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-efeafc",
+      "field": "legacyBgefeafc",
+      "light": "#efeafc",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-text-e6e1ff",
+      "field": "legacyTexte6e1ff",
+      "light": "#e6e1ff",
+      "dark": "#93c5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-ffd9d9",
+      "field": "legacyTextffd9d9",
+      "light": "#ffd9d9",
+      "dark": "#f87171",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-ffe9ec",
+      "field": "legacyBgffe9ec",
+      "light": "#ffe9ec",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-fff1f3",
+      "field": "legacyBgfff1f3",
+      "light": "#fff1f3",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-faf0ff",
+      "field": "legacyBgfaf0ff",
+      "light": "#faf0ff",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-fff1dc",
+      "field": "legacyBgfff1dc",
+      "light": "#fff1dc",
+      "dark": "color-mix(in srgb, #fb923c 14%, #121829)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-fff8ec",
+      "field": "legacyBgfff8ec",
+      "light": "#fff8ec",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-e0f2fe",
+      "field": "legacyBge0f2fe",
+      "light": "#e0f2fe",
+      "dark": "color-mix(in srgb, #93c5fd 14%, #121829)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-eff8ff",
+      "field": "legacyBgeff8ff",
+      "light": "#eff8ff",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-text-f43f5e",
+      "field": "legacyTextf43f5e",
+      "light": "#f43f5e",
+      "dark": "#f9a8d4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-fff1f2",
+      "field": "legacyBgfff1f2",
+      "light": "#fff1f2",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-text-e11d48",
+      "field": "legacyTexte11d48",
+      "light": "#e11d48",
+      "dark": "#f9a8d4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-94a3b8",
+      "field": "legacyText94a3b8",
+      "light": "#94a3b8",
+      "dark": "#93c5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-ddd6fe",
+      "field": "legacyTextddd6fe",
+      "light": "#ddd6fe",
+      "dark": "#93c5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_43_37_67__12_",
+      "field": "legacyShadowrgba433767_12_",
+      "light": "rgba(43,37,67,.12)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-border-e9dcff",
+      "field": "legacyBordere9dcff",
+      "light": "#e9dcff",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-border-f5c2d3",
+      "field": "legacyBorderf5c2d3",
+      "light": "#f5c2d3",
+      "dark": "color-mix(in srgb, #f9a8d4 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-border-d9c8fb",
+      "field": "legacyBorderd9c8fb",
+      "light": "#d9c8fb",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-fdeef3",
+      "field": "legacyBgfdeef3",
+      "light": "#fdeef3",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-d6cfe8",
+      "field": "legacyBorderd6cfe8",
+      "light": "#d6cfe8",
+      "dark": "#2e3752",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-border-d9cdf7",
+      "field": "legacyBorderd9cdf7",
+      "light": "#d9cdf7",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-d1435b",
+      "field": "legacyTextd1435b",
+      "light": "#d1435b",
+      "dark": "#f9a8d4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-fdf1f3",
+      "field": "legacyBgfdf1f3",
+      "light": "#fdf1f3",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-effcf3",
+      "field": "legacyBgeffcf3",
+      "light": "#effcf3",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-f1fbf6",
+      "field": "legacyBgf1fbf6",
+      "light": "#f1fbf6",
+      "dark": "#182036",
+      "role": "bg"
+    }
+  ],
+  "preserved": [
+    [
+      "#fff",
+      192
+    ],
+    [
+      "rgba(255,255,255,.35)",
+      1
+    ],
+    [
+      "#e23d6e",
+      3
+    ],
+    [
+      "#7c3aed",
+      4
+    ],
+    [
+      "brand gradients",
+      13
+    ],
+    [
+      "#6b7280",
+      17
+    ],
+    [
+      "#1877F2",
+      4
+    ],
+    [
+      "#ffffff",
+      3
+    ],
+    [
+      "#c0356a",
+      1
+    ],
+    [
+      "#16a34a",
+      1
+    ],
+    [
+      "#241f3a",
+      1
+    ],
+    [
+      "#1877f2",
+      1
+    ],
+    [
+      "#6d28d9",
+      2
+    ],
+    [
+      "#e25c84",
+      1
+    ],
+    [
+      "#f59e0b",
+      1
+    ],
+    [
+      "#ef4444",
+      1
+    ],
+    [
+      "#a59fbb",
+      1
+    ],
+    [
+      "#22c55e",
+      1
+    ],
+    [
+      "#dc2626",
+      1
+    ],
+    [
+      "#1f1b2e",
+      4
+    ],
+    [
+      "#d6336c",
+      1
+    ]
+  ]
+}

@@ -1,0 +1,268 @@
+{
+  "converted": 25,
+  "report": [
+    {
+      "file": "pages/Settings.tsx",
+      "line": 509,
+      "cls": "dm-hover-47995b3",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "filter"
+      ]
+    },
+    {
+      "file": "pages/Settings.tsx",
+      "line": 700,
+      "cls": "dm-hover-c3ef885",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "background"
+      ]
+    },
+    {
+      "file": "pages/Settings.tsx",
+      "line": 722,
+      "cls": "dm-hover-0319902",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "background"
+      ]
+    },
+    {
+      "file": "pages/Settings.tsx",
+      "line": 853,
+      "cls": "dm-hover-ec0fddb",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "background"
+      ]
+    },
+    {
+      "file": "pages/Settings.tsx",
+      "line": 862,
+      "cls": "dm-hover-23b7439",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "background"
+      ]
+    },
+    {
+      "file": "components/analytics/InsightsStrip.tsx",
+      "line": 162,
+      "cls": "dm-hover-0a720a3",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "background"
+      ]
+    },
+    {
+      "file": "components/analytics/PostDetailPanel.tsx",
+      "line": 142,
+      "cls": "dm-hover-a29de51",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "opacity",
+        "transform"
+      ]
+    },
+    {
+      "file": "components/analytics/PostsTable.tsx",
+      "line": 97,
+      "cls": "dm-hover-c8e5e64",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "backgroundColor"
+      ]
+    },
+    {
+      "file": "components/analytics/RangeCalendar.tsx",
+      "line": 117,
+      "cls": "dm-hover-b6aea2e",
+      "condition": "!disabled && !isEdge && !inRange",
+      "branch": null,
+      "properties": [
+        "background"
+      ]
+    },
+    {
+      "file": "components/analytics/TopPostsTable.tsx",
+      "line": 67,
+      "cls": "dm-hover-d3ee418",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "background"
+      ]
+    },
+    {
+      "file": "components/brand/StrategyCard.tsx",
+      "line": 151,
+      "cls": "dm-hover-18a5609",
+      "condition": null,
+      "branch": "danger",
+      "properties": [
+        "background"
+      ]
+    },
+    {
+      "file": "components/calendar/MonthGrid.tsx",
+      "line": 168,
+      "cls": "dm-hover-f1ea0bc",
+      "condition": "onSelectSchedule",
+      "branch": null,
+      "properties": [
+        "background",
+        "color"
+      ]
+    },
+    {
+      "file": "components/calendar/ScheduleDetailModal.tsx",
+      "line": 264,
+      "cls": "dm-hover-b61817e",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "background",
+        "color"
+      ]
+    },
+    {
+      "file": "components/calendar/ScheduleDetailView.tsx",
+      "line": 240,
+      "cls": "dm-hover-9f72e0d",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "color"
+      ]
+    },
+    {
+      "file": "components/calendar/ScheduleDetailView.tsx",
+      "line": 350,
+      "cls": "dm-hover-32465b1",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "background",
+        "borderColor"
+      ]
+    },
+    {
+      "file": "components/calendar/ScheduleDetailView.tsx",
+      "line": 403,
+      "cls": "dm-hover-0863acb",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "background"
+      ]
+    },
+    {
+      "file": "components/calendar/ScheduleDetailView.tsx",
+      "line": 431,
+      "cls": "dm-hover-ac7312d",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "background"
+      ]
+    },
+    {
+      "file": "components/calendar/ScheduleDetailView.tsx",
+      "line": 456,
+      "cls": "dm-hover-0298a54",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "background"
+      ]
+    },
+    {
+      "file": "components/calendar/ScheduleDetailView.tsx",
+      "line": 486,
+      "cls": "dm-hover-2c0f366",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "background"
+      ]
+    },
+    {
+      "file": "components/calendar/ScheduleDetailView.tsx",
+      "line": 513,
+      "cls": "dm-hover-1c7c845",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "background",
+        "color"
+      ]
+    },
+    {
+      "file": "components/calendar/ScheduleDetailView.tsx",
+      "line": 956,
+      "cls": "dm-hover-0a5405d",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "background",
+        "borderColor",
+        "color"
+      ]
+    },
+    {
+      "file": "components/calendar/ScheduleDetailView.tsx",
+      "line": 1217,
+      "cls": "dm-hover-f679a8a",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "transform"
+      ]
+    },
+    {
+      "file": "components/calendar/ScheduleItem.tsx",
+      "line": 62,
+      "cls": "dm-hover-4529d5b",
+      "condition": "onSelect",
+      "branch": null,
+      "properties": [
+        "borderColor",
+        "background",
+        "boxShadow",
+        "transform"
+      ]
+    },
+    {
+      "file": "components/calendar/ScheduleQueueList.tsx",
+      "line": 181,
+      "cls": "dm-hover-1117888",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "background",
+        "borderColor"
+      ]
+    },
+    {
+      "file": "pages/admin/Overview.tsx",
+      "line": 119,
+      "cls": "dm-hover-3986d49",
+      "condition": null,
+      "branch": null,
+      "properties": [
+        "background",
+        "borderColor"
+      ]
+    }
+  ],
+  "manual": []
+}

@@ -4,6 +4,7 @@ import Modal from '../Modal';
 import PostDetailPanel from './PostDetailPanel';
 import { formatDateTimeVN, formatGroupedNumber } from '../../utils/format';
 import type { AnalyticsTopPost } from '../../api/analytics';
+import { C } from '../../styles/colors';
 
 /**
  * Modal chi tiết bài viết khi người dùng click vào một dòng bài viết.
@@ -120,20 +121,20 @@ export default function PostDetailModal({
         <PostDetailPanel post={activePost} />
 
         {/* Section: Comparison with Average */}
-        <div style={{ background: '#faf9fe', borderRadius: 16, padding: '18px 20px', border: '1px solid #f1eef8' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#211c38', marginBottom: 12 }}>
+        <div style={{ background: C.surfaceSubtle, borderRadius: 16, padding: '18px 20px', border: `1px solid ${C.surfaceMuted}` }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.textStrong, marginBottom: 12 }}>
             {t.anaVsAverage ?? 'So sánh với mức trung bình'}
           </div>
 
           {!comparisonRows ? (
-            <div style={{ fontSize: 13, color: '#8a85a0', padding: '8px 0' }}>
+            <div style={{ fontSize: 13, color: C.textMuted, padding: '8px 0' }}>
               {t.anaVsAverageEmpty ?? 'Chưa có đủ dữ liệu để so sánh với mức trung bình.'}
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 440 }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #ece8f6' }}>
+                  <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                     <th style={{ ...headCell, textAlign: 'left' }}>{t.colMetric ?? 'Chỉ số'}</th>
                     <th style={{ ...headCell, textAlign: 'right' }}>{t.colCurrentPost ?? 'Bài viết này'}</th>
                     <th style={{ ...headCell, textAlign: 'right' }}>{t.colAverage ?? 'Trung bình'}</th>
@@ -142,10 +143,10 @@ export default function PostDetailModal({
                 </thead>
                 <tbody>
                   {comparisonRows.map((row) => (
-                    <tr key={row.key} style={{ borderTop: '1px solid #f1eef8' }}>
-                      <td style={{ ...cell, fontWeight: 600, color: '#2b2543' }}>{row.label}</td>
+                    <tr key={row.key} style={{ borderTop: `1px solid ${C.surfaceMuted}` }}>
+                      <td style={{ ...cell, fontWeight: 600, color: C.ink750 }}>{row.label}</td>
                       <td style={numCell}>{formatGroupedNumber(row.current, lang)}</td>
-                      <td style={{ ...numCell, color: '#6b6680' }}>{formatGroupedNumber(row.avg, lang)}</td>
+                      <td style={{ ...numCell, color: C.textSecondary }}>{formatGroupedNumber(row.avg, lang)}</td>
                       <td style={{ ...cell, textAlign: 'right' }}>
                         <span style={{
                           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -167,10 +168,10 @@ export default function PostDetailModal({
   );
 }
 
-const headCell = { fontSize: 12, fontWeight: 600, color: '#8a85a0', padding: '10px 8px', whiteSpace: 'nowrap' } as const;
-const cell = { padding: '12px 8px', fontSize: 13, color: '#5b5670', whiteSpace: 'nowrap', verticalAlign: 'middle' } as const;
-const numCell = { padding: '12px 8px', fontSize: 13.5, fontWeight: 700, color: '#1e1b2e', textAlign: 'right', whiteSpace: 'nowrap', verticalAlign: 'middle' } as const;
+const headCell = { fontSize: 12, fontWeight: 600, color: C.textMuted, padding: '10px 8px', whiteSpace: 'nowrap' } as const;
+const cell = { padding: '12px 8px', fontSize: 13, color: C.ink550, whiteSpace: 'nowrap', verticalAlign: 'middle' } as const;
+const numCell = { padding: '12px 8px', fontSize: 13.5, fontWeight: 700, color: C.ink900, textAlign: 'right', whiteSpace: 'nowrap', verticalAlign: 'middle' } as const;
 
-const pillUp = { background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' } as const;
-const pillDown = { background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' } as const;
-const pillNeutral = { background: '#f3f4f6', color: '#5b5670', border: '1px solid #e5e7eb' } as const;
+const pillUp = { background: C.legacyBgecfdf5, color: C.legacyText047857, border: `1px solid ${C.legacyBordera7f3d0}` } as const;
+const pillDown = { background: C.legacyBgfef2f2, color: C.legacyTextb91c1c, border: `1px solid ${C.legacyBorderfecaca}` } as const;
+const pillNeutral = { background: C.graySoft, color: C.ink550, border: `1px solid ${C.legacyBordere5e7eb}` } as const;

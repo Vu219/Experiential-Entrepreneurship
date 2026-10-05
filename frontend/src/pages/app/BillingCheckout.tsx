@@ -1,3 +1,4 @@
+import { useIsDark } from '../../hooks/useIsDark';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CircleAlert, Lock } from 'lucide-react';
@@ -19,6 +20,7 @@ import {
   type PaymentMethodCode,
 } from '../../api/payments';
 import type { ApiError } from '../../api/apiClient';
+import { C } from '../../styles/colors';
 
 /**
  * Trang trung gian "Xem lại đơn hàng" — `/billing/checkout?plan=<MÃ GÓI>`.
@@ -109,15 +111,15 @@ export default function BillingCheckout() {
         type="button"
         className="link-underline"
         onClick={backToPlans}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', background: 'none', padding: 0, cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: '#6d28d9' }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', background: 'none', padding: 0, cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: C.primaryStrong }}
       >
         <ArrowLeft size={15} strokeWidth={2} />
         {t.coBack}
       </button>
-      <h1 style={{ margin: '10px 0 0', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 26, color: '#1b1730' }}>
+      <h1 style={{ margin: '10px 0 0', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 26, color: C.textStrong }}>
         {t.coTitle}
       </h1>
-      <p style={{ margin: '6px 0 0', fontSize: 14, color: '#6b6680' }}>{t.coSub}</p>
+      <p style={{ margin: '6px 0 0', fontSize: 14, color: C.textSecondary }}>{t.coSub}</p>
     </div>
   );
 
@@ -125,7 +127,7 @@ export default function BillingCheckout() {
     return (
       <CheckoutLayout onLogo={() => go('dashboard')} secureLabel={t.coSecure}>
         {header}
-        <Card style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#6b6680', fontSize: 14 }}>
+        <Card style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.textSecondary, fontSize: 14 }}>
           <CircleAlert size={18} strokeWidth={1.8} />
           {notFound ? t.coPlanNotFound : t.blErrGeneric}
         </Card>
@@ -163,7 +165,7 @@ export default function BillingCheckout() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: isDesktop ? 'sticky' : undefined, top: 24 }}>
           {replacesPending && (
-            <Card style={{ padding: 16, fontSize: 13, lineHeight: 1.55, color: '#6b6680' }}>
+            <Card style={{ padding: 16, fontSize: 13, lineHeight: 1.55, color: C.textSecondary }}>
               {t.coPendingReplace.replace('{plan}', pendingName)}
             </Card>
           )}
@@ -186,20 +188,21 @@ function CheckoutLayout({ onLogo, secureLabel, children }: {
 }) {
   const { isMobile } = useBreakpoint();
   const padX = isMobile ? 16 : 32;
+  const isDark = useIsDark();
   return (
     <div
       style={{
         minHeight: '100vh',
-        background: 'radial-gradient(900px 700px at 18% 8%,rgba(34,211,238,.10),transparent 55%),radial-gradient(900px 700px at 90% 90%,rgba(217,70,239,.09),transparent 55%),linear-gradient(160deg,#f1f2fc,#f5f1fb 55%,#f9f1fc)',
+        background: `radial-gradient(900px 700px at 18% 8%,rgba(34,211,238,.10),transparent 55%),radial-gradient(900px 700px at 90% 90%,rgba(217,70,239,.09),transparent 55%),linear-gradient(160deg,${C.bg},${C.surfaceMuted} 55%,${C.surfaceMuted})`,
       }}
     >
-      <header style={{ height: 70, background: '#fff', borderBottom: '1px solid #efeaf8' }}>
+      <header style={{ height: 70, background: C.surface, borderBottom: `1px solid ${C.border}` }}>
         <div style={{ maxWidth: 1180, height: '100%', margin: '0 auto', padding: `0 ${padX}px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <button type="button" onClick={onLogo} aria-label="AIMA" style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
-            <img className="logo-hover" src="/aima-logo.png" alt="AIMA" style={{ height: 46, width: 'auto', display: 'block' }} />
+            <img className="logo-hover" src={isDark ? "/aima-h-dark.png" : "/aima-logo.png"} alt="AIMA" style={{ height: 46, width: 'auto', display: 'block' }} />
           </button>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 600, color: '#6b6680' }}>
-            <Lock size={15} strokeWidth={2} color="#16a34a" />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 600, color: C.textSecondary }}>
+            <Lock size={15} strokeWidth={2} color={C.success} />
             {secureLabel}
           </span>
         </div>

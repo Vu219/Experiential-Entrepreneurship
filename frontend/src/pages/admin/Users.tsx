@@ -24,6 +24,7 @@ import {
 } from '../../api/admin';
 import { useToast } from '../../components/toast/ToastProvider';
 import PageContainer from '../../components/PageContainer';
+import { C } from '../../styles/colors';
 
 
 const PAGE_SIZE = 8;
@@ -85,10 +86,10 @@ export default function Users() {
     const s = stats ?? { total: 0, active: 0, locked: 0, newThisMonth: 0 };
     const activePct = s.total ? Math.round((s.active / s.total) * 100) : 0;
     return [
-      { value: s.total, label: t.usrStatTotal, pill: null, icon: UsersIcon, tint: 'linear-gradient(135deg,#e9f0ff,#f1e9ff)', color: '#6366f1' },
-      { value: s.active, label: t.usrStatActive, pill: `${activePct}% ${t.usrOfTotal}`, icon: UserCheck, tint: 'linear-gradient(135deg,#e7fff4,#e9f7ff)', color: '#10b981' },
-      { value: s.locked, label: t.usrStatLocked, pill: null, icon: Lock, tint: 'linear-gradient(135deg,#fde8e8,#fff0f0)', color: '#dc2626' },
-      { value: s.newThisMonth, label: t.usrStatNew, pill: null, icon: UserPlus, tint: 'linear-gradient(135deg,#f1e9ff,#fae9ff)', color: '#8b5cf6' },
+      { value: s.total, label: t.usrStatTotal, pill: null, icon: UsersIcon, tint: `linear-gradient(135deg,${C.legacyBge9f0ff},${C.purpleSoft})`, color: C.legacyText6366f1 },
+      { value: s.active, label: t.usrStatActive, pill: `${activePct}% ${t.usrOfTotal}`, icon: UserCheck, tint: `linear-gradient(135deg,${C.legacyBge7fff4},${C.legacyBge9f7ff})`, color: C.legacyText10b981 },
+      { value: s.locked, label: t.usrStatLocked, pill: null, icon: Lock, tint: `linear-gradient(135deg,${C.dangerSoft},${C.legacyBgfff0f0})`, color: C.danger },
+      { value: s.newThisMonth, label: t.usrStatNew, pill: null, icon: UserPlus, tint: `linear-gradient(135deg,${C.purpleSoft},${C.legacyBgfae9ff})`, color: C.violetLight },
     ];
   }, [stats, t]);
 
@@ -161,8 +162,8 @@ export default function Users() {
       <FilterSelect value={plan} onChange={(v) => setPlan(v as 'all' | UserPlan)}
         options={[['all', `${t.filterPlan}: ${t.filterAll}`], ['FREE', 'Free'], ['PLUS', 'Plus'], ['PRO', 'Pro']]} />
       <button type="button" onClick={() => setShowCreate(true)} className="btn-grad"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 38, marginLeft: 'auto', border: 'none', background: brandGradient, color: '#fff', fontWeight: 700, fontSize: 12.5, borderRadius: 10, padding: '0 14px', cursor: 'pointer' }}>
-        <Icon icon={UserPlus} size={14} stroke="#fff" />
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 38, marginLeft: 'auto', border: 'none', background: brandGradient, color: C.onBrand, fontWeight: 700, fontSize: 12.5, borderRadius: 10, padding: '0 14px', cursor: 'pointer' }}>
+        <Icon icon={UserPlus} size={14} stroke={C.onBrand} />
         {t.usrAdd}
       </button>
     </>
@@ -187,8 +188,8 @@ export default function Users() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                   <Avatar url={u.avatarUrl} initials={u.initials} size={38} gradient={brandGradient} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#2b2543', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</div>
-                    <div style={{ fontSize: 12, color: '#a59fbb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: C.ink750, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</div>
+                    <div style={{ fontSize: 12, color: C.textFaint, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
                   </div>
                   <RowActionsMenu actions={rowActions(u)} ariaLabel={`${t.usrMoreActions} — ${u.name}`} />
                 </div>
@@ -197,7 +198,7 @@ export default function Users() {
                   <StatusBadge {...userPlanMeta(u.plan)} />
                   <StatusBadge {...userStatusMeta(lang, u.status)} />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 11.5, color: '#8a85a0', borderTop: '1px solid #f4f1fa', paddingTop: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 11.5, color: C.textMuted, borderTop: `1px solid ${C.surfaceMuted}`, paddingTop: 10 }}>
                   <span>{t.colLastLogin}: {timeAgo(lang, u.lastLoginAt)}</span>
                   <span>{t.colCreated}: {u.createdAt}</span>
                 </div>
@@ -207,21 +208,21 @@ export default function Users() {
         ) : (
           <DataTable head={head} minWidth={860}>
             {rows.map((u) => (
-              <tr key={u.id} style={{ borderTop: '1px solid #f1eef8' }}>
+              <tr key={u.id} style={{ borderTop: `1px solid ${C.surfaceMuted}` }}>
                 <td style={{ padding: '13px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <Avatar url={u.avatarUrl} initials={u.initials} size={32} gradient={brandGradient} />
                     <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: '#2b2543' }}>{u.name}</div>
-                      <div style={{ fontSize: 11.5, color: '#a59fbb' }}>{u.email}</div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: C.ink750 }}>{u.name}</div>
+                      <div style={{ fontSize: 11.5, color: C.textFaint }}>{u.email}</div>
                     </div>
                   </div>
                 </td>
                 <td style={{ padding: '13px 16px' }}><StatusBadge {...roleMeta(u.role)} /></td>
                 <td style={{ padding: '13px 16px' }}><StatusBadge {...userPlanMeta(u.plan)} /></td>
                 <td style={{ padding: '13px 16px' }}><StatusBadge {...userStatusMeta(lang, u.status)} /></td>
-                <td style={{ padding: '13px 16px', fontSize: 13, color: '#6b6680', whiteSpace: 'nowrap' }}>{timeAgo(lang, u.lastLoginAt)}</td>
-                <td style={{ padding: '13px 16px', fontSize: 13, color: '#8a85a0', whiteSpace: 'nowrap' }}>{u.createdAt}</td>
+                <td style={{ padding: '13px 16px', fontSize: 13, color: C.textSecondary, whiteSpace: 'nowrap' }}>{timeAgo(lang, u.lastLoginAt)}</td>
+                <td style={{ padding: '13px 16px', fontSize: 13, color: C.textMuted, whiteSpace: 'nowrap' }}>{u.createdAt}</td>
                 <td style={{ padding: '13px 16px' }}>
                   <RowActionsMenu actions={rowActions(u)} ariaLabel={`${t.usrMoreActions} — ${u.name}`} />
                 </td>
@@ -255,7 +256,7 @@ export default function Users() {
           onConfirm={runConfirm}
           onClose={() => setConfirm(null)}
         >
-          <div style={{ background: '#faf9fe', border: '1px solid #f1eef8', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#3f3a55', marginBottom: 8 }}>
+          <div style={{ background: C.surfaceSubtle, border: `1px solid ${C.surfaceMuted}`, borderRadius: 12, padding: '10px 14px', fontSize: 13, color: C.text, marginBottom: 8 }}>
             <b>{confirm.user.name}</b> — {confirm.user.email}
           </div>
         </ConfirmDialog>
@@ -321,7 +322,7 @@ function CreateUserModal({ onClose, onCreated }: {
         <CField label={t.usrPassword} error={errors.password}>
           <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" autoComplete="new-password" style={cInput} />
           <PasswordStrengthBar password={password} />
-          <span style={{ fontSize: 11.5, color: '#a59fbb' }}>{t.usrPasswordHint}</span>
+          <span style={{ fontSize: 11.5, color: C.textFaint }}>{t.usrPasswordHint}</span>
         </CField>
         <div style={{ display: 'flex', gap: 12 }}>
           <CField label={t.colRole} style={{ flex: 1 }}>
@@ -339,8 +340,8 @@ function CreateUserModal({ onClose, onCreated }: {
           </CField>
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-          <button onClick={onClose} style={{ flex: 1, border: '1px solid #ece8f6', background: '#fff', borderRadius: 11, padding: '11px 0', fontSize: 14, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>{t.cancel}</button>
-          <button onClick={submit} disabled={busy} style={{ flex: 1, border: 'none', background: 'var(--brand)', borderRadius: 11, padding: '11px 0', fontSize: 14, fontWeight: 700, color: '#fff', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>{t.usrCreate}</button>
+          <button onClick={onClose} style={{ flex: 1, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 11, padding: '11px 0', fontSize: 14, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>{t.cancel}</button>
+          <button onClick={submit} disabled={busy} style={{ flex: 1, border: 'none', background: 'var(--brand)', borderRadius: 11, padding: '11px 0', fontSize: 14, fontWeight: 700, color: C.onBrand, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>{t.usrCreate}</button>
         </div>
       </div>
     </Modal>
@@ -350,11 +351,11 @@ function CreateUserModal({ onClose, onCreated }: {
 function CField({ label, error, style, children }: { label: string; error?: string; style?: React.CSSProperties; children: ReactNode }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6, ...style }}>
-      <span style={{ fontSize: 12, fontWeight: 700, color: '#8a85a0', letterSpacing: 0.3, textTransform: 'uppercase' }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, letterSpacing: 0.3, textTransform: 'uppercase' }}>{label}</span>
       {children}
-      {error && <span style={{ fontSize: 12, fontWeight: 600, color: '#dc2626' }}>{error}</span>}
+      {error && <span style={{ fontSize: 12, fontWeight: 600, color: C.danger }}>{error}</span>}
     </label>
   );
 }
 
-const cInput = { width: '100%', height: 40, border: '1px solid #ece8f6', borderRadius: 10, padding: '0 12px', fontSize: 13.5, color: '#241f3a', outline: 'none', background: '#fff' } as const;
+const cInput = { width: '100%', height: 40, border: `1px solid ${C.border}`, borderRadius: 10, padding: '0 12px', fontSize: 13.5, color: C.textStrong, outline: 'none', background: C.surface } as const;

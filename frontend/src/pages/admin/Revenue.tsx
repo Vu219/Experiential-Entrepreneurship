@@ -23,6 +23,7 @@ import {
   type RevenueFilterMode, type RevenueForecast, type RevenueSummary, type RevenueTimeseries,
   type RevenueTransaction,
 } from '../../api/revenue';
+import { C } from '../../styles/colors';
 
 // Trang admin "Doanh thu & Đơn hàng" — nối BE THẬT, cùng nguồn sổ cái `payments`.
 // Tab Tổng quan (KPI, chart, cơ cấu gói, dự kiến, vài giao dịch mới nhất) và tab Đơn hàng
@@ -248,26 +249,26 @@ export default function Revenue() {
   );
   const errorBox = (retry: () => void) => (
     <Card style={{ textAlign: 'center', padding: '54px 16px' }}>
-      <div style={{ fontSize: 14.5, fontWeight: 600, color: '#5b5670', marginBottom: 14 }}>{t.listError}</div>
+      <div style={{ fontSize: 14.5, fontWeight: 600, color: C.ink550, marginBottom: 14 }}>{t.listError}</div>
       <button onClick={retry} style={{
         border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13,
-        color: '#fff', background: brandGradient, cursor: 'pointer',
+        color: C.onBrand, background: brandGradient, cursor: 'pointer',
       }}>
         {t.retry}
       </button>
     </Card>
   );
   const emptyBox = (message: string) => (
-    <div style={{ textAlign: 'center', padding: '44px 16px', color: '#8a85a0', fontSize: 13.5 }}>{message}</div>
+    <div style={{ textAlign: 'center', padding: '44px 16px', color: C.textMuted, fontSize: 13.5 }}>{message}</div>
   );
 
   const exportBtn = (label: string, onClick: () => void, icon = Download) => (
     <button onClick={onClick} disabled={exporting} style={{
-      display: 'flex', alignItems: 'center', gap: 6, border: '1px solid #ece8f6', background: '#fff',
-      borderRadius: 9, padding: '8px 12px', fontSize: 12.5, fontWeight: 700, color: '#5b5670',
+      display: 'flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface,
+      borderRadius: 9, padding: '8px 12px', fontSize: 12.5, fontWeight: 700, color: C.ink550,
       cursor: exporting ? 'wait' : 'pointer', opacity: exporting ? 0.6 : 1,
     }}>
-      <Icon icon={icon} size={15} stroke="#8b5cf6" /> {label}
+      <Icon icon={icon} size={15} stroke={C.violetLight} /> {label}
     </button>
   );
 
@@ -284,8 +285,8 @@ export default function Revenue() {
     return (
       <button onClick={() => patchParams({ chart: mode === 'daily' ? undefined : mode })} style={{
         border: 'none', borderRadius: 8, padding: '0 12px', height: 30, fontSize: 12.5, fontWeight: 700,
-        cursor: 'pointer', background: active ? '#fff' : 'transparent', color: active ? '#7c3aed' : '#8a85a0',
-        boxShadow: active ? '0 2px 8px -3px rgba(80,40,140,.35)' : 'none',
+        cursor: 'pointer', background: active ? C.surface : 'transparent', color: active ? C.primary : C.textMuted,
+        boxShadow: active ? `0 2px 8px -3px ${C.legacyShadowrgba8040140_35_}` : 'none',
       }}>
         {label}
       </button>
@@ -302,15 +303,15 @@ export default function Revenue() {
     return (
       <button key={key} onClick={() => patchParams({ tab: key === 'overview' ? undefined : key })} style={{
         display: 'inline-flex', alignItems: 'center', gap: 7,
-        border: '1px solid', borderColor: active ? 'transparent' : '#ece8f6', background: active ? brandGradient : '#fff',
-        color: active ? '#fff' : '#5b5670', borderRadius: 9, padding: '7px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+        border: '1px solid', borderColor: active ? 'transparent' : C.border, background: active ? brandGradient : C.surface,
+        color: active ? C.onBrand : C.ink550, borderRadius: 9, padding: '7px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
       }}>
         {label}
         {!!badge && (
           <span style={{
             minWidth: 20, height: 20, padding: '0 6px', borderRadius: 999, fontSize: 11.5, fontWeight: 800,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            background: active ? 'rgba(255,255,255,.25)' : '#fdf0dc', color: active ? '#fff' : '#d97706',
+                    background: active ? C.legacyBgrgba255255255_25_ : C.warningSoft, color: active ? C.onBrand : C.warning,
           }}>{badge}</span>
         )}
       </button>
@@ -354,19 +355,19 @@ export default function Revenue() {
               {/* C — 3 thẻ KPI */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 <SparklineCard
-                  icon={Wallet} iconBg="linear-gradient(135deg,#f1e9ff,#fae9ff)" iconColor="#8b5cf6"
+                  icon={Wallet} iconBg={`linear-gradient(135deg,${C.purpleSoft},${C.legacyBgfae9ff})`} iconColor={C.violetLight}
                   label={t.revTotal} value={formatVND(summary.totalRevenue)}
                   deltaPct={summary.revenueDeltaPct} comparisonLabel={cmpLabel}
                   sparkline={revenueSpark} tone="violet"
                 />
                 <SparklineCard
-                  icon={ShoppingBag} iconBg="linear-gradient(135deg,#e9f0ff,#f1e9ff)" iconColor="#6366f1"
+                  icon={ShoppingBag} iconBg={`linear-gradient(135deg,${C.legacyBge9f0ff},${C.purpleSoft})`} iconColor={C.legacyText6366f1}
                   label={t.revOrders} value={summary.transactionCount.toLocaleString('vi-VN')}
                   deltaPct={summary.transactionDeltaPct} comparisonLabel={cmpLabel}
                   sparkline={txnSpark}
                 />
                 <SparklineCard
-                  icon={BarChart3} iconBg="linear-gradient(135deg,#e7fff4,#e9f7ff)" iconColor="#10b981"
+                  icon={BarChart3} iconBg={`linear-gradient(135deg,${C.legacyBge7fff4},${C.legacyBge9f7ff})`} iconColor={C.legacyText10b981}
                   label={t.revAvg} value={formatVND(summary.avgPerTransaction)}
                   deltaPct={summary.avgDeltaPct} comparisonLabel={cmpLabel}
                   sparkline={avgSpark}
@@ -375,12 +376,12 @@ export default function Revenue() {
 
               {/* Dòng phụ: hoàn tiền + tỉ lệ giao dịch thất bại của kỳ */}
               {(summary.refundedAmount > 0 || summary.failedCount > 0) && (
-                <div style={{ fontSize: 12.5, color: '#8a85a0', marginTop: -8, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 12.5, color: C.textMuted, marginTop: -8, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                   {summary.refundedAmount > 0 && (
-                    <span>{t.revRefundedInPeriod}: <strong style={{ color: '#dc2626' }}>{formatVND(summary.refundedAmount)}</strong></span>
+                    <span>{t.revRefundedInPeriod}: <strong style={{ color: C.danger }}>{formatVND(summary.refundedAmount)}</strong></span>
                   )}
                   {summary.failureRatePct !== null && (
-                    <span>{t.revFailureRate}: <strong style={{ color: summary.failureRatePct > 10 ? '#dc2626' : '#5b5670' }}>
+                    <span>{t.revFailureRate}: <strong style={{ color: summary.failureRatePct > 10 ? C.danger : C.ink550 }}>
                       {summary.failureRatePct}%
                     </strong> ({summary.failedCount})</span>
                   )}
@@ -392,7 +393,7 @@ export default function Revenue() {
                 title={t.revChart}
                 action={
                   <div className="no-print" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div role="group" style={{ display: 'flex', gap: 2, padding: 4, borderRadius: 10, background: '#f4f2fb' }}>
+                    <div role="group" style={{ display: 'flex', gap: 2, padding: 4, borderRadius: 10, background: C.surfaceMuted }}>
                       {modeBtn('daily', bucketModeLabel)}
                       {modeBtn('cumulative', t.revChartCumulative)}
                     </div>
@@ -418,7 +419,7 @@ export default function Revenue() {
                   action={
                     <button className="no-print" onClick={() => patchParams({ tab: 'orders' })} style={{
                       display: 'inline-flex', alignItems: 'center', gap: 4, border: 'none', background: 'none',
-                      padding: 0, fontSize: 13, fontWeight: 700, color: '#7c3aed', cursor: 'pointer', whiteSpace: 'nowrap',
+                      padding: 0, fontSize: 13, fontWeight: 700, color: C.primary, cursor: 'pointer', whiteSpace: 'nowrap',
                     }}>
                       {t.revViewAllOrders} <ArrowRight size={15} strokeWidth={2.2} />
                     </button>
@@ -427,10 +428,10 @@ export default function Revenue() {
                   {txLoad === 'loading' ? <div style={{ padding: '20px 0' }}><Loader label={t.listLoading} /></div>
                     : txLoad === 'error' ? (
                       <div style={{ textAlign: 'center', padding: '40px 16px' }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#5b5670', marginBottom: 12 }}>{t.listError}</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: C.ink550, marginBottom: 12 }}>{t.listError}</div>
                         <button onClick={fetchTx} style={{
                           border: 'none', borderRadius: 10, padding: '8px 16px', fontWeight: 700,
-                          fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer',
+                          fontSize: 13, color: C.onBrand, background: brandGradient, cursor: 'pointer',
                         }}>{t.retry}</button>
                       </div>
                     )
@@ -441,7 +442,7 @@ export default function Revenue() {
                               onSortChange={(next) => patchParams({
                                 sortField: next.field, sortDir: next.asc ? 'asc' : 'desc',
                               })} />
-                            <div className="no-print" style={{ padding: '12px 16px 16px', fontSize: 12.5, color: '#8a85a0' }}>
+                            <div className="no-print" style={{ padding: '12px 16px 16px', fontSize: 12.5, color: C.textMuted }}>
                               {t.revTotalCount.replace('{n}', total.toLocaleString('vi-VN'))}
                             </div>
                           </>
@@ -455,7 +456,7 @@ export default function Revenue() {
                     action={
                       <button className="no-print" onClick={() => go('adminPlans')} style={{
                         border: 'none', borderRadius: 9, padding: '6px 12px', fontSize: 12.5,
-                        fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer',
+                        fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: 'pointer',
                       }}>
                         + {t.revAddPlan}
                       </button>

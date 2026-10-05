@@ -9,6 +9,7 @@ import { PLATFORM_TO_TAG } from '../../api/connections';
 import RangeBadge from './RangeBadge';
 import { PLATFORM_DONUT } from './analyticsTokens';
 import type { AnalyticsPlatform } from '../../api/analytics';
+import { C } from '../../styles/colors';
 
 /**
  * Khối D — "Hiệu suất theo nền tảng": donut tỷ trọng tương tác Ở TRÊN (căn giữa card) + danh sách 3
@@ -32,11 +33,11 @@ function PlatformBreakdown({ rows, from, to }: { rows: AnalyticsPlatform[]; from
     <Card style={{ display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.anaByPlatformTitle}</div>
-          <div style={{ fontSize: 12.5, color: '#6b6680', marginTop: 2 }}>{t.anaByPlatformSub}</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.anaByPlatformTitle}</div>
+          <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 2 }}>{t.anaByPlatformSub}</div>
           {/* Card này KHÔNG chịu bộ lọc nền tảng (ngoại lệ cố ý của backend) → phải nói rõ, nếu không
               người dùng lọc 1 nền tảng sẽ tưởng số liệu ở đây cũng đã lọc. */}
-          <div style={{ fontSize: 11.5, color: '#a59fbb', marginTop: 4 }}>{t.anaAllPlatformsNote}</div>
+          <div style={{ fontSize: 11.5, color: C.textFaint, marginTop: 4 }}>{t.anaAllPlatformsNote}</div>
         </div>
         <RangeBadge from={from} to={to} />
       </div>
@@ -47,7 +48,7 @@ function PlatformBreakdown({ rows, from, to }: { rows: AnalyticsPlatform[]; from
         <>
           <div style={{
             minHeight: 140, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            textAlign: 'center', fontSize: 13.5, color: '#8a85a0', padding: '0 20px',
+            textAlign: 'center', fontSize: 13.5, color: C.textMuted, padding: '0 20px',
           }}>
             {t.anaByPlatformEmpty}
           </div>
@@ -63,7 +64,7 @@ function PlatformBreakdown({ rows, from, to }: { rows: AnalyticsPlatform[]; from
                 <Pie data={slices} dataKey="engagement" nameKey="platform" innerRadius={48} outerRadius={68}
                   paddingAngle={2} stroke="none" isAnimationActive={false}>
                   {slices.map((r) => (
-                    <Cell key={r.platform} fill={PLATFORM_DONUT[r.platform] ?? '#8b5cf6'} />
+                    <Cell key={r.platform} fill={PLATFORM_DONUT[r.platform] ?? C.violetLight} />
                   ))}
                 </Pie>
               </PieChart>
@@ -73,12 +74,12 @@ function PlatformBreakdown({ rows, from, to }: { rows: AnalyticsPlatform[]; from
               alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', padding: '0 8px',
             }}>
               <div style={{
-                fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: '#211c38',
+                fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: C.textStrong,
                 maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>
                 {formatGroupedNumber(totalEngagement, lang)}
               </div>
-              <div style={{ fontSize: 11, color: '#8a85a0' }}>{t.anaEngagement}</div>
+              <div style={{ fontSize: 11, color: C.textMuted }}>{t.anaEngagement}</div>
             </div>
           </div>
           <div style={{ display: 'flex', marginTop: 14, flex: 1 }}>
@@ -104,31 +105,31 @@ function PlatformList({ rows }: { rows: AnalyticsPlatform[] }) {
             <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={28} radius={9} fontSize={12} />
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{
-                fontSize: 13, fontWeight: 700, color: '#2b2543',
+                fontSize: 13, fontWeight: 700, color: C.ink750,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
                 {name}
               </div>
               <div style={{
-                fontSize: 11.5, color: '#8a85a0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                fontSize: 11.5, color: C.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
                 {row.connected ? (row.accountName ?? '—') : t.dbNotConnected}
               </div>
             </div>
             {row.connected ? (
               <div style={{ textAlign: 'right', flex: 'none' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#211c38' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.textStrong }}>
                   {formatGroupedNumber(row.engagement, lang)}
                 </div>
-                <div style={{ fontSize: 11.5, color: '#8a85a0' }}>{row.sharePct}%</div>
+                <div style={{ fontSize: 11.5, color: C.textMuted }}>{row.sharePct}%</div>
               </div>
             ) : (
               <button type="button" onClick={() => go('settings')} className="btn-soft" style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4, border: '1px solid #ece8f6',
-                background: '#fff', color: '#6d28d9', fontWeight: 700, fontSize: 12,
+                display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${C.border}`,
+                background: C.surface, color: C.primaryStrong, fontWeight: 700, fontSize: 12,
                 borderRadius: 9, padding: '6px 9px', cursor: 'pointer', flex: 'none',
               }}>
-                <Icon icon={Plus} size={13} stroke="#6d28d9" />
+                <Icon icon={Plus} size={13} stroke={C.primaryStrong} />
                 {t.anaConnect}
               </button>
             )}

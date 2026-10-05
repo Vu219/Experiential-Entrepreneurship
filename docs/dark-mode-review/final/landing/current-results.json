@@ -1,0 +1,146 @@
+[
+  {
+    "width": 1440,
+    "mode": "light",
+    "theme": "ocean",
+    "headerSrc": "/aima-logo.png",
+    "footerSrc": "/aima-logo.png",
+    "backgrounds": [
+      "linear-gradient(135deg, #DBEAFE 0%, #F5F3FF 50%, #FCE7F3 100%)",
+      "linear-gradient(180deg,rgba(247,246,253,0),rgba(244,243,251,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.12),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.10),transparent 60%),#fbfafe"
+    ],
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "light",
+    "theme": "aurora",
+    "headerSrc": "/aima-logo.png",
+    "footerSrc": "/aima-logo.png",
+    "backgrounds": [
+      "linear-gradient(135deg, #DBEAFE 0%, #F5F3FF 50%, #FCE7F3 100%)",
+      "linear-gradient(180deg,rgba(247,246,253,0),rgba(244,243,251,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.12),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.10),transparent 60%),#fbfafe"
+    ],
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "light",
+    "theme": "sunset",
+    "headerSrc": "/aima-logo.png",
+    "footerSrc": "/aima-logo.png",
+    "backgrounds": [
+      "linear-gradient(135deg, #DBEAFE 0%, #F5F3FF 50%, #FCE7F3 100%)",
+      "linear-gradient(180deg,rgba(247,246,253,0),rgba(244,243,251,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.12),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.10),transparent 60%),#fbfafe"
+    ],
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "theme": "ocean",
+    "headerSrc": "/aima-v-dark.png",
+    "footerSrc": "/aima-v-dark.png",
+    "backgrounds": [
+      "linear-gradient(135deg, #111c31 0%, #191832 50%, #251a36 100%)",
+      "linear-gradient(180deg,rgba(11,15,30,0),rgba(13,18,36,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.08),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.06),transparent 60%),#0b0f1e"
+    ],
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "theme": "aurora",
+    "headerSrc": "/aima-v-dark.png",
+    "footerSrc": "/aima-v-dark.png",
+    "backgrounds": [
+      "linear-gradient(135deg, #111c31 0%, #191832 50%, #251a36 100%)",
+      "linear-gradient(180deg,rgba(11,15,30,0),rgba(13,18,36,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.08),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.06),transparent 60%),#0b0f1e"
+    ],
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "theme": "sunset",
+    "headerSrc": "/aima-v-dark.png",
+    "footerSrc": "/aima-v-dark.png",
+    "backgrounds": [
+      "linear-gradient(135deg, #111c31 0%, #191832 50%, #251a36 100%)",
+      "linear-gradient(180deg,rgba(11,15,30,0),rgba(13,18,36,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.08),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.06),transparent 60%),#0b0f1e"
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "light",
+    "theme": "ocean",
+    "headerSrc": "/aima-logo.png",
+    "footerSrc": "/aima-logo.png",
+    "backgrounds": [
+      "linear-gradient(135deg, #DBEAFE 0%, #F5F3FF 50%, #FCE7F3 100%)",
+      "linear-gradient(180deg,rgba(247,246,253,0),rgba(244,243,251,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.12),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.10),transparent 60%),#fbfafe"
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "light",
+    "theme": "aurora",
+    "headerSrc": "/aima-logo.png",
+    "footerSrc": "/aima-logo.png",
+    "backgrounds": [
+      "linear-gradient(135deg, #DBEAFE 0%, #F5F3FF 50%, #FCE7F3 100%)",
+      "linear-gradient(180deg,rgba(247,246,253,0),rgba(244,243,251,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.12),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.10),transparent 60%),#fbfafe"
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "light",
+    "theme": "sunset",
+    "headerSrc": "/aima-logo.png",
+    "footerSrc": "/aima-logo.png",
+    "backgrounds": [
+      "linear-gradient(135deg, #DBEAFE 0%, #F5F3FF 50%, #FCE7F3 100%)",
+      "linear-gradient(180deg,rgba(247,246,253,0),rgba(244,243,251,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.12),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.10),transparent 60%),#fbfafe"
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "theme": "ocean",
+    "headerSrc": "/aima-v-dark.png",
+    "footerSrc": "/aima-v-dark.png",
+    "backgrounds": [
+      "linear-gradient(135deg, #111c31 0%, #191832 50%, #251a36 100%)",
+      "linear-gradient(180deg,rgba(11,15,30,0),rgba(13,18,36,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.08),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.06),transparent 60%),#0b0f1e"
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "theme": "aurora",
+    "headerSrc": "/aima-v-dark.png",
+    "footerSrc": "/aima-v-dark.png",
+    "backgrounds": [
+      "linear-gradient(135deg, #111c31 0%, #191832 50%, #251a36 100%)",
+      "linear-gradient(180deg,rgba(11,15,30,0),rgba(13,18,36,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.08),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.06),transparent 60%),#0b0f1e"
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "theme": "sunset",
+    "headerSrc": "/aima-v-dark.png",
+    "footerSrc": "/aima-v-dark.png",
+    "backgrounds": [
+      "linear-gradient(135deg, #111c31 0%, #191832 50%, #251a36 100%)",
+      "linear-gradient(180deg,rgba(11,15,30,0),rgba(13,18,36,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.08),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.06),transparent 60%),#0b0f1e"
+    ],
+    "errors": []
+  }
+]

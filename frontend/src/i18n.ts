@@ -182,6 +182,9 @@ export const STRINGS = {
     alrRuleR7: 'Rò token qua chỗ chặn', alrRuleR8: 'Giám sát thao tác admin', alrRuleR9: 'Tổng chi phí hệ thống',
     searchPh: 'Tìm nội dung, chiến dịch...', greeting: 'Chào', dashHeadline: 'Hôm nay AIMA đã sẵn sàng',
     // chuông thông báo (FR-75..FR-78)
+    // Chế độ sáng/tối (nút ở topbar)
+    cmLabel: 'Chế độ hiển thị', cmLight: 'Sáng', cmDark: 'Tối', cmSystem: 'Theo hệ thống',
+    cmSettingsSub: 'Áp dụng cho ứng dụng trên trình duyệt này. Theo hệ thống sẽ tự đổi theo thiết bị.',
     ntfTitle: 'Thông báo', ntfEmpty: 'Chưa có thông báo nào', ntfMarkAll: 'Đọc tất cả',
     ntfMore: 'Xem thêm', ntfErr: 'Không tải được thông báo.', ntfRetry: 'Thử lại',
     ntfNow: 'Vừa xong', ntfMinAgo: '{n} phút trước', ntfHourAgo: '{n} giờ trước', ntfDayAgo: '{n} ngày trước',
@@ -1361,6 +1364,9 @@ export const STRINGS = {
     alrRuleR7: 'Tokens leaked past gate', alrRuleR8: 'Admin action watch', alrRuleR9: 'System cost total',
     searchPh: 'Search content, campaigns...', greeting: 'Hi', dashHeadline: 'AIMA is ready for you today',
     // notification bell (FR-75..FR-78)
+    // Color mode (topbar button)
+    cmLabel: 'Display mode', cmLight: 'Light', cmDark: 'Dark', cmSystem: 'System',
+    cmSettingsSub: 'Applies to the app in this browser. System follows your device appearance.',
     ntfTitle: 'Notifications', ntfEmpty: 'No notifications yet', ntfMarkAll: 'Mark all read',
     ntfMore: 'Load more', ntfErr: "Couldn't load notifications.", ntfRetry: 'Retry',
     ntfNow: 'Just now', ntfMinAgo: '{n} min ago', ntfHourAgo: '{n}h ago', ntfDayAgo: '{n}d ago',

@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext.tsx';
 import type { PostSchedule } from '../../api/schedules.ts';
 import ScheduleItem from './ScheduleItem.tsx';
 import { absDayLabel, dayRel, groupByDay } from './dateUtils.ts';
+import { C } from '../../styles/colors';
 
 interface ScheduleQueueListProps {
   schedules: PostSchedule[];
@@ -72,19 +73,19 @@ export default function ScheduleQueueList({
             width: 44,
             height: 44,
             borderRadius: 12,
-            background: '#f4f1fb',
+            background: C.surfaceMuted,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#7c3aed',
+            color: C.primary,
           }}
         >
           <CalendarClock size={22} />
         </div>
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: '#3f3a55' }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: C.text }}>
           {selectedDay ? t.schEmptyDay : t.schEmpty}
         </div>
-        <div style={{ fontSize: 12, color: '#8a85a0', maxWidth: 240, lineHeight: 1.45 }}>
+        <div style={{ fontSize: 12, color: C.textMuted, maxWidth: 240, lineHeight: 1.45 }}>
           {selectedDay
             ? (lang === 'en' ? 'No posts scheduled for this day.' : 'Không có bài đăng nào trong ngày này.')
             : (lang === 'en' ? 'Your queue is empty. Schedule new posts to see them here.' : 'Hàng đợi đang trống. Hãy lên lịch bài viết mới.')}
@@ -114,13 +115,13 @@ export default function ScheduleQueueList({
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
                   fontSize: 13,
                   fontWeight: 800,
-                  color: rel === 'today' ? '#7c3aed' : '#4b4660',
+                  color: rel === 'today' ? C.primary : C.ink650,
                 }}
               >
                 {relLabel ?? abs}
               </span>
               {relLabel && (
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: '#a59fbb' }}>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: C.textFaint }}>
                   · {abs}
                 </span>
               )}
@@ -128,8 +129,8 @@ export default function ScheduleQueueList({
                 style={{
                   fontSize: 10.5,
                   fontWeight: 800,
-                  background: '#f3f0fa',
-                  color: '#8a85a0',
+                  background: C.surfaceMuted,
+                  color: C.textMuted,
                   borderRadius: 999,
                   padding: '1px 7px',
                 }}
@@ -167,24 +168,19 @@ export default function ScheduleQueueList({
               alignItems: 'center',
               justifyContent: 'center',
               gap: 6,
-              background: '#fbfaff',
-              border: '1px dashed #dcd4f0',
+              background: C.surfaceSubtle,
+              border: `1px dashed ${C.legacyBorderdcd4f0}`,
               borderRadius: 12,
               padding: '9px 16px',
               fontSize: 12.5,
               fontWeight: 700,
-              color: '#7c3aed',
+              color: C.primary,
               cursor: 'pointer',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#f4effe';
-              e.currentTarget.style.borderColor = '#c4b5fd';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#fbfaff';
-              e.currentTarget.style.borderColor = '#dcd4f0';
-            }}
+            className={"dm-hover-1117888"}
+
+
           >
             <ChevronDown size={15} />
             <span>
@@ -210,7 +206,7 @@ export default function ScheduleQueueList({
 const clearBtn = {
   background: 'none',
   border: 'none',
-  color: '#7c3aed',
+  color: C.primary,
   fontSize: 12.5,
   fontWeight: 700,
   cursor: 'pointer',

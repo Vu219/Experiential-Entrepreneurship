@@ -1,0 +1,1494 @@
+{
+  "results": [
+    {
+      "route": "/dashboard",
+      "width": 1440,
+      "mode": "light",
+      "name": "00-_dashboard-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/dashboard",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "ASIDE",
+          "cls": "",
+          "text": "TỔNG QUANBảng điều khiểnPhân tíchXu hướngNỘI "
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Tổng bài viết1.2K↑+12.5%so với 7 ngày trước"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Bài đã đăng1.2K↑+12.5%so với 7 ngày trước"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Đang chờ4↑+12.5%so với 7 ngày trước"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Bị từ chối1↑+12.5%so với 7 ngày trước"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Hiệu quả nội dungLượt tiếp cậnLượt tương tác7"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Top chủ đề hiệu quảXếp theo lượt tương tác th"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Loại nội dungPhân bổ theo định dạng12Nội dung"
+        }
+      ]
+    },
+    {
+      "route": "/create",
+      "width": 1440,
+      "mode": "light",
+      "name": "01-_create-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/create",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "ASIDE",
+          "cls": "",
+          "text": "TỔNG QUANBảng điều khiểnPhân tíchXu hướngNỘI "
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "#Nội dungNền tảngChủ đề / NguồnCập nhậtTiến t"
+        }
+      ]
+    },
+    {
+      "route": "/create/new",
+      "width": 1440,
+      "mode": "light",
+      "name": "02-_create_new-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/create/new",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "ASIDE",
+          "cls": "",
+          "text": "TỔNG QUANBảng điều khiểnPhân tíchXu hướngNỘI "
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Thông tin nguồnAI sẽ tạo nội dung dựa trên hồ"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Tổng quan nguồn đã chọnAI sẽ dựa vào các thôn"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Tiếp tụcBấm \"Xác nhận\" trong tổng quan nguồn "
+        }
+      ]
+    },
+    {
+      "route": "/create/qa-draft",
+      "width": 1440,
+      "mode": "light",
+      "name": "03-_create_qa-draft-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/create/qa-draft",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "ASIDE",
+          "cls": "",
+          "text": "TỔNG QUANBảng điều khiểnPhân tíchXu hướngNỘI "
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Chỉnh sửa & Hoàn ThiệnSửa trực tiếp từng phần"
+        },
+        {
+          "tag": "SECTION",
+          "cls": "",
+          "text": "Nội dung đăngChưa định dạng · FBĐịnh dạng the"
+        },
+        {
+          "tag": "SECTION",
+          "cls": "",
+          "text": "MediaMedia promptMô tả hình ảnh kiểm tra.Sinh"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Xem trước bài đăngThương hiệu kiểm traFaceboo"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Thương hiệu kiểm traFacebook · ✨ AI tạoCaptio"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Trạng thái khi lưuNhápCần duyệtĐã duyệtGiữ \"N"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Tiếp theo: Lên lịch đăng bàiChưa nền tảng nào"
+        }
+      ]
+    },
+    {
+      "route": "/create/qa-content",
+      "width": 1440,
+      "mode": "light",
+      "name": "04-_create_qa-content-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/create/qa-content",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "ASIDE",
+          "cls": "",
+          "text": "TỔNG QUANBảng điều khiểnPhân tíchXu hướngNỘI "
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Lên lịch đăng bàiMỗi nền tảng một dòng — chọn"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "FacebookChưa chọn giờĐăng ngayChọn giờGợi ý g"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Xem trước bài đăngThương hiệu kiểm traFaceboo"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Thương hiệu kiểm traFacebook · ✨ AI tạoCaptio"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Quay lạiFacebook: Chọn ngày và giờ đăngLên lị"
+        }
+      ]
+    },
+    {
+      "route": "/calendar",
+      "width": 1440,
+      "mode": "light",
+      "name": "05-_calendar-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/calendar",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "ASIDE",
+          "cls": "",
+          "text": "TỔNG QUANBảng điều khiểnPhân tíchXu hướngNỘI "
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "1Đã lên lịch"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "1Tạm giữ"
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "lift-card",
+          "text": "0Thất bại"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "0Đã đăng0so với tuần trước"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Tháng 10, 2026‹›ThángAgendaLên lịch đăngTất c"
+        },
+        {
+          "tag": "DIV",
+          "cls": "h-[calc(100vh-160px)] sticky top-24",
+          "text": "Hàng đợi đăng bàiTự động đăng· 1Tất cảĐã lên "
+        }
+      ]
+    },
+    {
+      "route": "/analytics",
+      "width": 1440,
+      "mode": "light",
+      "name": "06-_analytics-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/analytics",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "ASIDE",
+          "cls": "",
+          "text": "TỔNG QUANBảng điều khiểnPhân tíchXu hướngNỘI "
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Lượt xem1.2K↑+12.5%so với 22/09/2026 - 28/09/"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Lượt thích72↑+12.5%so với 22/09/2026 - 28/09/"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Bình luận14↑+12.5%so với 22/09/2026 - 28/09/2"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Chia sẻ8↑+12.5%so với 22/09/2026 - 28/09/2026"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Bài đã đăng & số liệu tổng quanDiễn biến 4 ch"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Hiệu suất theo nền tảngTỷ trọng tương tác giữ"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Top bài viết hiệu quảSắp xếp theo từng cột, b"
+        }
+      ]
+    },
+    {
+      "route": "/trends",
+      "width": 1440,
+      "mode": "light",
+      "name": "07-_trends-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/trends",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "ASIDE",
+          "cls": "",
+          "text": "TỔNG QUANBảng điều khiểnPhân tíchXu hướngNỘI "
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Trend mới hôm nay28+12% so với hôm qua"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Ý tưởng content tạo mới56+18% so với hôm qua"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Độ phù hợp cao1657% tổng trend"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Phiên research gần nhấtHôm nay, 02:00 AMHoàn "
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Trend / Chủ đềNền tảngĐộ phù hợpXu hướngMức t"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Lịch research tự độngĐang bậtTự động research"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Trạng thái researchHoàn thànhPhiên gần nhất02"
+        }
+      ]
+    },
+    {
+      "route": "/brand",
+      "width": 1440,
+      "mode": "light",
+      "name": "08-_brand-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/brand",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "TThương hiệu kiểm traĐang dùngDịch vụThân thi"
+        }
+      ]
+    },
+    {
+      "route": "/failed-posts",
+      "width": 1440,
+      "mode": "light",
+      "name": "09-_failed-posts-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/failed-posts",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Bài viếtNền tảngLý do thất bạiMã lỗiThời gian"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Tổng quan lỗi1Tổng lỗiVi phạm chính sách1 bài"
+        }
+      ]
+    },
+    {
+      "route": "/settings",
+      "width": 1440,
+      "mode": "light",
+      "name": "10-_settings-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/settings",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Ngôn ngữ🇻🇳 Tiếng Việt🇬🇧 English"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Giao diệnChọn bảng màu thương hiệuĐại dươngAu"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Aurora"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Hoàng hôn"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Thanh bênTự động thu gọn thanh bênThu gọn còn"
+        }
+      ]
+    },
+    {
+      "route": "/settings/usage",
+      "width": 1440,
+      "mode": "light",
+      "name": "11-_settings_usage-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/settings/usage",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "24%240Đã dùng kỳ này · 2026-10"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Với tốc độ hiện tại, hết hạn mức vào khoảng 2"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "01/11/2026Đặt lại vào"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Token AI tháng này240 / 1K"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Token theo ngày (token thô — chưa quy đổi hạn"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Theo tính năng (token thô — chưa quy đổi hạn "
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Gói hiện tạiFREEFreeHạn mức kỳ này1KĐặt lại v"
+        }
+      ]
+    },
+    {
+      "route": "/profile",
+      "width": 1440,
+      "mode": "light",
+      "name": "12-_profile-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/profile",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "KTNgười dùng kiểm trareview@example.test★ Gói"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Đổi mật khẩuCập nhật mật khẩu đăng nhập của b"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Xóa tài khoảnGửi yêu cầu xóa tài khoản và toà"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Chỉnh sửa hồ sơHỌ TÊNEMAILSỐ ĐIỆN THOẠINGÀY S"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Hoạt động gần đâyChưa có hoạt động nào được g"
+        }
+      ]
+    },
+    {
+      "route": "/billing",
+      "width": 1440,
+      "mode": "light",
+      "name": "13-_billing-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/billing",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Gói hiện tạiFREEHết hạnKhông giới hạn thời gi"
+        },
+        {
+          "tag": "DIV",
+          "cls": "lift-card",
+          "text": "PLUS99.000₫/ mỗi thángLập kế hoạch nội dungNâ"
+        },
+        {
+          "tag": "DIV",
+          "cls": "lift-card",
+          "text": "PRO198.000₫/ mỗi thángLập kế hoạch nội dungNâ"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Lịch sử thanh toánThời gianGóiHoá đơnSố tiềnT"
+        }
+      ]
+    },
+    {
+      "route": "/billing/checkout?plan=PLUS",
+      "width": 1440,
+      "mode": "light",
+      "name": "14-_billing_checkout-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/billing/checkout",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "HEADER",
+          "cls": "",
+          "text": "Thanh toán an toàn"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Gói đã chọnMua mớiPLUSĐơn giá99.000₫/ mỗi thá"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Phương thức thanh toánChuyển khoản VietQR (pa"
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "lift-card",
+          "text": "Chuyển khoản VietQR (payOS)Quét mã QR bằng ứn"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Tóm tắt đơn hàngTạm tínhPLUS99.000₫Thuế (0%)0"
+        }
+      ]
+    },
+    {
+      "route": "/billing/return?paymentId=qa-payment",
+      "width": 1440,
+      "mode": "light",
+      "name": "15-_billing_return-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/billing/return",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Không thực hiện được. Vui lòng thử lại.Không "
+        }
+      ]
+    },
+    {
+      "route": "/billing/mock/qa-payment",
+      "width": 1440,
+      "mode": "light",
+      "name": "16-_billing_mock_qa-payment-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/billing/mock/qa-payment",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Cổng thanh toán giả lậpChỉ có ở môi trường ph"
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "",
+          "text": "Thanh toán thành công"
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "",
+          "text": "Cổng báo lỗi"
+        },
+        {
+          "tag": "BUTTON",
+          "cls": "",
+          "text": "Bỏ ngang tới hết hạn"
+        }
+      ]
+    },
+    {
+      "route": "/admin",
+      "width": 1440,
+      "mode": "light",
+      "name": "17-_admin-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/admin",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "ASIDE",
+          "cls": "",
+          "text": "Quay lại ứng dụngTổng quanVẬN HÀNH NỘI DUNGBà"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Tổng người dùng1.240+12.5% so với tuần trước"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Hoạt động hôm nay12+12.5% so với tuần trước"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Nội dung đã tạo64+12.5% so với tuần trước"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Doanh thu định kỳ tháng198.000₫+12.5% so với "
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Người dùng gần đâyXem tất cả →Người dùngGóiTr"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Phân bổ góiXem chi tiếtFREE8 (57%)PLUS4 (29%)"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Tình trạng hệ thốngXem chi tiếtAPIHoạt độngĐộ"
+        }
+      ]
+    },
+    {
+      "route": "/admin/users",
+      "width": 1440,
+      "mode": "light",
+      "name": "18-_admin_users-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/admin/users",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Tổng người dùng"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "0% tổng sốĐang hoạt động"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Tài khoản bị khoá"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Mới trong tháng"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Vai trò: Tất cảNgười dùngQuản trịTrạng thái: "
+        }
+      ]
+    },
+    {
+      "route": "/admin/posts",
+      "width": 1440,
+      "mode": "light",
+      "name": "19-_admin_posts-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/admin/posts",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Tổng bài bị từ chối0— so với 29/09 - 05/10"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Vi phạm chính sách0— so với 29/09 - 05/10"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Lỗi kỹ thuật0— so với 29/09 - 05/10"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Người dùng bị ảnh hưởng0— so với 29/09 - 05/1"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Tất cả nền tảngFacebookInstagramThreadsFacebo"
+        }
+      ]
+    },
+    {
+      "route": "/admin/system",
+      "width": 1440,
+      "mode": "light",
+      "name": "20-_admin_system-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/admin/system",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "ASIDE",
+          "cls": "",
+          "text": "Quay lại ứng dụngTổng quanVẬN HÀNH NỘI DUNGBà"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Cơ sở dữ liệu (PostgreSQL)Hoạt độngĐộ trễ12 m"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "RedisHoạt độngĐộ trễ12 msKết nối active2Bộ nh"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Bộ máy AI (AI service)Hoạt độngĐộ trễ12 msKết"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Sức khỏe cấu hình AI0Bình thường0Suy giảm0Lỗi"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Hoạt động hệ thống1 giờ24 giờ7 ngày30 ngày1 n"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Cảnh báoXem tất cả →Không có cảnh báo nào"
+        }
+      ]
+    },
+    {
+      "route": "/admin/logs",
+      "width": 1440,
+      "mode": "light",
+      "name": "21-_admin_logs-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/admin/logs",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Mức độ: Tất cảERRORWARNINFODEBUGNgàyGom nhóm "
+        }
+      ]
+    },
+    {
+      "route": "/admin/api-versions",
+      "width": 1440,
+      "mode": "light",
+      "name": "22-_admin_api-versions-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/admin/api-versions",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Không có dữ liệu"
+        }
+      ]
+    },
+    {
+      "route": "/admin/revenue",
+      "width": 1440,
+      "mode": "light",
+      "name": "23-_admin_revenue-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/admin/revenue",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "relative overflow-hidden",
+          "text": "Tổng doanh thu198.000₫↑+20%so với tháng trước"
+        },
+        {
+          "tag": "DIV",
+          "cls": "relative overflow-hidden",
+          "text": "Số giao dịch2↑+10%so với tháng trước"
+        },
+        {
+          "tag": "DIV",
+          "cls": "relative overflow-hidden",
+          "text": "Giá trị TB/giao dịch99.000₫+0%so với tháng tr"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Doanh thu theo thời gianTheo ngàyLũy kế2026-0"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Giao dịch gần đâyXem tất cả đơn hàng Không có"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Cơ cấu gói dịch vụ+ Thêm gói3giao dịchFREE0 ·"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Doanh thu dự kiến tháng này↑+25%600.000₫so vớ"
+        }
+      ]
+    },
+    {
+      "route": "/admin/revenue?tab=orders",
+      "width": 1440,
+      "mode": "light",
+      "name": "24-_admin_revenue-orders-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/admin/revenue",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "lift-card",
+          "text": "Cần đối soát0Bấm để lọc riêng các đơn này."
+        },
+        {
+          "tag": "DIV",
+          "cls": "lift-card",
+          "text": "Đang chờ thanh toán1Đơn đã tạo link, khách ch"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Webhook bị từ chối · 01/10 – 31/100Khác 0 là "
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Trạng tháiChỉ đơn cần đối soátKhông có dữ liệ"
+        }
+      ]
+    },
+    {
+      "route": "/admin/plans",
+      "width": 1440,
+      "mode": "light",
+      "name": "25-_admin_plans-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/admin/plans",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "FREEFREEĐang hiển thị0₫thángGói dùng cho kiểm"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "PLUSPLUSĐang hiển thị99.000₫thángGói dùng cho"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "PROPROĐang hiển thị198.000₫thángGói dùng cho "
+        }
+      ]
+    },
+    {
+      "route": "/admin/landing",
+      "width": 1440,
+      "mode": "light",
+      "name": "26-_admin_landing-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/admin/landing",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Đã xuất bảnXuất bản lần cuối: 05/10/2026 09:0"
+        },
+        {
+          "tag": "TEXTAREA",
+          "cls": "",
+          "text": "AIMA giúp bạn rút ngắn quy trình marketing — "
+        },
+        {
+          "tag": "TEXTAREA",
+          "cls": "",
+          "text": "AIMA helps you streamline your marketing work"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "013+ · Nền tảng tích hợpSốHậu tốNhãnVIEN"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "0224/7 · Đăng bài tự độngSốHậu tốNhãnVIEN"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "0310× · Tốc độ sáng tạoSốHậu tốNhãnVIEN"
+        }
+      ]
+    },
+    {
+      "route": "/admin/usage",
+      "width": 1440,
+      "mode": "light",
+      "name": "27-_admin_usage-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/admin/usage",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "+20% so kỳ trước12KToken kỳ này · 2026-09"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "$0.2Chi phí ước tính (USD)"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "30Lượt gọi AI"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "3.3%Tỉ lệ lỗi (1)"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Cảnh báo bất thườngNgưỡng rulePha 5A: chỉ cản"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Heatmap 5 ngày × 24 giờ (giờ VN)TokenRequestC"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Top tính năng theo tokenCONTENT_GENERATE12K"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Top model & providerModelTokenChi phí ước tín"
+        }
+      ]
+    },
+    {
+      "route": "/admin/usage/users/qa-admin",
+      "width": 1440,
+      "mode": "light",
+      "name": "28-_admin_usage_users_qa-admin-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/admin/usage/users/qa-admin",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "KTNgười dùng kiểm trareview@example.test2026-"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Nhật ký sử dụng Export CSVDữ liệu chi tiết lư"
+        }
+      ]
+    },
+    {
+      "route": "/admin/ai/providers",
+      "width": 1440,
+      "mode": "light",
+      "name": "29-_admin_ai_providers-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/admin/ai/providers",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Nhà cung cấp00/0 đang bật"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "API key0/0"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Model khả dụng0"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Đồng bộ gần nhất—"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Không có dữ liệu"
+        }
+      ]
+    },
+    {
+      "route": "/admin/ai/models",
+      "width": 1440,
+      "mode": "light",
+      "name": "30-_admin_ai_models-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/admin/ai/models",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Danh sách modelThêm modelModelNhà cung cấpGiá"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Định tuyến theo nghiệp vụChỉ route lỗi/suy gi"
+        }
+      ]
+    },
+    {
+      "route": "/admin/ai/usage",
+      "width": 1440,
+      "mode": "light",
+      "name": "31-_admin_ai_usage-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/admin/ai/usage",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "12.000Tổng token · 2026-10"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "$0.2Chi phí ước tính · 2026-10"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Trạng thái nghiệp vụ"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Theo nghiệp vụNghiệp vụTokenChi phí ước tínhC"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Theo modelModelTokenChi phí ước tínhqa-modelO"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Chi tiết gần đâyChưa có dữ liệu — bản ghi chỉ"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Nhật ký thay đổi cấu hình AIKhông có dữ liệu"
+        }
+      ]
+    },
+    {
+      "route": "/",
+      "width": 1440,
+      "mode": "light",
+      "name": "32-_-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "lift-card feat-card",
+          "text": "Nghiên cứu xu hướngAI quét xu hướng theo ngàn"
+        },
+        {
+          "tag": "DIV",
+          "cls": "lift-card feat-card",
+          "text": "Đề xuất ý tưởngGợi ý chủ đề, góc nhìn và định"
+        },
+        {
+          "tag": "DIV",
+          "cls": "lift-card feat-card",
+          "text": "Tạo nội dungTạo script, caption, hashtag và m"
+        },
+        {
+          "tag": "DIV",
+          "cls": "lift-card feat-card",
+          "text": "Lên lịch & tự đăngLập lịch thông minh và tự đ"
+        },
+        {
+          "tag": "DIV",
+          "cls": "lift-card feat-card",
+          "text": "Thu thập dữ liệuTự động đo lường hiệu quả thự"
+        },
+        {
+          "tag": "DIV",
+          "cls": "lift-card feat-card",
+          "text": "Phân tích & tối ưuPhân tích kết quả và tối ưu"
+        },
+        {
+          "tag": "DIV",
+          "cls": "lift-card hiw-card",
+          "text": "01Thiết lập thương hiệu 1 lầnTạo hồ sơ thương"
+        },
+        {
+          "tag": "DIV",
+          "cls": "lift-card hiw-card",
+          "text": "02AI nghiên cứu & viếtAI quét xu hướng, đề xu"
+        }
+      ]
+    },
+    {
+      "route": "/pricing",
+      "width": 1440,
+      "mode": "light",
+      "name": "33-_pricing-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/pricing",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "lift-card",
+          "text": "FREEGói dùng cho kiểm tra giao diện0đthángLập"
+        },
+        {
+          "tag": "DIV",
+          "cls": "lift-card",
+          "text": "PROGói dùng cho kiểm tra giao diện198.000đthá"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "AIMA hoạt động với những nền tảng nào?Hiện tạ"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Tôi có cần biết viết content không?Không. Bạn"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "AIMA có tự tạo hình ảnh/video không?Không. AI"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Tôi có thể huỷ gói bất cứ lúc nào không?Có. B"
+        }
+      ]
+    },
+    {
+      "route": "/login",
+      "width": 1440,
+      "mode": "light",
+      "name": "34-_login-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/login",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "view-pop",
+          "text": "AI - Marketing AssistantAIMA giúp bạn rút ngắ"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Quay lại trang chủTiếng ViệtChào mừng đến với"
+        }
+      ]
+    },
+    {
+      "route": "/register",
+      "width": 1440,
+      "mode": "light",
+      "name": "35-_register-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/register",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "view-pop",
+          "text": "AI - Marketing AssistantAIMA giúp bạn rút ngắ"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Quay lại trang chủTiếng ViệtTạo tài khoản AIM"
+        }
+      ]
+    },
+    {
+      "route": "/forgot-password",
+      "width": 1440,
+      "mode": "light",
+      "name": "36-_forgot-password-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/forgot-password",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "view-pop",
+          "text": "AI - Marketing AssistantAIMA giúp bạn rút ngắ"
+        },
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Quay lại đăng nhậpTiếng ViệtQuên mật khẩuNhập"
+        }
+      ]
+    },
+    {
+      "route": "/complete-profile",
+      "width": 1440,
+      "mode": "light",
+      "name": "37-_complete-profile-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/complete-profile",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "DIV",
+          "cls": "",
+          "text": "Hoàn tất hồ sơBổ sung thông tin và đặt mật kh"
+        }
+      ]
+    },
+    {
+      "route": "/privacy",
+      "width": 1440,
+      "mode": "light",
+      "name": "38-_privacy-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/privacy",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "ARTICLE",
+          "cls": "",
+          "text": "Chính sách bảo mậtCập nhật lần cuối: 28/09/20"
+        }
+      ]
+    },
+    {
+      "route": "/terms",
+      "width": 1440,
+      "mode": "light",
+      "name": "39-_terms-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/terms",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "ARTICLE",
+          "cls": "",
+          "text": "Điều khoản sử dụngCập nhật lần cuối: 28/09/20"
+        }
+      ]
+    },
+    {
+      "route": "/data-deletion",
+      "width": 1440,
+      "mode": "light",
+      "name": "40-_data-deletion-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/data-deletion",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": [
+        {
+          "tag": "ARTICLE",
+          "cls": "",
+          "text": "Hướng dẫn xoá dữ liệuCập nhật lần cuối: 28/09"
+        }
+      ]
+    },
+    {
+      "route": "/auth/google/callback",
+      "width": 1440,
+      "mode": "light",
+      "name": "41-_auth_google_callback-1440-baseline",
+      "errors": [],
+      "failure": null,
+      "url": "/auth/google/callback",
+      "rootCount": 1,
+      "bodyBg": "rgb(247, 246, 253)",
+      "svgColors": [],
+      "whitePanels": []
+    }
+  ],
+  "unhandled": [
+    "/landing/public"
+  ]
+}

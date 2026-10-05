@@ -6,6 +6,7 @@ import { PLATFORM_BG, PLATFORMS } from '../../theme';
 import { PLATFORM_TO_TAG } from '../../api/connections';
 import { STATUS_COLORS, STATUS_NEUTRAL, STATUS_PENDING } from '../../statusTokens';
 import type { DashboardPlatform } from '../../api/dashboard';
+import { C } from '../../styles/colors';
 
 /**
  * Panel "Nền tảng đã kết nối" — trạng thái THẬT từ tài khoản MXH của user (không hardcode).
@@ -19,8 +20,8 @@ function PlatformPanel({ rows }: { rows: DashboardPlatform[] }) {
     <Card>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.dbPlatformsTitle}</div>
-          <div style={{ fontSize: 12.5, color: '#6b6680', marginTop: 2 }}>{t.dbPlatformsSub}</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.dbPlatformsTitle}</div>
+          <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 2 }}>{t.dbPlatformsSub}</div>
         </div>
         <button
           type="button"
@@ -28,10 +29,10 @@ function PlatformPanel({ rows }: { rows: DashboardPlatform[] }) {
           className="link-underline"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 5, border: 'none', background: 'transparent',
-            padding: '4px 2px', fontSize: 13, fontWeight: 600, color: '#7c3aed', cursor: 'pointer',
+            padding: '4px 2px', fontSize: 13, fontWeight: 600, color: C.primary, cursor: 'pointer',
           }}
         >
-          <Icon icon={Settings2} size={15} stroke="#7c3aed" />
+          <Icon icon={Settings2} size={15} stroke={C.primary} />
           {t.dbManageCta}
         </button>
       </div>
@@ -65,15 +66,15 @@ function PlatformTile({ row, onConnect }: { row: DashboardPlatform; onConnect: (
 
   return (
     <div style={{
-      border: '1px solid #efeaf8', borderRadius: 14, padding: 14, background: '#fcfbfe',
+      border: `1px solid ${C.border}`, borderRadius: 14, padding: 14, background: C.surfaceSubtle,
       display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
         <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={34} radius={10} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: '#2b2543' }}>{name}</div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: C.ink750 }}>{name}</div>
           <div style={{
-            fontSize: 12, color: '#8a85a0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            fontSize: 12, color: C.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {row.accountName ?? '—'}
           </div>
@@ -93,12 +94,12 @@ function PlatformTile({ row, onConnect }: { row: DashboardPlatform; onConnect: (
             onClick={onConnect}
             className="btn-soft"
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4, border: '1px solid #ece8f6',
-              background: '#fff', color: '#6d28d9', fontWeight: 700, fontSize: 12,
+              display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${C.border}`,
+              background: C.surface, color: C.primaryStrong, fontWeight: 700, fontSize: 12,
               borderRadius: 9, padding: '5px 10px', cursor: 'pointer', flex: 'none',
             }}
           >
-            <Icon icon={Plus} size={13} stroke="#6d28d9" />
+            <Icon icon={Plus} size={13} stroke={C.primaryStrong} />
             {t.dbConnectCta}
           </button>
         )}

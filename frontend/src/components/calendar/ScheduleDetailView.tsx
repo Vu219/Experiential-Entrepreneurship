@@ -29,9 +29,11 @@ import { PlatformTag } from '../ui.tsx';
 import { PLATFORM_BG } from '../../theme.ts';
 import { PLATFORM_TO_TAG } from '../../api/connections.ts';
 import { TONE_COLORS } from '../../statusTokens.ts';
+import { alpha } from '../../styles/colors.ts';
 import type { PostSchedule } from '../../api/schedules.ts';
 import { STATUS_TONE } from './statusMeta.ts';
 import { fmtDate, fmtTime, WEEKDAYS_FULL } from './dateUtils.ts';
+import { C } from '../../styles/colors';
 
 export interface ScheduleDetailViewProps {
   schedule: PostSchedule;
@@ -55,7 +57,7 @@ function renderFormattedCaption(text: string, hashtags: string[] = []) {
       {parts.map((part, i) => {
         if (part.startsWith('#')) {
           return (
-            <span key={i} style={{ color: '#7c3aed', fontWeight: 600 }}>
+            <span key={i} style={{ color: C.primary, fontWeight: 600 }}>
               {part}
             </span>
           );
@@ -70,8 +72,8 @@ function renderFormattedCaption(text: string, hashtags: string[] = []) {
               style={{
                 fontSize: 12,
                 fontWeight: 600,
-                color: '#7c3aed',
-                background: '#f3effc',
+                color: C.primary,
+                background: C.surfaceMuted,
                 padding: '3px 9px',
                 borderRadius: 6,
               }}
@@ -215,7 +217,7 @@ export default function ScheduleDetailView({
           gap: 8,
           marginBottom: 16,
           fontSize: 13,
-          color: '#6b6680',
+          color: C.textSecondary,
           scrollMarginTop: 85,
         }}
       >
@@ -228,33 +230,34 @@ export default function ScheduleDetailView({
             background: 'none',
             border: 'none',
             padding: '4px 8px 4px 0',
-            color: '#7c3aed',
+            color: C.primary,
             fontWeight: 700,
             cursor: 'pointer',
             fontSize: 13,
             borderRadius: 6,
             transition: 'color 0.15s ease',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = '#6025d8')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = '#7c3aed')}
+          className={"dm-hover-9f72e0d"}
+
+
         >
           <ArrowLeft size={16} />
           <span>{lang === 'en' ? 'Back to Calendar' : 'Lịch đăng bài'}</span>
         </button>
-        <span style={{ color: '#c4b5fd' }}>/</span>
-        <span style={{ color: '#211c38', fontWeight: 600 }}>
+        <span style={{ color: C.legacyTextc4b5fd }}>/</span>
+        <span style={{ color: C.textStrong, fontWeight: 600 }}>
           {lang === 'en' ? 'Schedule Details' : 'Chi tiết lịch đăng'}
         </span>
       </div>
 
       {/* Card Container lớn màu trắng */}
       <div
-        className="bg-white rounded-2xl shadow-sm border border-slate-100/80"
+        className="bg-[var(--c-shell)] rounded-2xl shadow-sm border border-slate-100/80"
         style={{
-          background: '#ffffff',
+          background: C.surface,
           borderRadius: 24,
-          border: '1px solid #efeaf8',
-          boxShadow: '0 4px 24px -6px rgba(33, 28, 56, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02)',
+          border: `1px solid ${C.border}`,
+          boxShadow: `0 4px 24px -6px ${C.legacyShadowrgba332856005_}, 0 1px 2px ${C.legacyShadowrgba000002_}`,
           padding: isMobile ? '20px 16px' : '28px 32px',
         }}
       >
@@ -265,7 +268,7 @@ export default function ScheduleDetailView({
             alignItems: 'center',
             justifyContent: 'space-between',
             paddingBottom: 22,
-            borderBottom: '1px solid #f1edf8',
+            borderBottom: `1px solid ${C.surfaceMuted}`,
             marginBottom: 26,
             gap: 16,
           }}
@@ -277,11 +280,11 @@ export default function ScheduleDetailView({
                 width: 44,
                 height: 44,
                 borderRadius: 14,
-                background: '#f4f0fd',
+                background: C.surfaceMuted,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#7c3aed',
+                color: C.primary,
                 flexShrink: 0,
               }}
             >
@@ -293,7 +296,7 @@ export default function ScheduleDetailView({
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
                   fontWeight: 800,
                   fontSize: isMobile ? 18 : 22,
-                  color: '#211c38',
+                  color: C.textStrong,
                   margin: 0,
                   lineHeight: 1.25,
                 }}
@@ -303,7 +306,7 @@ export default function ScheduleDetailView({
               <div
                 style={{
                   fontSize: 12,
-                  color: '#8a85a0',
+                  color: C.textMuted,
                   marginTop: 3,
                   display: 'flex',
                   alignItems: 'center',
@@ -336,25 +339,18 @@ export default function ScheduleDetailView({
                   width: 38,
                   height: 38,
                   borderRadius: 10,
-                  border: '1px solid #ece8f6',
-                  background: dropdownOpen ? '#f4f1fb' : '#ffffff',
-                  color: '#5b5670',
+                  border: `1px solid ${C.border}`,
+                  background: dropdownOpen ? C.surfaceMuted : C.surface,
+                  color: C.ink550,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   transition: 'all 0.15s ease',
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#f4f1fb';
-                  e.currentTarget.style.borderColor = '#ddd7ed';
-                }}
-                onMouseLeave={(e) => {
-                  if (!dropdownOpen) {
-                    e.currentTarget.style.background = '#ffffff';
-                    e.currentTarget.style.borderColor = '#ece8f6';
-                  }
-                }}
+                className={"dm-hover-32465b1"}
+
+
               >
                 <MoreHorizontal size={18} />
               </button>
@@ -366,10 +362,10 @@ export default function ScheduleDetailView({
                     top: 'calc(100% + 6px)',
                     right: 0,
                     width: 200,
-                    background: '#ffffff',
+                    background: C.surface,
                     borderRadius: 12,
-                    border: '1px solid #ece8f6',
-                    boxShadow: '0 12px 30px -8px rgba(35, 20, 65, 0.16)',
+                    border: `1px solid ${C.border}`,
+                    boxShadow: `0 12px 30px -8px ${C.legacyShadowrgba352065016_}`,
                     padding: 6,
                     zIndex: 50,
                     display: 'flex',
@@ -393,15 +389,16 @@ export default function ScheduleDetailView({
                       borderRadius: 8,
                       fontSize: 13,
                       fontWeight: 600,
-                      color: '#2d2745',
+                      color: C.ink750,
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'background 0.15s ease',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f7f5fc')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                    className={"dm-hover-0863acb"}
+
+
                   >
-                    <Clock size={15} color="#7c3aed" />
+                    <Clock size={15} color={C.primary} />
                     <span>{schedule.status === 'ON_HOLD' ? t.schReactivate : t.schReschedule}</span>
                   </button>
 
@@ -421,15 +418,16 @@ export default function ScheduleDetailView({
                       borderRadius: 8,
                       fontSize: 13,
                       fontWeight: 600,
-                      color: '#2d2745',
+                      color: C.ink750,
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'background 0.15s ease',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f7f5fc')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                    className={"dm-hover-ac7312d"}
+
+
                   >
-                    <PencilLine size={15} color="#6b6680" />
+                    <PencilLine size={15} color={C.textSecondary} />
                     <span>{t.schEditContent}</span>
                   </button>
 
@@ -446,19 +444,20 @@ export default function ScheduleDetailView({
                       borderRadius: 8,
                       fontSize: 13,
                       fontWeight: 600,
-                      color: '#2d2745',
+                      color: C.ink750,
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'background 0.15s ease',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f7f5fc')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                    className={"dm-hover-0298a54"}
+
+
                   >
-                    <Copy size={15} color="#6b6680" />
+                    <Copy size={15} color={C.textSecondary} />
                     <span>{lang === 'en' ? 'Copy ID' : 'Sao chép ID'}</span>
                   </button>
 
-                  <div style={{ height: 1, background: '#f1edf8', margin: '4px 0' }} />
+                  <div style={{ height: 1, background: C.surfaceMuted, margin: '4px 0' }} />
 
                   <button
                     onClick={() => {
@@ -476,15 +475,16 @@ export default function ScheduleDetailView({
                       borderRadius: 8,
                       fontSize: 13,
                       fontWeight: 600,
-                      color: '#e23d6e',
+                      color: C.rose,
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'background 0.15s ease',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#fdf1f4')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                    className={"dm-hover-2c0f366"}
+
+
                   >
-                    <Trash2 size={15} color="#e23d6e" />
+                    <Trash2 size={15} color={C.rose} />
                     <span>{confirmingCancel ? t.schConfirmCancel : t.schCancel}</span>
                   </button>
                 </div>
@@ -500,22 +500,17 @@ export default function ScheduleDetailView({
                 height: 38,
                 border: 'none',
                 borderRadius: 10,
-                background: '#f4f1fb',
-                color: '#6b6680',
+                background: C.surfaceMuted,
+                color: C.textSecondary,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#ebe5f8';
-                e.currentTarget.style.color = '#211c38';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#f4f1fb';
-                e.currentTarget.style.color = '#6b6680';
-              }}
+              className={"dm-hover-1c7c845"}
+
+
             >
               <X size={18} strokeWidth={2.2} />
             </button>
@@ -536,8 +531,8 @@ export default function ScheduleDetailView({
             {/* Block Kênh đăng */}
             <div
               style={{
-                background: '#faf9fe',
-                border: '1px solid #f1eef8',
+                background: C.surfaceSubtle,
+                border: `1px solid ${C.surfaceMuted}`,
                 borderRadius: 16,
                 padding: '16px 20px',
                 display: 'flex',
@@ -556,8 +551,8 @@ export default function ScheduleDetailView({
                       height: 46,
                       borderRadius: '50%',
                       objectFit: 'cover',
-                      border: '2px solid #fff',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                      border: `2px solid ${C.shell}`,
+                      boxShadow: `0 2px 8px ${C.legacyShadowrgba000008_}`,
                     }}
                   />
                 ) : (
@@ -575,7 +570,7 @@ export default function ScheduleDetailView({
                       style={{
                         fontWeight: 800,
                         fontSize: 15.5,
-                        color: '#211c38',
+                        color: C.textStrong,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -601,7 +596,7 @@ export default function ScheduleDetailView({
                       <Check size={11} strokeWidth={3.5} />
                     </span>
                   </div>
-                  <div style={{ fontSize: 12, color: '#8a85a0', marginTop: 3 }}>
+                  <div style={{ fontSize: 12, color: C.textMuted, marginTop: 3 }}>
                     {schedule.platformName === 'FACEBOOK'
                       ? 'Facebook Fanpage'
                       : schedule.platformName === 'INSTAGRAM'
@@ -621,7 +616,7 @@ export default function ScheduleDetailView({
                   borderRadius: 999,
                   color: tone.color,
                   background: tone.bg,
-                  border: `1px solid ${tone.color}35`,
+                  border: `1px solid ${alpha(tone.color, 0x35 / 255)}`,
                 }}
               >
                 {t[`schSt${schedule.status}` as keyof typeof t] as string}
@@ -632,17 +627,17 @@ export default function ScheduleDetailView({
             {isFailed && (
               <div
                 style={{
-                  background: '#fdf1f1',
-                  border: '1px solid #f9d2d8',
+                  background: C.legacyBgfdf1f1,
+                  border: `1px solid ${C.legacyBorderf9d2d8}`,
                   borderRadius: 14,
                   padding: '14px 18px',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#b91c1c', fontWeight: 800, fontSize: 13.5 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.legacyTextb91c1c, fontWeight: 800, fontSize: 13.5 }}>
                   <AlertTriangle size={17} />
                   {lang === 'en' ? 'Publishing Failed' : 'Đăng bài không thành công'}
                 </div>
-                <div style={{ fontSize: 12.5, color: '#991b1b', marginTop: 6, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 12.5, color: C.legacyText991b1b, marginTop: 6, lineHeight: 1.5 }}>
                   {t.schFailedHint}
                 </div>
                 <button
@@ -651,7 +646,7 @@ export default function ScheduleDetailView({
                     marginTop: 8,
                     background: 'none',
                     border: 'none',
-                    color: '#b91c1c',
+                    color: C.legacyTextb91c1c,
                     fontSize: 12.5,
                     fontWeight: 700,
                     textDecoration: 'underline',
@@ -667,26 +662,26 @@ export default function ScheduleDetailView({
             {isOnHold && (
               <div
                 style={{
-                  background: '#fdf6e7',
-                  border: '1px solid #f6e2b3',
+                  background: C.legacyBgfdf6e7,
+                  border: `1px solid ${C.legacyBorderf6e2b3}`,
                   borderRadius: 14,
                   padding: '14px 18px',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#b45309', fontWeight: 800, fontSize: 13.5 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.amberText, fontWeight: 800, fontSize: 13.5 }}>
                   <AlertTriangle size={17} />
                   {lang === 'en' ? 'Post On Hold' : 'Lịch đăng đang tạm giữ'}
                 </div>
-                <div style={{ fontSize: 12.5, color: '#92400e', marginTop: 6, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 12.5, color: C.legacyText92400e, marginTop: 6, lineHeight: 1.5 }}>
                   {t.schOnHoldHint}
                 </div>
                 {(schedule.holdReasons ?? []).length > 0 && (
-                  <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12.5, color: '#92400e', lineHeight: 1.6 }}>
+                  <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12.5, color: C.legacyText92400e, lineHeight: 1.6 }}>
                     {schedule.holdReasons.map((r) => <li key={r}>{t[`schHold${r}` as keyof typeof t] as string}</li>)}
                   </ul>
                 )}
                 {schedule.overdue && (
-                  <div style={{ fontSize: 12.5, color: '#b45309', fontWeight: 700, marginTop: 8, lineHeight: 1.5 }}>{t.schHoldOverdue}</div>
+                  <div style={{ fontSize: 12.5, color: C.amberText, fontWeight: 700, marginTop: 8, lineHeight: 1.5 }}>{t.schHoldOverdue}</div>
                 )}
               </div>
             )}
@@ -696,8 +691,8 @@ export default function ScheduleDetailView({
               {/* Card 1: Khung giờ đăng */}
               <div
                 style={{
-                  background: '#faf9fe',
-                  border: '1px solid #efeaf8',
+                  background: C.surfaceSubtle,
+                  border: `1px solid ${C.border}`,
                   borderRadius: 14,
                   padding: '14px 18px',
                 }}
@@ -709,7 +704,7 @@ export default function ScheduleDetailView({
                     gap: 6,
                     fontSize: 11,
                     fontWeight: 700,
-                    color: '#8a85a0',
+                    color: C.textMuted,
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
                   }}
@@ -717,7 +712,7 @@ export default function ScheduleDetailView({
                   <Clock size={14} />
                   {lang === 'en' ? 'Time (GMT+7)' : 'Khung giờ đăng'}
                 </div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#211c38', marginTop: 4 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: C.textStrong, marginTop: 4 }}>
                   {timeFormatted}
                 </div>
                 <div style={{ marginTop: 4 }}>
@@ -726,8 +721,8 @@ export default function ScheduleDetailView({
                       style={{
                         fontSize: 11.5,
                         fontWeight: 700,
-                        color: '#e23d6e',
-                        background: '#fdf1f4',
+                        color: C.rose,
+                        background: C.legacyBgfdf1f4,
                         padding: '2px 8px',
                         borderRadius: 6,
                         display: 'inline-block',
@@ -740,8 +735,8 @@ export default function ScheduleDetailView({
                       style={{
                         fontSize: 11.5,
                         fontWeight: 700,
-                        color: '#16a34a',
-                        background: '#eaf8ef',
+                        color: C.success,
+                        background: C.legacyBgeaf8ef,
                         padding: '2px 8px',
                         borderRadius: 6,
                         display: 'inline-block',
@@ -756,8 +751,8 @@ export default function ScheduleDetailView({
               {/* Card 2: Ngày đăng */}
               <div
                 style={{
-                  background: '#faf9fe',
-                  border: '1px solid #efeaf8',
+                  background: C.surfaceSubtle,
+                  border: `1px solid ${C.border}`,
                   borderRadius: 14,
                   padding: '14px 18px',
                 }}
@@ -769,7 +764,7 @@ export default function ScheduleDetailView({
                     gap: 6,
                     fontSize: 11,
                     fontWeight: 700,
-                    color: '#8a85a0',
+                    color: C.textMuted,
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
                   }}
@@ -777,10 +772,10 @@ export default function ScheduleDetailView({
                   <Calendar size={14} />
                   {lang === 'en' ? 'Scheduled Date' : 'Ngày đăng'}
                 </div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#211c38', marginTop: 4 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: C.textStrong, marginTop: 4 }}>
                   {dateFormatted}
                 </div>
-                <div style={{ fontSize: 12.5, color: '#6b6680', fontWeight: 600, marginTop: 4 }}>
+                <div style={{ fontSize: 12.5, color: C.textSecondary, fontWeight: 600, marginTop: 4 }}>
                   {weekdayName}
                 </div>
               </div>
@@ -789,8 +784,8 @@ export default function ScheduleDetailView({
             {/* Block Nội dung bài viết */}
             <div
               style={{
-                background: '#ffffff',
-                border: '1px solid #ede8f6',
+                background: C.surface,
+                border: `1px solid ${C.border}`,
                 borderRadius: 16,
                 padding: '18px 20px',
               }}
@@ -808,7 +803,7 @@ export default function ScheduleDetailView({
                   style={{
                     fontSize: 12.5,
                     fontWeight: 800,
-                    color: '#3f3a55',
+                    color: C.text,
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
                   }}
@@ -822,9 +817,9 @@ export default function ScheduleDetailView({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 6,
-                    border: '1px solid #e5ddf5',
-                    background: copied ? '#eaf8ef' : '#f7f5fd',
-                    color: copied ? '#16a34a' : '#7c3aed',
+                    border: `1px solid ${C.legacyBordere5ddf5}`,
+                    background: copied ? C.legacyBgeaf8ef : C.bg,
+                    color: copied ? C.success : C.primary,
                     borderRadius: 8,
                     padding: '5px 12px',
                     fontSize: 12,
@@ -843,7 +838,7 @@ export default function ScheduleDetailView({
                 style={{
                   fontSize: 14,
                   lineHeight: 1.65,
-                  color: '#2d2745',
+                  color: C.ink750,
                   whiteSpace: 'pre-wrap',
                   wordBreak: 'break-word',
                 }}
@@ -851,7 +846,7 @@ export default function ScheduleDetailView({
                 {caption ? (
                   renderFormattedCaption(caption, hashtags)
                 ) : (
-                  <span style={{ fontStyle: 'italic', color: '#a59fbb' }}>{t.schNoCaption}</span>
+                  <span style={{ fontStyle: 'italic', color: C.textFaint }}>{t.schNoCaption}</span>
                 )}
               </div>
 
@@ -860,8 +855,8 @@ export default function ScheduleDetailView({
                 style={{
                   marginTop: 16,
                   padding: '12px 16px',
-                  background: '#f8f6fd',
-                  border: '1px solid #ede8f8',
+                  background: C.bg,
+                  border: `1px solid ${C.border}`,
                   borderRadius: 12,
                   display: 'flex',
                   alignItems: 'center',
@@ -873,19 +868,19 @@ export default function ScheduleDetailView({
                     width: 32,
                     height: 32,
                     borderRadius: 10,
-                    background: '#ede8f8',
+                    background: C.border,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#7c3aed',
+                    color: C.primary,
                     flexShrink: 0,
                   }}
                 >
                   <Megaphone size={16} />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', minWidth: 0 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#6b6680' }}>Call to action:</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed' }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: C.textSecondary }}>Call to action:</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: C.primary }}>
                     {version?.cta || (lang === 'en' ? 'Leave a comment or click bio link to learn more!' : 'Bấm vào link bio để đăng ký trải nghiệm ngay hôm nay!')}
                   </span>
                 </div>
@@ -893,7 +888,7 @@ export default function ScheduleDetailView({
 
               {/* Kịch bản video chi tiết nếu có */}
               {hasScript && (
-                <div style={{ marginTop: 14, borderTop: '1px solid #f1edf8', paddingTop: 14 }}>
+                <div style={{ marginTop: 14, borderTop: `1px solid ${C.surfaceMuted}`, paddingTop: 14 }}>
                   <button
                     onClick={() => setShowScript(!showScript)}
                     style={{
@@ -905,7 +900,7 @@ export default function ScheduleDetailView({
                       gap: 6,
                       fontSize: 12.5,
                       fontWeight: 700,
-                      color: '#7c3aed',
+                      color: C.primary,
                       cursor: 'pointer',
                     }}
                   >
@@ -916,15 +911,15 @@ export default function ScheduleDetailView({
                   {showScript && (
                     <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {script?.hook?.content && (
-                        <div style={{ background: '#faf9fe', padding: 10, borderRadius: 8, fontSize: 12 }}>
-                          <span style={{ fontWeight: 800, color: '#7c3aed' }}>HOOK ({script.hook.timing ?? '0-3s'}): </span>
-                          <span style={{ color: '#2d2745' }}>{script.hook.content}</span>
+                        <div style={{ background: C.surfaceSubtle, padding: 10, borderRadius: 8, fontSize: 12 }}>
+                          <span style={{ fontWeight: 800, color: C.primary }}>HOOK ({script.hook.timing ?? '0-3s'}): </span>
+                          <span style={{ color: C.ink750 }}>{script.hook.content}</span>
                         </div>
                       )}
                       {script?.steps && script.steps.map((st, idx) => (
-                        <div key={idx} style={{ background: '#faf9fe', padding: 10, borderRadius: 8, fontSize: 12 }}>
-                          <span style={{ fontWeight: 800, color: '#4b4660' }}>{lang === 'en' ? `Step ${st.index ?? idx + 1}: ` : `Phần ${st.index ?? idx + 1}: `}</span>
-                          <span style={{ color: '#2d2745' }}>{st.content}</span>
+                        <div key={idx} style={{ background: C.surfaceSubtle, padding: 10, borderRadius: 8, fontSize: 12 }}>
+                          <span style={{ fontWeight: 800, color: C.ink650 }}>{lang === 'en' ? `Step ${st.index ?? idx + 1}: ` : `Phần ${st.index ?? idx + 1}: `}</span>
+                          <span style={{ color: C.ink750 }}>{st.content}</span>
                         </div>
                       ))}
                     </div>
@@ -941,9 +936,9 @@ export default function ScheduleDetailView({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  border: '1px solid #e0daee',
-                  background: '#ffffff',
-                  color: '#4b4660',
+                  border: `1px solid ${C.legacyBordere0daee}`,
+                  background: C.surface,
+                  color: C.ink650,
                   borderRadius: 10,
                   padding: '9px 24px',
                   fontSize: 13.5,
@@ -951,16 +946,9 @@ export default function ScheduleDetailView({
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#f5f2fa';
-                  e.currentTarget.style.borderColor = '#d2c8ea';
-                  e.currentTarget.style.color = '#211c38';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#ffffff';
-                  e.currentTarget.style.borderColor = '#e0daee';
-                  e.currentTarget.style.color = '#4b4660';
-                }}
+                className={"dm-hover-0a5405d"}
+
+
               >
                 {lang === 'en' ? 'Close' : 'Đóng'}
               </button>
@@ -995,7 +983,7 @@ export default function ScheduleDetailView({
                 style={{
                   fontSize: 12.5,
                   fontWeight: 800,
-                  color: '#3f3a55',
+                  color: C.text,
                   textTransform: 'uppercase',
                   letterSpacing: 0.4,
                 }}
@@ -1006,8 +994,8 @@ export default function ScheduleDetailView({
                 style={{
                   fontSize: 11.5,
                   fontWeight: 700,
-                  color: '#6b6680',
-                  background: '#f3effc',
+                  color: C.textSecondary,
+                  background: C.surfaceMuted,
                   padding: '3px 10px',
                   borderRadius: 999,
                   display: 'inline-flex',
@@ -1024,11 +1012,11 @@ export default function ScheduleDetailView({
             {/* Giao diện giả lập bài post Facebook hoàn chỉnh */}
             <div
               style={{
-                background: '#ffffff',
-                border: '1px solid #e5e0f2',
+                background: C.surface,
+                border: `1px solid ${C.legacyBordere5e0f2}`,
                 borderRadius: 18,
                 overflow: 'hidden',
-                boxShadow: '0 8px 24px -8px rgba(70,40,120,0.08)',
+                boxShadow: `0 8px 24px -8px ${C.legacyShadowrgba7040120008_}`,
               }}
             >
               {/* Header bài post Facebook */}
@@ -1038,7 +1026,7 @@ export default function ScheduleDetailView({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  borderBottom: '1px solid #f6f4fa',
+                  borderBottom: `1px solid ${C.bg}`,
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
@@ -1049,7 +1037,7 @@ export default function ScheduleDetailView({
                         style={{
                           fontSize: 13.5,
                           fontWeight: 700,
-                          color: '#1f1b33',
+                          color: C.textStrong,
                           lineHeight: 1.3,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -1075,7 +1063,7 @@ export default function ScheduleDetailView({
                         <Check size={9} strokeWidth={3.5} />
                       </span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: '#8a85a0', marginTop: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: C.textMuted, marginTop: 1 }}>
                       <span>{timeFormatted} · {dateFormatted}</span>
                       <span>•</span>
                       <Globe size={11} />
@@ -1083,7 +1071,7 @@ export default function ScheduleDetailView({
                   </div>
                 </div>
 
-                <div style={{ color: '#8a85a0' }}>
+                <div style={{ color: C.textMuted }}>
                   <MoreHorizontal size={18} />
                 </div>
               </div>
@@ -1094,7 +1082,7 @@ export default function ScheduleDetailView({
                   padding: '12px 16px',
                   fontSize: 13,
                   lineHeight: 1.55,
-                  color: '#2d2745',
+                  color: C.ink750,
                   wordBreak: 'break-word',
                 }}
               >
@@ -1112,7 +1100,7 @@ export default function ScheduleDetailView({
                             border: 'none',
                             padding: 0,
                             marginLeft: 4,
-                            color: '#65676b',
+                            color: C.legacyText65676b,
                             fontWeight: 700,
                             cursor: 'pointer',
                             fontSize: 13,
@@ -1130,7 +1118,7 @@ export default function ScheduleDetailView({
                           border: 'none',
                           padding: 0,
                           marginLeft: 6,
-                          color: '#7c3aed',
+                          color: C.primary,
                           fontWeight: 700,
                           cursor: 'pointer',
                           fontSize: 12,
@@ -1141,7 +1129,7 @@ export default function ScheduleDetailView({
                     )}
                   </div>
                 ) : (
-                  <span style={{ fontStyle: 'italic', color: '#a59fbb' }}>{t.schNoCaption}</span>
+                  <span style={{ fontStyle: 'italic', color: C.textFaint }}>{t.schNoCaption}</span>
                 )}
               </div>
 
@@ -1178,7 +1166,7 @@ export default function ScheduleDetailView({
                     position: 'absolute',
                     top: 10,
                     left: 10,
-                    background: 'rgba(0,0,0,0.45)',
+                    background: C.legacyBgrgba000045_,
                     backdropFilter: 'blur(4px)',
                     padding: '3px 8px',
                     borderRadius: 6,
@@ -1200,25 +1188,26 @@ export default function ScheduleDetailView({
                     width: 52,
                     height: 52,
                     borderRadius: '50%',
-                    background: 'rgba(255, 255, 255, 0.22)',
+                    background: C.legacyBgrgba255255255022_,
                     backdropFilter: 'blur(8px)',
                     WebkitBackdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(255, 255, 255, 0.35)',
+                    border: `1px solid ${C.legacyBorderrgba255255255035_}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginBottom: 8,
-                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+                    boxShadow: `0 8px 24px ${C.legacyShadowrgba00003_}`,
                     cursor: 'pointer',
                     transition: 'transform 0.15s ease',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.06)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                  className={"dm-hover-f679a8a"}
+
+
                 >
                   <Play size={20} fill="#ffffff" stroke="none" style={{ marginLeft: 3 }} />
                 </div>
 
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: '#f3efff' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: C.legacyTextf3efff }}>
                   {schedule.platformAccountName || 'AIMA Studio'}
                 </div>
 
@@ -1226,7 +1215,7 @@ export default function ScheduleDetailView({
                   <div
                     style={{
                       fontSize: 10.5,
-                      color: '#c9bce8',
+                      color: C.legacyTextc9bce8,
                       maxWidth: '85%',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -1245,7 +1234,7 @@ export default function ScheduleDetailView({
                     position: 'absolute',
                     bottom: 8,
                     right: 8,
-                    background: 'rgba(0,0,0,0.6)',
+                    background: C.legacyBgrgba00006_,
                     backdropFilter: 'blur(4px)',
                     padding: '2px 8px',
                     borderRadius: 6,
@@ -1263,11 +1252,11 @@ export default function ScheduleDetailView({
               <div
                 style={{
                   padding: '10px 16px',
-                  borderTop: '1px solid #f6f4fa',
+                  borderTop: `1px solid ${C.bg}`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-around',
-                  color: '#65676b',
+                  color: C.legacyText65676b,
                   fontSize: 12.5,
                   fontWeight: 600,
                 }}
@@ -1303,9 +1292,9 @@ export default function ScheduleDetailView({
                     fontSize: 13.5,
                     fontWeight: 700,
                     background: brandGradient,
-                    color: '#fff',
+                    color: C.onBrand,
                     cursor: 'pointer',
-                    boxShadow: '0 4px 16px rgba(124, 58, 237, 0.28)',
+                    boxShadow: `0 4px 16px ${C.legacyShadowrgba12458237028_}`,
                   }}
                 >
                   <Sparkles size={16} />
@@ -1328,9 +1317,9 @@ export default function ScheduleDetailView({
                     fontSize: 13.5,
                     fontWeight: 700,
                     background: brandGradient,
-                    color: '#fff',
+                    color: C.onBrand,
                     cursor: busy ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 4px 16px rgba(124, 58, 237, 0.28)',
+                    boxShadow: `0 4px 16px ${C.legacyShadowrgba12458237028_}`,
                   }}
                 >
                   <Send size={16} />
@@ -1353,9 +1342,9 @@ export default function ScheduleDetailView({
                     fontSize: 13.5,
                     fontWeight: 700,
                     background: brandGradient,
-                    color: '#fff',
+                    color: C.onBrand,
                     cursor: busy ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 4px 16px rgba(124, 58, 237, 0.28)',
+                    boxShadow: `0 4px 16px ${C.legacyShadowrgba12458237028_}`,
                   }}
                 >
                   <RotateCcw size={16} />
@@ -1378,9 +1367,9 @@ export default function ScheduleDetailView({
                     fontSize: 13.5,
                     fontWeight: 700,
                     background: brandGradient,
-                    color: '#fff',
+                    color: C.onBrand,
                     cursor: busy ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 4px 16px rgba(124, 58, 237, 0.28)',
+                    boxShadow: `0 4px 16px ${C.legacyShadowrgba12458237028_}`,
                   }}
                 >
                   <Clock size={16} />

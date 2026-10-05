@@ -24,6 +24,8 @@ import { useScriptRegen } from '../useScriptRegen';
 import { useToast } from '../../toast/ToastProvider';
 import ReadinessChecklist from '../ReadinessChecklist';
 import { isFormatted, useReadiness, versionOf, type ReadinessIssue } from '../useReadiness';
+import { C } from '../../../styles/colors';
+import { assistCardStyle } from '../assistCardStyle';
 
 /** Phạm vi một lượt định dạng: 'all' = mọi nền tảng đang chọn, hoặc đúng MỘT nền tảng. */
 export type FormatScope = 'all' | Platform;
@@ -32,10 +34,10 @@ export type FormatScope = 'all' | Platform;
 const SAVE_STATUSES: SaveReviewChoice[] = ['DRAFT', 'NEED_REVIEW', 'APPROVED'];
 const PLATFORM_NAME: Record<Platform, string> = { FACEBOOK: 'Facebook', INSTAGRAM: 'Instagram', THREADS: 'Threads' };
 
-const fieldLabel = { display: 'block', fontSize: 11.5, fontWeight: 700, color: '#a59fbb', marginBottom: 6 } as const;
+const fieldLabel = { display: 'block', fontSize: 11.5, fontWeight: 700, color: C.textFaint, marginBottom: 6 } as const;
 const inputBase = {
-  width: '100%', border: '1.5px solid #e7e2f2', borderRadius: 12, padding: '11px 14px',
-  fontSize: 13.5, lineHeight: 1.55, color: '#241f3a', background: '#fbfaff', outline: 'none',
+  width: '100%', border: `1.5px solid ${C.border}`, borderRadius: 12, padding: '11px 14px',
+  fontSize: 13.5, lineHeight: 1.55, color: C.textStrong, background: C.surfaceSubtle, outline: 'none',
 } as const;
 
 type SectionKey = 'script' | 'media';
@@ -60,14 +62,14 @@ function Section({ title, meta, open, onToggle, children }: {
   const shown = !collapsible || open;
   const head = (
     <>
-      <span style={{ fontSize: 13.5, fontWeight: 800, color: '#211c38' }}>{title}</span>
-      {meta && <span style={{ fontSize: 12, fontWeight: 600, color: '#8a85a0' }}>{meta}</span>}
+      <span style={{ fontSize: 13.5, fontWeight: 800, color: C.textStrong }}>{title}</span>
+      {meta && <span style={{ fontSize: 12, fontWeight: 600, color: C.textMuted }}>{meta}</span>}
       <span aria-hidden style={{ flex: 1 }} />
-      {collapsible && <Icon icon={open ? ChevronUp : ChevronDown} size={16} stroke="#a59fbb" />}
+      {collapsible && <Icon icon={open ? ChevronUp : ChevronDown} size={16} stroke={C.textFaint} />}
     </>
   );
   return (
-    <section style={{ border: '1px solid #f1edfa', borderRadius: 16, background: '#fff' }}>
+    <section style={{ border: `1px solid ${C.border}`, borderRadius: 16, background: C.surface }}>
       {collapsible ? (
         <button type="button" onClick={onToggle} aria-expanded={open} title={open ? t.cwSecCollapse : t.cwSecExpand}
           style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', border: 'none', background: 'transparent', padding: '14px 16px', cursor: 'pointer', textAlign: 'left', font: 'inherit', borderRadius: 16 }}>
@@ -188,12 +190,12 @@ export default function FinalizeStep({
 
   // Thanh định dạng gọn ở đầu "Nội dung đăng": trạng thái + 2 nút + (i) giải thích; cảnh báo dài vào tooltip/xác nhận.
   const formatBar = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', background: '#faf8fe', border: '1px solid #f1edfa', borderRadius: 12, padding: '8px 10px', marginBottom: 16 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: '8px 10px', marginBottom: 16 }}>
       <span style={{ background: done ? TONE_COLORS.info.bg : TONE_COLORS.neutral.bg, color: done ? TONE_COLORS.info.color : TONE_COLORS.neutral.color, borderRadius: 7, padding: '3px 9px', fontSize: 11.5, fontWeight: 700 }}>
         {done ? t.cwFormatDone : t.cwNotFormatted} · {tagOfPlatform(version.platform)}
       </span>
       {missing.length > 0 && missing.length < source.platforms.length && (
-        <span title={t.cwFormatMissing} style={{ fontSize: 11.5, fontWeight: 600, color: '#b45309' }}>
+        <span title={t.cwFormatMissing} style={{ fontSize: 11.5, fontWeight: 600, color: C.amberText }}>
           {missing.map((p) => tagOfPlatform(p)).join(', ')}: {t.cwNotFormatted.toLowerCase()}
         </span>
       )}
@@ -203,10 +205,10 @@ export default function FinalizeStep({
         disabled={busy}
         className="btn-soft"
         title={t.cwFormatOneHint}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '7px 12px', fontWeight: 700, fontSize: 12.5, color: '#7c3aed', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.5 : 1 }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '7px 12px', fontWeight: 700, fontSize: 12.5, color: C.primary, cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.5 : 1 }}
       >
         <span style={{ display: 'inline-flex', animation: formatting === version.platform ? 'spinslow 0.8s linear infinite' : undefined }}>
-          <Icon icon={formatting === version.platform ? RefreshCw : Sparkles} size={13.5} stroke="#7c3aed" />
+          <Icon icon={formatting === version.platform ? RefreshCw : Sparkles} size={13.5} stroke={C.primary} />
         </span>
         {t.cwFormatOne} · {tagOfPlatform(version.platform)}
       </button>
@@ -215,16 +217,16 @@ export default function FinalizeStep({
         disabled={busy}
         className="btn-soft"
         title={t.cwFormatAllHint}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #e3d9fb', background: '#f6f2ff', borderRadius: 10, padding: '7px 12px', fontWeight: 700, fontSize: 12.5, color: '#6d28d9', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.5 : 1 }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.legacyBordere3d9fb}`, background: C.surfaceMuted, borderRadius: 10, padding: '7px 12px', fontWeight: 700, fontSize: 12.5, color: C.primaryStrong, cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.5 : 1 }}
       >
         <span style={{ display: 'inline-flex', animation: formatting === 'all' ? 'spinslow 0.8s linear infinite' : undefined }}>
-          <Icon icon={formatting === 'all' ? RefreshCw : Layers} size={13.5} stroke="#6d28d9" />
+          <Icon icon={formatting === 'all' ? RefreshCw : Layers} size={13.5} stroke={C.primaryStrong} />
         </span>
         {formatting === 'all' ? t.cwFormatting : t.cwFormatAll}
       </button>
       <span tabIndex={0} role="img" aria-label={`${t.cwFormatInfo} ${t.cwFormatHint}`} title={t.cwFormatHint}
         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 8, cursor: 'help' }}>
-        <Icon icon={Info} size={15} stroke="#a59fbb" />
+        <Icon icon={Info} size={15} stroke={C.textFaint} />
       </span>
     </div>
   );
@@ -272,9 +274,9 @@ export default function FinalizeStep({
           onClick={runGenerateImage}
           disabled={imageBusy || !version.mediaPrompt.trim()}
           className="btn-soft"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, border: '1px solid #e3d9fb', background: '#fff', borderRadius: 10, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, color: '#6d28d9', cursor: imageBusy || !version.mediaPrompt.trim() ? 'not-allowed' : 'pointer', opacity: imageBusy || !version.mediaPrompt.trim() ? 0.55 : 1 }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, border: `1px solid ${C.legacyBordere3d9fb}`, background: C.surface, borderRadius: 10, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, color: C.primaryStrong, cursor: imageBusy || !version.mediaPrompt.trim() ? 'not-allowed' : 'pointer', opacity: imageBusy || !version.mediaPrompt.trim() ? 0.55 : 1 }}
         >
-          <Icon icon={ImagePlus} size={14} stroke="#6d28d9" />
+          <Icon icon={ImagePlus} size={14} stroke={C.primaryStrong} />
           {imageBusy ? t.cwGenImageBusy : t.cwGenImage}
         </button>
       </Section>
@@ -285,17 +287,17 @@ export default function FinalizeStep({
     <Card>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.cwFinalizeTitle}</div>
-          <div style={{ fontSize: 12.5, color: '#8a85a0', lineHeight: 1.5 }}>{t.cwFinalizeSub}</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.cwFinalizeTitle}</div>
+          <div style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.5 }}>{t.cwFinalizeSub}</div>
         </div>
         {/* Toggle CHỈNH ⇄ XEM — chế độ xem chính là màn duyệt, không cần đổi bước */}
         <button
           onClick={() => setViewMode((v) => !v)}
           aria-pressed={viewMode}
           className="btn-soft"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, flex: 'none', border: viewMode ? '1.5px solid #7c3aed' : '1px solid #ece8f6', background: viewMode ? '#f6f2ff' : '#fff', borderRadius: 11, padding: '9px 14px', fontSize: 12.5, fontWeight: 700, color: '#7c3aed', cursor: 'pointer' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, flex: 'none', border: viewMode ? `1.5px solid ${C.primary}` : `1px solid ${C.border}`, background: viewMode ? C.surfaceMuted : C.surface, borderRadius: 11, padding: '9px 14px', fontSize: 12.5, fontWeight: 700, color: C.primary, cursor: 'pointer' }}
         >
-          <Icon icon={viewMode ? Pencil : Eye} size={14} stroke="#7c3aed" />
+          <Icon icon={viewMode ? Pencil : Eye} size={14} stroke={C.primary} />
           {viewMode ? t.cwViewEdit : t.cwViewAll}
         </button>
       </div>
@@ -322,8 +324,8 @@ export default function FinalizeStep({
         onFormat={requestFormat}
         onApprove={() => setStatus('APPROVED')}
       />
-      <Card style={{ padding: 16 }}>
-        <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#574f6e', marginBottom: 10 }}>{t.cwReviewStatus}</label>
+      <Card style={{ ...assistCardStyle, padding: 16 }}>
+        <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: C.ink600, marginBottom: 10 }}>{t.cwReviewStatus}</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {SAVE_STATUSES.map((s) => {
             const meta = SAVE_CHOICE_META[s];
@@ -333,14 +335,14 @@ export default function FinalizeStep({
                 key={s}
                 onClick={() => setStatus(s)}
                 aria-pressed={on}
-                style={{ border: on ? `1.5px solid ${meta.color}` : '1px solid #ece8f6', background: on ? meta.bg : '#fff', color: on ? meta.color : '#574f6e', borderRadius: 10, padding: '8px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
+                style={{ border: on ? `1.5px solid ${meta.color}` : `1px solid ${C.border}`, background: on ? meta.bg : C.surface, color: on ? meta.color : C.ink600, borderRadius: 10, padding: '8px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
               >
                 {t[meta.labelKey]}
               </button>
             );
           })}
         </div>
-        <div style={{ marginTop: 10, fontSize: 11.5, color: '#8a85a0', lineHeight: 1.5 }}>{t.cwStatusHint}</div>
+        <div style={{ marginTop: 10, fontSize: 11.5, color: C.textMuted, lineHeight: 1.5 }}>{t.cwStatusHint}</div>
       </Card>
     </>
   );
@@ -360,28 +362,28 @@ export default function FinalizeStep({
         onClick={onGoSchedule}
         disabled={locked}
         className="btn-grad"
-        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', border: 'none', borderRadius: 12, padding: 14, fontWeight: 800, fontSize: 14.5, color: '#fff', background: brandGradient, boxShadow: '0 14px 28px -12px rgba(139,92,246,.6)', cursor: locked ? 'not-allowed' : 'pointer', opacity: locked ? 0.6 : 1 }}
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', border: 'none', borderRadius: 12, padding: 14, fontWeight: 800, fontSize: 14.5, color: C.onBrand, background: brandGradient, boxShadow: `0 14px 28px -12px ${C.legacyShadowrgba13992246_6_}`, cursor: locked ? 'not-allowed' : 'pointer', opacity: locked ? 0.6 : 1 }}
       >
         {saving ? t.cwSaving : t.cwNextSchedule}
-        {!saving && <Icon icon={ArrowRight} size={16} stroke="#fff" />}
+        {!saving && <Icon icon={ArrowRight} size={16} stroke={C.onBrand} />}
       </button>
-      {noEligible && <div role="note" style={{ fontSize: 12, color: '#b45309', lineHeight: 1.5 }}>{noEligible}</div>}
+      {noEligible && <div role="note" style={{ fontSize: 12, color: C.amberText, lineHeight: 1.5 }}>{noEligible}</div>}
       <div style={{ display: 'flex', gap: 8 }}>
         <button
           disabled={locked}
           onClick={onBack}
           className="btn-soft"
-          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, flex: 'none', border: '1px solid #ece8f6', background: '#fff', borderRadius: 12, padding: '11px 16px', fontWeight: 700, fontSize: 13.5, color: '#574f6e', cursor: locked ? 'not-allowed' : 'pointer', opacity: locked ? 0.55 : 1 }}
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, flex: 'none', border: `1px solid ${C.border}`, background: C.surface, borderRadius: 12, padding: '11px 16px', fontWeight: 700, fontSize: 13.5, color: C.ink600, cursor: locked ? 'not-allowed' : 'pointer', opacity: locked ? 0.55 : 1 }}
         >
-          <Icon icon={ArrowLeft} size={15} stroke="#574f6e" />{t.cwBack}
+          <Icon icon={ArrowLeft} size={15} stroke={C.ink600} />{t.cwBack}
         </button>
         <button
           disabled={locked}
           onClick={onSave}
           className="btn-outline"
-          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, flex: 1, border: '1.5px solid #d9cdf7', background: '#fff', borderRadius: 12, padding: '11px 14px', fontWeight: 700, fontSize: 13.5, color: '#6d28d9', cursor: locked ? 'not-allowed' : 'pointer', opacity: locked ? 0.55 : 1 }}
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, flex: 1, border: `1.5px solid ${C.legacyBorderd9cdf7}`, background: C.surface, borderRadius: 12, padding: '11px 14px', fontWeight: 700, fontSize: 13.5, color: C.primaryStrong, cursor: locked ? 'not-allowed' : 'pointer', opacity: locked ? 0.55 : 1 }}
         >
-          <Icon icon={Save} size={15} stroke="#6d28d9" />
+          <Icon icon={Save} size={15} stroke={C.primaryStrong} />
           {t.cwSave}
         </button>
       </div>

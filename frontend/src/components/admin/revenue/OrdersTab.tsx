@@ -20,6 +20,7 @@ import {
   type AdminPaymentSummary,
 } from '../../../api/adminPayments';
 import type { ApiError } from '../../../api/apiClient';
+import { C } from '../../../styles/colors';
 
 const STATUSES: PaymentStatus[] = [
   'PENDING', 'PAID', 'FAILED', 'EXPIRED', 'CANCELLED', 'REFUNDED', 'PARTIALLY_REFUNDED',
@@ -137,7 +138,7 @@ export default function OrdersTab({
       <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3, 1fr)' : '1fr', gap: 14 }}>
         <QueueCard
           icon={<CircleAlert size={18} strokeWidth={1.9} />}
-          tone={{ color: '#d97706', bg: '#fdf0dc' }}
+          tone={{ color: C.warning, bg: C.warningSoft }}
           label={t.aoQueueReconcile}
           hint={t.aoQueueReconcileHint}
           value={summary?.reconcileRequired ?? 0}
@@ -146,7 +147,7 @@ export default function OrdersTab({
         />
         <QueueCard
           icon={<Clock size={18} strokeWidth={1.9} />}
-          tone={{ color: '#0e7490', bg: '#e0f7fb' }}
+          tone={{ color: C.info, bg: C.infoSoft }}
           label={t.aoQueuePending}
           hint={t.aoQueuePendingHint}
           value={summary?.pending ?? 0}
@@ -157,8 +158,8 @@ export default function OrdersTab({
           icon={<ShieldAlert size={18} strokeWidth={1.9} />}
           tone={
             (summary?.webhookRejected24h ?? 0) > 0
-              ? { color: '#dc2626', bg: '#fde8e8' }
-              : { color: '#16a34a', bg: '#e8f8ee' }
+              ? { color: C.danger, bg: C.dangerSoft }
+              : { color: C.success, bg: C.successSoft }
           }
           label={`${t.aoQueueWebhook} · ${ddmm(from)} – ${ddmm(to)}`}
           hint={t.aoQueueWebhookHint}
@@ -181,7 +182,7 @@ export default function OrdersTab({
               options={STATUSES.map((s) => [s, paymentStatusMeta(lang, s).label])}
               onChange={(v) => resetPage(() => onStatusChange(v as PaymentStatus | ''))}
             />
-            <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: '#6b6680' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: C.textSecondary }}>
               <input
                 type="checkbox"
                 checked={onlyReconcile}
@@ -203,14 +204,14 @@ export default function OrdersTab({
                 key={row.id}
                 onClick={() => void openDetail(row)}
                 style={{
-                  borderTop: '1px solid #f4f1fb', cursor: 'pointer',
-                  background: selected?.id === row.id ? '#faf8ff' : undefined,
+                  borderTop: `1px solid ${C.surfaceMuted}`, cursor: 'pointer',
+                  background: selected?.id === row.id ? C.bg : undefined,
                 }}
               >
                 <td style={cellStyle}>{formatDateTimeVN(row.paidAt ?? row.orderedAt)}</td>
                 <td style={cellStyle}>
-                  <div style={{ fontWeight: 600, color: '#1b1730' }}>{row.userEmail ? (row.userFullName ?? '—') : t.payDeletedAccount}</div>
-                  {row.userEmail && <div style={{ fontSize: 12, color: '#8a85a0' }}>{row.userEmail}</div>}
+                  <div style={{ fontWeight: 600, color: C.textStrong }}>{row.userEmail ? (row.userFullName ?? '—') : t.payDeletedAccount}</div>
+                  {row.userEmail && <div style={{ fontSize: 12, color: C.textMuted }}>{row.userEmail}</div>}
                 </td>
                 <td style={cellStyle}>{lang === 'en' ? row.planNameEn : row.planNameVi}</td>
                 <td style={{ ...cellStyle, fontWeight: 700 }}>{formatVND(row.amount)}</td>
@@ -218,11 +219,11 @@ export default function OrdersTab({
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                     <StatusBadge tone={meta.tone} label={meta.label} />
                     {row.reconcileRequired && (
-                      <CircleAlert size={15} strokeWidth={2} color="#d97706" aria-label={t.aoQueueReconcile} />
+                      <CircleAlert size={15} strokeWidth={2} color={C.warning} aria-label={t.aoQueueReconcile} />
                     )}
                   </div>
                 </td>
-                <td style={{ ...cellStyle, textAlign: 'right', color: '#7c3aed', fontWeight: 700 }}>
+                <td style={{ ...cellStyle, textAlign: 'right', color: C.primary, fontWeight: 700 }}>
                   {t.detail}
                 </td>
               </tr>
@@ -256,7 +257,7 @@ export default function OrdersTab({
 
 const ddmm = (ymd: string) => `${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
 
-const cellStyle = { padding: '12px 16px', fontSize: 13.5, color: '#4b4660' } as const;
+const cellStyle = { padding: '12px 16px', fontSize: 13.5, color: C.ink650 } as const;
 
 function QueueCard({
   icon,
@@ -290,8 +291,8 @@ function QueueCard({
       className={clickable ? 'lift-card' : undefined}
       style={{
         display: 'flex', gap: 12, alignItems: 'flex-start', padding: 16, borderRadius: 16,
-        background: '#fff', border: active ? `1px solid ${tone.color}` : '1px solid #efeaf8',
-        boxShadow: '0 22px 44px -34px rgba(80,40,140,.5)',
+        background: C.surface, border: active ? `1px solid ${tone.color}` : `1px solid ${C.border}`,
+        boxShadow: `0 22px 44px -34px ${C.legacyShadowrgba8040140_5_}`,
         cursor: clickable ? 'pointer' : 'default',
       }}
     >
@@ -305,11 +306,11 @@ function QueueCard({
         {icon}
       </span>
       <div style={{ minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: 12.5, fontWeight: 700, color: '#6b6680' }}>{label}</p>
-        <p style={{ margin: '2px 0 0', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 24, color: value > 0 ? tone.color : '#1b1730' }}>
+        <p style={{ margin: 0, fontSize: 12.5, fontWeight: 700, color: C.textSecondary }}>{label}</p>
+        <p style={{ margin: '2px 0 0', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 24, color: value > 0 ? tone.color : C.textStrong }}>
           {value}
         </p>
-        <p style={{ margin: '3px 0 0', fontSize: 11.5, lineHeight: 1.5, color: '#a39bbf' }}>{hint}</p>
+        <p style={{ margin: '3px 0 0', fontSize: 11.5, lineHeight: 1.5, color: C.ink350 }}>{hint}</p>
       </div>
     </div>
   );

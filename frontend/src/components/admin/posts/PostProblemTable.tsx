@@ -9,6 +9,7 @@ import { AP_PLATFORM_NAME } from './platforms';
 import { formatDateVN } from '../../../utils/format';
 import { categoryOf, REASON_META, reasonText } from './rejectionReasons';
 import type { AdminPostProblem, PostProblemKind } from '../../../api/admin';
+import { C } from '../../../styles/colors';
 
 // Khối E: bảng danh sách. MỘT bảng dùng cho cả hai tab — chỉ khác cột (tab lỗi hệ thống thay
 // "Lý do từ chối" bằng "Nguyên nhân lỗi" + thêm cột số lần thử lại), nên không tách thành hai
@@ -95,23 +96,23 @@ export default function PostProblemTable({
             key={post.id}
             onClick={() => onToggleDetail(post)}
             style={{
-              borderTop: '1px solid #f1eef8',
+              borderTop: `1px solid ${C.surfaceMuted}`,
               cursor: 'pointer',
-              background: selected ? '#f7f4ff' : undefined,
+              background: selected ? C.surfaceMuted : undefined,
               // Viền trái tím báo hàng đang xem — dùng box-shadow inset vì <tr> không nhận
               // border-left liền mạch khi border-collapse.
-              boxShadow: selected ? 'inset 3px 0 0 0 #7c3aed' : undefined,
+              boxShadow: selected ? `inset 3px 0 0 0 ${C.primary}` : undefined,
             }}
           >
             <td style={{ ...cell, minWidth: 260, maxWidth: 320 }}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                 <PostThumb post={post} />
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: '#2b2543', ...clamp1 }}>{title}</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: C.ink750, ...clamp1 }}>{title}</div>
                   {excerpt && (
-                    <div style={{ fontSize: 12.5, color: '#8a85a0', marginTop: 2, ...clamp1 }}>{excerpt}</div>
+                    <div style={{ fontSize: 12.5, color: C.textMuted, marginTop: 2, ...clamp1 }}>{excerpt}</div>
                   )}
-                  <div style={{ fontSize: 11.5, color: '#a59fbb', marginTop: 4, fontFamily: 'ui-monospace,Menlo,Consolas,monospace' }}>
+                  <div style={{ fontSize: 11.5, color: C.textFaint, marginTop: 4, fontFamily: 'ui-monospace,Menlo,Consolas,monospace' }}>
                     #{post.id.slice(0, 8)}
                   </div>
                 </div>
@@ -123,29 +124,29 @@ export default function PostProblemTable({
               <span className="sr-only">{AP_PLATFORM_NAME[post.platform]}</span>
             </td>
 
-            <td style={{ ...cell, fontSize: 13, color: '#3f3a55', wordBreak: 'break-word' }}>{post.user}</td>
+            <td style={{ ...cell, fontSize: 13, color: C.text, wordBreak: 'break-word' }}>{post.user}</td>
 
             <td style={{ ...cell, maxWidth: 300 }}>
               <StatusBadge tone={meta.tone} label={t[meta.labelKey]} />
-              <div style={{ fontSize: 12.5, color: '#6b6680', marginTop: 6, lineHeight: 1.5, ...clamp2 }}>
+              <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 6, lineHeight: 1.5, ...clamp2 }}>
                 {reasonText(post, t)}
               </div>
             </td>
 
             {isSystem && (
-              <td style={{ ...cell, fontSize: 12.5, color: '#6b6680', whiteSpace: 'nowrap' }}>
+              <td style={{ ...cell, fontSize: 12.5, color: C.textSecondary, whiteSpace: 'nowrap' }}>
                 {post.retryCount === null
                   ? '—'
                   : t.apRetryOf.replace('{n}', String(post.retryCount))}
-                <div style={{ fontSize: 11.5, color: '#a59fbb', marginTop: 3 }}>
+                <div style={{ fontSize: 11.5, color: C.textFaint, marginTop: 3 }}>
                   {post.nextRetryAt ? `${t.apNextRetry} ${post.nextRetryAt.slice(11, 16)}` : t.apRetryExhausted}
                 </div>
               </td>
             )}
 
             <td style={{ ...cell, whiteSpace: 'nowrap' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#2b2543' }}>{dateLabel}</div>
-              <div style={{ fontSize: 12, color: '#8a85a0', marginTop: 2 }}>{time ?? ''}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.ink750 }}>{dateLabel}</div>
+              <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{time ?? ''}</div>
             </td>
 
             <td style={cell}>
@@ -160,9 +161,9 @@ export default function PostProblemTable({
                   aria-expanded={selected}
                   className="btn-soft"
                   style={{
-                    border: `1px solid ${selected ? '#c4b5fd' : '#ece8f6'}`,
-                    background: selected ? '#f1e9ff' : '#fff', borderRadius: 9, padding: '6px 12px',
-                    fontSize: 12.5, fontWeight: 700, color: '#7c3aed', cursor: 'pointer', whiteSpace: 'nowrap',
+                    border: `1px solid ${selected ? C.legacyBorderc4b5fd : C.border}`,
+                    background: selected ? C.purpleSoft : C.surface, borderRadius: 9, padding: '6px 12px',
+                    fontSize: 12.5, fontWeight: 700, color: C.primary, cursor: 'pointer', whiteSpace: 'nowrap',
                   }}
                 >
                   {t.detail}

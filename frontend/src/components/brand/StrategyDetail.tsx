@@ -9,6 +9,7 @@ import { ReadChips } from './chips';
 import type { ContentStrategy, Platform } from '../../api/contentStrategy';
 import { FREQUENCY_UNIT_OPTIONS } from '../../data';
 import StrategyOptimization from './StrategyOptimization';
+import { C } from '../../styles/colors';
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
@@ -27,10 +28,10 @@ export default function StrategyDetail({ s, onEdit, onDelete }: { s: ContentStra
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: '#211c38' }}>{s.name}</span>
+            <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: C.textStrong }}>{s.name}</span>
             <StatusBadge tone={meta.tone} label={meta.label} />
           </div>
-          <div style={{ fontSize: 12.5, color: '#8a85a0', marginTop: 4 }}>{t.csCreatedAt}: {fmtDate(s.createdAt)} · {t.csUpdatedAt}: {fmtDate(s.updatedAt)}</div>
+          <div style={{ fontSize: 12.5, color: C.textMuted, marginTop: 4 }}>{t.csCreatedAt}: {fmtDate(s.createdAt)} · {t.csUpdatedAt}: {fmtDate(s.updatedAt)}</div>
         </div>
       </div>
 
@@ -57,32 +58,32 @@ export default function StrategyDetail({ s, onEdit, onDelete }: { s: ContentStra
         bottom: -22,
         margin: '32px -22px -22px -22px',
         padding: '20px 22px',
-        background: '#fff',
-        borderTop: '1px solid #efeaf8',
+        background: C.surface,
+        borderTop: `1px solid ${C.border}`,
         borderBottomLeftRadius: 20,
         borderBottomRightRadius: 20,
         zIndex: 10,
         display: 'flex',
         flexDirection: 'column',
         gap: 16,
-        boxShadow: '0 -10px 30px rgba(0,0,0,0.03)'
+        boxShadow: `0 -10px 30px ${C.legacyShadowrgba000003_}`
       }}>
         <StrategySummary s={s} />
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button onClick={onDelete} style={{ border: '1px solid #f3c9d6', background: '#fff', borderRadius: 12, padding: '11px 18px', fontSize: 14, fontWeight: 700, color: '#d6336c', cursor: 'pointer' }}>{t.csDeleteBtn}</button>
-          <button onClick={onEdit} className="btn-grad" style={{ border: 'none', borderRadius: 12, padding: '11px 26px', fontSize: 14, fontWeight: 700, color: '#fff', background: 'var(--brand)', cursor: 'pointer' }}>{t.csEditBtn}</button>
+          <button onClick={onDelete} style={{ border: `1px solid ${C.legacyBorderf3c9d6}`, background: C.surface, borderRadius: 12, padding: '11px 18px', fontSize: 14, fontWeight: 700, color: C.legacyTextd6336c, cursor: 'pointer' }}>{t.csDeleteBtn}</button>
+          <button onClick={onEdit} className="btn-grad" style={{ border: 'none', borderRadius: 12, padding: '11px 26px', fontSize: 14, fontWeight: 700, color: C.onBrand, background: 'var(--brand)', cursor: 'pointer' }}>{t.csEditBtn}</button>
         </div>
       </div>
     </div>
   );
 }
 
-const valTxt = { fontSize: 14, fontWeight: 700, color: '#211c38' } as const;
+const valTxt = { fontSize: 14, fontWeight: 700, color: C.textStrong } as const;
 
 function Sec({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div style={{ border: '1px solid #efeaf8', borderRadius: 13, padding: 15 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#574f6e', marginBottom: 10 }}>{label}</div>
+    <div style={{ border: `1px solid ${C.border}`, borderRadius: 13, padding: 15 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: C.ink600, marginBottom: 10 }}>{label}</div>
       {children}
     </div>
   );

@@ -1,3 +1,4 @@
+import { C } from '../../styles/colors';
 import type { CSSProperties } from 'react';
 import { AlertTriangle, Info } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -11,8 +12,8 @@ const bannerStyle = (tone: 'danger' | 'warning' | 'info'): CSSProperties => ({
   borderRadius: 10,
   fontSize: 13,
   fontWeight: 600,
-  color: tone === 'danger' ? '#dc2626' : tone === 'warning' ? '#b45309' : '#0e7490',
-  background: tone === 'danger' ? '#fde8e8' : tone === 'warning' ? '#fdf0dc' : '#e0f7fb',
+  color: tone === 'danger' ? C.danger : tone === 'warning' ? C.amberText : C.info,
+  background: tone === 'danger' ? C.dangerSoft : tone === 'warning' ? C.warningSoft : C.infoSoft,
 });
 
 /**

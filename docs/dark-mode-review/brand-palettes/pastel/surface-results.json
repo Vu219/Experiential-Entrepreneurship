@@ -1,0 +1,1682 @@
+[
+  {
+    "theme": "aurora",
+    "width": 1440,
+    "mode": "light",
+    "route": "/dashboard",
+    "foregrounds": [
+      {
+        "text": "Bảng điều khiển",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "2",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 1440,
+    "mode": "light",
+    "route": "/create/qa-content",
+    "foregrounds": [
+      {
+        "text": "Quản lý nội dung",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "2",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "4",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Lên lịch 1 nền tảng",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 1440,
+    "mode": "light",
+    "route": "/create/qa-draft",
+    "foregrounds": [
+      {
+        "text": "Quản lý nội dung",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "2",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "3",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Facebook",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Tiếp theo: Lên lịch đăng bài",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "T",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 1440,
+    "mode": "light",
+    "route": "/brand",
+    "foregrounds": [
+      {
+        "text": "",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Thương hiệu",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Tạo hồ sơ",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "T",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Đang dùng",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 1440,
+    "mode": "light",
+    "route": "/billing",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 1440,
+    "mode": "light",
+    "route": "/admin/landing",
+    "foregrounds": [
+      {
+        "text": "",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Hero",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Xuất bản tất cả",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Xuất bản",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 1440,
+    "mode": "light",
+    "route": "/",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "01",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "02",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "03",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "★ Phổ biến nhất",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Truy cập ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Đăng ký",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 1440,
+    "mode": "light",
+    "route": "/login",
+    "foregrounds": [
+      {
+        "text": "ĐĂNG NHẬP",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 1440,
+    "mode": "dark",
+    "route": "/dashboard",
+    "foregrounds": [
+      {
+        "text": "Bảng điều khiển",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "2",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 1440,
+    "mode": "dark",
+    "route": "/create/qa-content",
+    "foregrounds": [
+      {
+        "text": "Quản lý nội dung",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "2",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "4",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Lên lịch 1 nền tảng",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 1440,
+    "mode": "dark",
+    "route": "/create/qa-draft",
+    "foregrounds": [
+      {
+        "text": "Quản lý nội dung",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "2",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "3",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Facebook",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Tiếp theo: Lên lịch đăng bài",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "T",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 1440,
+    "mode": "dark",
+    "route": "/brand",
+    "foregrounds": [
+      {
+        "text": "",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Thương hiệu",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Tạo hồ sơ",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "T",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Đang dùng",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 1440,
+    "mode": "dark",
+    "route": "/billing",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 1440,
+    "mode": "dark",
+    "route": "/admin/landing",
+    "foregrounds": [
+      {
+        "text": "",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Hero",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Xuất bản tất cả",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Xuất bản",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 1440,
+    "mode": "dark",
+    "route": "/",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "01",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "02",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "03",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "★ Phổ biến nhất",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Truy cập ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Đăng ký",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 1440,
+    "mode": "dark",
+    "route": "/login",
+    "foregrounds": [
+      {
+        "text": "ĐĂNG NHẬP",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 390,
+    "mode": "light",
+    "route": "/dashboard",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 390,
+    "mode": "light",
+    "route": "/create/qa-content",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Bước 4/4",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Lên lịch 1 nền tảng",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 390,
+    "mode": "light",
+    "route": "/create/qa-draft",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Bước 3/4",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Facebook",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "T",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Tiếp theo: Lên lịch đăng bài",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 390,
+    "mode": "light",
+    "route": "/brand",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Thương hiệu",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Tạo hồ sơ",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "T",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Đang dùng",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 390,
+    "mode": "light",
+    "route": "/billing",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 390,
+    "mode": "light",
+    "route": "/admin/landing",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Hero",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Xuất bản tất cả",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Xuất bản",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 390,
+    "mode": "light",
+    "route": "/",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "01",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "02",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "03",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "★ Phổ biến nhất",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Truy cập ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Đăng ký",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 390,
+    "mode": "light",
+    "route": "/login",
+    "foregrounds": [
+      {
+        "text": "ĐĂNG NHẬP",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 390,
+    "mode": "dark",
+    "route": "/dashboard",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 390,
+    "mode": "dark",
+    "route": "/create/qa-content",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Bước 4/4",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Lên lịch 1 nền tảng",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 390,
+    "mode": "dark",
+    "route": "/create/qa-draft",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Bước 3/4",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Facebook",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "T",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Tiếp theo: Lên lịch đăng bài",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 390,
+    "mode": "dark",
+    "route": "/brand",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Thương hiệu",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Tạo hồ sơ",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "T",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Đang dùng",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 390,
+    "mode": "dark",
+    "route": "/billing",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 390,
+    "mode": "dark",
+    "route": "/admin/landing",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Hero",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Xuất bản tất cả",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Xuất bản",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 390,
+    "mode": "dark",
+    "route": "/",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "01",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "02",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "03",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "★ Phổ biến nhất",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Truy cập ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Đăng ký",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "aurora",
+    "width": 390,
+    "mode": "dark",
+    "route": "/login",
+    "foregrounds": [
+      {
+        "text": "ĐĂNG NHẬP",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 1440,
+    "mode": "light",
+    "route": "/dashboard",
+    "foregrounds": [
+      {
+        "text": "Bảng điều khiển",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "2",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 1440,
+    "mode": "light",
+    "route": "/create/qa-content",
+    "foregrounds": [
+      {
+        "text": "Quản lý nội dung",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "2",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "4",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Lên lịch 1 nền tảng",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 1440,
+    "mode": "light",
+    "route": "/create/qa-draft",
+    "foregrounds": [
+      {
+        "text": "Quản lý nội dung",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "2",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "3",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Facebook",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Tiếp theo: Lên lịch đăng bài",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "T",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 1440,
+    "mode": "light",
+    "route": "/brand",
+    "foregrounds": [
+      {
+        "text": "",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Thương hiệu",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Tạo hồ sơ",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "T",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Đang dùng",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 1440,
+    "mode": "light",
+    "route": "/billing",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 1440,
+    "mode": "light",
+    "route": "/admin/landing",
+    "foregrounds": [
+      {
+        "text": "",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Hero",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Xuất bản tất cả",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Xuất bản",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 1440,
+    "mode": "light",
+    "route": "/",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "01",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "02",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "03",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "★ Phổ biến nhất",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Truy cập ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Đăng ký",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 1440,
+    "mode": "light",
+    "route": "/login",
+    "foregrounds": [
+      {
+        "text": "ĐĂNG NHẬP",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 1440,
+    "mode": "dark",
+    "route": "/dashboard",
+    "foregrounds": [
+      {
+        "text": "Bảng điều khiển",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "2",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 1440,
+    "mode": "dark",
+    "route": "/create/qa-content",
+    "foregrounds": [
+      {
+        "text": "Quản lý nội dung",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "2",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "4",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Lên lịch 1 nền tảng",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 1440,
+    "mode": "dark",
+    "route": "/create/qa-draft",
+    "foregrounds": [
+      {
+        "text": "Quản lý nội dung",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "2",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "3",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Facebook",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Tiếp theo: Lên lịch đăng bài",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "T",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 1440,
+    "mode": "dark",
+    "route": "/brand",
+    "foregrounds": [
+      {
+        "text": "",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Thương hiệu",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Tạo hồ sơ",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "T",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Đang dùng",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 1440,
+    "mode": "dark",
+    "route": "/billing",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 1440,
+    "mode": "dark",
+    "route": "/admin/landing",
+    "foregrounds": [
+      {
+        "text": "",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Hero",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Xuất bản tất cả",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Xuất bản",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 1440,
+    "mode": "dark",
+    "route": "/",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "01",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "02",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "03",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "★ Phổ biến nhất",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Truy cập ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Đăng ký",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 1440,
+    "mode": "dark",
+    "route": "/login",
+    "foregrounds": [
+      {
+        "text": "ĐĂNG NHẬP",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 390,
+    "mode": "light",
+    "route": "/dashboard",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 390,
+    "mode": "light",
+    "route": "/create/qa-content",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Bước 4/4",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Lên lịch 1 nền tảng",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 390,
+    "mode": "light",
+    "route": "/create/qa-draft",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Bước 3/4",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Facebook",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "T",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Tiếp theo: Lên lịch đăng bài",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 390,
+    "mode": "light",
+    "route": "/brand",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Thương hiệu",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Tạo hồ sơ",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "T",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Đang dùng",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 390,
+    "mode": "light",
+    "route": "/billing",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 390,
+    "mode": "light",
+    "route": "/admin/landing",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Hero",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Xuất bản tất cả",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Xuất bản",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 390,
+    "mode": "light",
+    "route": "/",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "01",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "02",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "03",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "★ Phổ biến nhất",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Truy cập ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Đăng ký",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 390,
+    "mode": "light",
+    "route": "/login",
+    "foregrounds": [
+      {
+        "text": "ĐĂNG NHẬP",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 390,
+    "mode": "dark",
+    "route": "/dashboard",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 390,
+    "mode": "dark",
+    "route": "/create/qa-content",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Bước 4/4",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Lên lịch 1 nền tảng",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 390,
+    "mode": "dark",
+    "route": "/create/qa-draft",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Bước 3/4",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Facebook",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "T",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Tiếp theo: Lên lịch đăng bài",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 390,
+    "mode": "dark",
+    "route": "/brand",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Thương hiệu",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Tạo hồ sơ",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "T",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Đang dùng",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 390,
+    "mode": "dark",
+    "route": "/billing",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Nâng cấp",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 390,
+    "mode": "dark",
+    "route": "/admin/landing",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Hero",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Xuất bản tất cả",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Xuất bản",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 390,
+    "mode": "dark",
+    "route": "/",
+    "foregrounds": [
+      {
+        "text": "N",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "01",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "02",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "03",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "★ Phổ biến nhất",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Truy cập ngay",
+        "color": "rgb(53, 39, 77)"
+      },
+      {
+        "text": "Đăng ký",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "theme": "sunset",
+    "width": 390,
+    "mode": "dark",
+    "route": "/login",
+    "foregrounds": [
+      {
+        "text": "ĐĂNG NHẬP",
+        "color": "rgb(53, 39, 77)"
+      }
+    ],
+    "errors": []
+  }
+]

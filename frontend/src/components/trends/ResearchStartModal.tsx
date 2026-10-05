@@ -6,13 +6,14 @@ import { Icon, PlatformTag } from '../ui';
 import { PLATFORMS, PLATFORM_BG } from '../../theme';
 import { listAllBrandProfiles, type BrandProfile, type Platform } from '../../api/brandProfile';
 import { listAllContentStrategies, type ContentStrategy, type StrategyStatus } from '../../api/contentStrategy';
+import { C } from '../../styles/colors';
 
 const selectStyle = {
-  width: '100%', border: '1px solid #ece8f6', borderRadius: 12, padding: '10px 12px',
-  fontSize: 13.5, color: '#241f3a', background: '#fff', outline: 'none', cursor: 'pointer',
+  width: '100%', border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 12px',
+  fontSize: 13.5, color: C.textStrong, background: C.surface, outline: 'none', cursor: 'pointer',
 } as const;
 
-const labelStyle = { fontSize: 12.5, fontWeight: 700, color: '#6b6680', marginBottom: 6 } as const;
+const labelStyle = { fontSize: 12.5, fontWeight: 700, color: C.textSecondary, marginBottom: 6 } as const;
 
 const ARTICLE_COUNTS = [5, 10, 15, 20];
 
@@ -136,17 +137,17 @@ export default function ResearchStartModal({
   return (
     <Modal title={t.trStartTitle} subtitle={t.trStartSub} onClose={onClose} maxWidth={520}>
       {loading ? (
-        <div style={{ padding: '18px 0', fontSize: 13.5, color: '#8a85a0', textAlign: 'center' }}>{t.trLoading}</div>
+        <div style={{ padding: '18px 0', fontSize: 13.5, color: C.textMuted, textAlign: 'center' }}>{t.trLoading}</div>
       ) : error ? (
-        <div role="alert" style={{ fontSize: 13, color: '#dc2626' }}>{error}</div>
+        <div role="alert" style={{ fontSize: 13, color: C.danger }}>{error}</div>
       ) : brands.length === 0 ? (
         <div>
-          <div style={{ fontSize: 13.5, color: '#4b4660', lineHeight: 1.6 }}>{t.trStartNoBrand}</div>
+          <div style={{ fontSize: 13.5, color: C.ink650, lineHeight: 1.6 }}>{t.trStartNoBrand}</div>
           <button
             type="button"
             onClick={goBrandPage}
             className="btn-grad"
-            style={{ marginTop: 16, width: '100%', border: 'none', borderRadius: 12, padding: '11px 18px', fontWeight: 700, fontSize: 13.5, color: '#fff', background: 'var(--brand)', cursor: 'pointer' }}
+            style={{ marginTop: 16, width: '100%', border: 'none', borderRadius: 12, padding: '11px 18px', fontWeight: 700, fontSize: 13.5, color: C.onBrand, background: 'var(--brand)', cursor: 'pointer' }}
           >
             {t.trStartGoBrand}
           </button>
@@ -169,7 +170,7 @@ export default function ResearchStartModal({
           <div>
             <div style={labelStyle}>{t.trStrategy}</div>
             {brandStrategies.length === 0 ? (
-              <div style={{ fontSize: 12.5, color: '#8a85a0' }}>{t.trStrategyNone}</div>
+              <div style={{ fontSize: 12.5, color: C.textMuted }}>{t.trStrategyNone}</div>
             ) : (
               <select value={strategyId} onChange={(e) => setStrategyId(e.target.value)} style={selectStyle}>
                 {brandStrategies.map((s) => (
@@ -196,9 +197,9 @@ export default function ResearchStartModal({
                     aria-pressed={on}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 13px',
-                      border: on ? '1.5px solid #8b5cf6' : '1px solid #ece8f6', borderRadius: 11,
-                      background: on ? '#f6f1ff' : '#fff', cursor: 'pointer',
-                      fontSize: 13, fontWeight: 700, color: on ? '#6d28d9' : '#4b4660',
+                      border: on ? `1.5px solid ${C.violetLight}` : `1px solid ${C.border}`, borderRadius: 11,
+                      background: on ? C.border : C.surface, cursor: 'pointer',
+                      fontSize: 13, fontWeight: 700, color: on ? C.primaryStrong : C.ink650,
                     }}
                   >
                     <PlatformTag tag={tag} bg={PLATFORM_BG[tag]} size={20} radius={6} fontSize={9.5} />
@@ -207,13 +208,13 @@ export default function ResearchStartModal({
                 );
               })}
             </div>
-            <div style={{ fontSize: 11.5, color: '#a39bbf', marginTop: 6 }}>{t.trPickPlatformsHint}</div>
+            <div style={{ fontSize: 11.5, color: C.ink350, marginTop: 6 }}>{t.trPickPlatformsHint}</div>
           </div>
 
           {/* Số ý tưởng mong muốn (maxIdeas gửi cho AI, 1–20) */}
           <div>
             <div style={labelStyle}>{t.trArticleCount}</div>
-            <div style={{ display: 'inline-flex', gap: 4, background: '#f4f2fb', border: '1px solid #ece8f6', borderRadius: 12, padding: 4 }}>
+            <div style={{ display: 'inline-flex', gap: 4, background: C.surfaceMuted, border: `1px solid ${C.border}`, borderRadius: 12, padding: 4 }}>
               {ARTICLE_COUNTS.map((n) => {
                 const on = articleCount === n;
                 return (
@@ -222,7 +223,7 @@ export default function ResearchStartModal({
                     type="button"
                     onClick={() => setArticleCount(n)}
                     aria-pressed={on}
-                    style={{ border: 'none', borderRadius: 9, padding: '7px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: on ? '#6d28d9' : '#6b6680', background: on ? '#fff' : 'transparent', boxShadow: on ? '0 4px 10px -6px rgba(80,40,140,.4)' : 'none' }}
+                    style={{ border: 'none', borderRadius: 9, padding: '7px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: on ? C.primaryStrong : C.textSecondary, background: on ? C.surface : 'transparent', boxShadow: on ? `0 4px 10px -6px ${C.legacyShadowrgba8040140_4_}` : 'none' }}
                   >
                     {n}
                   </button>
@@ -232,20 +233,20 @@ export default function ResearchStartModal({
           </div>
 
           {/* Bộ lọc nâng cao (tùy chọn) */}
-          <div style={{ border: '1px solid #ece8f6', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden' }}>
             <button
               type="button"
               onClick={() => setAdvOpen((o) => !o)}
               aria-expanded={advOpen}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, border: 'none', background: advOpen ? '#f8f6fd' : '#fff', padding: '10px 12px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#4b4660' }}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, border: 'none', background: advOpen ? C.bg : C.surface, padding: '10px 12px', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: C.ink650 }}
             >
-              <Icon icon={SlidersHorizontal} size={14} stroke="#7c3aed" />
+              <Icon icon={SlidersHorizontal} size={14} stroke={C.primary} />
               <span style={{ flex: 1, textAlign: 'left' }}>{t.trAdvFilter}</span>
-              <Icon icon={advOpen ? ChevronUp : ChevronDown} size={15} stroke="#8a85a0" />
+              <Icon icon={advOpen ? ChevronUp : ChevronDown} size={15} stroke={C.textMuted} />
             </button>
             {advOpen && (
-              <div style={{ padding: '12px 12px 14px', borderTop: '1px solid #f4f1fa', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ fontSize: 11.5, color: '#a39bbf' }}>{t.trAdvHint}</div>
+              <div style={{ padding: '12px 12px 14px', borderTop: `1px solid ${C.surfaceMuted}`, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ fontSize: 11.5, color: C.ink350 }}>{t.trAdvHint}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   <div>
                     <div style={labelStyle}>{t.trTime}</div>
@@ -278,15 +279,15 @@ export default function ResearchStartModal({
 
           {/* Cảnh báo thiếu chiến lược ACTIVE (BE sẽ chặn với mã 1911) */}
           {!hasActiveStrategy && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: '#fdf0dc', borderRadius: 12, padding: '10px 12px' }}>
-              <Icon icon={AlertTriangle} size={15} stroke="#d97706" />
-              <div style={{ flex: 1, fontSize: 12.5, color: '#92600a', lineHeight: 1.55 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: C.warningSoft, borderRadius: 12, padding: '10px 12px' }}>
+              <Icon icon={AlertTriangle} size={15} stroke={C.warning} />
+              <div style={{ flex: 1, fontSize: 12.5, color: C.legacyText92600a, lineHeight: 1.55 }}>
                 {t.trStartNoStrategy}{' '}
                 <button
                   type="button"
                   onClick={goBrandPage}
                   className="link-underline"
-                  style={{ border: 'none', background: 'transparent', padding: 0, fontSize: 12.5, fontWeight: 700, color: '#b45309', cursor: 'pointer' }}
+                  style={{ border: 'none', background: 'transparent', padding: 0, fontSize: 12.5, fontWeight: 700, color: C.amberText, cursor: 'pointer' }}
                 >
                   {t.trStartGoBrand}
                 </button>
@@ -302,12 +303,12 @@ export default function ResearchStartModal({
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               border: 'none', borderRadius: 12, padding: '11px 18px', fontWeight: 700, fontSize: 13.5,
-              color: '#fff', background: 'var(--brand)',
+              color: C.onBrand, background: 'var(--brand)',
               cursor: !canStart ? 'not-allowed' : 'pointer',
               opacity: !canStart ? 0.55 : 1,
             }}
           >
-            <Icon icon={Play} size={15} stroke="#fff" />
+            <Icon icon={Play} size={15} stroke={C.onBrand} />
             {t.trStartBtn}
           </button>
         </div>

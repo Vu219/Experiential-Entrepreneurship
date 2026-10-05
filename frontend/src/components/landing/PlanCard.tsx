@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { BRAND_GLOW } from '../../theme';
 import type { PricingPlan } from '../../config/plans';
 import StatNumber from '../motion/StatNumber';
+import { C } from '../../styles/colors';
 
 // Card gói giá đầy đủ (trang /pricing). Card Pro (featured) không còn tô tím đặc:
 // nền sáng như 2 card kia + VIỀN gradient brand (2px) + glow ám brand để "bay" cao hơn.
@@ -34,13 +35,13 @@ export default function PlanCard({ plan: p, stacked, popularLabel }: PlanCardPro
   const ringStyle = featured
     ? {
         border: '2px solid transparent',
-        background: `linear-gradient(#fff,#fff) padding-box, ${brandGradient} border-box`,
+        background: `linear-gradient(${C.shell},${C.shell}) padding-box, ${brandGradient} border-box`,
         boxShadow: `0 30px 60px -26px ${BRAND_GLOW}, 0 12px 24px -18px ${BRAND_GLOW}`,
       }
     : {
-        border: '1px solid #efeaf8',
-        background: '#fff',
-        boxShadow: '0 22px 44px -34px rgba(80,40,140,.5)',
+        border: `1px solid ${C.border}`,
+        background: C.surface,
+        boxShadow: `0 22px 44px -34px ${C.legacyShadowrgba8040140_5_}`,
       };
 
   return (
@@ -58,29 +59,29 @@ export default function PlanCard({ plan: p, stacked, popularLabel }: PlanCardPro
       }}
     >
       {featured && (
-        <span style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', color: '#fff', background: brandGradient, borderRadius: 999, padding: '5px 14px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', boxShadow: `0 10px 22px -10px ${BRAND_GLOW}` }}>
+        <span style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', color: C.onBrand, background: brandGradient, borderRadius: 999, padding: '5px 14px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', boxShadow: `0 10px 22px -10px ${BRAND_GLOW}` }}>
           ★ {popularLabel}
         </span>
       )}
-      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: '#211c38' }}>{p.name}</div>
-      <div style={{ fontSize: 13.5, lineHeight: 1.5, color: '#6b6680', marginTop: 6, minHeight: stacked ? undefined : 42 }}>{p.desc}</div>
+      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: C.textStrong }}>{p.name}</div>
+      <div style={{ fontSize: 13.5, lineHeight: 1.5, color: C.textSecondary, marginTop: 6, minHeight: stacked ? undefined : 42 }}>{p.desc}</div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '18px 0 4px' }}>
         <StatNumber
           value={p.priceValue}
           suffix="đ"
           locales="vi-VN"
-          style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 34, letterSpacing: '-.02em', color: featured ? '#2563eb' : '#171327' }}
+          style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 34, letterSpacing: '-.02em', color: featured ? C.legacyText2563eb : C.ink900 }}
         />
-        <span style={{ fontSize: 13.5, fontWeight: 600, color: '#8a85a0' }}>{p.cadence}</span>
+        <span style={{ fontSize: 13.5, fontWeight: 600, color: C.textMuted }}>{p.cadence}</span>
       </div>
-      <div style={{ height: 1, background: '#f0ecf8', margin: '16px 0' }} />
+      <div style={{ height: 1, background: C.surfaceMuted, margin: '16px 0' }} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 11, flex: 1 }}>
         {p.features.map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-            <span style={{ flex: 'none', width: 19, height: 19, borderRadius: '50%', background: featured ? brandGradient : '#f3edff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
-              <Check size={12} strokeWidth={3} color={featured ? '#fff' : '#7c3aed'} />
+            <span style={{ flex: 'none', width: 19, height: 19, borderRadius: '50%', background: featured ? brandGradient : C.primarySoft, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
+              <Check size={12} strokeWidth={3} color={featured ? C.onBrand : C.primary} />
             </span>
-            <span style={{ fontSize: 13.5, lineHeight: 1.5, color: '#4b4660' }}>{f}</span>
+            <span style={{ fontSize: 13.5, lineHeight: 1.5, color: C.ink650 }}>{f}</span>
           </div>
         ))}
       </div>
@@ -96,7 +97,7 @@ export default function PlanCard({ plan: p, stacked, popularLabel }: PlanCardPro
           fontWeight: 700,
           fontSize: 14.5,
           cursor: 'pointer',
-          color: '#fff',
+          color: C.onBrand,
           background: brandGradient,
           boxShadow: `0 16px 30px -14px ${BRAND_GLOW}`,
         }}

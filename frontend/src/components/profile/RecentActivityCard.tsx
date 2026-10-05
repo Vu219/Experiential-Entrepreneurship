@@ -8,6 +8,7 @@ import type { ActivityActionGroup } from '../../api/admin';
 import { actionGroupTone, actionLabel } from '../admin/logs/activityLabels';
 import { TONE_COLORS } from '../../statusTokens';
 import Pagination from '../admin/Pagination';
+import { C } from '../../styles/colors';
 
 /**
  * "Hoạt động gần đây" trên trang Hồ sơ — dữ liệu THẬT từ GET /users/me/activity (bảng
@@ -49,17 +50,17 @@ export default function RecentActivityCard() {
   return (
     <Card style={{ padding: 26 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-        <div style={{ flex: 1, fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.prActivity}</div>
+        <div style={{ flex: 1, fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.prActivity}</div>
         <button
           onClick={() => load(page)}
           disabled={status === 'loading'}
           title={t.retry}
           aria-label={t.retry}
           className="btn-soft"
-          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none', width: 30, height: 30, border: '1px solid #ece8f6', borderRadius: 9, background: '#fff', color: '#a59fbb', cursor: status === 'loading' ? 'wait' : 'pointer' }}
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none', width: 30, height: 30, border: `1px solid ${C.border}`, borderRadius: 9, background: C.surface, color: C.textFaint, cursor: status === 'loading' ? 'wait' : 'pointer' }}
         >
           <span style={{ display: 'inline-flex', animation: status === 'loading' ? 'spinslow 0.8s linear infinite' : undefined }}>
-            <Icon icon={RefreshCw} size={15} stroke="#a59fbb" />
+            <Icon icon={RefreshCw} size={15} stroke={C.textFaint} />
           </span>
         </button>
       </div>
@@ -75,14 +76,14 @@ export default function RecentActivityCard() {
           ))}
         </div>
       ) : status === 'error' ? (
-        <div style={{ fontSize: 13.5, color: '#8a85a0' }}>
+        <div style={{ fontSize: 13.5, color: C.textMuted }}>
           {t.listError}{' '}
-          <button onClick={() => load(page)} className="link-underline" style={{ border: 'none', background: 'transparent', padding: 0, fontSize: 13.5, fontWeight: 700, color: '#7c3aed', cursor: 'pointer' }}>
+          <button onClick={() => load(page)} className="link-underline" style={{ border: 'none', background: 'transparent', padding: 0, fontSize: 13.5, fontWeight: 700, color: C.primary, cursor: 'pointer' }}>
             {t.retry}
           </button>
         </div>
       ) : rows.length === 0 ? (
-        <div style={{ fontSize: 13.5, color: '#8a85a0', lineHeight: 1.6 }}>{t.prActivityEmpty}</div>
+        <div style={{ fontSize: 13.5, color: C.textMuted, lineHeight: 1.6 }}>{t.prActivityEmpty}</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {rows.map((a) => {
@@ -94,11 +95,11 @@ export default function RecentActivityCard() {
                 <span aria-hidden style={{ width: 34, height: 34, flex: 'none', borderRadius: 9, background: tone.bg, color: tone.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon icon={GroupIcon} size={16} stroke={tone.color} />
                 </span>
-                <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: '#3f3a55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {actionLabel(lang, a.action)}
-                  {target && <span style={{ color: '#a59fbb' }}> · {target}</span>}
+                  {target && <span style={{ color: C.textFaint }}> · {target}</span>}
                 </span>
-                <span style={{ flex: 'none', fontSize: 12, color: '#a59fbb' }}>{timeAgo(lang, a.createdAt)}</span>
+                <span style={{ flex: 'none', fontSize: 12, color: C.textFaint }}>{timeAgo(lang, a.createdAt)}</span>
               </div>
             );
           })}

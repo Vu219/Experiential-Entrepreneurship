@@ -1,3 +1,4 @@
+import { C } from '../../../styles/colors';
 import { AlertOctagon, Ban, Clock, ShieldAlert, Users, Wrench } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
@@ -25,15 +26,15 @@ interface KpiCard {
 
 const CARD_TOTAL_REJECTED: KpiCard = {
   field: 'total', labelKey: 'apKpiTotal', icon: AlertOctagon,
-  iconBg: 'linear-gradient(135deg,#ffe9ec,#fff1f3)', iconColor: '#dc2626',
+  iconBg: `linear-gradient(135deg,${C.legacyBgffe9ec},${C.legacyBgfff1f3})`, iconColor: C.danger,
 };
 const CARD_TOTAL_SYSTEM: KpiCard = {
   field: 'total', labelKey: 'apKpiTotalSystem', icon: AlertOctagon,
-  iconBg: 'linear-gradient(135deg,#ffe9ec,#fff1f3)', iconColor: '#dc2626',
+  iconBg: `linear-gradient(135deg,${C.legacyBgffe9ec},${C.legacyBgfff1f3})`, iconColor: C.danger,
 };
 const CARD_USERS: KpiCard = {
   field: 'affectedUsers', labelKey: 'apKpiUsers', icon: Users,
-  iconBg: 'linear-gradient(135deg,#f1e9ff,#faf0ff)', iconColor: '#7c3aed',
+  iconBg: `linear-gradient(135deg,${C.purpleSoft},${C.legacyBgfaf0ff})`, iconColor: C.primary,
 };
 
 /**
@@ -43,14 +44,14 @@ const CARD_USERS: KpiCard = {
 const KPI_SETS: Record<PostProblemKind, KpiCard[]> = {
   rejected: [
     CARD_TOTAL_REJECTED,
-    { field: 'policyViolation', labelKey: 'apKpiPolicy', icon: ShieldAlert, iconBg: 'linear-gradient(135deg,#fff1dc,#fff8ec)', iconColor: '#d97706' },
-    { field: 'technical', labelKey: 'apKpiTechnical', icon: Wrench, iconBg: 'linear-gradient(135deg,#e0f2fe,#eff8ff)', iconColor: '#0e7490' },
+    { field: 'policyViolation', labelKey: 'apKpiPolicy', icon: ShieldAlert, iconBg: `linear-gradient(135deg,${C.legacyBgfff1dc},${C.legacyBgfff8ec})`, iconColor: C.warning },
+    { field: 'technical', labelKey: 'apKpiTechnical', icon: Wrench, iconBg: `linear-gradient(135deg,${C.legacyBge0f2fe},${C.legacyBgeff8ff})`, iconColor: C.info },
     CARD_USERS,
   ],
   system: [
     CARD_TOTAL_SYSTEM,
-    { field: 'temporary', labelKey: 'apKpiTemporary', icon: Clock, iconBg: 'linear-gradient(135deg,#fff1dc,#fff8ec)', iconColor: '#d97706' },
-    { field: 'permanent', labelKey: 'apKpiPermanent', icon: Ban, iconBg: 'linear-gradient(135deg,#e0f2fe,#eff8ff)', iconColor: '#0e7490' },
+    { field: 'temporary', labelKey: 'apKpiTemporary', icon: Clock, iconBg: `linear-gradient(135deg,${C.legacyBgfff1dc},${C.legacyBgfff8ec})`, iconColor: C.warning },
+    { field: 'permanent', labelKey: 'apKpiPermanent', icon: Ban, iconBg: `linear-gradient(135deg,${C.legacyBge0f2fe},${C.legacyBgeff8ff})`, iconColor: C.info },
     CARD_USERS,
   ],
 };

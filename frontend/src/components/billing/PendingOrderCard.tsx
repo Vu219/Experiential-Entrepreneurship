@@ -5,6 +5,7 @@ import { Card } from '../ui';
 import { formatVND } from '../../api/admin';
 import type { BillingOverview, Payment } from '../../api/payments';
 import { formatCountdown, useServerCountdown } from './useServerCountdown';
+import { C } from '../../styles/colors';
 
 /**
  * Đơn đang chờ thanh toán — tối đa MỘT trên mỗi user (ràng buộc partial unique ở DB).
@@ -42,15 +43,15 @@ export default function PendingOrderCard({
   const payable = !!payment.checkoutUrl;
 
   return (
-    <Card style={{ borderColor: '#f6dfae', background: 'linear-gradient(180deg,#fffdf7,#fff)' }}>
+    <Card style={{ borderColor: C.legacyBorderf6dfae, background: `linear-gradient(180deg,${C.legacyBgfffdf7},${C.shell})` }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-          <span aria-hidden style={{ width: 40, height: 40, borderRadius: 12, background: '#fdf0dc', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
-            <Clock size={19} color="#d97706" strokeWidth={1.9} />
+          <span aria-hidden style={{ width: 40, height: 40, borderRadius: 12, background: C.warningSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+            <Clock size={19} color={C.warning} strokeWidth={1.9} />
           </span>
           <div style={{ minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#1b1730' }}>{t.blPendingTitle}</p>
-            <p style={{ margin: '2px 0 0', fontSize: 13.5, color: '#6b6680' }}>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: C.textStrong }}>{t.blPendingTitle}</p>
+            <p style={{ margin: '2px 0 0', fontSize: 13.5, color: C.textSecondary }}>
               {planName} · {formatVND(payment.amount)}
               {payment.invoiceNo ? ` · ${payment.invoiceNo}` : ''}
             </p>
@@ -58,12 +59,12 @@ export default function PendingOrderCard({
         </div>
 
         <div style={{ textAlign: 'right' }}>
-          <p style={{ margin: 0, fontSize: 12, color: '#8a85a0' }}>{t.blPendingLeft}</p>
+          <p style={{ margin: 0, fontSize: 12, color: C.textMuted }}>{t.blPendingLeft}</p>
           <p
             style={{
               margin: '1px 0 0', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800,
               fontSize: 22, letterSpacing: '-.01em',
-              color: remaining !== null && remaining < 60_000 ? '#dc2626' : '#1b1730',
+              color: remaining !== null && remaining < 60_000 ? C.danger : C.textStrong,
               fontVariantNumeric: 'tabular-nums',
             }}
           >
@@ -86,9 +87,9 @@ export default function PendingOrderCard({
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 8, borderRadius: 12,
             padding: '11px 18px', fontSize: 14, fontWeight: 700, textDecoration: 'none',
-            color: payable ? '#fff' : '#a39bbf',
-            background: payable ? 'var(--brand)' : '#f2f0f8',
-            border: payable ? 'none' : '1px solid #eae6f4',
+            color: payable ? C.onBrand : C.ink350,
+            background: payable ? 'var(--brand)' : C.surfaceMuted,
+            border: payable ? 'none' : `1px solid ${C.border}`,
             cursor: payable ? 'pointer' : 'not-allowed',
             pointerEvents: payable ? undefined : 'none',
           }}
@@ -103,7 +104,7 @@ export default function PendingOrderCard({
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 8, borderRadius: 12,
             padding: '11px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-            color: '#6b6680', background: '#fff', border: '1px solid #eae6f4',
+            color: C.textSecondary, background: C.surface, border: `1px solid ${C.border}`,
           }}
         >
           <X size={16} strokeWidth={1.9} />
@@ -119,11 +120,11 @@ function Hint({ text }: { text: string }) {
     <div
       style={{
         display: 'flex', gap: 9, alignItems: 'flex-start', marginTop: 14,
-        padding: '11px 13px', borderRadius: 12, background: '#fdf0dc', border: '1px solid #f6dfae',
+        padding: '11px 13px', borderRadius: 12, background: C.warningSoft, border: `1px solid ${C.legacyBorderf6dfae}`,
       }}
     >
-      <CircleAlert size={16} strokeWidth={1.9} color="#b45309" style={{ flex: 'none', marginTop: 1 }} />
-      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: '#7c4a08' }}>{text}</p>
+      <CircleAlert size={16} strokeWidth={1.9} color={C.amberText} style={{ flex: 'none', marginTop: 1 }} />
+      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: C.legacyText7c4a08 }}>{text}</p>
     </div>
   );
 }

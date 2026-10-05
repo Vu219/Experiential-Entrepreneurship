@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { todayISO } from './dateRange';
+import { C } from '../../styles/colors';
 
 /**
  * Lịch chọn KHOẢNG ngày (dự án chỉ có `DatePicker` chọn MỘT ngày). Dùng lại y hệt cách dựng lưới
@@ -77,19 +78,19 @@ export default function RangeCalendar({
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <button type="button" onClick={() => step(-1)} aria-label={t.anaPrevPage} style={navBtn}>
-          <ChevronLeft size={16} color="#6b6680" strokeWidth={2} />
+          <ChevronLeft size={16} color={C.textSecondary} strokeWidth={2} />
         </button>
-        <div style={{ fontWeight: 700, fontSize: 14, color: '#211c38' }}>
+        <div style={{ fontWeight: 700, fontSize: 14, color: C.textStrong }}>
           {monthNames[view.month]} {view.year}
         </div>
         <button type="button" onClick={() => step(1)} aria-label={t.anaNextPage} style={navBtn}>
-          <ChevronRight size={16} color="#6b6680" strokeWidth={2} />
+          <ChevronRight size={16} color={C.textSecondary} strokeWidth={2} />
         </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 4 }}>
         {weekDays.map((wd) => (
-          <div key={wd} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#a39bbf' }}>{wd}</div>
+          <div key={wd} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: C.ink350 }}>{wd}</div>
         ))}
       </div>
 
@@ -109,12 +110,13 @@ export default function RangeCalendar({
               style={{
                 ...dayCell,
                 cursor: disabled ? 'default' : 'pointer',
-                color: disabled ? '#d0cce0' : isEdge ? '#fff' : '#3f3a55',
-                background: isEdge ? 'linear-gradient(135deg,#8b5cf6,#d946ef)' : inRange ? '#f3edff' : 'transparent',
+                color: disabled ? C.dateDisabled : isEdge ? '#fff' : C.text,
+                background: isEdge ? 'linear-gradient(135deg,#8b5cf6,#d946ef)' : inRange ? C.primarySoft : 'transparent',
                 fontWeight: isEdge ? 800 : 600,
               }}
-              onMouseEnter={(e) => { if (!disabled && !isEdge && !inRange) e.currentTarget.style.background = '#f6f3fc'; }}
-              onMouseLeave={(e) => { if (!isEdge && !inRange) e.currentTarget.style.background = 'transparent'; }}
+              className={(!disabled && !isEdge && !inRange ? "dm-hover-b6aea2e" : '')}
+
+
             >
               {Number(iso.slice(8, 10))}
             </button>
@@ -126,7 +128,7 @@ export default function RangeCalendar({
 }
 
 const navBtn: CSSProperties = {
-  width: 30, height: 30, borderRadius: 8, border: 'none', background: '#f6f3fc',
+  width: 30, height: 30, borderRadius: 8, border: 'none', background: C.surfaceMuted,
   display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
 };
 

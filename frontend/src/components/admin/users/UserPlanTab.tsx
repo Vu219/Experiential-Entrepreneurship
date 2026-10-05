@@ -16,6 +16,7 @@ import {
   type UserSubscription, type SubscriptionHistoryEntry, type DurationUnit,
   type SubscriptionChangeCategory, type UserPlan,
 } from '../../../api/admin';
+import { C } from '../../../styles/colors';
 
 type Action = 'extend' | 'change' | 'revoke';
 const UNITS: DurationUnit[] = ['DAY', 'WEEK', 'MONTH'];
@@ -245,7 +246,7 @@ export default function UserPlanTab({ userId, userName, onPlanChanged }: {
               {extendPreview && (
                 <div style={previewBox}>
                   {t.upNewExpiry}: <b>{formatDateTimeVN(extendPreview)}</b>
-                  <span style={{ color: '#8a85a0' }}> · {t.upExtendFrom} {formatDateTimeVN(sub.planExpiresAt)}</span>
+                  <span style={{ color: C.textMuted }}> · {t.upExtendFrom} {formatDateTimeVN(sub.planExpiresAt)}</span>
                 </div>
               )}
             </>
@@ -261,7 +262,7 @@ export default function UserPlanTab({ userId, userName, onPlanChanged }: {
                   ))}
                 </select>
               </Field>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#4b4660', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.ink650, cursor: 'pointer' }}>
                 <input type="checkbox" checked={noExpiry} onChange={(e) => setNoExpiry(e.target.checked)} />
                 {t.upNoExpiry}
               </label>
@@ -323,7 +324,7 @@ export default function UserPlanTab({ userId, userName, onPlanChanged }: {
             {t.upLoadMore}
           </button>
         )}
-        <p style={{ fontSize: 11.5, color: '#a59fbb', margin: '8px 0 0' }}>{t.upHistoryNote}</p>
+        <p style={{ fontSize: 11.5, color: C.textFaint, margin: '8px 0 0' }}>{t.upHistoryNote}</p>
       </div>
 
       {confirming && (
@@ -351,23 +352,23 @@ function HistoryRow({ entry: h, planName }: {
   return (
     <li style={{ ...panel, padding: '10px 12px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#2b2543' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.ink750 }}>
           {t[`upHis${h.action}`]}
           {h.extendAmount != null && h.extendUnit && (
-            <span style={{ color: '#6d28d9' }}> +{h.extendAmount} {t[`upUnit${h.extendUnit}`]}</span>
+            <span style={{ color: C.primaryStrong }}> +{h.extendAmount} {t[`upUnit${h.extendUnit}`]}</span>
           )}
         </span>
-        <span style={{ fontSize: 12, color: '#8a85a0' }}>{formatDateTimeVN(h.createdAt)}</span>
+        <span style={{ fontSize: 12, color: C.textMuted }}>{formatDateTimeVN(h.createdAt)}</span>
       </div>
-      <div style={{ fontSize: 12.5, color: '#4b4660', marginTop: 4 }}>
+      <div style={{ fontSize: 12.5, color: C.ink650, marginTop: 4 }}>
         {planChanged ? `${planName(h.fromPlanCode)} → ${planName(h.toPlanCode)}` : planName(h.toPlanCode)}
         {' · '}{t.upExpires}: {expiry(h.fromExpiresAt)} → {expiry(h.toExpiresAt)}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 6, fontSize: 12, color: '#8a85a0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 6, fontSize: 12, color: C.textMuted }}>
         <span>{h.actorEmail ?? t.upSystem}</span>
         {h.category && <StatusBadge tone="neutral" label={t[`upCat${h.category}`]} />}
       </div>
-      {h.reason && <div style={{ fontSize: 12.5, color: '#5b5670', marginTop: 6, fontStyle: 'italic' }}>“{h.reason}”</div>}
+      {h.reason && <div style={{ fontSize: 12.5, color: C.ink550, marginTop: 6, fontStyle: 'italic' }}>“{h.reason}”</div>}
     </li>
   );
 }
@@ -391,7 +392,7 @@ function DurationFields({ amount, unit, error, onAmount, onUnit, label }: {
           {UNITS.map((u) => <option key={u} value={u}>{t[`upUnit${u}`]}</option>)}
         </select>
       </div>
-      <span style={{ fontSize: 11.5, color: '#a59fbb' }}>
+      <span style={{ fontSize: 11.5, color: C.textFaint }}>
         {fill(t.upMaxHint, { n: DURATION_MAX[unit], unit: t[`upUnit${unit}`] })}
       </span>
     </Field>
@@ -401,9 +402,9 @@ function DurationFields({ amount, unit, error, onAmount, onUnit, label }: {
 function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 12, fontWeight: 700, color: '#8a85a0', letterSpacing: 0.3, textTransform: 'uppercase' }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, letterSpacing: 0.3, textTransform: 'uppercase' }}>{label}</span>
       {children}
-      {error && <span style={{ fontSize: 12, fontWeight: 600, color: '#dc2626' }}>{error}</span>}
+      {error && <span style={{ fontSize: 12, fontWeight: 600, color: C.danger }}>{error}</span>}
     </div>
   );
 }
@@ -411,30 +412,30 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 function Fact({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div>
-      <div style={{ fontSize: 11.5, fontWeight: 700, color: '#a59fbb', letterSpacing: 0.3, textTransform: 'uppercase' }}>{label}</div>
-      <div style={{ fontSize: 13.5, fontWeight: 600, color: '#2b2543', marginTop: 2 }}>
-        {value}{hint && <span style={{ fontWeight: 500, color: '#8a85a0' }}> · {hint}</span>}
+      <div style={{ fontSize: 11.5, fontWeight: 700, color: C.textFaint, letterSpacing: 0.3, textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ fontSize: 13.5, fontWeight: 600, color: C.ink750, marginTop: 2 }}>
+        {value}{hint && <span style={{ fontWeight: 500, color: C.textMuted }}> · {hint}</span>}
       </div>
     </div>
   );
 }
 
 /* ---- style: khớp EditUserModal ---- */
-const panel: CSSProperties = { background: '#faf9fe', border: '1px solid #f1eef8', borderRadius: 12, padding: '12px 14px' };
-const sectionLabel: CSSProperties = { fontSize: 11.5, fontWeight: 700, color: '#a59fbb', letterSpacing: 0.3, textTransform: 'uppercase' };
-const input: CSSProperties = { width: '100%', height: 40, border: '1px solid #ece8f6', borderRadius: 10, padding: '0 12px', fontSize: 13.5, color: '#241f3a', outline: 'none', background: '#fff' };
-const noteBox: CSSProperties = { background: '#f4f2fb', border: '1px solid #ece8f6', borderRadius: 10, padding: '11px 14px', fontSize: 13, color: '#6b6680' };
-const warnBox: CSSProperties = { background: '#fdf0dc', border: '1px solid #f7dca6', borderRadius: 10, padding: '10px 14px', fontSize: 12.5, color: '#92400e', lineHeight: 1.5 };
-const previewBox: CSSProperties = { fontSize: 13, color: '#2b2543', background: '#f5f0ff', border: '1px solid #e9dcff', borderRadius: 10, padding: '9px 12px' };
-const outlineBtn: CSSProperties = { border: '1px solid #ece8f6', background: '#fff', color: '#5b5670', fontWeight: 700, fontSize: 12.5, borderRadius: 10, padding: '8px 14px', cursor: 'pointer' };
+const panel: CSSProperties = { background: C.surfaceSubtle, border: `1px solid ${C.surfaceMuted}`, borderRadius: 12, padding: '12px 14px' };
+const sectionLabel: CSSProperties = { fontSize: 11.5, fontWeight: 700, color: C.textFaint, letterSpacing: 0.3, textTransform: 'uppercase' };
+const input: CSSProperties = { width: '100%', height: 40, border: `1px solid ${C.border}`, borderRadius: 10, padding: '0 12px', fontSize: 13.5, color: C.textStrong, outline: 'none', background: C.surface };
+const noteBox: CSSProperties = { background: C.surfaceMuted, border: `1px solid ${C.border}`, borderRadius: 10, padding: '11px 14px', fontSize: 13, color: C.textSecondary };
+const warnBox: CSSProperties = { background: C.warningSoft, border: `1px solid ${C.legacyBorderf7dca6}`, borderRadius: 10, padding: '10px 14px', fontSize: 12.5, color: C.legacyText92400e, lineHeight: 1.5 };
+const previewBox: CSSProperties = { fontSize: 13, color: C.ink750, background: C.border, border: `1px solid ${C.legacyBordere9dcff}`, borderRadius: 10, padding: '9px 12px' };
+const outlineBtn: CSSProperties = { border: `1px solid ${C.border}`, background: C.surface, color: C.ink550, fontWeight: 700, fontSize: 12.5, borderRadius: 10, padding: '8px 14px', cursor: 'pointer' };
 const pill = (active: boolean, danger: boolean): CSSProperties => ({
-  border: `1px solid ${active ? (danger ? '#f5c2d3' : '#d9c8fb') : '#ece8f6'}`,
-  background: active ? (danger ? '#fdeef3' : '#f3edff') : '#fff',
-  color: active ? (danger ? '#be185d' : '#6d28d9') : '#5b5670',
+  border: `1px solid ${active ? (danger ? C.legacyBorderf5c2d3 : C.legacyBorderd9c8fb) : C.border}`,
+  background: active ? (danger ? C.legacyBgfdeef3 : C.primarySoft) : C.surface,
+  color: active ? (danger ? C.legacyTextbe185d : C.primaryStrong) : C.ink550,
   fontWeight: 700, fontSize: 12.5, borderRadius: 999, padding: '7px 14px', cursor: 'pointer',
 });
 const applyBtn = (disabled: boolean, danger: boolean): CSSProperties => ({
-  border: 'none', borderRadius: 11, padding: '11px 0', fontSize: 14, fontWeight: 700, color: '#fff',
+  border: 'none', borderRadius: 11, padding: '11px 0', fontSize: 14, fontWeight: 700, color: danger ? '#fff' : C.onBrand,
   background: danger ? '#d6336c' : 'var(--brand)',
   cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1,
 });

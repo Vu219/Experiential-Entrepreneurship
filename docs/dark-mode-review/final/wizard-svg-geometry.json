@@ -1,0 +1,124 @@
+[
+  {
+    "port": 3101,
+    "buttons": [
+      {
+        "text": "Quay lại",
+        "box": {
+          "x": 952.421875,
+          "y": 929.890625,
+          "width": 110.8125,
+          "height": 44.25,
+          "top": 929.890625,
+          "right": 1063.234375,
+          "bottom": 974.140625,
+          "left": 952.421875
+        },
+        "svg": {
+          "x": 969.421875,
+          "y": 944.515625,
+          "width": 15,
+          "height": 15,
+          "top": 944.515625,
+          "right": 984.421875,
+          "bottom": 959.515625,
+          "left": 969.421875
+        },
+        "stroke": "rgb(87, 79, 110)",
+        "width": "1.8px",
+        "transform": "none",
+        "font": "700 13.5px / 20.25px \"Be Vietnam Pro\", system-ui, sans-serif",
+        "svgStyle": null
+      },
+      {
+        "text": "Lưu & về danh sách",
+        "box": {
+          "x": 1071.234375,
+          "y": 929.890625,
+          "width": 331.765625,
+          "height": 44.25,
+          "top": 929.890625,
+          "right": 1403,
+          "bottom": 974.140625,
+          "left": 1071.234375
+        },
+        "svg": {
+          "x": 1160.734375,
+          "y": 944.515625,
+          "width": 15,
+          "height": 15,
+          "top": 944.515625,
+          "right": 1175.734375,
+          "bottom": 959.515625,
+          "left": 1160.734375
+        },
+        "stroke": "rgb(109, 40, 217)",
+        "width": "1.8px",
+        "transform": "none",
+        "font": "700 13.5px / 20.25px \"Be Vietnam Pro\", system-ui, sans-serif",
+        "svgStyle": null
+      }
+    ]
+  },
+  {
+    "port": 3100,
+    "buttons": [
+      {
+        "text": "Quay lại",
+        "box": {
+          "x": 952.421875,
+          "y": 930.359375,
+          "width": 110.8125,
+          "height": 44.25,
+          "top": 930.359375,
+          "right": 1063.234375,
+          "bottom": 974.609375,
+          "left": 952.421875
+        },
+        "svg": {
+          "x": 969.421875,
+          "y": 944.984375,
+          "width": 15,
+          "height": 15,
+          "top": 944.984375,
+          "right": 984.421875,
+          "bottom": 959.984375,
+          "left": 969.421875
+        },
+        "stroke": "rgb(87, 79, 110)",
+        "width": "1.8px",
+        "transform": "none",
+        "font": "700 13.5px / 20.25px \"Be Vietnam Pro\", system-ui, sans-serif",
+        "svgStyle": null
+      },
+      {
+        "text": "Lưu & về danh sách",
+        "box": {
+          "x": 1071.234375,
+          "y": 930.359375,
+          "width": 331.765625,
+          "height": 44.25,
+          "top": 930.359375,
+          "right": 1403,
+          "bottom": 974.609375,
+          "left": 1071.234375
+        },
+        "svg": {
+          "x": 1160.734375,
+          "y": 944.984375,
+          "width": 15,
+          "height": 15,
+          "top": 944.984375,
+          "right": 1175.734375,
+          "bottom": 959.984375,
+          "left": 1160.734375
+        },
+        "stroke": "rgb(109, 40, 217)",
+        "width": "1.8px",
+        "transform": "none",
+        "font": "700 13.5px / 20.25px \"Be Vietnam Pro\", system-ui, sans-serif",
+        "svgStyle": null
+      }
+    ]
+  }
+]

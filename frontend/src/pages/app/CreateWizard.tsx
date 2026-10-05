@@ -39,6 +39,7 @@ import FinalizeStep, { type FormatScope } from '../../components/create/steps/Fi
 import ScheduleStep from '../../components/create/steps/ScheduleStep.tsx';
 import { useToast } from '../../components/toast/ToastProvider';
 import { aiErrorMessage, toAiErrorCode } from '../../api/aiErrorMessages';
+import { C } from '../../styles/colors';
 
 const parseStep = (v: string | null): WizardStep | null => (v === '1' || v === '2' || v === '3' || v === '4' ? (Number(v) as WizardStep) : null);
 
@@ -537,9 +538,9 @@ export default function CreateWizard() {
     return (
       <PageContainer>
         <Card style={{ textAlign: 'center', padding: 36 }}>
-          <div role="alert" style={{ fontSize: 14.5, fontWeight: 600, color: '#3f3a55', marginBottom: 16 }}>{loadError}</div>
-          <button onClick={() => go('create')} className="btn-soft" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: '#574f6e', cursor: 'pointer' }}>
-            <Icon icon={ArrowLeft} size={15} stroke="#574f6e" />{t.cwBackToList}
+          <div role="alert" style={{ fontSize: 14.5, fontWeight: 600, color: C.text, marginBottom: 16 }}>{loadError}</div>
+          <button onClick={() => go('create')} className="btn-soft" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: C.ink600, cursor: 'pointer' }}>
+            <Icon icon={ArrowLeft} size={15} stroke={C.ink600} />{t.cwBackToList}
           </button>
         </Card>
       </PageContainer>
@@ -548,12 +549,12 @@ export default function CreateWizard() {
 
   const readOnlyNotice = (
     <Card style={{ textAlign: 'center', padding: 36 }}>
-      <div style={{ width: 56, height: 56, borderRadius: 16, background: '#f6f2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-        <Icon icon={Lock} size={24} stroke="#a78bfa" />
+      <div style={{ width: 56, height: 56, borderRadius: 16, background: C.surfaceMuted, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+        <Icon icon={Lock} size={24} stroke={C.legacyTexta78bfa} />
       </div>
-      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 16, color: '#211c38' }}>{t.cwReadOnlyTitle}</div>
-      <div style={{ fontSize: 13, color: '#8a85a0', margin: '8px auto 18px', maxWidth: 420, lineHeight: 1.55 }}>{t.cwReadOnlySub}</div>
-      <button onClick={() => navigate(`/create?view=${itemId}`)} className="btn-soft" style={{ border: '1px solid #e3d9fb', background: '#fff', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, color: '#6d28d9', cursor: 'pointer' }}>
+      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 16, color: C.textStrong }}>{t.cwReadOnlyTitle}</div>
+      <div style={{ fontSize: 13, color: C.textMuted, margin: '8px auto 18px', maxWidth: 420, lineHeight: 1.55 }}>{t.cwReadOnlySub}</div>
+      <button onClick={() => navigate(`/create?view=${itemId}`)} className="btn-soft" style={{ border: `1px solid ${C.legacyBordere3d9fb}`, background: C.surface, borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, color: C.primaryStrong, cursor: 'pointer' }}>
         {t.cwOpenContent}
       </button>
     </Card>
@@ -564,8 +565,8 @@ export default function CreateWizard() {
   return (
     <PageContainer>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-        <button onClick={() => go('create')} className="btn-soft" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: '#574f6e', cursor: 'pointer' }}>
-          <Icon icon={ArrowLeft} size={15} stroke="#574f6e" />{t.cwBackToList}
+        <button onClick={() => go('create')} className="btn-soft" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: C.ink600, cursor: 'pointer' }}>
+          <Icon icon={ArrowLeft} size={15} stroke={C.ink600} />{t.cwBackToList}
         </button>
         <div style={{ flex: 1, minWidth: 260 }}>
           <WizardStepper current={effectiveStep} maxReached={maxReached} onGo={goStep} />

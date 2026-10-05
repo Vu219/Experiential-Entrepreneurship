@@ -19,6 +19,7 @@ import type { ApiError } from '../../api/apiClient';
 import type { Lang } from '../../types';
 import { useToast } from '../../components/toast/ToastProvider';
 import PageContainer from '../../components/PageContainer';
+import { C } from '../../styles/colors';
 
 
 // Trang admin "Quản lý gói" (3 tab): Gói dịch vụ / Bảng so sánh / Xem trước.
@@ -44,9 +45,9 @@ const toSaveInput = (p: PlanDto): PlanSaveInput => ({
   highlight: p.highlight, displayOrder: p.displayOrder, isActive: p.isActive,
 });
 
-const fieldStyle = { width: '100%', border: '1px solid #ece8f6', borderRadius: 10, padding: '9px 12px', fontSize: 13.5, color: '#241f3a', outline: 'none', background: '#fff' } as const;
-const labelStyle = { fontSize: 11.5, fontWeight: 700, letterSpacing: '.04em', color: '#a59fbb', marginBottom: 5, display: 'block' } as const;
-const hintStyle = { fontSize: 11, color: '#a59fbb', marginTop: 3 } as const;
+const fieldStyle = { width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 12px', fontSize: 13.5, color: C.textStrong, outline: 'none', background: C.surface } as const;
+const labelStyle = { fontSize: 11.5, fontWeight: 700, letterSpacing: '.04em', color: C.textFaint, marginBottom: 5, display: 'block' } as const;
+const hintStyle = { fontSize: 11, color: C.textFaint, marginTop: 3 } as const;
 
 export default function Plans() {
   const { t, lang, brandGradient } = useApp();
@@ -139,8 +140,8 @@ export default function Plans() {
   if (load === 'error' || !payload) return (
     <PageContainer>
       <Card style={{ textAlign: 'center', padding: '54px 16px' }}>
-        <div style={{ fontSize: 14.5, fontWeight: 600, color: '#5b5670', marginBottom: 14 }}>{t.listError}</div>
-        <button onClick={fetchAll} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
+        <div style={{ fontSize: 14.5, fontWeight: 600, color: C.ink550, marginBottom: 14 }}>{t.listError}</div>
+        <button onClick={fetchAll} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
       </Card>
     </PageContainer>
   );
@@ -148,7 +149,7 @@ export default function Plans() {
   const tabBtn = (key: Tab, label: string) => {
     const active = tab === key;
     return (
-      <button key={key} onClick={() => setTab(key)} style={{ border: '1px solid', borderColor: active ? 'transparent' : '#ece8f6', background: active ? brandGradient : '#fff', color: active ? '#fff' : '#5b5670', borderRadius: 9, padding: '7px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{label}</button>
+      <button key={key} onClick={() => setTab(key)} style={{ border: '1px solid', borderColor: active ? 'transparent' : C.border, background: active ? brandGradient : C.surface, color: active ? C.onBrand : C.ink550, borderRadius: 9, padding: '7px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{label}</button>
     );
   };
 
@@ -161,12 +162,12 @@ export default function Plans() {
           {tabBtn('preview', t.plTabPreview)}
         </div>
         {tab === 'plans' && (
-          <button onClick={() => setEditingPlan('new')} style={{ display: 'flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 9, padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer' }}>
+          <button onClick={() => setEditingPlan('new')} style={{ display: 'flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 9, padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>
             <Plus size={15} strokeWidth={2.5} /> {t.plAddPlan}
           </button>
         )}
         {tab === 'compare' && (
-          <button onClick={() => setEditingFeature('new')} style={{ display: 'flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 9, padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer' }}>
+          <button onClick={() => setEditingFeature('new')} style={{ display: 'flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 9, padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>
             <Plus size={15} strokeWidth={2.5} /> {t.plAddFeature}
           </button>
         )}
@@ -177,26 +178,26 @@ export default function Plans() {
           {sortedPlans.map((p) => (
             <Card key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 10, opacity: p.isActive ? 1 : 0.72 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: '#211c38' }}>{lang === 'en' ? p.nameEn : p.nameVi}</span>
-                {p.highlight && <Star size={15} fill="#f59e0b" color="#f59e0b" />}
-                <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.08em', color: '#6d28d9', background: '#f3edff', border: '1px solid #e7d9fb', borderRadius: 999, padding: '2px 8px' }} title={p.core ? t.plCore : undefined}>{p.code}</span>
+                <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: C.textStrong }}>{lang === 'en' ? p.nameEn : p.nameVi}</span>
+                {p.highlight && <Star size={15} fill={C.strengthFair} color={C.strengthFair} />}
+                <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.08em', color: C.primaryStrong, background: C.primarySoft, border: `1px solid ${C.accentLine}`, borderRadius: 999, padding: '2px 8px' }} title={p.core ? t.plCore : undefined}>{p.code}</span>
                 <span style={{ marginLeft: 'auto' }}>
                   <StatusBadge tone={p.isActive ? 'success' : 'neutral'} label={p.isActive ? t.plActiveOn : t.plActiveOff} />
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 24, color: '#171327' }}>{formatVND(p.price)}</span>
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: '#8a85a0' }}>{lang === 'en' ? p.billingCycleEn : p.billingCycleVi}</span>
+                <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 24, color: C.ink900 }}>{formatVND(p.price)}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: C.textMuted }}>{lang === 'en' ? p.billingCycleEn : p.billingCycleVi}</span>
               </div>
-              <div style={{ fontSize: 12.5, color: '#6b6680', lineHeight: 1.5, minHeight: 36 }}>{lang === 'en' ? p.descriptionEn : p.descriptionVi}</div>
-              <div style={{ fontSize: 12, color: '#7d6aa3' }}>
+              <div style={{ fontSize: 12.5, color: C.textSecondary, lineHeight: 1.5, minHeight: 36 }}>{lang === 'en' ? p.descriptionEn : p.descriptionVi}</div>
+              <div style={{ fontSize: 12, color: C.accentTextMuted }}>
                 {t.plTokenQuota}: <b>{p.tokenQuota === null ? '∞' : p.tokenQuota.toLocaleString('vi-VN')}</b>
-                <span style={{ margin: '0 8px', color: '#e3ddf2' }}>|</span>
+                <span style={{ margin: '0 8px', color: C.legacyTexte3ddf2 }}>|</span>
                 {t.plOrder}: <b>{p.displayOrder}</b>
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 6 }}>
-                <button onClick={() => setEditingPlan(p)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '7px 0', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>
-                  <Icon icon={Pencil} size={14} stroke="#8b5cf6" /> {t.plEditPlan}
+                <button onClick={() => setEditingPlan(p)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '7px 0', fontSize: 12.5, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>
+                  <Icon icon={Pencil} size={14} stroke={C.violetLight} /> {t.plEditPlan}
                 </button>
                 {/* Icon theo TRẠNG THÁI (đang hiển thị = mắt mở), tooltip theo HÀNH ĐỘNG khi bấm */}
                 <button
@@ -204,13 +205,13 @@ export default function Plans() {
                   disabled={busy}
                   title={p.isActive ? t.plHideAction : t.plShowAction}
                   aria-label={p.isActive ? t.plHideAction : t.plShowAction}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '7px 12px', cursor: 'pointer' }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '7px 12px', cursor: 'pointer' }}
                 >
-                  <Icon icon={p.isActive ? Eye : EyeOff} size={15} stroke="#8a85a0" />
+                  <Icon icon={p.isActive ? Eye : EyeOff} size={15} stroke={C.textMuted} />
                 </button>
                 {!p.core && (
-                  <button onClick={() => setDeletingPlan(p)} title={t.plDeleteAction} aria-label={t.plDeleteAction} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fbdce7', background: '#fff', borderRadius: 9, padding: '7px 12px', cursor: 'pointer' }}>
-                    <Icon icon={Trash2} size={15} stroke="#e25c84" />
+                  <button onClick={() => setDeletingPlan(p)} title={t.plDeleteAction} aria-label={t.plDeleteAction} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${C.legacyBorderfbdce7}`, background: C.surface, borderRadius: 9, padding: '7px 12px', cursor: 'pointer' }}>
+                    <Icon icon={Trash2} size={15} stroke={C.legacyTexte25c84} />
                   </button>
                 )}
               </div>
@@ -224,40 +225,40 @@ export default function Plans() {
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <table style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #f0ecf8' }}>
-                  <th style={{ padding: '13px 16px', textAlign: 'left', fontSize: 12.5, fontWeight: 700, color: '#8a85a0' }}>{t.plColGroup}</th>
-                  <th style={{ padding: '13px 16px', textAlign: 'left', fontSize: 12.5, fontWeight: 700, color: '#8a85a0' }}>{t.plColFeature}</th>
+                <tr style={{ borderBottom: `1px solid ${C.surfaceMuted}` }}>
+                  <th style={{ padding: '13px 16px', textAlign: 'left', fontSize: 12.5, fontWeight: 700, color: C.textMuted }}>{t.plColGroup}</th>
+                  <th style={{ padding: '13px 16px', textAlign: 'left', fontSize: 12.5, fontWeight: 700, color: C.textMuted }}>{t.plColFeature}</th>
                   {sortedPlans.map((p) => (
-                    <th key={p.id} style={{ padding: '13px 12px', textAlign: 'center', fontSize: 12.5, fontWeight: 800, color: p.highlight ? '#6d28d9' : '#211c38', minWidth: 90 }}>{p.code}</th>
+                    <th key={p.id} style={{ padding: '13px 12px', textAlign: 'center', fontSize: 12.5, fontWeight: 800, color: p.highlight ? C.primaryStrong : C.textStrong, minWidth: 90 }}>{p.code}</th>
                   ))}
                   <th style={{ padding: '13px 16px' }} />
                 </tr>
               </thead>
               <tbody>
                 {sortedFeatures.length === 0 && (
-                  <tr><td colSpan={sortedPlans.length + 3} style={{ padding: '30px 16px', textAlign: 'center', fontSize: 13, color: '#8a85a0' }}>{t.listEmpty}</td></tr>
+                  <tr><td colSpan={sortedPlans.length + 3} style={{ padding: '30px 16px', textAlign: 'center', fontSize: 13, color: C.textMuted }}>{t.listEmpty}</td></tr>
                 )}
                 {sortedFeatures.map((f) => (
-                  <tr key={f.id} style={{ borderTop: '1px solid #f6f3fb' }}>
-                    <td style={{ padding: '11px 16px', fontSize: 12.5, fontWeight: 700, color: '#7c3aed', whiteSpace: 'nowrap' }}>{lang === 'en' ? f.groupEn : f.groupVi}</td>
-                    <td style={{ padding: '11px 16px', fontSize: 13, color: '#4b4660' }}>{lang === 'en' ? f.nameEn : f.nameVi}</td>
+                  <tr key={f.id} style={{ borderTop: `1px solid ${C.bg}` }}>
+                    <td style={{ padding: '11px 16px', fontSize: 12.5, fontWeight: 700, color: C.primary, whiteSpace: 'nowrap' }}>{lang === 'en' ? f.groupEn : f.groupVi}</td>
+                    <td style={{ padding: '11px 16px', fontSize: 13, color: C.ink650 }}>{lang === 'en' ? f.nameEn : f.nameVi}</td>
                     {sortedPlans.map((p) => {
                       const v = f.values.find((x) => x.planCode === p.code);
                       return (
                         <td key={p.id} style={{ padding: '11px 12px', textAlign: 'center' }}>
-                          {!v || (v.boolValue === null && !v.textVi && !v.textEn) ? <span style={{ color: '#c9c2dd' }}>·</span>
-                            : v.boolValue === true ? <Check size={15} strokeWidth={3} color="#7c3aed" style={{ verticalAlign: 'middle' }} />
-                            : v.boolValue === false ? <span style={{ color: '#c9c2dd', fontWeight: 600 }}>—</span>
-                            : <span style={{ fontSize: 12.5, fontWeight: 600, color: '#4b4660' }}>{lang === 'en' ? v.textEn || v.textVi : v.textVi || v.textEn}</span>}
+                          {!v || (v.boolValue === null && !v.textVi && !v.textEn) ? <span style={{ color: C.ink200 }}>·</span>
+                            : v.boolValue === true ? <Check size={15} strokeWidth={3} color={C.primary} style={{ verticalAlign: 'middle' }} />
+                            : v.boolValue === false ? <span style={{ color: C.ink200, fontWeight: 600 }}>—</span>
+                            : <span style={{ fontSize: 12.5, fontWeight: 600, color: C.ink650 }}>{lang === 'en' ? v.textEn || v.textVi : v.textVi || v.textEn}</span>}
                         </td>
                       );
                     })}
                     <td style={{ padding: '11px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <button onClick={() => setEditingFeature(f)} title={t.plEditFeature} style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 8, padding: '5px 9px', cursor: 'pointer', marginRight: 6 }}>
-                        <Icon icon={Pencil} size={13} stroke="#8b5cf6" />
+                      <button onClick={() => setEditingFeature(f)} title={t.plEditFeature} style={{ border: `1px solid ${C.border}`, background: C.surface, borderRadius: 8, padding: '5px 9px', cursor: 'pointer', marginRight: 6 }}>
+                        <Icon icon={Pencil} size={13} stroke={C.violetLight} />
                       </button>
-                      <button onClick={() => setDeletingFeature(f)} title={t.plDeleteRow} aria-label={t.plDeleteRow} style={{ border: '1px solid #fbdce7', background: '#fff', borderRadius: 8, padding: '5px 9px', cursor: 'pointer' }}>
-                        <Icon icon={Trash2} size={13} stroke="#e25c84" />
+                      <button onClick={() => setDeletingFeature(f)} title={t.plDeleteRow} aria-label={t.plDeleteRow} style={{ border: `1px solid ${C.legacyBorderfbdce7}`, background: C.surface, borderRadius: 8, padding: '5px 9px', cursor: 'pointer' }}>
+                        <Icon icon={Trash2} size={13} stroke={C.legacyTexte25c84} />
                       </button>
                     </td>
                   </tr>
@@ -319,17 +320,17 @@ function PreviewTab({ payload }: { payload: PlansPayload }) {
   const cardWidth = `calc((100% - ${(cols - 1) * gap}px) / ${cols})`;
 
   const langBtn = (l: Lang) => (
-    <button key={l} onClick={() => setPreviewLang(l)} style={{ border: '1px solid', borderColor: previewLang === l ? 'transparent' : '#ece8f6', background: previewLang === l ? brandGradient : '#fff', color: previewLang === l ? '#fff' : '#5b5670', borderRadius: 8, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{l.toUpperCase()}</button>
+    <button key={l} onClick={() => setPreviewLang(l)} style={{ border: '1px solid', borderColor: previewLang === l ? 'transparent' : C.border, background: previewLang === l ? brandGradient : C.surface, color: previewLang === l ? C.onBrand : C.ink550, borderRadius: 8, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{l.toUpperCase()}</button>
   );
 
   if (plans.length === 0) {
-    return <Card style={{ textAlign: 'center', padding: '44px 16px', fontSize: 13.5, color: '#8a85a0' }}>{t.plPreviewEmpty}</Card>;
+    return <Card style={{ textAlign: 'center', padding: '44px 16px', fontSize: 13.5, color: C.textMuted }}>{t.plPreviewEmpty}</Card>;
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ fontSize: 12.5, color: '#8a85a0', flex: 1 }}>{t.plPreviewNote}</div>
+        <div style={{ fontSize: 12.5, color: C.textMuted, flex: 1 }}>{t.plPreviewNote}</div>
         <div style={{ display: 'flex', gap: 6 }}>{langBtn('vi')}{langBtn('en')}</div>
       </div>
 
@@ -342,16 +343,16 @@ function PreviewTab({ payload }: { payload: PlansPayload }) {
         ))}
       </div>
 
-      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', background: '#fff', border: '1px solid #efeaf8', borderRadius: 20, boxShadow: '0 22px 44px -34px rgba(80,40,140,.5)' }}>
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, boxShadow: `0 22px 44px -34px ${C.legacyShadowrgba8040140_5_}` }}>
         <table style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse' }}>
           <thead>
             <tr>
-              <th style={{ padding: '14px 18px', textAlign: 'left', fontSize: 13, fontWeight: 700, color: '#8a85a0', borderBottom: '1px solid #f0ecf8' }}>{t.ppColFeature}</th>
+              <th style={{ padding: '14px 18px', textAlign: 'left', fontSize: 13, fontWeight: 700, color: C.textMuted, borderBottom: `1px solid ${C.surfaceMuted}` }}>{t.ppColFeature}</th>
               {plans.map((p) => (
-                <th key={p.id} style={{ padding: '14px 18px', textAlign: 'center', borderBottom: '1px solid #f0ecf8', minWidth: 130 }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: p.featured ? '#6d28d9' : '#211c38' }}>
+                <th key={p.id} style={{ padding: '14px 18px', textAlign: 'center', borderBottom: `1px solid ${C.surfaceMuted}`, minWidth: 130 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: p.featured ? C.primaryStrong : C.textStrong }}>
                     {p.name}
-                    {p.featured && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#6d28d9', background: '#f3edff', border: '1px solid #e7d9fb', borderRadius: 999, padding: '2px 8px', whiteSpace: 'nowrap' }}>★ {t.prPopular}</span>}
+                    {p.featured && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.primaryStrong, background: C.primarySoft, border: `1px solid ${C.accentLine}`, borderRadius: 999, padding: '2px 8px', whiteSpace: 'nowrap' }}>★ {t.prPopular}</span>}
                   </span>
                 </th>
               ))}
@@ -362,20 +363,20 @@ function PreviewTab({ payload }: { payload: PlansPayload }) {
               <Fragment key={g.title}>
                 {g.title && (
                   <tr>
-                    <td colSpan={plans.length + 1} style={{ padding: '18px 18px 8px', fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 13.5, color: '#7c3aed' }}>{g.title}</td>
+                    <td colSpan={plans.length + 1} style={{ padding: '18px 18px 8px', fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 13.5, color: C.primary }}>{g.title}</td>
                   </tr>
                 )}
                 {g.rows.map((row) => (
-                  <tr key={row.label} style={{ borderBottom: '1px solid #f6f3fb' }}>
-                    <td style={{ padding: '14px 18px', fontSize: 13.5, color: '#4b4660' }}>{row.label}</td>
+                  <tr key={row.label} style={{ borderBottom: `1px solid ${C.bg}` }}>
+                    <td style={{ padding: '14px 18px', fontSize: 13.5, color: C.ink650 }}>{row.label}</td>
                     {row.values.map((v, i) => (
-                      <td key={i} style={{ padding: '14px 18px', textAlign: 'center', background: plans[i]?.featured ? 'rgba(124,58,237,.035)' : undefined }}>
+                      <td key={i} style={{ padding: '14px 18px', textAlign: 'center', background: plans[i]?.featured ? C.legacyBgrgba12458237_035_ : undefined }}>
                         {v === true ? (
-                          <span style={{ display: 'inline-flex', width: 22, height: 22, borderRadius: '50%', background: '#f3edff', alignItems: 'center', justifyContent: 'center' }}>
-                            <Check size={13} strokeWidth={3} color="#7c3aed" />
+                          <span style={{ display: 'inline-flex', width: 22, height: 22, borderRadius: '50%', background: C.primarySoft, alignItems: 'center', justifyContent: 'center' }}>
+                            <Check size={13} strokeWidth={3} color={C.primary} />
                           </span>
-                        ) : v === false ? <span style={{ color: '#c9c2dd', fontWeight: 600 }}>—</span>
-                          : <span style={{ fontSize: 13.5, fontWeight: 600, color: '#4b4660' }}>{v}</span>}
+                        ) : v === false ? <span style={{ color: C.ink200, fontWeight: 600 }}>—</span>
+                          : <span style={{ fontSize: 13.5, fontWeight: 600, color: C.ink650 }}>{v}</span>}
                       </td>
                     ))}
                   </tr>
@@ -465,13 +466,13 @@ function PlanFormModal({ plan, onClose, onSaved }: {
   const sectionBtn = (s: { key: PlanFormSection; label: string }) => {
     const active = section === s.key;
     return (
-      <button key={s.key} onClick={() => setSection(s.key)} style={{ border: '1px solid', borderColor: active ? 'transparent' : '#ece8f6', background: active ? '#f3edff' : '#fff', color: active ? '#6d28d9' : '#8a85a0', borderRadius: 999, padding: '6px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{s.label}</button>
+      <button key={s.key} onClick={() => setSection(s.key)} style={{ border: '1px solid', borderColor: active ? 'transparent' : C.border, background: active ? C.primarySoft : C.surface, color: active ? C.primaryStrong : C.textMuted, borderRadius: 999, padding: '6px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{s.label}</button>
     );
   };
 
   return (
     <Modal title={isNew ? t.plNewPlan : `${t.plEditPlan}: ${plan.nameVi}`} onClose={onClose} maxWidth={620}>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid #f0ecf8' }}>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingBottom: 14, marginBottom: 14, borderBottom: `1px solid ${C.surfaceMuted}` }}>
         {sections.map(sectionBtn)}
       </div>
 
@@ -480,7 +481,7 @@ function PlanFormModal({ plan, onClose, onSaved }: {
           <div style={two}>
             <div>
               <label style={labelStyle}>{t.plCode}</label>
-              <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} disabled={!isNew} style={{ ...fieldStyle, background: isNew ? '#fff' : '#f4f2fb', color: isNew ? '#241f3a' : '#8a85a0', textTransform: 'uppercase' }} placeholder="TEAM" />
+              <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} disabled={!isNew} style={{ ...fieldStyle, background: isNew ? C.surface : C.surfaceMuted, color: isNew ? C.textStrong : C.textMuted, textTransform: 'uppercase' }} placeholder="TEAM" />
               <div style={hintStyle}>{isNew ? t.plCodeHint : t.plCore}</div>
             </div>
             <div>
@@ -561,10 +562,10 @@ function PlanFormModal({ plan, onClose, onSaved }: {
             <div><label style={labelStyle}>{t.plCtaEn}</label><input value={ctaEn} onChange={(e) => setCtaEn(e.target.value)} style={fieldStyle} /></div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#4b4660', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: C.ink650, cursor: 'pointer' }}>
               <input type="checkbox" checked={highlight} onChange={(e) => setHighlight(e.target.checked)} /> {t.plHighlight}
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#4b4660', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: C.ink650, cursor: 'pointer' }}>
               <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} /> {t.plActive}
             </label>
           </div>
@@ -572,9 +573,9 @@ function PlanFormModal({ plan, onClose, onSaved }: {
       )}
 
       {/* Footer sticky: luôn thấy Lưu/Hủy không cần scroll (bù padding 26 của Modal bằng margin âm) */}
-      <div style={{ position: 'sticky', bottom: -26, background: '#fff', margin: '16px -26px -26px', padding: '14px 26px 20px', borderTop: '1px solid #f0ecf8', display: 'flex', gap: 10 }}>
-        <button onClick={onClose} style={{ flex: 1, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '10px 0', fontSize: 14, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>{t.cancel}</button>
-        <button onClick={submit} disabled={!canSave || busy} style={{ flex: 1, border: 'none', borderRadius: 10, padding: '10px 0', fontSize: 14, fontWeight: 700, color: '#fff', background: brandGradient, cursor: canSave && !busy ? 'pointer' : 'default', opacity: canSave && !busy ? 1 : 0.6 }}>{t.save}</button>
+      <div style={{ position: 'sticky', bottom: -26, background: C.surface, margin: '16px -26px -26px', padding: '14px 26px 20px', borderTop: `1px solid ${C.surfaceMuted}`, display: 'flex', gap: 10 }}>
+        <button onClick={onClose} style={{ flex: 1, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '10px 0', fontSize: 14, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>{t.cancel}</button>
+        <button onClick={submit} disabled={!canSave || busy} style={{ flex: 1, border: 'none', borderRadius: 10, padding: '10px 0', fontSize: 14, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: canSave && !busy ? 'pointer' : 'default', opacity: canSave && !busy ? 1 : 0.6 }}>{t.save}</button>
       </div>
     </Modal>
   );
@@ -638,8 +639,8 @@ function FeatureFormModal({ feature, plans, onClose, onSaved }: {
 
   const two = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 } as const;
   const segBtn = (active: boolean) => ({
-    border: '1px solid', borderColor: active ? 'transparent' : '#ece8f6',
-    background: active ? '#f3edff' : '#fff', color: active ? '#6d28d9' : '#8a85a0',
+    border: '1px solid', borderColor: active ? 'transparent' : C.border,
+    background: active ? C.primarySoft : C.surface, color: active ? C.primaryStrong : C.textMuted,
     borderRadius: 8, padding: '4px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
   } as const);
 
@@ -667,10 +668,10 @@ function FeatureFormModal({ feature, plans, onClose, onSaved }: {
         {plans.map((p) => {
           const c = cells[p.code];
           return (
-            <div key={p.code} style={{ border: '1px solid #f1eef8', borderRadius: 12, padding: '10px 12px' }}>
+            <div key={p.code} style={{ border: `1px solid ${C.surfaceMuted}`, borderRadius: 12, padding: '10px 12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 800, color: '#6d28d9' }}>{p.code}</span>
-                <span style={{ fontSize: 11.5, color: '#a59fbb' }}>{p.nameVi}</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: C.primaryStrong }}>{p.code}</span>
+                <span style={{ fontSize: 11.5, color: C.textFaint }}>{p.nameVi}</span>
                 <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
                   <button onClick={() => setCell(p.code, { type: 'tick' })} style={segBtn(c.type === 'tick')}>{t.plTypeTick}</button>
                   <button onClick={() => setCell(p.code, { type: 'text' })} style={segBtn(c.type === 'text')}>{t.plTypeText}</button>
@@ -693,8 +694,8 @@ function FeatureFormModal({ feature, plans, onClose, onSaved }: {
       </div>
 
       <div style={{ display: 'flex', gap: 10 }}>
-        <button onClick={onClose} style={{ flex: 1, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '10px 0', fontSize: 14, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>{t.cancel}</button>
-        <button onClick={submit} disabled={!canSave || busy} style={{ flex: 1, border: 'none', borderRadius: 10, padding: '10px 0', fontSize: 14, fontWeight: 700, color: '#fff', background: brandGradient, cursor: canSave && !busy ? 'pointer' : 'default', opacity: canSave && !busy ? 1 : 0.6 }}>{t.save}</button>
+        <button onClick={onClose} style={{ flex: 1, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '10px 0', fontSize: 14, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>{t.cancel}</button>
+        <button onClick={submit} disabled={!canSave || busy} style={{ flex: 1, border: 'none', borderRadius: 10, padding: '10px 0', fontSize: 14, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: canSave && !busy ? 'pointer' : 'default', opacity: canSave && !busy ? 1 : 0.6 }}>{t.save}</button>
       </div>
     </Modal>
   );

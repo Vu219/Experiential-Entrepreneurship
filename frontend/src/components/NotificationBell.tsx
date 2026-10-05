@@ -13,6 +13,7 @@ import {
   markNotificationRead,
   type AppNotification,
 } from "../api/notifications";
+import { C } from "../styles/colors";
 
 const PAGE_SIZE = 8;
 const POLL_MS = 60_000;
@@ -99,17 +100,17 @@ export default function NotificationBell() {
         aria-label={t.ntfTitle}
         style={{
           position: "relative", width: isMobile ? 38 : 42, height: isMobile ? 38 : 42, borderRadius: 11,
-          background: "#f4f2fb", border: "1px solid #ece8f6",
+          background: C.surfaceMuted, border: `1px solid ${C.border}`,
           display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
         }}
       >
-        <Icon icon={ICON.bell} size={19} stroke="#5b5670" />
+        <Icon icon={ICON.bell} size={19} stroke={C.ink550} />
         {unread > 0 && (
           <span
             style={{
               position: "absolute", top: -5, right: -5, minWidth: 18, height: 18, padding: "0 4px",
               borderRadius: 999, background: "#ec4899", color: "#fff", fontSize: 10.5, fontWeight: 800,
-              display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff",
+              display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${C.surface}`,
             }}
           >
             {unread > 99 ? "99+" : unread}
@@ -124,16 +125,16 @@ export default function NotificationBell() {
           style={{
             position: "absolute", right: isMobile ? -52 : 0, top: "100%", marginTop: 8,
             width: "min(370px, calc(100vw - 28px))",
-            background: "#fff", borderRadius: 16, border: "1px solid #ece8f6",
-            boxShadow: "0 30px 60px -28px rgba(80,40,140,.5)", overflow: "hidden", zIndex: 120,
+            background: C.surface, borderRadius: 16, border: `1px solid ${C.border}`,
+            boxShadow: C.shadowPop, overflow: "hidden", zIndex: 120,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid #f0ecf8", background: "linear-gradient(135deg,#edf9ff,#f6effc)" }}>
-            <span style={{ fontSize: 14, fontWeight: 800, color: "#241f3a" }}>{t.ntfTitle}</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${C.surfaceMuted}`, background: C.menuHeader }}>
+            <span style={{ fontSize: 14, fontWeight: 800, color: C.textStrong }}>{t.ntfTitle}</span>
             {unread > 0 && (
               <button
                 onClick={onMarkAll}
-                style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#7c3aed", padding: 0 }}
+                style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, color: C.primary, padding: 0 }}
               >
                 <CheckCheck size={14} />
                 {t.ntfMarkAll}
@@ -143,26 +144,26 @@ export default function NotificationBell() {
 
           <div style={{ maxHeight: 420, overflowY: "auto" }}>
             {error && (
-              <div style={{ padding: "26px 16px", textAlign: "center", fontSize: 13, color: "#8a85a0" }}>
+              <div style={{ padding: "26px 16px", textAlign: "center", fontSize: 13, color: C.textMuted }}>
                 {t.ntfErr}{" "}
-                <button onClick={() => loadPage(0, true)} style={{ background: "none", border: "none", color: "#7c3aed", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
+                <button onClick={() => loadPage(0, true)} style={{ background: "none", border: "none", color: C.primary, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
                   {t.ntfRetry}
                 </button>
               </div>
             )}
             {!error && items.length === 0 && !loading && (
-              <div style={{ padding: "30px 16px", textAlign: "center", fontSize: 13, color: "#8a85a0" }}>{t.ntfEmpty}</div>
+              <div style={{ padding: "30px 16px", textAlign: "center", fontSize: 13, color: C.textMuted }}>{t.ntfEmpty}</div>
             )}
             {items.map((n) => (
               <NotificationRow key={n.id} notification={n} onClick={() => onItemClick(n)} />
             ))}
             {loading && (
-              <div style={{ padding: "14px 16px", textAlign: "center", fontSize: 12.5, color: "#a39bbf" }}>…</div>
+              <div style={{ padding: "14px 16px", textAlign: "center", fontSize: 12.5, color: C.ink350 }}>…</div>
             )}
             {!loading && !error && !last && (
               <button
                 onClick={() => loadPage(page + 1, false)}
-                style={{ width: "100%", padding: "11px 16px", background: "#faf9fe", border: "none", borderTop: "1px solid #f0ecf8", cursor: "pointer", fontSize: 12.5, fontWeight: 700, color: "#7c3aed" }}
+                style={{ width: "100%", padding: "11px 16px", background: C.surfaceSubtle, border: "none", borderTop: `1px solid ${C.surfaceMuted}`, cursor: "pointer", fontSize: 12.5, fontWeight: 700, color: C.primary }}
               >
                 {t.ntfMore}
               </button>
@@ -176,7 +177,6 @@ export default function NotificationBell() {
 
 function NotificationRow({ notification, onClick }: { notification: AppNotification; onClick: () => void }) {
   const { t } = useApp();
-  const [hover, setHover] = useState(false);
   const meta = TYPE_META[notification.type] ?? TYPE_META.NEW_INSIGHT;
   const TypeIcon = meta.icon;
   const unread = !notification.readAt;
@@ -185,12 +185,11 @@ function NotificationRow({ notification, onClick }: { notification: AppNotificat
     <button
       role="menuitem"
       onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      // Nền chưa đọc + hover bằng class CSS (.ntf-row trong index.css), không state JS.
+      className={unread ? "ntf-row ntf-row--unread" : "ntf-row"}
       style={{
         width: "100%", display: "flex", gap: 12, padding: "12px 16px", textAlign: "left",
-        border: "none", borderBottom: "1px solid #f5f2fb", cursor: "pointer",
-        background: hover ? "#f7f6fd" : unread ? "#fbf9ff" : "transparent", transition: "background .15s",
+        border: "none", borderBottom: `1px solid ${C.surfaceMuted}`, cursor: "pointer",
       }}
     >
       <span style={{ width: 34, height: 34, flex: "none", borderRadius: 10, background: meta.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -198,7 +197,7 @@ function NotificationRow({ notification, onClick }: { notification: AppNotificat
       </span>
       <span style={{ minWidth: 0, flex: 1 }}>
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: unread ? 800 : 600, color: "#241f3a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: 13, fontWeight: unread ? 800 : 600, color: C.textStrong, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {notification.title}
           </span>
           {unread && <span style={{ width: 7, height: 7, flex: "none", borderRadius: "50%", background: "#ec4899" }} />}
@@ -207,13 +206,13 @@ function NotificationRow({ notification, onClick }: { notification: AppNotificat
           <span
             style={{
               display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
-              fontSize: 12, color: "#6f6a86", lineHeight: 1.45, marginTop: 2,
+              fontSize: 12, color: C.textSecondary, lineHeight: 1.45, marginTop: 2,
             }}
           >
             {notification.message}
           </span>
         )}
-        <span style={{ display: "block", fontSize: 11, color: "#a39bbf", marginTop: 4 }}>
+        <span style={{ display: "block", fontSize: 11, color: C.ink350, marginTop: 4 }}>
           {formatRelativeTime(notification.createdAt, t)}
         </span>
       </span>

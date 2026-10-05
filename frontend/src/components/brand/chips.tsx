@@ -4,34 +4,35 @@ import { useApp } from '../../context/AppContext';
 import { PlatformTag } from '../ui';
 import { PLATFORMS } from '../../theme';
 import type { Platform } from '../../api/brandProfile';
+import { C } from '../../styles/colors';
 
 // ===== Shared field styles (đồng bộ với Brand cũ) =====
-export const fieldLabel: CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 700, color: '#574f6e', marginBottom: 6 };
-export const fieldInput: CSSProperties = { width: '100%', border: '1.5px solid #e7e2f2', borderRadius: 11, padding: '11px 13px', fontSize: 14, color: '#241f3a', background: '#fbfaff' };
+export const fieldLabel: CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 700, color: C.ink600, marginBottom: 6 };
+export const fieldInput: CSSProperties = { width: '100%', border: `1.5px solid ${C.border}`, borderRadius: 11, padding: '11px 13px', fontSize: 14, color: C.textStrong, background: C.surfaceSubtle };
 
 /** Nhãn trường + dấu * (bắt buộc) + sub-text mô tả (help). */
 export function Field({ label, required, help, error, children }: { label: string; required?: boolean; help?: string; error?: string; children: ReactNode }) {
   return (
     <div>
       <label style={{ ...fieldLabel, marginBottom: help ? 2 : 6 }}>
-        {label}{required && <span style={{ color: '#d6336c' }}> *</span>}
+        {label}{required && <span style={{ color: C.legacyTextd6336c }}> *</span>}
       </label>
-      {help && <div style={{ fontSize: 12, color: '#9b94b5', marginBottom: 8 }}>{help}</div>}
+      {help && <div style={{ fontSize: 12, color: C.ink350, marginBottom: 8 }}>{help}</div>}
       {children}
-      {error && <div style={{ fontSize: 12, color: '#d6336c', marginTop: 6 }}>{error}</div>}
+      {error && <div style={{ fontSize: 12, color: C.legacyTextd6336c, marginTop: 6 }}>{error}</div>}
     </div>
   );
 }
 
 const chipStyle = (active: boolean, grad: string): CSSProperties => ({
-  border: `1.5px solid ${active ? 'transparent' : '#ece8f6'}`,
+  border: `1.5px solid ${active ? 'transparent' : C.border}`,
   borderRadius: 10,
   padding: '7px 13px',
   fontSize: 13,
   fontWeight: 600,
   cursor: 'pointer',
-  background: active ? grad : '#fff',
-  color: active ? '#fff' : '#3f3a55',
+  background: active ? grad : C.surface,
+  color: active ? C.onBrand : C.text,
   transition: 'background .15s',
 });
 
@@ -68,7 +69,7 @@ export function ChipMultiSelect({ options, value, onChange, max, creatable }: { 
             disabled={atMax}
             style={{ ...fieldInput, flex: 1, opacity: atMax ? 0.6 : 1 }}
           />
-          <button onClick={() => add(draft)} disabled={atMax} style={{ flex: 'none', border: '1.5px dashed #d6cdf0', background: '#faf8ff', borderRadius: 11, padding: '0 14px', fontSize: 13, fontWeight: 700, color: '#7c5cff', cursor: atMax ? 'not-allowed' : 'pointer', opacity: atMax ? 0.6 : 1 }}>+ {t.csAddCustom}</button>
+          <button onClick={() => add(draft)} disabled={atMax} style={{ flex: 'none', border: `1.5px dashed ${C.legacyBorderd6cdf0}`, background: C.bg, borderRadius: 11, padding: '0 14px', fontSize: 13, fontWeight: 700, color: C.violet, cursor: atMax ? 'not-allowed' : 'pointer', opacity: atMax ? 0.6 : 1 }}>+ {t.csAddCustom}</button>
         </div>
       )}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -81,7 +82,7 @@ export function ChipMultiSelect({ options, value, onChange, max, creatable }: { 
         {custom.map((v) => (
           <span key={v} style={{ ...chipStyle(true, brandGradient), display: 'inline-flex', alignItems: 'center', gap: 7 }}>
             {v}
-            <button onClick={() => onChange(value.filter((x) => x !== v))} aria-label="Remove" style={{ border: 'none', background: 'rgba(255,255,255,.25)', color: '#fff', borderRadius: 6, width: 16, height: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, lineHeight: 1 }}>×</button>
+            <button onClick={() => onChange(value.filter((x) => x !== v))} aria-label="Remove" style={{ border: 'none', background: C.legacyBgrgba255255255_25_, color: C.onBrand, borderRadius: 6, width: 16, height: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, lineHeight: 1 }}>×</button>
           </span>
         ))}
       </div>
@@ -141,11 +142,11 @@ export function ComboInput({
         aria-autocomplete="list"
         style={{ ...fieldInput, paddingRight: 34 }}
       />
-      <span aria-hidden style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', display: 'flex', color: '#a39bbf', pointerEvents: 'none' }}>
+      <span aria-hidden style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', display: 'flex', color: C.ink350, pointerEvents: 'none' }}>
         <ChevronDown size={15} strokeWidth={1.9} />
       </span>
       {open && matches.length > 0 && (
-        <div role="listbox" className="menu-pop menu-pop--left" style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 40, background: '#fff', border: '1px solid #ece8f6', borderRadius: 12, boxShadow: '0 12px 32px -10px rgba(40,20,90,.28)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 264, overflowY: 'auto' }}>
+        <div role="listbox" className="menu-pop menu-pop--left" style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 40, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, boxShadow: `0 12px 32px -10px ${C.legacyShadowrgba402090_28_}`, padding: 6, display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 264, overflowY: 'auto' }}>
           {matches.map((s, i) => (
             <button
               key={s}
@@ -155,10 +156,10 @@ export function ComboInput({
               // onMouseDown (không phải onClick) để chạy trước khi input mất focus/đóng dropdown.
               onMouseDown={(e) => { e.preventDefault(); choose(s); }}
               onMouseEnter={() => setHi(i)}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', border: 'none', background: i === hi ? '#f4f1fb' : 'transparent', borderRadius: 8, padding: '8px 10px', fontSize: 13.5, fontWeight: 600, color: '#3f3a55', cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', border: 'none', background: i === hi ? C.surfaceMuted : 'transparent', borderRadius: 8, padding: '8px 10px', fontSize: 13.5, fontWeight: 600, color: C.text, cursor: 'pointer' }}
             >
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s}</span>
-              {s === value && <Check size={14} color="#7c3aed" strokeWidth={2.4} aria-hidden="true" />}
+              {s === value && <Check size={14} color={C.primary} strokeWidth={2.4} aria-hidden="true" />}
             </button>
           ))}
         </div>
@@ -190,14 +191,14 @@ export function TagInput({ value, onChange, addLabel, placeholder, suggestions }
           placeholder={placeholder ?? t.csAddPh}
           style={{ ...fieldInput, flex: 1 }}
         />
-        <button onClick={() => add(draft)} style={{ flex: 'none', border: '1.5px dashed #d6cdf0', background: '#faf8ff', borderRadius: 11, padding: '0 14px', fontSize: 13, fontWeight: 700, color: '#7c5cff', cursor: 'pointer' }}>+ {addLabel}</button>
+        <button onClick={() => add(draft)} style={{ flex: 'none', border: `1.5px dashed ${C.legacyBorderd6cdf0}`, background: C.bg, borderRadius: 11, padding: '0 14px', fontSize: 13, fontWeight: 700, color: C.violet, cursor: 'pointer' }}>+ {addLabel}</button>
       </div>
       {value.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           {value.map((v) => (
-            <span key={v} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: brandGradient, color: '#fff', borderRadius: 10, padding: '6px 10px', fontSize: 13, fontWeight: 600 }}>
+            <span key={v} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: brandGradient, color: C.onBrand, borderRadius: 10, padding: '6px 10px', fontSize: 13, fontWeight: 600 }}>
               {v}
-              <button onClick={() => remove(v)} aria-label="Remove" style={{ border: 'none', background: 'rgba(255,255,255,.25)', color: '#fff', borderRadius: 6, width: 16, height: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, lineHeight: 1 }}>×</button>
+            <button onClick={() => remove(v)} aria-label="Remove" style={{ border: 'none', background: C.legacyBgrgba255255255_25_, color: C.onBrand, borderRadius: 6, width: 16, height: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, lineHeight: 1 }}>×</button>
             </span>
           ))}
         </div>
@@ -205,7 +206,7 @@ export function TagInput({ value, onChange, addLabel, placeholder, suggestions }
       {avail.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
           {avail.map((s) => (
-            <button key={s} type="button" onClick={() => add(s)} style={{ border: '1px solid #ece8f6', borderRadius: 999, padding: '4px 11px', fontSize: 12.5, fontWeight: 600, color: '#7d6aa3', background: '#fbfaff', cursor: 'pointer' }}>+ {s}</button>
+            <button key={s} type="button" onClick={() => add(s)} style={{ border: `1px solid ${C.border}`, borderRadius: 999, padding: '4px 11px', fontSize: 12.5, fontWeight: 600, color: C.accentTextMuted, background: C.surfaceSubtle, cursor: 'pointer' }}>+ {s}</button>
           ))}
         </div>
       )}
@@ -223,10 +224,10 @@ export function PlatformSelect({ value, onChange }: { value: Platform[]; onChang
         const enumVal = PLATFORM_ENUM[pl.tag];
         const on = value.includes(enumVal);
         return (
-          <button key={pl.tag} type="button" aria-pressed={on} onClick={() => toggle(enumVal)} style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1.5px solid ${on ? '#c9bdf3' : '#ece8f6'}`, background: on ? '#f6f2ff' : '#fff', borderRadius: 12, padding: '9px 14px', cursor: 'pointer' }}>
+          <button key={pl.tag} type="button" aria-pressed={on} onClick={() => toggle(enumVal)} style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1.5px solid ${on ? C.legacyBorderc9bdf3 : C.border}`, background: on ? C.surfaceMuted : C.surface, borderRadius: 12, padding: '9px 14px', cursor: 'pointer' }}>
             <PlatformTag tag={pl.tag} bg={pl.bg} size={26} radius={8} />
-            <span style={{ fontSize: 13.5, fontWeight: 600, color: '#2b2543' }}>{pl.name}</span>
-            {on && <Check size={16} color="#7c3aed" strokeWidth={2.4} aria-hidden="true" />}
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: C.ink750 }}>{pl.name}</span>
+            {on && <Check size={16} color={C.primary} strokeWidth={2.4} aria-hidden="true" />}
           </button>
         );
       })}
@@ -238,7 +239,7 @@ export function PlatformSelect({ value, onChange }: { value: Platform[]; onChang
 export function LogoSquare({ logoUrl, brandName, size = 96 }: { logoUrl: string | null; brandName: string; size?: number }) {
   const { brandGradient } = useApp();
   return (
-    <div style={{ width: size, height: size, flex: 'none', borderRadius: 18, overflow: 'hidden', background: logoUrl ? '#fff' : brandGradient, border: '1px solid #efe6fb', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: size * 0.4 }}>
+    <div style={{ width: size, height: size, flex: 'none', borderRadius: 18, overflow: 'hidden', background: logoUrl ? C.surface : brandGradient, border: `1px solid ${C.promoBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.onBrand, fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: size * 0.4 }}>
       {logoUrl ? <img src={logoUrl} alt={brandName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (brandName || 'A')[0].toUpperCase()}
     </div>
   );
@@ -261,8 +262,8 @@ export function LogoUploader({ logoUrl, brandName, onChange }: { logoUrl: string
       <LogoSquare logoUrl={logoUrl} brandName={brandName} />
       <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={(e) => pick(e.target.files?.[0])} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
-        <button onClick={() => inputRef.current?.click()} style={{ border: '1.5px solid #d6cdf0', background: '#faf8ff', borderRadius: 10, padding: '7px 10px', fontSize: 12.5, fontWeight: 700, color: '#7c5cff', cursor: 'pointer' }}>{t.bpfChangeLogo}</button>
-        {logoUrl && <button onClick={() => onChange(null)} style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '7px 10px', fontSize: 12.5, fontWeight: 700, color: '#d6336c', cursor: 'pointer' }}>{t.bpRemoveLogo}</button>}
+        <button onClick={() => inputRef.current?.click()} style={{ border: `1.5px solid ${C.legacyBorderd6cdf0}`, background: C.bg, borderRadius: 10, padding: '7px 10px', fontSize: 12.5, fontWeight: 700, color: C.violet, cursor: 'pointer' }}>{t.bpfChangeLogo}</button>
+        {logoUrl && <button onClick={() => onChange(null)} style={{ border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '7px 10px', fontSize: 12.5, fontWeight: 700, color: C.legacyTextd6336c, cursor: 'pointer' }}>{t.bpRemoveLogo}</button>}
       </div>
     </div>
   );
@@ -270,11 +271,11 @@ export function LogoUploader({ logoUrl, brandName, onChange }: { logoUrl: string
 
 /** Tag hiển thị read-only (dùng ở card / panel xem). */
 export function ReadChips({ items, empty }: { items: string[]; empty?: string }) {
-  if (!items.length) return <span style={{ fontSize: 13, color: '#b3acc6' }}>{empty ?? '—'}</span>;
+  if (!items.length) return <span style={{ fontSize: 13, color: C.ink250 }}>{empty ?? '—'}</span>;
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
       {items.map((v) => (
-        <span key={v} style={{ background: '#f4f1fb', color: '#5b4b86', borderRadius: 8, padding: '5px 11px', fontSize: 12.5, fontWeight: 600 }}>{v}</span>
+        <span key={v} style={{ background: C.surfaceMuted, color: C.legacyText5b4b86, borderRadius: 8, padding: '5px 11px', fontSize: 12.5, fontWeight: 600 }}>{v}</span>
       ))}
     </div>
   );

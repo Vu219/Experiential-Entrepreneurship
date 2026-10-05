@@ -10,6 +10,7 @@ import type { RevenueForecast, RevenuePoint } from '../../../api/revenue';
 import {
   AREA_STROKE, AXIS_TEXT, REVENUE_NEGATIVE, FUTURE_FILL, GRID_LINE, PROJECTION_STROKE,
 } from './chartTokens';
+import { C } from '../../../styles/colors';
 
 const GRADIENT_ID = 'aima-revenue-area';
 
@@ -79,10 +80,10 @@ function ChartTooltip({ active, payload, mode }: TooltipContentProps & { mode: R
 
   return (
     <div style={{
-      background: '#fff', border: '1px solid #ece8f6', borderRadius: 12, padding: '10px 12px',
-      boxShadow: '0 18px 38px -20px rgba(80,40,140,.5)', minWidth: 150,
+      background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 12px',
+      boxShadow: `0 18px 38px -20px ${C.legacyShadowrgba8040140_5_}`, minWidth: 150,
     }}>
-      <div style={{ fontSize: 12.5, fontWeight: 700, color: '#211c38', marginBottom: 6 }}>{row.label}</div>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: C.textStrong, marginBottom: 6 }}>{row.label}</div>
       {row.future ? (
         <div style={{ fontSize: 13, fontWeight: 700, color: PROJECTION_STROKE }}>
           {t.revChartProjected} ≈ {formatVND(row.projected ?? 0)}
@@ -90,18 +91,18 @@ function ChartTooltip({ active, payload, mode }: TooltipContentProps & { mode: R
       ) : (
         <>
           {mode === 'cumulative' && (
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.primary }}>
               {t.revChartCumulative}: {formatVND(row.running)}
             </div>
           )}
           <div style={{
             fontSize: mode === 'cumulative' ? 12 : 13, fontWeight: mode === 'cumulative' ? 600 : 700,
-            color: mode === 'cumulative' ? '#5b5670' : row.revenue < 0 ? REVENUE_NEGATIVE : '#7c3aed',
+            color: mode === 'cumulative' ? C.ink550 : row.revenue < 0 ? REVENUE_NEGATIVE : C.primary,
             marginTop: mode === 'cumulative' ? 3 : 0,
           }}>
             {mode === 'cumulative' && `${t.revChartInBucket}: `}{formatVND(row.revenue)}
           </div>
-          <div style={{ fontSize: 12, color: '#8a85a0', marginTop: 3 }}>
+          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 3 }}>
             {row.transactions} {t.revTxnUnit}
           </div>
           {row.refunded > 0 && (
@@ -168,12 +169,12 @@ function RevenueChart({ points, mode, forecast }: {
         <YAxis tickFormatter={formatCompactVND} tickLine={false} axisLine={false} width={52}
           ticks={ticks} domain={[ticks[0], ticks[ticks.length - 1]]} interval={0}
           tick={{ fontSize: 11, fill: AXIS_TEXT }} />
-        {hasNegative && <ReferenceLine y={0} stroke="#d9d3ea" />}
+        {hasNegative && <ReferenceLine y={0} stroke={C.borderStrong} />}
         {/* Render qua arrow function (không truyền <ChartTooltip/> trực tiếp): recharts gọi
             `content` như một hàm thường, nếu không bọc thành element thì hook useApp bên trong
             tooltip sẽ chạy ngoài cây React. */}
         <Tooltip content={(props) => <ChartTooltip {...props} mode={mode} />}
-          cursor={{ stroke: '#ddd6fe', strokeWidth: 1.5 }} />
+          cursor={{ stroke: C.legacyTextddd6fe, strokeWidth: 1.5 }} />
         <Area type="monotone" dataKey="actual" stroke={AREA_STROKE} strokeWidth={2.4}
           fill={`url(#${GRADIENT_ID})`} fillOpacity={1} connectNulls={false}
           dot={renderDot} activeDot={{ r: 4.5 }} isAnimationActive={false} />

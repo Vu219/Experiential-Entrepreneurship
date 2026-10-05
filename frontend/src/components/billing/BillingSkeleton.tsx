@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Card } from '../ui';
+import { C } from '../../styles/colors';
 
 const srOnly: CSSProperties = {
   position: 'absolute',
@@ -102,7 +103,7 @@ export default function BillingSkeleton() {
             {[70, 44, 60, 56, 70].map((w, i) => <Sk key={i} w={w} h={11} />)}
           </div>
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '16px 12px', borderTop: '1px solid #f3f0f9' }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '16px 12px', borderTop: `1px solid ${C.surfaceMuted}` }}>
               <Sk w={isMobile ? 90 : 120} h={13} />
               <Sk w={44} h={13} />
               {!isMobile && <Sk w={130} h={13} />}

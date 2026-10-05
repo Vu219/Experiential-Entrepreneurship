@@ -4,6 +4,7 @@ import { Icon, cardStyle } from '../../ui';
 import Sparkline from '../../Sparkline';
 import { formatDeltaPct } from '../../../utils/format';
 import { SPARK_TONES, type SparkTone } from './chartTokens';
+import { C } from '../../../styles/colors';
 
 /**
  * Thẻ số liệu của trang Doanh thu: nhãn + giá trị + badge % và một sparkline nền canh giữa mép phải.
@@ -64,11 +65,11 @@ export default function SparklineCard({
               <Icon icon={icon} size={19} stroke={iconColor} />
             </div>
           )}
-          <div style={{ fontSize: 13, color: '#8a85a0', fontWeight: 600 }}>{label}</div>
+          <div style={{ fontSize: 13, color: C.textMuted, fontWeight: 600 }}>{label}</div>
         </div>
 
         <div style={{
-          fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 25, color: '#211c38',
+          fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 25, color: C.textStrong,
           lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
           {value}
@@ -79,7 +80,7 @@ export default function SparklineCard({
             {!flat && <span aria-hidden>{up ? '↑' : '↓'}</span>}
             {formatDeltaPct(deltaPct)}
           </span>
-          <span className="text-xs font-normal text-slate-400">{comparisonLabel}</span>
+          <span className="text-xs font-normal text-[var(--c-legacy-text-94a3b8)]">{comparisonLabel}</span>
         </div>
 
         {footer}

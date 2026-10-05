@@ -9,11 +9,13 @@ import { adminNavGroupsFor } from '../config/adminNav';
 import type { UserRole } from '../api/admin';
 import { getTokenUsage, type TokenUsage } from '../api/auth';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { useIsDark } from '../hooks/useIsDark';
 import { useUiStore } from '../store/useUiStore';
 import { Icon } from './ui';
 import SidebarGroupFlyout from './SidebarGroupFlyout';
 import type { Route } from '../types';
 import { ICON } from '../data';
+import { C } from '../styles/colors';
 
 interface Item {
   key: Route;
@@ -59,6 +61,8 @@ const fmtTokens = (n: number) =>
 
 export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpen }: { mode?: 'app' | 'admin', mobileMenuOpen?: boolean, setMobileMenuOpen?: (v: boolean) => void }) {
   const { t, route, go, brandGradient } = useApp();
+  // Logo chữ đen → bản chữ trắng ở chế độ tối (public/aima-*-dark.png).
+  const isDark = useIsDark();
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
   const { isMobile } = useBreakpoint();
@@ -215,7 +219,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
     cursor: 'pointer',
     textAlign: 'left',
     background: active ? brandGradient : 'transparent',
-    color: active ? '#fff' : nested ? '#7d7894' : '#5b5670',
+    color: active ? C.onBrand : nested ? C.navNested : C.ink550,
     boxShadow: active ? '0 12px 24px -14px rgba(139,92,246,.8)' : 'none',
   });
 
@@ -240,14 +244,14 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
             boxShadow: active
               ? '0 12px 24px -10px rgba(139,92,246,.95)'
               : '0 8px 16px -8px rgba(124,92,255,.25)',
-            background: active ? brandGradient : '#f6f3fc',
+            background: active ? brandGradient : C.surfaceMuted,
           }}
           whileTap={{ scale: 0.98 }}
           transition={{ type: 'spring', ...springConfig }}
         >
-          <Icon icon={n.icon} stroke={active ? '#fff' : nested ? '#b3adc8' : '#9b94b5'} />
+          <Icon icon={n.icon} stroke={active ? C.onBrand : nested ? C.ink250 : C.ink350} />
           {(!collapsed || isMobile) && <span style={{ flex: 1, textAlign: 'left' }}>{n.label}</span>}
-          {(!collapsed || isMobile) && n.badge && <span style={{ background: brandGradient, color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 999, padding: '2px 8px' }}>{n.badge}</span>}
+          {(!collapsed || isMobile) && n.badge && <span style={{ background: brandGradient, color: C.onBrand, fontSize: 11, fontWeight: 700, borderRadius: 999, padding: '2px 8px' }}>{n.badge}</span>}
         </motion.button>
       );
     };
@@ -260,20 +264,20 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
         if (isMobile && setMobileMenuOpen) setMobileMenuOpen(false);
       }}
       title={collapsed ? t.navAdmin : undefined}
-      style={{ ...itemBase(false), background: '#f4ecff', color: '#6d28d9', border: '1px solid #e7d9fb' }}
+      style={{ ...itemBase(false), background: C.accentSoft, color: C.primaryStrong, border: `1px solid ${C.accentLine}` }}
       whileHover={{
         y: isMobile ? 0 : -2,
         x: isMobile ? 0 : (collapsed ? 0 : 3),
         scale: isMobile ? 1 : 1.03,
         boxShadow: '0 8px 16px -8px rgba(124,92,255,.25)',
-        background: '#efe4ff',
+        background: C.accentSoftHover,
       }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', ...springConfig }}
     >
-      <Icon icon={ICON.admin} stroke="#7c3aed" />
+      <Icon icon={ICON.admin} stroke={C.primary} />
       {(!collapsed || isMobile) && <span style={{ flex: 1, textAlign: 'left' }}>{t.navAdmin}</span>}
-      {(!collapsed || isMobile) && <Icon icon={ChevronRight} size={16} stroke="#7c3aed" />}
+      {(!collapsed || isMobile) && <Icon icon={ChevronRight} size={16} stroke={C.primary} />}
     </motion.button>
   );
 
@@ -285,29 +289,29 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
         if (isMobile && setMobileMenuOpen) setMobileMenuOpen(false);
       }}
       title={collapsed ? t.backToApp : undefined}
-      style={{ ...itemBase(false), background: '#f4f2fb', border: '1px solid #ece8f6' }}
+      style={{ ...itemBase(false), background: C.surfaceMuted, border: `1px solid ${C.border}` }}
       whileHover={{
         y: isMobile ? 0 : -2,
         x: isMobile ? 0 : (collapsed ? 0 : 3),
         scale: isMobile ? 1 : 1.03,
         boxShadow: '0 8px 16px -8px rgba(124,92,255,.2)',
-        background: '#ece8f7',
+        background: C.border,
       }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', ...springConfig }}
     >
-      <Icon icon={ChevronLeft} stroke="#7c5cff" />
+      <Icon icon={ChevronLeft} stroke={C.violet} />
       {(!collapsed || isMobile) && <span style={{ flex: 1, textAlign: 'left' }}>{t.backToApp}</span>}
     </motion.button>
   );
 
-  const sectionLabelStyle: CSSProperties ={ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', color: '#a59fbb', padding: '6px 12px', flex: 'none' };
+  const sectionLabelStyle: CSSProperties ={ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', color: C.textFaint, padding: '6px 12px', flex: 'none' };
   // Khi thu gọn, nhãn nhóm ẩn — thay bằng đường kẻ ngang mờ 24px căn giữa để vẫn
   // thấy cấu trúc nhóm (không hiện trước nhóm đầu tiên).
-  const collapsedDivider: CSSProperties = { width: 24, height: 1, background: 'rgba(90,80,120,.18)', margin: '12px auto', flex: 'none', transition: 'opacity .2s ease' };
+  const collapsedDivider: CSSProperties = { width: 24, height: 1, background: C.dividerSoft, margin: '12px auto', flex: 'none', transition: 'opacity .2s ease' };
   // Nhãn nhóm là cấp CHA → đậm hơn mục con bên trong (mục con dùng itemBase(…, nested) nhạt hơn).
   // Dùng chung cho nhãn tĩnh của sidebar app và header thu gọn được của khu quản trị.
-  const parentLabelStyle: CSSProperties = { ...sectionLabelStyle, fontWeight: 800, letterSpacing: '.05em', color: '#3f3a55' };
+  const parentLabelStyle: CSSProperties = { ...sectionLabelStyle, fontWeight: 800, letterSpacing: '.05em', color: C.text };
   const groupHeaderStyle: CSSProperties = {
     ...parentLabelStyle,
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
@@ -387,12 +391,12 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
     width: 30,
     height: 30,
     borderRadius: '50%',
-    border: '1px solid #ece8f6',
-    background: '#fff',
+    border: `1px solid ${C.border}`,
+    background: C.surface,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#7c5cff',
+    color: C.violet,
     boxShadow: '0 6px 16px -6px rgba(124,92,255,.55)',
     pointerEvents: 'none', // mọi click trong vùng 40×40 đều tính cho button cha
   };
@@ -409,7 +413,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
       {isAdminArea && (
         <div style={{ flex: 'none', padding: '4px 0 0' }}>
           {backBtn}
-          <div style={{ height: 1, background: '#eee9f6', margin: '10px 4px 4px' }} aria-hidden />
+          <div style={{ height: 1, background: C.border, margin: '10px 4px 4px' }} aria-hidden />
         </div>
       )}
       <div className="sb-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 3, paddingTop: 8 }}>
@@ -425,7 +429,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
         {/* Mục Quản trị hệ thống ghim ở đáy, tách khỏi các cụm trên bằng divider (mục 3). */}
         {!isAdminArea && isAdmin && (
           <>
-            <div style={{ height: 1, background: '#eee9f6', flex: 'none' }} />
+            <div style={{ height: 1, background: C.border, flex: 'none' }} />
             {adminPortalBtn}
           </>
         )}
@@ -437,36 +441,36 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
             onClick={() => go('usage')}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go('usage'); } }}
             title={t.navUsage}
-            style={{ background: '#f8f6fd', border: '1px solid #eee9f6', borderRadius: 16, padding: '12px 14px', cursor: 'pointer' }}
+            style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 16, padding: '12px 14px', cursor: 'pointer' }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.04em', color: '#7d6aa3', whiteSpace: 'nowrap' }}>{t.usageTitle}</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#5b5670', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.04em', color: C.accentTextMuted, whiteSpace: 'nowrap' }}>{t.usageTitle}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: C.ink550, whiteSpace: 'nowrap' }}>
                 {fmtTokens(usage.used)} / {usage.limit === null ? '∞' : fmtTokens(usage.limit)}
               </span>
             </div>
             {usage.limit !== null ? (
-              <div style={{ height: 6, borderRadius: 999, background: '#ece6f8', overflow: 'hidden' }}>
+              <div style={{ height: 6, borderRadius: 999, background: C.track, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${usagePct}%`, borderRadius: 999, background: usageFill, transition: 'width .4s ease' }} />
               </div>
             ) : (
-              <div style={{ fontSize: 11, color: '#a59fbb' }}>{t.usageUnlimited}</div>
+              <div style={{ fontSize: 11, color: C.textFaint }}>{t.usageUnlimited}</div>
             )}
           </div>
         )}
         {!isAdminArea && !collapsed && showUpgradeCard && (
-          <div style={{ position: 'relative', background: 'linear-gradient(150deg,#f6f2ff,#fcf1fc)', border: '1px solid #efe6fb', borderRadius: 16, padding: 16 }}>
+          <div style={{ position: 'relative', background: C.promoBg, border: `1px solid ${C.promoBorder}`, borderRadius: 16, padding: 16 }}>
             <button
               onClick={dismissUpgrade}
               title={t.close}
               aria-label={t.close}
-              style={{ position: 'absolute', top: 8, right: 8, border: 'none', background: 'none', cursor: 'pointer', padding: 2, display: 'flex', color: '#a58fd0' }}
+              style={{ position: 'absolute', top: 8, right: 8, border: 'none', background: 'none', cursor: 'pointer', padding: 2, display: 'flex', color: C.accentIconMuted }}
             >
               <X size={14} strokeWidth={2.2} />
             </button>
-            <div style={{ fontWeight: 700, fontSize: 14, color: '#5b2b9e' }}>{t.upgradeTitle}</div>
-            <div style={{ fontSize: 12, color: '#7d6aa3', margin: '4px 0 12px', lineHeight: 1.45 }}>{t.upgradeMsg}</div>
-            <button onClick={() => go('pricing')} style={{ width: '100%', border: 'none', borderRadius: 10, padding: 9, fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.upgradeBtn}</button>
+            <div style={{ fontWeight: 700, fontSize: 14, color: C.accentText }}>{t.upgradeTitle}</div>
+            <div style={{ fontSize: 12, color: C.accentTextMuted, margin: '4px 0 12px', lineHeight: 1.45 }}>{t.upgradeMsg}</div>
+            <button onClick={() => go('pricing')} style={{ width: '100%', border: 'none', borderRadius: 10, padding: 9, fontWeight: 700, fontSize: 13, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>{t.upgradeBtn}</button>
           </div>
         )}
 
@@ -483,7 +487,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
       left: 0,
       right: 0,
       bottom: 0,
-      background: '#fff',
+      background: C.surface,
       zIndex: 50,
       padding: '16px 20px',
       display: 'flex',
@@ -514,9 +518,9 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
       style={{
         width: isMobile ? '100%' : collapsed ? 76 : 260,
         flex: 'none',
-        background: '#fff',
-        borderRight: isMobile ? 'none' : '1px solid #eee9f6',
-        borderBottom: isMobile ? '1px solid #eee9f6' : 'none',
+        background: C.shell,
+        borderRight: isMobile ? 'none' : `1px solid ${C.border}`,
+        borderBottom: isMobile ? `1px solid ${C.border}` : 'none',
         // Padding dồn vào khối thân — header logo cần chạm mép để border-bottom
         // của nó nằm CÙNG đường ngang với border-bottom của Topbar (UI refactor mục 2).
         padding: isMobile ? '10px 12px' : 0,
@@ -541,7 +545,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
           + scale nhẹ để chữ "AIMA" như trượt về đúng vị trí, không cut cứng.
           Khối header cao CỐ ĐỊNH 70px = chiều cao Topbar, căn giữa dọc, border-bottom
           trùng đường kẻ Topbar — đúng ở cả trạng thái mở rộng lẫn thu gọn (mục 2). */}
-      <div style={{ height: isMobile ? 'auto' : 70, display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', padding: isMobile ? '0 6px 0 0' : 0, borderBottom: isMobile ? 'none' : '1px solid #eee9f6', flex: 'none' }}>
+      <div style={{ height: isMobile ? 'auto' : 70, display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'center', padding: isMobile ? '0 6px 0 0' : 0, borderBottom: isMobile ? 'none' : `1px solid ${C.border}`, flex: 'none' }}>
         <button
           onClick={() => go('landing')}
           title={t.nHome}
@@ -560,7 +564,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
         >
           {/* Ngang — hiển thị khi sidebar MỞ */}
           <img
-            src="/aima-h.png"
+            src={isDark ? '/aima-h-dark.png' : '/aima-h.png'}
             alt="AIMA"
             aria-hidden={!isMobile && collapsed}
             style={{
@@ -577,7 +581,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
           />
           {/* Dọc — hiển thị khi sidebar ĐÓNG */}
           <img
-            src="/aima-v.png"
+            src={isDark ? '/aima-v-dark.png' : '/aima-v.png'}
             alt="AIMA"
             aria-hidden={isMobile || !collapsed}
             style={{

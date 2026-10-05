@@ -1,0 +1,186 @@
+[
+  {
+    "key": "--c-legacy-bg-e9f0ff",
+    "dark": "color-mix(in srgb, #93c5fd 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fff5f5",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fdf6ea",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fdf1dd",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fff7ed",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fffaf0",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fdf7f9",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-ecfdf5",
+    "dark": "color-mix(in srgb, #4ade80 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fef2f2",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fffdf7",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fcf1fc",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fdf6ec",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fdf1f1",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fdf6e7",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fdf1f4",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-eaf8ef",
+    "dark": "color-mix(in srgb, #4ade80 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fdf5f7",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fdeef5",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-d9cef5",
+    "dark": "color-mix(in srgb, #c4b5fd 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fdeaea",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-e7fff4",
+    "dark": "color-mix(in srgb, #4ade80 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-e9f7ff",
+    "dark": "color-mix(in srgb, #93c5fd 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-e7f6ff",
+    "dark": "color-mix(in srgb, #93c5fd 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-eef2ff",
+    "dark": "color-mix(in srgb, #93c5fd 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fff3e0",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-ffe9f3",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fdecec",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-e3f3f6",
+    "dark": "color-mix(in srgb, #5eead4 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-e8f0fe",
+    "dark": "color-mix(in srgb, #93c5fd 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fef3e2",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fef8ee",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fff1e9",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-ffe9f1",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fff0f0",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fff7fa",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-ffe9ec",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fff1f3",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fff1dc",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fff8ec",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-e0f2fe",
+    "dark": "color-mix(in srgb, #93c5fd 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-eff8ff",
+    "dark": "color-mix(in srgb, #93c5fd 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fff1f2",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fdeef3",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-fdf1f3",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-effcf3",
+    "dark": "color-mix(in srgb, #4ade80 14%, #121829)"
+  },
+  {
+    "key": "--c-legacy-bg-f1fbf6",
+    "dark": "color-mix(in srgb, #4ade80 14%, #121829)"
+  }
+]

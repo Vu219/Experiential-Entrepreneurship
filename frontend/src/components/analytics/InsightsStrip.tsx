@@ -6,6 +6,7 @@ import { Card, Icon } from '../ui';
 import { formatDeltaPct, formatGroupedNumber } from '../../utils/format';
 import { STAT_TONES, type StatTone } from '../dashboard/dashboardTokens';
 import type { AnalyticsInsights } from '../../api/analytics';
+import { C } from '../../styles/colors';
 
 /**
  * Khối H — dải "Thông tin chi tiết" (full width, CUỐI trang): 5 mục tổng kết kỳ nằm liền mạch trong
@@ -35,8 +36,8 @@ function InsightsStrip({ data, onOpenFailed }: { data: AnalyticsInsights; onOpen
 
   return (
     <Card>
-      <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.anaInsightsTitle}</div>
-      <div style={{ fontSize: 12.5, color: '#6b6680', marginTop: 2 }}>{t.anaInsightsSub}</div>
+      <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.anaInsightsTitle}</div>
+      <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 2 }}>{t.anaInsightsSub}</div>
 
       {/* Vạch ngăn = borderLeft của mục không đứng đầu hàng, nên khi strip gập xuống 3 hoặc 2 cột
           mục đầu mỗi hàng vẫn không dính vạch thừa ở mép trái. */}
@@ -97,11 +98,11 @@ function Tile({
   const flat = deltaPct === null || deltaPct === undefined || deltaPct === 0;
   const up = !flat && (deltaPct as number) > 0;
   const badge = flat
-    ? { color: '#64748b', bg: '#f1f5f9' }
-    : up ? { color: '#16a34a', bg: '#eafbf1' } : { color: '#e23d6e', bg: '#fdecf1' };
+    ? { color: C.slate, bg: C.slateTint }
+    : up ? { color: C.success, bg: C.successTint } : { color: C.rose, bg: C.roseSoft };
   const style: CSSProperties = {
     ...tileStyle,
-    borderLeft: index % cols === 0 ? 'none' : '1px solid #f1eef8',
+    borderLeft: index % cols === 0 ? 'none' : `1px solid ${C.surfaceMuted}`,
   };
 
   const body = (
@@ -118,7 +119,7 @@ function Tile({
         <span style={{ display: 'flex', alignItems: 'baseline', gap: 7, minWidth: 0 }}>
           <span style={{
             fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, lineHeight: 1.15,
-            fontSize: muted ? 15 : 21, color: muted ? '#8a85a0' : '#211c38',
+            fontSize: muted ? 15 : 21, color: muted ? C.textMuted : C.textStrong,
             minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {value}
@@ -137,29 +138,30 @@ function Tile({
         {/* Dòng 2 — nhãn mô tả (+ ⓘ khi có chú thích dài) */}
         <span style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4, minWidth: 0 }}>
           <span style={{
-            fontSize: 12, fontWeight: 600, color: '#8a85a0', lineHeight: 1.3,
+            fontSize: 12, fontWeight: 600, color: C.textMuted, lineHeight: 1.3,
             minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {label}
           </span>
           {note && (
             <span title={note} aria-label={note} tabIndex={0}
-              style={{ display: 'inline-flex', color: '#c3bcd8', flex: 'none', cursor: 'help' }}>
+              style={{ display: 'inline-flex', color: C.ink200, flex: 'none', cursor: 'help' }}>
               <Info size={13} strokeWidth={2} />
             </span>
           )}
         </span>
       </span>
 
-      {onClick && <ArrowRight size={15} color="#a39bbf" style={{ flex: 'none', alignSelf: 'center' }} />}
+      {onClick && <ArrowRight size={15} color={C.ink350} style={{ flex: 'none', alignSelf: 'center' }} />}
     </>
   );
 
   if (!onClick) return <div style={style}>{body}</div>;
   return (
     <button type="button" onClick={onClick} style={{ ...style, cursor: 'pointer', textAlign: 'left', font: 'inherit' }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = '#fdf7f9'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+      className={"dm-hover-0a720a3"}
+
+      >
       {body}
     </button>
   );

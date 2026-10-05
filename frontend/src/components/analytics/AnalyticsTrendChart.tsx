@@ -9,6 +9,7 @@ import { formatCompactNumber, formatGroupedNumber } from '../../utils/format';
 import RangeBadge from './RangeBadge';
 import { AXIS_TEXT, GRID_LINE, METRIC_COLOR, METRIC_ORDER, type MetricKey } from './analyticsTokens';
 import type { AnalyticsPoint } from '../../api/analytics';
+import { C } from '../../styles/colors';
 
 /**
  * Khối C — "Bài đã đăng & số liệu tổng quan": biểu đồ vùng đa series (Lượt xem / Lượt thích /
@@ -55,8 +56,8 @@ function AnalyticsTrendChart({ points, from, to }: { points: AnalyticsPoint[]; f
         {/* Cụm trái: tiêu đề + legend NGANG ngay dưới — legend là thứ người dùng thao tác nhiều nhất
             nên đặt ở góc trên trái, không dồn sang phải chung chỗ với badge khoảng ngày. */}
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.anaTrendTitle}</div>
-          <div style={{ fontSize: 12.5, color: '#6b6680', marginTop: 2 }}>{t.anaTrendSub}</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.anaTrendTitle}</div>
+          <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 2 }}>{t.anaTrendSub}</div>
           {/* Legend tương tác — bấm để bật/tắt series. */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }} role="group" aria-label={t.anaTrendTitle}>
             {METRIC_ORDER.map((k) => {
@@ -66,12 +67,12 @@ function AnalyticsTrendChart({ points, from, to }: { points: AnalyticsPoint[]; f
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 8,
                     padding: '6px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                    color: off ? '#a39bbf' : '#5b5670', background: off ? '#f6f4fb' : '#f3edff',
+                    color: off ? C.ink350 : C.ink550, background: off ? C.bg : C.primarySoft,
                     opacity: off ? 0.7 : 1,
                   }}>
                   <span aria-hidden style={{
                     width: 9, height: 9, borderRadius: 3,
-                    background: off ? '#cfc9e0' : METRIC_COLOR[k],
+                    background: off ? C.legacyBgcfc9e0 : METRIC_COLOR[k],
                   }} />
                   {metricLabel[k]}
                 </button>
@@ -119,7 +120,7 @@ function AnalyticsTrendChart({ points, from, to }: { points: AnalyticsPoint[]; f
       ) : (
         <div style={{
           flex: 1, minHeight: 280, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          textAlign: 'center', padding: '0 24px', fontSize: 13.5, lineHeight: 1.6, color: '#8a85a0',
+          textAlign: 'center', padding: '0 24px', fontSize: 13.5, lineHeight: 1.6, color: C.textMuted,
         }}>
           {t.anaTrendEmpty}
         </div>
@@ -140,15 +141,15 @@ function ChartTooltip({
   const rows = METRIC_ORDER.filter((k) => !hidden.has(k));
   return (
     <div style={{
-      background: '#fff', border: '1px solid #efeaf8', borderRadius: 12, padding: '10px 12px',
-      boxShadow: '0 12px 28px -18px rgba(80,40,140,.6)', fontSize: 12.5, minWidth: 150,
+      background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 12px',
+      boxShadow: `0 12px 28px -18px ${C.legacyShadowrgba8040140_6_}`, fontSize: 12.5, minWidth: 150,
     }}>
-      <div style={{ fontWeight: 700, color: '#211c38', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontWeight: 700, color: C.textStrong, marginBottom: 6 }}>{label}</div>
       {rows.map((k) => (
-        <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#5b5670', marginTop: 2 }}>
+        <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 7, color: C.ink550, marginTop: 2 }}>
           <span aria-hidden style={{ width: 8, height: 8, borderRadius: 2, background: METRIC_COLOR[k] }} />
           <span style={{ flex: 1 }}>{labels[k]}</span>
-          <strong style={{ color: '#211c38' }}>{formatGroupedNumber(valueOf(k), lang)}</strong>
+          <strong style={{ color: C.textStrong }}>{formatGroupedNumber(valueOf(k), lang)}</strong>
         </div>
       ))}
     </div>

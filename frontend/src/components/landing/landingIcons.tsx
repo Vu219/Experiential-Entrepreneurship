@@ -1,3 +1,4 @@
+import { C } from '../../styles/colors';
 import {
   BarChart3, Bell, CalendarClock, Clock, Globe, Hash, Image, Layers, Lightbulb, MessageCircle,
   PenLine, Rocket, Search, ShieldCheck, Sparkles, Star, Target, TrendingUp, Users, Zap,
@@ -56,8 +57,8 @@ export function PlatformBadge({ icon, logoUrl, name, size = 30 }: { icon: string
   const tag = icon ? PLATFORM_TAG[icon] : undefined;
   if (tag) return <PlatformTag tag={tag[0]} bg={tag[1]} size={size} radius={9} fontSize={12} />;
   return (
-    <span style={{ width: size, height: size, borderRadius: 9, background: 'linear-gradient(135deg,#edf9ff,#f6effc)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Globe size={size * 0.55} color="#7c5cff" strokeWidth={1.8} />
+    <span style={{ width: size, height: size, borderRadius: 9, background: `linear-gradient(135deg,${C.legacyBgedf9ff},${C.legacyBgf6effc})`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Globe size={size * 0.55} color={C.violet} strokeWidth={1.8} />
     </span>
   );
 }

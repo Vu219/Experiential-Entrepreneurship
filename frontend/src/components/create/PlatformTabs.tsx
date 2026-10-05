@@ -2,6 +2,7 @@ import { useApp } from '../../context/AppContext';
 import { PlatformTag } from '../ui';
 import { PLATFORMS, PLATFORM_BG } from '../../theme';
 import type { Platform } from '../../api/brandProfile';
+import { C } from '../../styles/colors';
 
 export const tagOfPlatform = (p: Platform): string => (p === 'FACEBOOK' ? 'FB' : p === 'INSTAGRAM' ? 'IG' : 'TH');
 
@@ -60,12 +61,12 @@ export default function PlatformTabs({
             aria-label={label ? `${PLATFORMS.find((pl) => pl.tag === tag)?.name ?? p} — ${label}` : undefined}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px',
-              border: on ? '1.5px solid transparent' : '1.5px solid #ece8f6', borderRadius: 10,
-              background: on ? brandGradient : '#fff', cursor: 'pointer',
-              fontSize: 13, fontWeight: 600, color: on ? '#fff' : '#3f3a55',
+              border: on ? '1.5px solid transparent' : `1.5px solid ${C.border}`, borderRadius: 10,
+              background: on ? brandGradient : C.surface, cursor: 'pointer',
+              fontSize: 13, fontWeight: 600, color: on ? C.onBrand : C.text,
             }}
           >
-            <PlatformTag tag={tag} bg={on ? 'rgba(255,255,255,.25)' : PLATFORM_BG[tag]} size={20} radius={6} fontSize={10} />
+            <PlatformTag tag={tag} bg={on ? C.legacyBgrgba255255255_25_ : PLATFORM_BG[tag]} size={20} radius={6} fontSize={10} />
             {PLATFORMS.find((pl) => pl.tag === tag)?.name ?? p}
             {dot && (
               <span
@@ -74,7 +75,7 @@ export default function PlatformTabs({
                 style={{
                   width: 8, height: 8, borderRadius: '50%', flex: 'none',
                   background: dot,
-                  boxShadow: on ? '0 0 0 2px rgba(255,255,255,.5)' : 'none',
+                  boxShadow: on ? `0 0 0 2px ${C.legacyShadowrgba255255255_5_}` : 'none',
                 }}
               />
             )}

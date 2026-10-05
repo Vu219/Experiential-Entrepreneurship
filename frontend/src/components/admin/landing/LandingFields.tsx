@@ -6,22 +6,23 @@ import { Icon } from '../../ui';
 import type { L10n, LandingLink } from '../../../api/landing';
 import { FEATURE_ICONS } from '../../landing/landingIcons';
 import { LANDING_LINK_SUGGESTIONS } from '../../../config/landingLinks';
+import { C } from '../../../styles/colors';
 
 // Ô nhập dùng chung cho trang admin "Quản lý Landing Page". `path` = đường dẫn ô trong nội dung
 // section (khớp validations/landingValidation.ts) để tô đỏ đúng ô lỗi.
 
 const ERR = '#e25c84';
-export const fieldStyle = { width: '100%', border: '1px solid #ece8f6', borderRadius: 10, padding: '9px 12px', fontSize: 13.5, color: '#241f3a', outline: 'none', background: '#fff', boxSizing: 'border-box', fontFamily: 'inherit' } as const;
-export const labelStyle = { fontSize: 11.5, fontWeight: 700, letterSpacing: '.04em', color: '#a59fbb', marginBottom: 5, display: 'block' } as const;
-const hintStyle = { fontSize: 11, color: '#a59fbb', marginTop: 4 } as const;
-const langTag: CSSProperties = { position: 'absolute', top: 8, right: 9, fontSize: 10, fontWeight: 800, letterSpacing: '.06em', color: '#b3aacb', pointerEvents: 'none' };
+export const fieldStyle = { width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 12px', fontSize: 13.5, color: C.textStrong, outline: 'none', background: C.surface, boxSizing: 'border-box', fontFamily: 'inherit' } as const;
+export const labelStyle = { fontSize: 11.5, fontWeight: 700, letterSpacing: '.04em', color: C.textFaint, marginBottom: 5, display: 'block' } as const;
+const hintStyle = { fontSize: 11, color: C.textFaint, marginTop: 4 } as const;
+const langTag: CSSProperties = { position: 'absolute', top: 8, right: 9, fontSize: 10, fontWeight: 800, letterSpacing: '.06em', color: C.ink250, pointerEvents: 'none' };
 
 export interface FieldProps {
   path: string;
   errors: Set<string>;
 }
 
-const withErr = (bad: boolean, style: CSSProperties = fieldStyle): CSSProperties => (bad ? { ...style, borderColor: ERR, background: '#fff7fa' } : style);
+const withErr = (bad: boolean, style: CSSProperties = fieldStyle): CSSProperties => (bad ? { ...style, borderColor: ERR, background: C.legacyBgfff7fa } : style);
 
 /** Chữ song ngữ: 2 ô VI / EN cạnh nhau (xếp dọc trên mobile). */
 export function L10nInput({ label, value, onChange, path, errors, multiline = false, hint }: FieldProps & {
@@ -159,11 +160,11 @@ export function HrefInput({ label, value, onChange, path, errors, placeholder, h
         style={withErr(bad)}
       />
       {open && matches.length > 0 && (
-        <div role="listbox" className="menu-pop menu-pop--left" style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 40, background: '#fff', border: '1px solid #ece8f6', borderRadius: 12, boxShadow: '0 12px 32px -10px rgba(40,20,90,.28)', padding: 6, maxHeight: 280, overflowY: 'auto' }}>
+        <div role="listbox" className="menu-pop menu-pop--left" style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 40, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, boxShadow: `0 12px 32px -10px ${C.legacyShadowrgba402090_28_}`, padding: 6, maxHeight: 280, overflowY: 'auto' }}>
           {matches.map((o, i) => (
             <div key={o.href}>
               {(i === 0 || matches[i - 1].group !== o.group) && (
-                <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.06em', color: '#b3aacb', padding: '6px 10px 3px', textTransform: 'uppercase' }}>{o.group}</div>
+                <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.06em', color: C.ink250, padding: '6px 10px 3px', textTransform: 'uppercase' }}>{o.group}</div>
               )}
               <button
                 type="button"
@@ -172,17 +173,17 @@ export function HrefInput({ label, value, onChange, path, errors, placeholder, h
                 // onMouseDown để chạy trước khi input mất focus.
                 onMouseDown={(e) => { e.preventDefault(); choose(o.href); }}
                 onMouseEnter={() => setHi(i)}
-                style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', border: 'none', background: i === hi ? '#f4f1fb' : 'transparent', borderRadius: 8, padding: '7px 10px', cursor: 'pointer' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', border: 'none', background: i === hi ? C.surfaceMuted : 'transparent', borderRadius: 8, padding: '7px 10px', cursor: 'pointer' }}
               >
-                <Icon icon={o.mail ? Mail : Link2} size={14} stroke="#a39bbf" />
-                <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: '#3f3a55', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.label}</span>
-                <code style={{ fontSize: 11.5, color: '#8a85a0', whiteSpace: 'nowrap' }}>{o.mail ? 'mailto:' : o.href}</code>
+                <Icon icon={o.mail ? Mail : Link2} size={14} stroke={C.ink350} />
+                <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.label}</span>
+                <code style={{ fontSize: 11.5, color: C.textMuted, whiteSpace: 'nowrap' }}>{o.mail ? 'mailto:' : o.href}</code>
               </button>
             </div>
           ))}
         </div>
       )}
-      {current && <div style={{ ...hintStyle, color: '#7c3aed', fontWeight: 600 }}>→ {current.label}</div>}
+      {current && <div style={{ ...hintStyle, color: C.primary, fontWeight: 600 }}>→ {current.label}</div>}
       {hint && <div style={hintStyle}>{hint}</div>}
     </div>
   );
@@ -197,8 +198,8 @@ export function LinkInput({ label, value, onChange, path, errors, hrefHint }: Fi
 }) {
   const { t } = useApp();
   return (
-    <div style={{ display: 'grid', gap: 10, border: '1px solid #f0ecf8', borderRadius: 12, padding: 12, background: '#fcfbff' }}>
-      <div style={{ fontSize: 12.5, fontWeight: 700, color: '#4b4660' }}>{label}</div>
+    <div style={{ display: 'grid', gap: 10, border: `1px solid ${C.surfaceMuted}`, borderRadius: 12, padding: 12, background: C.surfaceSubtle }}>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: C.ink650 }}>{label}</div>
       <L10nInput label={t.lpFButtonText} value={value.label} onChange={(v) => onChange({ ...value, label: v })} path={`${path}.label`} errors={errors} />
       <HrefInput label={t.lpFLink} value={value.href} onChange={(v) => onChange({ ...value, href: v })} path={`${path}.href`} errors={errors} placeholder="/register" hint={hrefHint ?? t.lpFLinkHint} />
     </div>
@@ -211,7 +212,7 @@ export function FieldGroup({ title, hint, children }: { title?: string; hint?: s
     <div style={{ display: 'grid', gap: 14 }}>
       {title && (
         <div>
-          <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 14.5, color: '#211c38' }}>{title}</div>
+          <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 14.5, color: C.textStrong }}>{title}</div>
           {hint && <div style={{ ...hintStyle, marginTop: 2 }}>{hint}</div>}
         </div>
       )}
@@ -238,19 +239,19 @@ export function ListEditor<T>({ title, items, onChange, create, render, itemTitl
     [next[i], next[i + d]] = [next[i + d], next[i]];
     onChange(next);
   };
-  const iconBtn = (disabled: boolean): CSSProperties => ({ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, border: '1px solid #ece8f6', background: '#fff', borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1 });
+  const iconBtn = (disabled: boolean): CSSProperties => ({ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1 });
 
   return (
     <FieldGroup title={title} hint={t.lpListLimit.replace('{min}', String(min)).replace('{max}', String(max))}>
       {items.map((item, i) => (
-        <div key={i} style={{ border: '1px solid #ece8f6', borderRadius: 14, background: '#fff' }}>
+        <div key={i} style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.surface }}>
           {/* Không overflow:hidden — dropdown gợi ý link trong thẻ con sẽ bị cắt; bo góc ở header thay thế. */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: '#faf8ff', borderBottom: '1px solid #f0ecf8', borderRadius: '13px 13px 0 0' }}>
-            <span style={{ fontSize: 11, fontWeight: 800, color: '#7c3aed', background: '#f3edff', borderRadius: 999, padding: '2px 8px' }}>{String(i + 1).padStart(2, '0')}</span>
-            <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: '#4b4660', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{itemTitle(item, i)}</span>
-            <button type="button" onClick={() => move(i, -1)} disabled={i === 0} title={t.lpMoveUp} aria-label={t.lpMoveUp} style={iconBtn(i === 0)}><Icon icon={ArrowUp} size={14} stroke="#8a85a0" /></button>
-            <button type="button" onClick={() => move(i, 1)} disabled={i === items.length - 1} title={t.lpMoveDown} aria-label={t.lpMoveDown} style={iconBtn(i === items.length - 1)}><Icon icon={ArrowDown} size={14} stroke="#8a85a0" /></button>
-            <button type="button" onClick={() => onChange(items.filter((_, j) => j !== i))} disabled={items.length <= min} title={t.lpRemove} aria-label={t.lpRemove} style={{ ...iconBtn(items.length <= min), borderColor: '#fbdce7' }}><Icon icon={Trash2} size={14} stroke="#e25c84" /></button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: C.bg, borderBottom: `1px solid ${C.surfaceMuted}`, borderRadius: '13px 13px 0 0' }}>
+            <span style={{ fontSize: 11, fontWeight: 800, color: C.primary, background: C.primarySoft, borderRadius: 999, padding: '2px 8px' }}>{String(i + 1).padStart(2, '0')}</span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: C.ink650, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{itemTitle(item, i)}</span>
+            <button type="button" onClick={() => move(i, -1)} disabled={i === 0} title={t.lpMoveUp} aria-label={t.lpMoveUp} style={iconBtn(i === 0)}><Icon icon={ArrowUp} size={14} stroke={C.textMuted} /></button>
+            <button type="button" onClick={() => move(i, 1)} disabled={i === items.length - 1} title={t.lpMoveDown} aria-label={t.lpMoveDown} style={iconBtn(i === items.length - 1)}><Icon icon={ArrowDown} size={14} stroke={C.textMuted} /></button>
+            <button type="button" onClick={() => onChange(items.filter((_, j) => j !== i))} disabled={items.length <= min} title={t.lpRemove} aria-label={t.lpRemove} style={{ ...iconBtn(items.length <= min), borderColor: C.legacyBorderfbdce7 }}><Icon icon={Trash2} size={14} stroke={C.legacyTexte25c84} /></button>
           </div>
           <div style={{ display: 'grid', gap: 12, padding: 12 }}>
             {render(item, (v) => onChange(items.map((x, j) => (j === i ? v : x))), i)}
@@ -259,7 +260,7 @@ export function ListEditor<T>({ title, items, onChange, create, render, itemTitl
       ))}
       {countBad && <div style={{ fontSize: 12, color: ERR }}>{t.lpListLimit.replace('{min}', String(min)).replace('{max}', String(max))}</div>}
       {items.length < max && (
-        <button type="button" onClick={() => onChange([...items, create()])} style={{ justifySelf: 'start', display: 'flex', alignItems: 'center', gap: 6, border: '1px dashed #d9cef5', background: '#fff', borderRadius: 10, padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: '#7c3aed', cursor: 'pointer' }}>
+        <button type="button" onClick={() => onChange([...items, create()])} style={{ justifySelf: 'start', display: 'flex', alignItems: 'center', gap: 6, border: `1px dashed ${C.legacyBorderd9cef5}`, background: C.surface, borderRadius: 10, padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: C.primary, cursor: 'pointer' }}>
           <Plus size={15} strokeWidth={2.5} /> {t.lpAdd}
         </button>
       )}
@@ -285,9 +286,9 @@ export function IconPicker({ value, onChange, path, errors }: FieldProps & { val
               aria-checked={active}
               title={lang === 'en' ? label.en : label.vi}
               onClick={() => onChange(key)}
-              style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 9, cursor: 'pointer', border: `1.5px solid ${active ? '#8b5cf6' : '#ece8f6'}`, background: active ? '#f3edff' : '#fff' }}
+              style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 9, cursor: 'pointer', border: `1.5px solid ${active ? C.violetLight : C.border}`, background: active ? C.primarySoft : C.surface }}
             >
-              <Icon icon={icon} size={17} stroke={active ? '#7c3aed' : '#8a85a0'} />
+              <Icon icon={icon} size={17} stroke={active ? C.primary : C.textMuted} />
             </button>
           );
         })}

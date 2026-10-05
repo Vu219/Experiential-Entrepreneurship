@@ -34,6 +34,7 @@ import {
   type UsageThresholdFilter,
 } from '../../api/adminUsage';
 import PageContainer from '../../components/PageContainer';
+import { C } from '../../styles/colors';
 
 // Trang admin "Token & hạn mức" (nhóm Kinh doanh): tab Theo gói (chỉ đọc/gộp — hạn mức
 // sửa ở Quản lý gói) + tab Theo người dùng (lọc sắp chạm/đã vượt, chi tiết, cấp thêm/reset
@@ -41,8 +42,8 @@ import PageContainer from '../../components/PageContainer';
 // Thanh lọc thời gian DÙNG CHUNG (URL `range`/`from`/`to`) áp cho mọi tab dữ liệu; "Tháng này" = kỳ
 // hạn mức đang chạy (có %), khoảng khác = xem lịch sử từ rollup — ẩn % hạn mức + banner nhắc.
 
-const tdStyle: CSSProperties = { padding: '12px 16px', fontSize: 13.5, color: '#2b2543' };
-const tdMuted: CSSProperties = { ...tdStyle, color: '#8a85a0', fontSize: 13 };
+const tdStyle: CSSProperties = { padding: '12px 16px', fontSize: 13.5, color: C.ink750 };
+const tdMuted: CSSProperties = { ...tdStyle, color: C.textMuted, fontSize: 13 };
 
 const fmtTokens = (n: number) =>
   n >= 1_000_000 ? `${+(n / 1_000_000).toFixed(1)}M`
@@ -74,11 +75,11 @@ function UsageBar({ used, limit, gradient }: { used: number; limit: number | nul
   const fill = pct !== null && pct >= 100 ? '#ef4444' : pct !== null && pct >= 80 ? '#f59e0b' : gradient;
   return (
     <div style={{ minWidth: 140 }}>
-      <div style={{ fontSize: 12.5, fontWeight: 700, color: '#5b5670', marginBottom: 4 }}>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: C.ink550, marginBottom: 4 }}>
         {fmtTokens(used)} / {limit === null ? '∞' : fmtTokens(limit)}
       </div>
       {limit !== null && (
-        <div style={{ height: 6, borderRadius: 999, background: '#ece6f8', overflow: 'hidden' }}>
+        <div style={{ height: 6, borderRadius: 999, background: C.track, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: fill }} />
         </div>
       )}
@@ -268,14 +269,14 @@ export default function UsageOverview() {
   const tabBtn = (key: 'overview' | 'plans' | 'users' | 'events' | 'rates', label: string) => {
     const active = tab === key;
     return (
-      <button key={key} onClick={() => setTab(key)} style={{ border: '1px solid', borderColor: active ? 'transparent' : '#ece8f6', background: active ? brandGradient : '#fff', color: active ? '#fff' : '#5b5670', borderRadius: 9, padding: '7px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{label}</button>
+      <button key={key} onClick={() => setTab(key)} style={{ border: '1px solid', borderColor: active ? 'transparent' : C.border, background: active ? brandGradient : C.surface, color: active ? C.onBrand : C.ink550, borderRadius: 9, padding: '7px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{label}</button>
     );
   };
 
   const filterChip = (key: UsageThresholdFilter, label: string) => {
     const active = filter === key;
     return (
-      <button key={key || 'all'} onClick={() => { setFilter(key); setPage(0); }} style={{ border: '1px solid', borderColor: active ? 'transparent' : '#ece8f6', background: active ? brandGradient : '#fff', color: active ? '#fff' : '#5b5670', borderRadius: 999, padding: '6px 13px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{label}</button>
+      <button key={key || 'all'} onClick={() => { setFilter(key); setPage(0); }} style={{ border: '1px solid', borderColor: active ? 'transparent' : C.border, background: active ? brandGradient : C.surface, color: active ? C.onBrand : C.ink550, borderRadius: 999, padding: '6px 13px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{label}</button>
     );
   };
 
@@ -288,8 +289,8 @@ export default function UsageOverview() {
   );
   const errorCard = (retry: () => void) => (
     <Card style={{ textAlign: 'center', padding: '54px 16px' }}>
-      <div style={{ fontSize: 14.5, fontWeight: 600, color: '#5b5670', marginBottom: 14 }}>{t.listError}</div>
-      <button onClick={retry} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
+      <div style={{ fontSize: 14.5, fontWeight: 600, color: C.ink550, marginBottom: 14 }}>{t.listError}</div>
+      <button onClick={retry} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
     </Card>
   );
 
@@ -303,7 +304,7 @@ export default function UsageOverview() {
       {!isCurrent && (tab === 'plans' || tab === 'users') && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 12,
-          background: '#f5f0ff', border: '1px solid #e4d9fb', fontSize: 13, fontWeight: 600, color: '#5b3fa8',
+          background: C.border, border: `1px solid ${C.legacyBordere4d9fb}`, fontSize: 13, fontWeight: 600, color: C.legacyText5b3fa8,
         }}>
           <History size={16} strokeWidth={2} aria-hidden />
           {t.auHistoryBanner.replace('{from}', ddmm(range.from)).replace('{to}', ddmm(range.to))}
@@ -315,22 +316,22 @@ export default function UsageOverview() {
           <>
             {/* Tổng kỳ này so kỳ trước + chi phí + request + tỉ lệ lỗi */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-              <StatCard icon={Coins} iconBg="linear-gradient(135deg,#f1e9ff,#fae9ff)" iconColor="#8b5cf6"
+              <StatCard icon={Coins} iconBg={`linear-gradient(135deg,${C.purpleSoft},${C.legacyBgfae9ff})`} iconColor={C.violetLight}
                 value={fmtTokens(ov.totalTokens)}
                 label={isCurrent ? `${t.auOvTokens} · ${ov.periodStart.slice(0, 7)}` : `${t.auOvTokensRange} · ${ddmm(range.from)}–${ddmm(range.to)}`}
                 pill={ov.tokenDeltaPct === null ? null : `${ov.tokenDeltaPct >= 0 ? '+' : ''}${ov.tokenDeltaPct}% ${t.auOvVsPrev}`}
                 pillTone={ov.tokenDeltaPct !== null && ov.tokenDeltaPct > 0 ? 'warning' : 'success'} />
-              <StatCard icon={DollarSign} iconBg="linear-gradient(135deg,#e7fff4,#e9f7ff)" iconColor="#10b981"
+              <StatCard icon={DollarSign} iconBg={`linear-gradient(135deg,${C.legacyBge7fff4},${C.legacyBge9f7ff})`} iconColor={C.legacyText10b981}
                 value={fmtUsd(ov.costUsd)} label={t.auOvCost} valueFontSize={24} />
-              <StatCard icon={Activity} iconBg="linear-gradient(135deg,#e9f0ff,#f1e9ff)" iconColor="#6366f1"
+              <StatCard icon={Activity} iconBg={`linear-gradient(135deg,${C.legacyBge9f0ff},${C.purpleSoft})`} iconColor={C.legacyText6366f1}
                 value={ov.requests.toLocaleString('vi-VN')} label={t.auOvRequests} />
-              <StatCard icon={AlertTriangle} iconBg="linear-gradient(135deg,#fff1e9,#ffe9f1)" iconColor="#f59e0b"
+              <StatCard icon={AlertTriangle} iconBg={`linear-gradient(135deg,${C.legacyBgfff1e9},${C.legacyBgffe9f1})`} iconColor={C.strengthFair}
                 value={ov.requests > 0 ? `${((ov.errors / ov.requests) * 100).toFixed(1)}%` : '—'}
                 label={`${t.auOvErrorRate} (${ov.errors.toLocaleString('vi-VN')})`}
                 pillTone={ov.errors > 0 ? 'warning' : 'success'} />
             </div>
             {ov.creditUnits > 0 && (
-              <div style={{ fontSize: 12.5, color: '#8a85a0', marginTop: -8 }}>
+              <div style={{ fontSize: 12.5, color: C.textMuted, marginTop: -8 }}>
                 {t.auOvCreditPart.replace('{n}', fmtTokens(ov.creditUnits))}
               </div>
             )}
@@ -347,7 +348,7 @@ export default function UsageOverview() {
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {([['tokens', t.auOvMetricTokens], ['requests', t.auOvMetricRequests], ['cost', t.auOvMetricCost], ['latency', t.auOvMetricLatency]] as const).map(([key, label]) => (
                     <button key={key} onClick={() => setMetric(key)}
-                      style={{ border: '1px solid', borderColor: metric === key ? 'transparent' : '#ece8f6', background: metric === key ? brandGradient : '#fff', color: metric === key ? '#fff' : '#5b5670', borderRadius: 999, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                      style={{ border: '1px solid', borderColor: metric === key ? 'transparent' : C.border, background: metric === key ? brandGradient : C.surface, color: metric === key ? C.onBrand : C.ink550, borderRadius: 999, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                       {label}
                     </button>
                   ))}
@@ -355,7 +356,7 @@ export default function UsageOverview() {
               }
             >
               {heat.length === 0 ? (
-                <div style={{ fontSize: 13, color: '#a59fbb', padding: '10px 0' }}>{t.auOvNoData}</div>
+                <div style={{ fontSize: 13, color: C.textFaint, padding: '10px 0' }}>{t.auOvNoData}</div>
               ) : (
                 <Heatmap cells={heat.map((p) => ({ bucket: p.bucket, value: metricValue(p) }))}
                   from={range.from} to={range.to} byWeekday={heatByWeekday} avg={metric === 'latency'}
@@ -367,7 +368,7 @@ export default function UsageOverview() {
               {/* Top tính năng theo token */}
               <SectionCard title={t.auOvTopFeatures}>
                 {ov.topFeatures.length === 0 ? (
-                  <div style={{ fontSize: 13, color: '#a59fbb' }}>{t.auOvNoData}</div>
+                  <div style={{ fontSize: 13, color: C.textFaint }}>{t.auOvNoData}</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {ov.topFeatures.map((f) => {
@@ -375,10 +376,10 @@ export default function UsageOverview() {
                       return (
                         <div key={f.taskCode}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 5, fontSize: 13 }}>
-                            <span style={{ fontWeight: 600, color: '#3f3a55' }}>{aiTaskLabel(lang, f.taskCode)}</span>
-                            <span style={{ fontWeight: 700, color: '#5b5670' }}>{fmtTokens(f.totalTokens)}</span>
+                            <span style={{ fontWeight: 600, color: C.text }}>{aiTaskLabel(lang, f.taskCode)}</span>
+                            <span style={{ fontWeight: 700, color: C.ink550 }}>{fmtTokens(f.totalTokens)}</span>
                           </div>
-                          <div style={{ height: 6, borderRadius: 999, background: '#ece6f8', overflow: 'hidden' }}>
+                          <div style={{ height: 6, borderRadius: 999, background: C.track, overflow: 'hidden' }}>
                             <div style={{ height: '100%', width: `${(f.totalTokens / maxTok) * 100}%`, borderRadius: 999, background: brandGradient }} />
                           </div>
                         </div>
@@ -392,10 +393,10 @@ export default function UsageOverview() {
               <SectionCard flush title={t.auOvTopModels}>
                 <DataTable head={['Model', 'Token', t.aiUsageCost ?? 'Cost']} minWidth={320}>
                   {ov.topModels.map((m) => (
-                    <tr key={`${m.providerCode}:${m.modelCode}`} style={{ borderTop: '1px solid #f1eef8' }}>
+                    <tr key={`${m.providerCode}:${m.modelCode}`} style={{ borderTop: `1px solid ${C.surfaceMuted}` }}>
                       <td style={{ ...tdStyle, fontWeight: 600 }}>
                         {m.modelCode}
-                        <div style={{ fontSize: 11.5, color: '#a59fbb' }}>{m.providerCode}</div>
+                        <div style={{ fontSize: 11.5, color: C.textFaint }}>{m.providerCode}</div>
                       </td>
                       <td style={tdStyle}>{fmtTokens(m.totalTokens)}</td>
                       <td style={tdMuted}>{fmtUsd(m.costUsd)}</td>
@@ -409,20 +410,20 @@ export default function UsageOverview() {
             <SectionCard flush title={t.auOvTopUsers}>
               <DataTable head={[t.auColUser, 'Token', t.aiUsageCost ?? 'Cost', '']} minWidth={560}>
                 {ov.topUsers.map((u) => (
-                  <tr key={u.userId} style={{ borderTop: '1px solid #f1eef8' }}>
+                  <tr key={u.userId} style={{ borderTop: `1px solid ${C.surfaceMuted}` }}>
                     <td style={tdStyle}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <Avatar url={u.avatarUrl ?? undefined} initials={initialsOf(u.fullName || u.email)} gradient={brandGradient} />
                         <div style={{ minWidth: 0 }}>
                           <div style={{ fontWeight: 600 }}>{u.fullName || u.email}</div>
-                          <div style={{ fontSize: 12, color: '#a59fbb' }}>{u.email}</div>
+                          <div style={{ fontSize: 12, color: C.textFaint }}>{u.email}</div>
                         </div>
                       </div>
                     </td>
                     <td style={{ ...tdStyle, fontWeight: 700 }}>{fmtTokens(u.totalTokens)}</td>
                     <td style={tdMuted}>{fmtUsd(u.costUsd)}</td>
                     <td style={{ ...tdStyle, textAlign: 'right' }}>
-                      <button onClick={() => openDetail(u.userId)} style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>{t.auDetail}</button>
+                      <button onClick={() => openDetail(u.userId)} style={{ border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>{t.auDetail}</button>
                     </td>
                   </tr>
                 ))}
@@ -456,11 +457,11 @@ export default function UsageOverview() {
             const pct = !isCurrent || cap === null || cap === 0 ? null : (tokens / cap) * 100;
             return (
               <div style={{ minWidth: 150 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: '#5b5670', marginBottom: 4 }}>
-                  {fmtTokens(tokens)}{pct !== null && <span style={{ color: '#a59fbb', fontWeight: 600 }}> · {Math.round(pct)}%</span>}
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: C.ink550, marginBottom: 4 }}>
+                  {fmtTokens(tokens)}{pct !== null && <span style={{ color: C.textFaint, fontWeight: 600 }}> · {Math.round(pct)}%</span>}
                 </div>
                 {pct !== null && (
-                  <div style={{ height: 6, borderRadius: 999, background: '#ece6f8', overflow: 'hidden' }}>
+                  <div style={{ height: 6, borderRadius: 999, background: C.track, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, borderRadius: 999, background: barColor(pct) }} />
                   </div>
                 )}
@@ -468,12 +469,12 @@ export default function UsageOverview() {
             );
           };
           const attentionCell = (att: { warn: number; over: number } | null) =>
-            att === null ? <span style={{ color: '#a59fbb' }}>…</span>
-              : att.warn === 0 && att.over === 0 ? <span style={{ color: '#a59fbb' }}>—</span>
+            att === null ? <span style={{ color: C.textFaint }}>…</span>
+              : att.warn === 0 && att.over === 0 ? <span style={{ color: C.textFaint }}>—</span>
                 : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, whiteSpace: 'nowrap' }}>
-                    {att.warn > 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: '#b45309' }}>{t.auPlanWarnShort.replace('{n}', String(att.warn))}</span>}
-                    {att.over > 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: '#dc2626' }}>{t.auPlanOverShort.replace('{n}', String(att.over))}</span>}
+                    {att.warn > 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: C.amberText }}>{t.auPlanWarnShort.replace('{n}', String(att.warn))}</span>}
+                    {att.over > 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: C.danger }}>{t.auPlanOverShort.replace('{n}', String(att.over))}</span>}
                   </div>
                 );
           const totalAttention = allUsers === null ? null : plans.reduce(
@@ -489,7 +490,7 @@ export default function UsageOverview() {
                 flush
                 title={t.auTabByPlan}
                 action={
-                  <button onClick={() => go('adminPlans')} style={{ border: 'none', background: 'none', fontSize: 12.5, fontWeight: 700, color: '#7c3aed', cursor: 'pointer', padding: 0 }}>{t.auEditPlanLimits}</button>
+                  <button onClick={() => go('adminPlans')} style={{ border: 'none', background: 'none', fontSize: 12.5, fontWeight: 700, color: C.primary, cursor: 'pointer', padding: 0 }}>{t.auEditPlanLimits}</button>
                 }
               >
                 <DataTable head={[t.auColPlan, t.auPlanUsers, t.auPlanLimitPerUser, t.auPlanAllocated, t.auPlanUsed, t.auPlanCost, ...(isCurrent ? [t.auPlanAttention] : [])]} minWidth={920}>
@@ -507,7 +508,7 @@ export default function UsageOverview() {
                       <Fragment key={p.planId}>
                         <tr
                           onClick={() => setDrillPlan(open ? null : p.planCode)}
-                          style={{ borderTop: '1px solid #f1eef8', opacity: p.isActive ? 1 : 0.6, cursor: 'pointer', background: open ? '#faf8ff' : undefined }}
+                          style={{ borderTop: `1px solid ${C.surfaceMuted}`, opacity: p.isActive ? 1 : 0.6, cursor: 'pointer', background: open ? C.bg : undefined }}
                         >
                           <td style={{ ...tdStyle, fontWeight: 700 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -522,35 +523,35 @@ export default function UsageOverview() {
                           <td style={tdStyle}>
                             {fmtUsd(p.estimatedCost)}
                             {p.estimatedCost != null && p.userCount > 0 && (
-                              <div style={{ fontSize: 11.5, color: '#a59fbb' }}>{t.auPlanAvgUser}: {fmtUsd(p.estimatedCost / p.userCount)}</div>
+                              <div style={{ fontSize: 11.5, color: C.textFaint }}>{t.auPlanAvgUser}: {fmtUsd(p.estimatedCost / p.userCount)}</div>
                             )}
                           </td>
                           {isCurrent && <td style={tdStyle}>{attentionCell(attentionOf(p.planCode))}</td>}
                         </tr>
                         {open && (
-                          <tr style={{ background: '#faf8ff' }}>
+                          <tr style={{ background: C.bg }}>
                             <td colSpan={isCurrent ? 7 : 6} style={{ padding: '4px 16px 14px' }}>
                               {drillRows === null ? (
-                                <div style={{ fontSize: 12.5, color: '#a59fbb', padding: '8px 0' }}>{t.listLoading}</div>
+                                <div style={{ fontSize: 12.5, color: C.textFaint, padding: '8px 0' }}>{t.listLoading}</div>
                               ) : drillRows.length === 0 ? (
-                                <div style={{ fontSize: 12.5, color: '#a59fbb', padding: '8px 0' }}>{t.auDrillEmpty}</div>
+                                <div style={{ fontSize: 12.5, color: C.textFaint, padding: '8px 0' }}>{t.auDrillEmpty}</div>
                               ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                   {drillRows.map((u) => {
                                     const pct = pctOf(u.used, u.limit);
                                     return (
-                                      <div key={u.userId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '7px 10px', borderRadius: 10, background: '#fff', border: '1px solid #f1eef8' }}>
+                                      <div key={u.userId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '7px 10px', borderRadius: 10, background: C.surface, border: `1px solid ${C.surfaceMuted}` }}>
                                         <Avatar url={u.avatarUrl ?? undefined} initials={initialsOf(u.fullName || u.email)} size={28} gradient={brandGradient} />
                                         <div style={{ flex: '1 1 180px', minWidth: 0 }}>
-                                          <div style={{ fontSize: 12.5, fontWeight: 600, color: '#2b2543', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.fullName || u.email}</div>
-                                          <div style={{ fontSize: 11, color: '#a59fbb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                                          <div style={{ fontSize: 12.5, fontWeight: 600, color: C.ink750, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.fullName || u.email}</div>
+                                          <div style={{ fontSize: 11, color: C.textFaint, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
                                         </div>
                                         <div style={{ flex: '2 1 200px' }}>
                                           {isCurrent ? <UsageBar used={u.used} limit={u.limit} gradient={brandGradient} />
-                                            : <span style={{ fontSize: 12.5, fontWeight: 700, color: '#5b5670' }}>{fmtTokens(u.used)}</span>}
+                                            : <span style={{ fontSize: 12.5, fontWeight: 700, color: C.ink550 }}>{fmtTokens(u.used)}</span>}
                                         </div>
                                         {isCurrent && <StatusBadge tone={pctTone(pct)} label={pct === null ? '∞' : `${Math.round(pct)}%`} />}
-                                        <button onClick={(e) => { e.stopPropagation(); openDetail(u.userId); }} style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '5px 11px', fontSize: 12, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>{t.auDetail}</button>
+                                        <button onClick={(e) => { e.stopPropagation(); openDetail(u.userId); }} style={{ border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '5px 11px', fontSize: 12, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>{t.auDetail}</button>
                                       </div>
                                     );
                                   })}
@@ -563,7 +564,7 @@ export default function UsageOverview() {
                     );
                   })}
                   {/* Hàng tổng cộng */}
-                  <tr style={{ borderTop: '2px solid #ece8f6', background: '#faf9fe' }}>
+                  <tr style={{ borderTop: `2px solid ${C.border}`, background: C.surfaceSubtle }}>
                     <td style={{ ...tdStyle, fontWeight: 800 }}>{t.auPlanTotal}</td>
                     <td style={{ ...tdStyle, fontWeight: 700 }}>{totals.users}</td>
                     <td style={tdMuted}>—</td>
@@ -593,35 +594,35 @@ export default function UsageOverview() {
               )}
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input placeholder={t.auSearchPh} value={q} onChange={(e) => setQ(e.target.value)} style={{ border: '1px solid #ece8f6', borderRadius: 10, padding: '8px 12px', fontSize: 13, width: 220 }} />
-              <button onClick={doReconcile} title={t.auReconcile} style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '8px 12px', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>
+              <input placeholder={t.auSearchPh} value={q} onChange={(e) => setQ(e.target.value)} style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 12px', fontSize: 13, width: 220 }} />
+              <button onClick={doReconcile} title={t.auReconcile} style={{ display: 'flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '8px 12px', fontSize: 12.5, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>
                 <RefreshCw size={14} /> {t.auReconcile}
               </button>
             </div>
           </div>
 
           {userLoad === 'loading' ? loadingCard : userLoad === 'error' ? errorCard(fetchUsers) : rows.length === 0 ? (
-            <Card style={{ textAlign: 'center', padding: '44px 16px', color: '#8a85a0', fontSize: 13.5 }}>{t.auEmpty}</Card>
+            <Card style={{ textAlign: 'center', padding: '44px 16px', color: C.textMuted, fontSize: 13.5 }}>{t.auEmpty}</Card>
           ) : (
             <SectionCard flush title={t.auTabByUser}>
               <DataTable head={[t.auColUser, t.auColPlan, isCurrent ? t.auColUsage : t.auColUsageRange, ...(isCurrent ? ['%'] : []), '']} minWidth={760}>
                 {rows.map((r) => {
                   const pct = pctOf(r.used, r.limit);
                   return (
-                    <tr key={r.userId} style={{ borderTop: '1px solid #f1eef8' }}>
+                    <tr key={r.userId} style={{ borderTop: `1px solid ${C.surfaceMuted}` }}>
                       <td style={tdStyle}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <Avatar url={r.avatarUrl ?? undefined} initials={initialsOf(r.fullName || r.email)} gradient={brandGradient} />
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontWeight: 600 }}>{r.fullName || r.email}</div>
-                            <div style={{ fontSize: 12, color: '#a59fbb' }}>{r.email}</div>
+                            <div style={{ fontSize: 12, color: C.textFaint }}>{r.email}</div>
                           </div>
                         </div>
                       </td>
                       <td style={tdStyle}><StatusBadge {...userPlanMeta((r.planCode || 'FREE') as UserPlan)} /></td>
                       <td style={tdStyle}>
                         {isCurrent ? <UsageBar used={r.used} limit={r.limit} gradient={brandGradient} />
-                          : <span style={{ fontSize: 12.5, fontWeight: 700, color: '#5b5670' }}>{fmtTokens(r.used)}</span>}
+                          : <span style={{ fontSize: 12.5, fontWeight: 700, color: C.ink550 }}>{fmtTokens(r.used)}</span>}
                       </td>
                       {isCurrent && (
                         <td style={tdStyle}>
@@ -629,7 +630,7 @@ export default function UsageOverview() {
                         </td>
                       )}
                       <td style={{ ...tdStyle, textAlign: 'right' }}>
-                        <button onClick={() => openDetail(r.userId)} style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>{t.auDetail}</button>
+                        <button onClick={() => openDetail(r.userId)} style={{ border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>{t.auDetail}</button>
                       </td>
                     </tr>
                   );
@@ -648,29 +649,29 @@ export default function UsageOverview() {
       {tab === 'rates' && (
         rateLoad === 'loading' ? loadingCard : rateLoad === 'error' ? errorCard(fetchRates) : (
           <SectionCard flush title={t.auTabRates}>
-            <div style={{ padding: '10px 16px 0', fontSize: 12, color: '#8a85a0' }}>{t.auRateNote}</div>
+            <div style={{ padding: '10px 16px 0', fontSize: 12, color: C.textMuted }}>{t.auRateNote}</div>
 
             {/* Thêm version mới — append-only, BE tự đóng version đang mở cùng scope */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', padding: '12px 16px' }}>
               <select value={rTask} onChange={(e) => setRTask(e.target.value as AiTaskCode | '')}
-                style={{ border: '1px solid #ece8f6', borderRadius: 10, padding: '8px 10px', fontSize: 13, color: '#2b2543', background: '#fff' }}>
+                style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, color: C.ink750, background: C.surface }}>
                 <option value="">{t.auRateAllTasks}</option>
                 {RATE_TASKS.map((task) => <option key={task} value={task}>{aiTaskLabel(lang, task)}</option>)}
               </select>
               <input placeholder={t.auRateModelPh} value={rModel} onChange={(e) => setRModel(e.target.value)}
-                style={{ border: '1px solid #ece8f6', borderRadius: 10, padding: '8px 10px', fontSize: 13, width: 200 }} />
+                style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, width: 200 }} />
               <input type="number" min={0.000001} step="any" placeholder={t.auRateMultiplierPh} value={rMult} onChange={(e) => setRMult(e.target.value)}
-                style={{ border: '1px solid #ece8f6', borderRadius: 10, padding: '8px 10px', fontSize: 13, width: 130 }} />
+                style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, width: 130 }} />
               <input type="number" min={0} placeholder={t.auRateMinChargePh} value={rMin} onChange={(e) => setRMin(e.target.value)}
-                style={{ border: '1px solid #ece8f6', borderRadius: 10, padding: '8px 10px', fontSize: 13, width: 170 }} />
+                style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, width: 170 }} />
               <button onClick={doAddRate} disabled={rBusy || !(Number(rMult) > 0)}
-                style={{ border: 'none', borderRadius: 10, padding: '9px 14px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: rBusy ? 'wait' : 'pointer', opacity: rBusy || !(Number(rMult) > 0) ? 0.55 : 1 }}>
+                style={{ border: 'none', borderRadius: 10, padding: '9px 14px', fontWeight: 700, fontSize: 13, color: C.onBrand, background: brandGradient, cursor: rBusy ? 'wait' : 'pointer', opacity: rBusy || !(Number(rMult) > 0) ? 0.55 : 1 }}>
                 {t.auRateAdd}
               </button>
             </div>
 
             {rates.length === 0 ? (
-              <div style={{ padding: '10px 16px 20px', fontSize: 13, color: '#a59fbb' }}>{t.auRateEmpty}</div>
+              <div style={{ padding: '10px 16px 20px', fontSize: 13, color: C.textFaint }}>{t.auRateEmpty}</div>
             ) : (
               <DataTable
                 head={[t.auRateColTask, t.auRateColModel, t.auRateColMultiplier, t.auRateColMinCharge, t.auRateColFrom, t.auRateColTo, t.auRateColBy, '']}
@@ -681,7 +682,7 @@ export default function UsageOverview() {
                   const tone = r.effectiveTo !== null ? 'neutral' : scheduled ? 'warning' : 'success';
                   const label = r.effectiveTo !== null ? t.auRateReplaced : scheduled ? t.auRateScheduled : t.auRateActive;
                   return (
-                    <tr key={r.id} style={{ borderTop: '1px solid #f1eef8', opacity: r.effectiveTo !== null ? 0.6 : 1 }}>
+                    <tr key={r.id} style={{ borderTop: `1px solid ${C.surfaceMuted}`, opacity: r.effectiveTo !== null ? 0.6 : 1 }}>
                       <td style={{ ...tdStyle, fontWeight: 700 }}>{r.taskCode ? aiTaskLabel(lang, r.taskCode) : t.auRateAllTasks}</td>
                       <td style={tdMuted}>{r.modelCode ?? t.auRateAllModels}</td>
                       <td style={tdStyle}>×{r.multiplier}</td>

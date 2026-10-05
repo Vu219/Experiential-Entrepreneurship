@@ -9,6 +9,7 @@ import {
 } from '../../api/strategyOptimization';
 import type { ApiError } from '../../api/apiClient';
 import { useToast } from '../toast/ToastProvider';
+import { C } from '../../styles/colors';
 
 const POLL_MS = 3000;
 
@@ -90,18 +91,18 @@ export default function StrategyOptimization({ strategyId }: { strategyId: strin
   const decided = adjustments.filter((a) => a.appliedStatus !== 'PENDING');
 
   return (
-    <div style={{ border: '1px solid #efeaf8', borderRadius: 13, padding: 15 }}>
+    <div style={{ border: `1px solid ${C.border}`, borderRadius: 13, padding: 15 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <Sparkles size={15} color="#7c3aed" />
-          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', color: '#7c3aed' }}>{t.soTitle}</span>
+          <Sparkles size={15} color={C.primary} />
+          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', color: C.primary }}>{t.soTitle}</span>
         </div>
         <button
           onClick={run}
           disabled={running}
           style={{
             display: 'flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10,
-            padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: '#fff',
+            padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: C.onBrand,
             background: brandGradient, cursor: running ? 'default' : 'pointer', opacity: running ? 0.6 : 1,
           }}
         >
@@ -109,14 +110,14 @@ export default function StrategyOptimization({ strategyId }: { strategyId: strin
           {running ? t.soRunning : t.soRun}
         </button>
       </div>
-      <div style={{ fontSize: 12.5, color: '#8a85a0', marginTop: 6, lineHeight: 1.5 }}>{t.soSub}</div>
+      <div style={{ fontSize: 12.5, color: C.textMuted, marginTop: 6, lineHeight: 1.5 }}>{t.soSub}</div>
 
       {improvements.length > 0 && (
-        <div style={{ marginTop: 12, background: '#f8f5ff', border: '1px solid #e9defb', borderRadius: 11, padding: '11px 13px' }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#6d28d9', marginBottom: 6 }}>{t.soImprovements}</div>
+        <div style={{ marginTop: 12, background: C.surfaceMuted, border: `1px solid ${C.legacyBordere9defb}`, borderRadius: 11, padding: '11px 13px' }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: C.primaryStrong, marginBottom: 6 }}>{t.soImprovements}</div>
           <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
             {improvements.map((line, i) => (
-              <li key={i} style={{ fontSize: 12.5, color: '#4b4660', lineHeight: 1.5 }}>{line}</li>
+              <li key={i} style={{ fontSize: 12.5, color: C.ink650, lineHeight: 1.5 }}>{line}</li>
             ))}
           </ul>
         </div>
@@ -130,14 +131,14 @@ export default function StrategyOptimization({ strategyId }: { strategyId: strin
         </div>
       )}
       {!running && pending.length === 0 && adjustments.length === 0 && (
-        <div style={{ fontSize: 12.5, color: '#a39bbf', marginTop: 10 }}>{t.soEmpty}</div>
+        <div style={{ fontSize: 12.5, color: C.ink350, marginTop: 10 }}>{t.soEmpty}</div>
       )}
 
       {decided.length > 0 && (
         <div style={{ marginTop: 12 }}>
           <button
             onClick={() => setHistoryOpen((v) => !v)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: '#7c3aed', padding: 0 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: C.primary, padding: 0 }}
           >
             <History size={13} />
             {t.soHistory} ({decided.length})
@@ -166,13 +167,13 @@ function AdjustmentCard({ adjustment: a, busy, onDecide }: {
   const decisionLabel = a.appliedStatus === 'APPLIED' ? t.soApplied : a.appliedStatus === 'REJECTED' ? t.soRejected : t.soPending;
 
   return (
-    <div style={{ border: '1px solid #efeaf8', borderRadius: 11, padding: '11px 13px', background: '#fcfbfe', opacity: busy ? 0.6 : 1 }}>
+    <div style={{ border: `1px solid ${C.border}`, borderRadius: 11, padding: '11px 13px', background: C.surfaceSubtle, opacity: busy ? 0.6 : 1 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#2b2543', lineHeight: 1.45 }}>{a.adjustmentContent}</div>
-          {a.rationale && <div style={{ fontSize: 12, color: '#6f6a86', lineHeight: 1.5, marginTop: 4 }}>{a.rationale}</div>}
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.ink750, lineHeight: 1.45 }}>{a.adjustmentContent}</div>
+          {a.rationale && <div style={{ fontSize: 12, color: C.textSecondary, lineHeight: 1.5, marginTop: 4 }}>{a.rationale}</div>}
           {a.insightContent && (
-            <div style={{ fontSize: 11.5, color: '#8a85a0', lineHeight: 1.5, marginTop: 6, borderLeft: '2px solid #e3d9fb', paddingLeft: 8 }}>
+            <div style={{ fontSize: 11.5, color: C.textMuted, lineHeight: 1.5, marginTop: 6, borderLeft: `2px solid ${C.legacyBordere3d9fb}`, paddingLeft: 8 }}>
               {a.insightContent}
             </div>
           )}

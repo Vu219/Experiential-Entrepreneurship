@@ -4,6 +4,7 @@ import { useApp } from '../../../context/AppContext';
 import { formatVND } from '../../../api/admin';
 import type { PlanRevenue } from '../../../api/revenue';
 import { planColor } from './chartTokens';
+import { C } from '../../../styles/colors';
 
 /**
  * Donut "Cơ cấu gói dịch vụ": tâm hiển thị TỔNG SỐ GIAO DỊCH, legend liệt kê từng gói kèm %
@@ -22,7 +23,7 @@ function PlanDonut({ rows }: { rows: PlanRevenue[] }) {
         {slices.length === 0 ? (
           <div style={{
             height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, color: '#a59fbb',
+            fontSize: 13, color: C.textFaint,
           }}>
             {t.revNoData}
           </div>
@@ -43,10 +44,10 @@ function PlanDonut({ rows }: { rows: PlanRevenue[] }) {
               position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
             }}>
-              <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 24, color: '#211c38' }}>
+              <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 24, color: C.textStrong }}>
                 {total.toLocaleString('vi-VN')}
               </div>
-              <div style={{ fontSize: 11.5, color: '#8a85a0' }}>{t.revTxnUnit}</div>
+              <div style={{ fontSize: 11.5, color: C.textMuted }}>{t.revTxnUnit}</div>
             </div>
           </>
         )}
@@ -60,15 +61,15 @@ function PlanDonut({ rows }: { rows: PlanRevenue[] }) {
               background: planColor(r.displayOrder), opacity: r.transactions > 0 ? 1 : 0.35,
             }} />
             <span style={{
-              flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: '#3f3a55',
+              flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: C.text,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {lang === 'en' ? r.nameEn : r.nameVi}
             </span>
-            <span style={{ fontSize: 12.5, color: '#8a85a0', flex: 'none' }}>
+            <span style={{ fontSize: 12.5, color: C.textMuted, flex: 'none' }}>
               {r.transactions} · {r.sharePct}%
             </span>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#5b5670', flex: 'none', minWidth: 78, textAlign: 'right' }}>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: C.ink550, flex: 'none', minWidth: 78, textAlign: 'right' }}>
               {formatVND(r.revenue)}
             </span>
           </div>

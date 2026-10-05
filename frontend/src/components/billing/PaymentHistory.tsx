@@ -6,6 +6,7 @@ import { formatVND } from '../../api/admin';
 import { paymentStatusMeta } from '../../api/revenue';
 import { formatDateTimeVN } from '../../utils/format';
 import type { Payment } from '../../api/payments';
+import { C } from '../../styles/colors';
 
 /**
  * Lịch sử giao dịch của chính user. Badge trạng thái dùng lại `paymentStatusMeta` của trang
@@ -30,12 +31,12 @@ export default function PaymentHistory({
 
   return (
     <Card>
-      <h2 style={{ margin: '0 0 14px', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 18, color: '#1b1730' }}>
+      <h2 style={{ margin: '0 0 14px', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 18, color: C.textStrong }}>
         {t.blHistory}
       </h2>
 
       {items.length === 0 && !loading ? (
-        <p style={{ margin: 0, fontSize: 14, color: '#8a85a0' }}>{t.blHistoryEmpty}</p>
+        <p style={{ margin: 0, fontSize: 14, color: C.textMuted }}>{t.blHistoryEmpty}</p>
       ) : (
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table style={{ width: '100%', minWidth: isMobile ? 560 : undefined, borderCollapse: 'collapse' }}>
@@ -46,8 +47,8 @@ export default function PaymentHistory({
                     key={h}
                     style={{
                       padding: '10px 12px', textAlign: i >= 3 ? 'right' : 'left',
-                      fontSize: 12.5, fontWeight: 700, color: '#8a85a0',
-                      borderBottom: '1px solid #f0ecf8', whiteSpace: 'nowrap',
+                      fontSize: 12.5, fontWeight: 700, color: C.textMuted,
+                      borderBottom: `1px solid ${C.surfaceMuted}`, whiteSpace: 'nowrap',
                     }}
                   >
                     {h}
@@ -59,17 +60,17 @@ export default function PaymentHistory({
               {items.map((p) => {
                 const meta = paymentStatusMeta(lang, p.status);
                 return (
-                  <tr key={p.id} style={{ borderBottom: '1px solid #f6f3fb' }}>
-                    <td style={{ padding: '11px 12px', fontSize: 13.5, color: '#4b4660', whiteSpace: 'nowrap' }}>
+                  <tr key={p.id} style={{ borderBottom: `1px solid ${C.bg}` }}>
+                    <td style={{ padding: '11px 12px', fontSize: 13.5, color: C.ink650, whiteSpace: 'nowrap' }}>
                       {formatDateTimeVN(p.paidAt ?? p.orderedAt)}
                     </td>
-                    <td style={{ padding: '11px 12px', fontSize: 13.5, fontWeight: 600, color: '#1b1730' }}>
+                    <td style={{ padding: '11px 12px', fontSize: 13.5, fontWeight: 600, color: C.textStrong }}>
                       {lang === 'en' ? p.planNameEn : p.planNameVi}
                     </td>
-                    <td style={{ padding: '11px 12px', fontSize: 13, color: '#8a85a0', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '11px 12px', fontSize: 13, color: C.textMuted, whiteSpace: 'nowrap' }}>
                       {p.invoiceNo ?? '—'}
                     </td>
-                    <td style={{ padding: '11px 12px', fontSize: 13.5, fontWeight: 700, color: '#1b1730', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '11px 12px', fontSize: 13.5, fontWeight: 700, color: C.textStrong, textAlign: 'right', whiteSpace: 'nowrap' }}>
                       {formatVND(p.amount)}
                     </td>
                     <td style={{ padding: '11px 12px', textAlign: 'right' }}>
@@ -90,7 +91,7 @@ export default function PaymentHistory({
           onClick={onLoadMore}
           style={{
             marginTop: 14, borderRadius: 11, padding: '9px 16px', fontSize: 13.5, fontWeight: 700,
-            color: '#6b6680', background: '#fff', border: '1px solid #eae6f4',
+            color: C.textSecondary, background: C.surface, border: `1px solid ${C.border}`,
             cursor: loading ? 'progress' : 'pointer',
           }}
         >

@@ -30,6 +30,7 @@ import ResearchStartModal, { type ResearchStartConfig } from '../../components/t
 import ScheduleModal from '../../components/trends/ScheduleModal.tsx';
 import { loadTrendSchedule, saveTrendSchedule, type TrendSchedule } from '../../trendsSchedule.ts';
 import { FilterSelect } from '../../components/trends/filters.tsx';
+import { C } from '../../styles/colors';
 
 const HISTORY_PAGE_SIZE = 7;
 // Poll phiên research nền (NFR-04): 4s/lần, tối đa 5 phút MỖI nền tảng.
@@ -418,17 +419,17 @@ export default function Trends() {
       {/* Header trang */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
         <div>
-          <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: 22, color: '#211c38' }}>{t.trTitle}</div>
-          <div style={{ fontSize: 13, color: '#8a85a0', marginTop: 3 }}>{t.trSubtitle}</div>
+          <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: 22, color: C.textStrong }}>{t.trTitle}</div>
+          <div style={{ fontSize: 13, color: C.textMuted, marginTop: 3 }}>{t.trSubtitle}</div>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', flex: isMobile ? '1 1 100%' : 'none' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid #ece8f6', borderRadius: 12, padding: '9px 14px', flex: isMobile ? 1 : 'none', width: isMobile ? 'auto' : 260 }}>
-            <Search size={16} color="#a39bbf" strokeWidth={1.8} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '9px 14px', flex: isMobile ? 1 : 'none', width: isMobile ? 'auto' : 260 }}>
+            <Search size={16} color={C.ink350} strokeWidth={1.8} />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder={t.trSearchPh}
-              style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontSize: 13.5, color: '#241f3a' }}
+              style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontSize: 13.5, color: C.textStrong }}
             />
           </div>
           <button
@@ -436,9 +437,9 @@ export default function Trends() {
             className="btn-grad"
             onClick={() => setStartOpen(true)}
             disabled={researching}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: 'none', borderRadius: 12, padding: '10px 18px', fontWeight: 700, fontSize: 13.5, color: '#fff', background: 'var(--brand)', cursor: researching ? 'wait' : 'pointer', opacity: researching ? 0.7 : 1, boxShadow: '0 14px 26px -12px rgba(139,92,246,.6)' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: 'none', borderRadius: 12, padding: '10px 18px', fontWeight: 700, fontSize: 13.5, color: C.onBrand, background: 'var(--brand)', cursor: researching ? 'wait' : 'pointer', opacity: researching ? 0.7 : 1, boxShadow: `0 14px 26px -12px ${C.legacyShadowrgba13992246_6_}` }}
           >
-            <Icon icon={Play} size={15} stroke="#fff" />
+            <Icon icon={Play} size={15} stroke={C.onBrand} />
             {researching ? (researchProgress ? `${t.trResearchStep} ${researchProgress}` : t.trResearching) : t.trResearchNow}
           </button>
         </div>
@@ -451,7 +452,7 @@ export default function Trends() {
       <div style={{ display: 'grid', gridTemplateColumns: sideBySide ? `minmax(0,1fr) ${sidebarW}px` : '1fr', gap: 20, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
           {/* Thanh sub-tab */}
-          <div style={{ display: 'inline-flex', alignSelf: 'flex-start', gap: 4, background: '#f4f2fb', border: '1px solid #ece8f6', borderRadius: 12, padding: 4, flexWrap: 'wrap', maxWidth: '100%' }}>
+          <div style={{ display: 'inline-flex', alignSelf: 'flex-start', gap: 4, background: C.surfaceMuted, border: `1px solid ${C.border}`, borderRadius: 12, padding: 4, flexWrap: 'wrap', maxWidth: '100%' }}>
             {tabs.map(([key, label]) => {
               const on = tab === key;
               return (
@@ -460,7 +461,7 @@ export default function Trends() {
                   type="button"
                   onClick={() => setTab(key)}
                   aria-pressed={on}
-                  style={{ border: 'none', borderRadius: 9, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: on ? '#6d28d9' : '#6b6680', background: on ? '#fff' : 'transparent', boxShadow: on ? '0 4px 10px -6px rgba(80,40,140,.4)' : 'none', transition: 'background .15s, color .15s' }}
+                  style={{ border: 'none', borderRadius: 9, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: on ? C.primaryStrong : C.textSecondary, background: on ? C.surface : 'transparent', boxShadow: on ? `0 4px 10px -6px ${C.legacyShadowrgba8040140_4_}` : 'none', transition: 'background .15s, color .15s' }}
                 >
                   {label}
                 </button>
@@ -481,9 +482,9 @@ export default function Trends() {
                   onClick={() => setAdvOpen((o) => !o)}
                   aria-expanded={advOpen}
                   className="btn-outline"
-                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: advOpen ? '1.5px solid #8b5cf6' : '1px solid #ece8f6', background: advOpen ? '#f6f1ff' : '#fff', color: advOpen ? '#6d28d9' : '#4b4660', fontWeight: 600, fontSize: 12.5, borderRadius: 10, padding: '9px 13px', cursor: 'pointer' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: advOpen ? `1.5px solid ${C.violetLight}` : `1px solid ${C.border}`, background: advOpen ? C.border : C.surface, color: advOpen ? C.primaryStrong : C.ink650, fontWeight: 600, fontSize: 12.5, borderRadius: 10, padding: '9px 13px', cursor: 'pointer' }}
                 >
-                  <Icon icon={SlidersHorizontal} size={14} stroke="#7c3aed" />
+                  <Icon icon={SlidersHorizontal} size={14} stroke={C.primary} />
                   {t.trAdvFilter}
                 </button>
                 {/* Xóa nhiều trend không phù hợp: bật chế độ chọn → tick → Xóa (n) */}
@@ -492,9 +493,9 @@ export default function Trends() {
                     type="button"
                     onClick={() => setSelectMode(true)}
                     className="btn-outline"
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: '1px solid #f6d9d9', background: '#fff', color: '#dc2626', fontWeight: 600, fontSize: 12.5, borderRadius: 10, padding: '9px 13px', cursor: 'pointer' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: `1px solid ${C.legacyBorderf6d9d9}`, background: C.surface, color: C.danger, fontWeight: 600, fontSize: 12.5, borderRadius: 10, padding: '9px 13px', cursor: 'pointer' }}
                   >
-                    <Icon icon={Trash2} size={14} stroke="#dc2626" />
+                    <Icon icon={Trash2} size={14} stroke={C.danger} />
                     {t.trDeleteTrends}
                   </button>
                 ) : (
@@ -512,11 +513,11 @@ export default function Trends() {
                       type="button"
                       onClick={cancelSelect}
                       className="btn-outline"
-                      style={{ border: '1px solid #ece8f6', background: '#fff', color: '#4b4660', fontWeight: 600, fontSize: 12.5, borderRadius: 10, padding: '9px 13px', cursor: 'pointer' }}
+                      style={{ border: `1px solid ${C.border}`, background: C.surface, color: C.ink650, fontWeight: 600, fontSize: 12.5, borderRadius: 10, padding: '9px 13px', cursor: 'pointer' }}
                     >
                       {t.cancel}
                     </button>
-                    {!isMobile && <span style={{ fontSize: 12, color: '#a39bbf' }}>{t.trSelectHint}</span>}
+                    {!isMobile && <span style={{ fontSize: 12, color: C.ink350 }}>{t.trSelectHint}</span>}
                   </>
                 )}
               </div>
@@ -524,7 +525,7 @@ export default function Trends() {
                 <div style={filterRowStyle}>
                   <FilterSelect fullWidth={isMobile} label={t.trMinFit} value={minFitF} onChange={(v) => setMinFitF(v as 'all' | 'high' | 'medium')} options={[{ value: 'all', label: t.trAll }, { value: 'medium', label: t.trFitMed }, { value: 'high', label: t.trFitHigh }]} />
                   <FilterSelect fullWidth={isMobile} label={t.trSortBy} value={sortBy} onChange={(v) => setSortBy(v as typeof sortBy)} options={[{ value: 'none', label: t.trAll }, { value: 'growth', label: t.trSortGrowth }, { value: 'engagement', label: t.trColEngage }, { value: 'ideas', label: t.trColIdeas }]} />
-                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: '#fff', border: '1px solid #ece8f6', borderRadius: 10, padding: '8px 12px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: '#4b4660' }}>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 12px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: C.ink650 }}>
                     <input type="checkbox" checked={onlyWithIdeas} onChange={(e) => setOnlyWithIdeas(e.target.checked)} style={{ accentColor: '#8b5cf6', cursor: 'pointer' }} />
                     {t.trOnlyWithIdeas}
                   </label>
@@ -553,12 +554,12 @@ export default function Trends() {
               {filteredIdeas.length === 0 ? (
                 <Card>
                   <div style={{ padding: '18px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                    <div style={{ fontSize: 13.5, color: '#8a85a0' }}>{t.trNoResult}</div>
+                    <div style={{ fontSize: 13.5, color: C.textMuted }}>{t.trNoResult}</div>
                     <button
                       type="button"
                       onClick={clearIdeaFilters}
                       className="btn-outline"
-                      style={{ border: '1px solid #ece8f6', background: '#fff', color: '#6d28d9', fontWeight: 700, fontSize: 12.5, borderRadius: 10, padding: '8px 14px', cursor: 'pointer' }}
+                      style={{ border: `1px solid ${C.border}`, background: C.surface, color: C.primaryStrong, fontWeight: 700, fontSize: 12.5, borderRadius: 10, padding: '8px 14px', cursor: 'pointer' }}
                     >
                       {t.trClearFilters}
                     </button>
@@ -581,7 +582,7 @@ export default function Trends() {
                     ))}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 12.5, color: '#8a85a0', marginTop: 16 }}>
+                    <span style={{ fontSize: 12.5, color: C.textMuted, marginTop: 16 }}>
                       {t.trShowing} {ideaStart + 1}–{ideaStart + pagedIdeas.length}/{filteredIdeas.length} {t.trIdeaUnit}
                     </span>
                     <Pagination page={safeIdeaPage} pageCount={ideaPageCount} onChange={setIdeaPage} />
@@ -596,13 +597,13 @@ export default function Trends() {
             <Card style={{ paddingTop: 12, paddingBottom: 14 }}>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {pagedSessions.map((s, i) => (
-                  <div key={s.id} style={{ borderTop: i > 0 ? '1px solid #f4f1fa' : 'none' }}>
+                  <div key={s.id} style={{ borderTop: i > 0 ? `1px solid ${C.surfaceMuted}` : 'none' }}>
                     <ResearchHistoryItem session={s} onDetail={() => setDetailSession(s)} />
                   </div>
                 ))}
               </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', borderTop: '1px solid #f4f1fa' }}>
-                <span style={{ fontSize: 12.5, color: '#8a85a0', marginTop: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', borderTop: `1px solid ${C.surfaceMuted}` }}>
+                <span style={{ fontSize: 12.5, color: C.textMuted, marginTop: 16 }}>
                   {t.trShowing} {historyStart + 1}–{historyStart + pagedSessions.length}/{sessions.length} {t.trSessionUnit}
                 </span>
                 <Pagination page={safeHistoryPage} pageCount={historyPageCount} onChange={setHistoryPage} />

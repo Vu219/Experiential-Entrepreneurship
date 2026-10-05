@@ -19,6 +19,7 @@ import {
   type Payment,
 } from '../../api/payments';
 import type { ApiError } from '../../api/apiClient';
+import { C } from '../../styles/colors';
 
 const PAGE_SIZE = 10;
 
@@ -134,7 +135,7 @@ export default function Billing() {
     <PageContainer>
       {/* Giới thiệu ngữ cảnh nhẹ nhàng phía trên Card Gói hiện tại */}
       <div style={{ marginBottom: -6 }}>
-        <p style={{ margin: 0, fontSize: 13.5, color: '#6b6680', lineHeight: 1.55 }}>
+        <p style={{ margin: 0, fontSize: 13.5, color: C.textSecondary, lineHeight: 1.55 }}>
           {(t as Record<string, string>).blIntroDesc ?? (lang === 'en' ? 'Review your active subscription, upgrade or extend your plan, and track complete invoice history.' : 'Xem gói dịch vụ đang hoạt động, nâng cấp hoặc gia hạn gói cước, và tra cứu lịch sử giao dịch thanh toán.')}
         </p>
       </div>
@@ -151,10 +152,10 @@ export default function Billing() {
 
       {billing && plans.length > 0 && (
         <div>
-          <h2 style={{ margin: '0 0 4px', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 18, color: '#1b1730' }}>
+          <h2 style={{ margin: '0 0 4px', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 18, color: C.textStrong }}>
             {t.blChoosePlan}
           </h2>
-          <p style={{ margin: '0 0 14px', fontSize: 13.5, color: '#8a85a0' }}>{t.blChoosePlanSub}</p>
+          <p style={{ margin: '0 0 14px', fontSize: 13.5, color: C.textMuted }}>{t.blChoosePlanSub}</p>
           <PlanChoiceGrid plans={plans} billing={billing} onBuy={handleBuy} />
         </div>
       )}

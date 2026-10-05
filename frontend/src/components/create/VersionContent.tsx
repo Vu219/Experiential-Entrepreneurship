@@ -5,9 +5,10 @@ import { Icon } from '../ui';
 import type { ContentVersion } from '../../api/contentCreationService';
 import ScriptSections from './ScriptSections';
 import { CaptionCounter, HashtagCounter } from './platformLimits';
+import { C } from '../../styles/colors';
 
-const sectionLabel = { fontSize: 12, fontWeight: 700, letterSpacing: '.04em', color: '#a59fbb', marginBottom: 8 } as const;
-const block = { background: '#faf8fe', borderRadius: 12, padding: '12px 16px', fontSize: 13.5, lineHeight: 1.55, color: '#3f3a55' } as const;
+const sectionLabel = { fontSize: 12, fontWeight: 700, letterSpacing: '.04em', color: C.textFaint, marginBottom: 8 } as const;
+const block = { background: C.bg, borderRadius: 12, padding: '12px 16px', fontSize: 13.5, lineHeight: 1.55, color: C.text } as const;
 
 export type VersionTab = 'script' | 'content' | 'media';
 
@@ -20,7 +21,7 @@ export function VersionTabs({ value, onChange }: { value: VersionTab; onChange: 
     { key: 'media', label: t.cwTabMedia },
   ];
   return (
-    <div role="tablist" style={{ display: 'inline-flex', gap: 4, background: '#f6f3fc', borderRadius: 11, padding: 4 }}>
+    <div role="tablist" style={{ display: 'inline-flex', gap: 4, background: C.surfaceMuted, borderRadius: 11, padding: 4 }}>
       {tabs.map(({ key, label }) => {
         const on = value === key;
         return (
@@ -31,8 +32,8 @@ export function VersionTabs({ value, onChange }: { value: VersionTab; onChange: 
             onClick={() => onChange(key)}
             style={{
               border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
-              background: on ? '#fff' : 'transparent', color: on ? '#7c3aed' : '#8a85a0',
-              boxShadow: on ? '0 2px 8px -3px rgba(80,60,140,.25)' : 'none',
+              background: on ? C.surface : 'transparent', color: on ? C.primary : C.textMuted,
+              boxShadow: on ? `0 2px 8px -3px ${C.legacyShadowrgba8060140_25_}` : 'none',
             }}
           >
             {label}
@@ -63,7 +64,7 @@ export function ContentFieldsView({ version }: { version: ContentVersion }) {
         <div style={sectionLabel}>{t.cwTabHashtag}</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
           {version.hashtags.map((h, i) => (
-            <span key={i} style={{ background: '#f3edff', color: '#7c3aed', borderRadius: 8, padding: '5px 11px', fontSize: 12.5, fontWeight: 600 }}>{h}</span>
+            <span key={i} style={{ background: C.primarySoft, color: C.primary, borderRadius: 8, padding: '5px 11px', fontSize: 12.5, fontWeight: 600 }}>{h}</span>
           ))}
         </div>
         <HashtagCounter platform={version.platform} count={version.hashtags.length} />
@@ -93,13 +94,13 @@ export function MediaPromptView({ version }: { version: ContentVersion }) {
         <button
           onClick={copy}
           className="btn-soft"
-          style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px solid #ece8f6', background: '#fff', borderRadius: 8, padding: '5px 10px', fontSize: 11.5, fontWeight: 700, color: copied ? '#16a34a' : '#574f6e', cursor: 'pointer' }}
+          style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 8, padding: '5px 10px', fontSize: 11.5, fontWeight: 700, color: copied ? C.success : C.ink600, cursor: 'pointer' }}
         >
-          <Icon icon={copied ? Check : Copy} size={13} stroke={copied ? '#16a34a' : '#574f6e'} />
+          <Icon icon={copied ? Check : Copy} size={13} stroke={copied ? C.success : C.ink600} />
           {copied ? t.cwCopied : t.cwCopy}
         </button>
       </div>
-      <div style={{ ...block, border: '1.5px dashed #d9cef5', background: '#fdfcff', fontSize: 12.5, color: '#6b6680', whiteSpace: 'pre-line' }}>{version.mediaPrompt}</div>
+      <div style={{ ...block, border: `1.5px dashed ${C.legacyBorderd9cef5}`, background: C.surfaceSubtle, fontSize: 12.5, color: C.textSecondary, whiteSpace: 'pre-line' }}>{version.mediaPrompt}</div>
     </div>
   );
 }

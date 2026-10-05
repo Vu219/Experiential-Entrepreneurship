@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { C } from '../../styles/colors';
 
 /**
  * Ô tìm kiếm có dropdown gợi ý (dựa trên danh sách tên đang có) — kiểu dáng đồng bộ
@@ -53,8 +54,8 @@ export default function SearchSuggestInput({
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', flex: '1 1 220px', minWidth: 180, maxWidth: 340 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#f4f2fb', border: '1px solid #ece8f6', borderRadius: 10, padding: '8px 12px' }}>
-        <Search size={16} color="#a39bbf" strokeWidth={1.8} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: C.surfaceMuted, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 12px' }}>
+        <Search size={16} color={C.ink350} strokeWidth={1.8} />
         <input
           value={value}
           onChange={(e) => {
@@ -70,11 +71,11 @@ export default function SearchSuggestInput({
           role="combobox"
           aria-expanded={open && matches.length > 0}
           aria-autocomplete="list"
-          style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 13.5, color: '#241f3a' }}
+          style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 13.5, color: C.textStrong }}
         />
       </div>
       {open && matches.length > 0 && (
-        <div role="listbox" className="menu-pop menu-pop--left" style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 40, background: '#fff', border: '1px solid #ece8f6', borderRadius: 12, boxShadow: '0 12px 32px -10px rgba(40,20,90,.28)', padding: 6, display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 280, overflowY: 'auto' }}>
+        <div role="listbox" className="menu-pop menu-pop--left" style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 40, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, boxShadow: `0 12px 32px -10px ${C.legacyShadowrgba402090_28_}`, padding: 6, display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 280, overflowY: 'auto' }}>
           {matches.map((s, i) => (
             <button
               key={s}
@@ -84,9 +85,9 @@ export default function SearchSuggestInput({
               // onMouseDown (không phải onClick) để chạy trước khi input mất focus/đóng dropdown.
               onMouseDown={(e) => { e.preventDefault(); choose(s); }}
               onMouseEnter={() => setHi(i)}
-              style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', border: 'none', background: i === hi ? '#f4f1fb' : 'transparent', borderRadius: 8, padding: '8px 10px', fontSize: 13, fontWeight: 600, color: '#3f3a55', cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', border: 'none', background: i === hi ? C.surfaceMuted : 'transparent', borderRadius: 8, padding: '8px 10px', fontSize: 13, fontWeight: 600, color: C.text, cursor: 'pointer' }}
             >
-              <Search size={13} color="#a39bbf" strokeWidth={1.8} />
+              <Search size={13} color={C.ink350} strokeWidth={1.8} />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s}</span>
             </button>
           ))}

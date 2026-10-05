@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Icon } from '../ui';
 import { SESSION_STATUS_COLORS, type ResearchSession } from '../../trendsData';
 import { Pill } from './filters';
+import { C } from '../../styles/colors';
 
 /** 1 dòng timeline trong sub-tab "Lịch sử research". */
 export default function ResearchHistoryItem({ session, onDetail }: { session: ResearchSession; onDetail: () => void }) {
@@ -15,10 +16,10 @@ export default function ResearchHistoryItem({ session, onDetail }: { session: Re
       <Icon icon={done ? CheckCircle2 : XCircle} size={22} stroke={st.color} />
       <div style={{ flex: 1, minWidth: 200 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13.5, fontWeight: 700, color: '#2b2543' }}>{session.date} · {session.time}</span>
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: C.ink750 }}>{session.date} · {session.time}</span>
           <Pill text={done ? t.trDone : t.trCancelled} color={st.color} bg={st.bg} />
         </div>
-        <div style={{ fontSize: 12.5, color: '#8a85a0', marginTop: 3 }}>
+        <div style={{ fontSize: 12.5, color: C.textMuted, marginTop: 3 }}>
           {session.industry} · {session.platforms} {t.trPlatformUnit} · {session.trendsFound} {t.trTrendUnit} · {session.ideasCreated} {t.trIdeaUnit}
         </div>
       </div>
@@ -26,10 +27,10 @@ export default function ResearchHistoryItem({ session, onDetail }: { session: Re
         type="button"
         onClick={onDetail}
         className="link-underline"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 2, border: 'none', background: 'transparent', padding: '4px 0', fontSize: 12.5, fontWeight: 600, color: '#7c3aed', cursor: 'pointer', flex: 'none' }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 2, border: 'none', background: 'transparent', padding: '4px 0', fontSize: 12.5, fontWeight: 600, color: C.primary, cursor: 'pointer', flex: 'none' }}
       >
         {t.trSessionDetail}
-        <Icon icon={ChevronRight} size={13} stroke="#7c3aed" />
+        <Icon icon={ChevronRight} size={13} stroke={C.primary} />
       </button>
     </div>
   );

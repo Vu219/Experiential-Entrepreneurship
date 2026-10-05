@@ -19,6 +19,7 @@ import DashboardSkeleton from '../../components/dashboard/DashboardSkeleton.tsx'
 import { buildMockPerformance, buildMockTopics } from '../../components/dashboard/dashboardMock.ts';
 import { getDashboardSummary, type DashboardRange, type DashboardSummary } from '../../api/dashboard.ts';
 import { listNotifications, type AppNotification } from '../../api/notifications.ts';
+import { C } from '../../styles/colors';
 
 // UI-02 — Bảng điều khiển bố cục mới. TOÀN BỘ số liệu đến từ MỘT endpoint tổng hợp
 // (GET /dashboard/summary) thay cho 7 request rời rạc trước đây; riêng timeline hoạt động
@@ -116,7 +117,7 @@ export default function Dashboard() {
           message={t.dashErrMsg}
           action={
             <button onClick={() => setReloadKey((k) => k + 1)} className="btn-grad" style={primaryBtn(brandGradient)}>
-              <Icon icon={RefreshCw} size={18} stroke="#fff" />
+              <Icon icon={RefreshCw} size={18} stroke={C.onBrand} />
               {t.retry}
             </button>
           }
@@ -148,7 +149,7 @@ export default function Dashboard() {
       <div style={{
         borderRadius: 22, padding: isMobile ? '24px 22px' : '30px 34px',
         background: `radial-gradient(700px 300px at 90% -40%,rgba(255,255,255,.45),transparent),${brandGradient}`,
-        color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        color: C.onBrand, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         gap: 24, flexWrap: 'wrap', boxShadow: '0 26px 50px -28px rgba(139,92,246,.55)',
       }}>
         <div>
@@ -165,6 +166,7 @@ export default function Dashboard() {
         <button onClick={() => go('create')} className="btn-grad" style={{
           width: isMobile ? '100%' : 'auto', justifyContent: 'center', display: 'inline-flex',
           alignItems: 'center', gap: 8, border: 'none', borderRadius: 13, padding: '14px 22px',
+          // Nút sáng CỐ ĐỊNH trên banner gradient ở cả hai chế độ (thiết kế dark mode giữ nguyên).
           fontWeight: 700, fontSize: 14, color: '#6d28d9', background: '#fff', whiteSpace: 'nowrap',
           cursor: 'pointer', boxShadow: '0 10px 22px -10px rgba(0,0,0,.3)',
         }}>
@@ -224,7 +226,7 @@ const primaryBtn = (brandGradient: string): CSSProperties => ({
   padding: '13px 22px',
   fontWeight: 700,
   fontSize: 14,
-  color: '#fff',
+  color: C.onBrand,
   background: brandGradient,
   cursor: 'pointer',
   boxShadow: '0 16px 30px -12px rgba(139,92,246,.6)',
@@ -251,15 +253,15 @@ function StatePanel({
         gap: 14, maxWidth: 420, margin: '0 auto',
       }}>
         <div style={{
-          width: 56, height: 56, borderRadius: 16, background: '#fdeef2',
+          width: 56, height: 56, borderRadius: 16, background: C.roseTint,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <Icon icon={icon} size={26} stroke="#e23d6e" />
+          <Icon icon={icon} size={26} stroke={C.rose} />
         </div>
-        <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 19, color: '#211c38' }}>
+        <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 19, color: C.textStrong }}>
           {title}
         </div>
-        <div style={{ fontSize: 14, lineHeight: 1.55, color: '#5b5670' }}>{message}</div>
+        <div style={{ fontSize: 14, lineHeight: 1.55, color: C.ink550 }}>{message}</div>
         <div style={{ marginTop: 6 }}>{action}</div>
       </div>
     </Card>

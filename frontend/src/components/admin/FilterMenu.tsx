@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown, X } from 'lucide-react';
+import { C } from '../../styles/colors';
 
 const MENU_WIDTH = 208;
 
@@ -71,7 +72,7 @@ export default function FilterMenu({
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'center', height: 38, borderRadius: 10,
-      border: `1px solid ${selected ? '#ddd0fb' : '#ece8f6'}`, background: selected ? '#f5f0ff' : '#fff',
+      border: `1px solid ${selected ? C.legacyBorderddd0fb : C.border}`, background: selected ? C.border : C.surface,
     }}>
       <button
         ref={btnRef}
@@ -82,11 +83,11 @@ export default function FilterMenu({
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 6, height: '100%', border: 'none',
           background: 'none', padding: selected ? '0 4px 0 12px' : '0 10px 0 12px', cursor: 'pointer',
-          fontSize: 13.5, fontWeight: 600, color: selected ? '#6d28d9' : '#4b4660', whiteSpace: 'nowrap',
+          fontSize: 13.5, fontWeight: 600, color: selected ? C.primaryStrong : C.ink650, whiteSpace: 'nowrap',
         }}
       >
         {selected ? selected[1] : label}
-        {!selected && <ChevronDown size={15} strokeWidth={2} color="#a59fbb" />}
+        {!selected && <ChevronDown size={15} strokeWidth={2} color={C.textFaint} />}
       </button>
       {selected && (
         <button
@@ -95,7 +96,7 @@ export default function FilterMenu({
           onClick={() => onChange('')}
           style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26,
-            marginRight: 5, border: 'none', borderRadius: 7, background: 'none', color: '#8b5cf6', cursor: 'pointer',
+            marginRight: 5, border: 'none', borderRadius: 7, background: 'none', color: C.violetLight, cursor: 'pointer',
           }}
         >
           <X size={14} strokeWidth={2.2} />
@@ -109,8 +110,8 @@ export default function FilterMenu({
           className="menu-pop"
           style={{
             position: 'fixed', top: coords.top, left: coords.left, width: MENU_WIDTH, zIndex: 1000,
-            background: '#fff', borderRadius: 12, border: '1px solid #ece8f6', padding: '6px 0',
-            boxShadow: '0 24px 50px -22px rgba(80,40,140,.5)',
+            background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, padding: '6px 0',
+            boxShadow: `0 24px 50px -22px ${C.legacyShadowrgba8040140_5_}`,
           }}
         >
           {[['', allLabel] as [string, string], ...options].map(([v, l]) => (
@@ -134,8 +135,8 @@ function MenuItem({ label, active, onPick }: { label: string; active: boolean; o
       onMouseLeave={() => setHover(false)}
       style={{
         width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
-        padding: '9px 14px', border: 'none', background: hover ? '#f7f6fd' : 'transparent', textAlign: 'left',
-        fontSize: 13.5, fontWeight: active ? 700 : 600, color: active || hover ? '#7c3aed' : '#514b66', cursor: 'pointer',
+        padding: '9px 14px', border: 'none', background: hover ? C.bg : 'transparent', textAlign: 'left',
+        fontSize: 13.5, fontWeight: active ? 700 : 600, color: active || hover ? C.primary : C.ink650, cursor: 'pointer',
       }}
     >
       {label}

@@ -15,6 +15,7 @@ import StrategyDetail from './StrategyDetail';
 import StrategyEditor from './StrategyEditor';
 import ConfirmDialog from './ConfirmDialog';
 import { StrategyManagerSkeleton, StrategyCardsSkeleton } from './BrandSkeleton';
+import { C } from '../../styles/colors';
 
 type Mode = { kind: 'view'; id: string } | { kind: 'edit'; id: string } | { kind: 'create' } | { kind: 'empty' };
 
@@ -157,7 +158,7 @@ export default function StrategyManager() {
 
   if (brandsLoad === 'error') {
     return (
-      <Card style={{ padding: '54px 24px', textAlign: 'center', color: '#8a85a0' }}>
+      <Card style={{ padding: '54px 24px', textAlign: 'center', color: C.textMuted }}>
         {t.listError}
       </Card>
     );
@@ -165,11 +166,11 @@ export default function StrategyManager() {
 
   if (!activeBrand)
     return (
-      <Card style={{ padding: '54px 24px', textAlign: 'center', color: '#8a85a0' }}>
-        <div style={{ width: 60, height: 60, borderRadius: 16, background: '#f4f1fb', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-          <Icon icon={Sparkles} size={28} stroke="#a78bfa" />
+      <Card style={{ padding: '54px 24px', textAlign: 'center', color: C.textMuted }}>
+        <div style={{ width: 60, height: 60, borderRadius: 16, background: C.surfaceMuted, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+          <Icon icon={Sparkles} size={28} stroke={C.legacyTexta78bfa} />
         </div>
-        <div style={{ fontSize: 14.5, fontWeight: 600, color: '#5b5670' }}>{t.csNeedBrand}</div>
+        <div style={{ fontSize: 14.5, fontWeight: 600, color: C.ink550 }}>{t.csNeedBrand}</div>
       </Card>
     );
 
@@ -182,7 +183,7 @@ export default function StrategyManager() {
   // Header danh sách: chip thương hiệu + 1 slot phải (thu gọn / đóng drawer) — nút tạo mới đã chuyển lên header trang.
   const listHeader = (trailing?: ReactNode) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-      {activeBrand && <span style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', background: '#f4ecff', borderRadius: 999, padding: '5px 12px' }}>{t.csBrandLabel}: {activeBrand.brandName}</span>}
+      {activeBrand && <span style={{ fontSize: 12, fontWeight: 700, color: C.primary, background: C.accentSoft, borderRadius: 999, padding: '5px 12px' }}>{t.csBrandLabel}: {activeBrand.brandName}</span>}
       {trailing}
     </div>
   );
@@ -200,11 +201,11 @@ export default function StrategyManager() {
       {load === 'loading' ? (
         <StrategyCardsSkeleton />
       ) : load === 'error' ? (
-        <div style={{ textAlign: 'center', padding: '34px 12px', color: '#8a85a0', fontSize: 13.5 }}>{t.listError}</div>
+        <div style={{ textAlign: 'center', padding: '34px 12px', color: C.textMuted, fontSize: 13.5 }}>{t.listError}</div>
       ) : items.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '34px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: '#8a85a0', fontSize: 13.5 }}>{noFilters ? t.csEmptyTitle : t.listEmpty}</span>
-          {!noFilters && <button onClick={() => { setQuery(''); setSubmittedQ(''); setStatus('all'); }} className="btn-soft" style={{ border: 'none', background: '#f4f2fb', color: '#5b5670', borderRadius: 10, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{t.clearFilters}</button>}
+          <span style={{ color: C.textMuted, fontSize: 13.5 }}>{noFilters ? t.csEmptyTitle : t.listEmpty}</span>
+          {!noFilters && <button onClick={() => { setQuery(''); setSubmittedQ(''); setStatus('all'); }} className="btn-soft" style={{ border: 'none', background: C.surfaceMuted, color: C.ink550, borderRadius: 10, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{t.clearFilters}</button>}
         </div>
       ) : (
         <>
@@ -213,7 +214,7 @@ export default function StrategyManager() {
               <StrategyCard key={s.id} s={s} selected={(mode.kind === 'view' || mode.kind === 'edit') && mode.id === s.id} onSelect={() => selectStrategy(s.id)} onToggleStatus={(next) => toggleStatus(s, next)} onEdit={() => openEdit(s.id)} onDelete={() => setDeleting(s)} />
             ))}
           </div>
-          <div style={{ fontSize: 12, color: '#8a85a0', textAlign: 'center', paddingTop: 4 }}>{t.csShowing} {showFrom}-{showTo}/{total} {t.csStrategiesWord}</div>
+          <div style={{ fontSize: 12, color: C.textMuted, textAlign: 'center', paddingTop: 4 }}>{t.csShowing} {showFrom}-{showTo}/{total} {t.csStrategiesWord}</div>
           <Pagination page={page} pageCount={pageData?.totalPages ?? 1} onChange={setPage} />
         </>
       )}
@@ -224,8 +225,8 @@ export default function StrategyManager() {
   const expandedSidebar = (
     <div style={{ width: 340, minWidth: 340, display: 'flex', flexDirection: 'column', gap: 12 }}>
       {listHeader(
-        <button onClick={() => setCollapsed(true)} aria-label={t.csCollapseList} title={t.csCollapseList} style={{ marginLeft: 'auto', width: 34, height: 34, borderRadius: 10, border: '1px solid #efeaf8', background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flex: 'none' }}>
-          <Icon icon={PanelLeftClose} size={17} stroke="#7c3aed" />
+        <button onClick={() => setCollapsed(true)} aria-label={t.csCollapseList} title={t.csCollapseList} style={{ marginLeft: 'auto', width: 34, height: 34, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flex: 'none' }}>
+          <Icon icon={PanelLeftClose} size={17} stroke={C.primary} />
         </button>,
       )}
       {listBody}
@@ -235,11 +236,11 @@ export default function StrategyManager() {
   // Rail thu gọn (~56px): mũi tên mở rộng + icon chữ cái các chiến lược của trang hiện tại (hover xem tên).
   // Nút "+" đã bỏ — đã có nút "Tạo chiến lược mới" ở header trang (góc phải trên).
   const rail = (
-    <div style={{ width: 56, minWidth: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid #efeaf8', borderRadius: 16, padding: '10px 0' }}>
-      <button onClick={() => setCollapsed(false)} aria-label={t.csExpandList} title={t.csExpandList} style={{ width: 40, height: 40, borderRadius: 12, border: '1px solid #efeaf8', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-        <Icon icon={PanelLeftOpen} size={18} stroke="#7c3aed" />
+    <div style={{ width: 56, minWidth: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: '10px 0' }}>
+      <button onClick={() => setCollapsed(false)} aria-label={t.csExpandList} title={t.csExpandList} style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${C.border}`, background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+        <Icon icon={PanelLeftOpen} size={18} stroke={C.primary} />
       </button>
-      <div style={{ width: 28, height: 1, background: '#efeaf8' }} />
+      <div style={{ width: 28, height: 1, background: C.border }} />
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, width: '100%', overflow: 'visible' }}>
         {items.map((s) => {
           const isSel = (mode.kind === 'view' || mode.kind === 'edit') && mode.id === s.id;
@@ -251,7 +252,7 @@ export default function StrategyManager() {
               aria-label={s.name || '—'}
               title={s.name || '—'}
               className="strategy-card"
-              style={{ position: 'relative', width: 40, height: 40, borderRadius: 12, cursor: 'pointer', border: isSel ? '1.5px solid #a855f7' : '1px solid #efeaf8', background: isSel ? 'rgba(168, 85, 247, 0.06)' : '#faf8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: '#5b4b86', boxShadow: isSel ? '0 2px 8px rgba(168, 85, 247, 0.12)' : undefined }}
+              style={{ position: 'relative', width: 40, height: 40, borderRadius: 12, cursor: 'pointer', border: isSel ? `1.5px solid ${C.legacyBordera855f7}` : `1px solid ${C.border}`, background: isSel ? C.legacyBgrgba16885247006_ : C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: C.legacyText5b4b86, boxShadow: isSel ? `0 2px 8px ${C.legacyShadowrgba16885247012_}` : undefined }}
             >
               {isSel && (
                 <div style={{ position: 'absolute', inset: -1.5, borderRadius: 12, overflow: 'hidden', pointerEvents: 'none' }}>
@@ -259,7 +260,7 @@ export default function StrategyManager() {
                 </div>
               )}
               <span style={{ position: 'relative', zIndex: 1 }}>{(s.name || '—').charAt(0).toUpperCase()}</span>
-              <span style={{ position: 'absolute', top: -2, right: -2, width: 9, height: 9, borderRadius: '50%', background: dotColor(s.status), border: '2px solid #fff' }} />
+              <span style={{ position: 'absolute', top: -2, right: -2, width: 9, height: 9, borderRadius: '50%', background: dotColor(s.status), border: `2px solid ${C.shell}` }} />
             </button>
           );
         })}
@@ -271,7 +272,7 @@ export default function StrategyManager() {
     // max-width + canh giữa: khi thu gọn sidebar, vùng nội dung không giãn full-width gây mất cân đối (#4.2).
     <Card style={{ width: '100%', maxWidth: 1400, minWidth: 0, padding: 22, alignSelf: 'flex-start' }}>
       {load === 'error' && mode.kind === 'empty' ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: '#8a85a0' }}>{t.listError}</div>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted }}>{t.listError}</div>
       ) : mode.kind === 'create' ? (
         // key="editor-create" → form luôn remount sạch khi bấm "+" (reset toàn bộ state, không dính chiến lược vừa sửa).
         <StrategyEditor key="editor-create" strategy={null} brandId={brandId} brandName={activeBrand?.brandName ?? ''} onCancel={() => setMode({ kind: 'empty' })} onSaved={onSaved} />
@@ -282,15 +283,15 @@ export default function StrategyManager() {
         <StrategyDetail s={selected} onEdit={() => openEdit(selected.id)} onDelete={() => setDeleting(selected)} />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '55vh', textAlign: 'center', padding: '40px 20px' }}>
-          <div style={{ width: 110, height: 110, borderRadius: 32, background: 'linear-gradient(135deg, #fdfbff 0%, #f4ecff 100%)', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 28, boxShadow: '0 24px 48px -18px rgba(139,92,246,0.25)', transform: 'rotate(-2deg)' }}>
+          <div style={{ width: 110, height: 110, borderRadius: 32, background: `linear-gradient(135deg, ${C.legacyBgfdfbff} 0%, ${C.accentSoft} 100%)`, border: `2px solid ${C.shell}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 28, boxShadow: `0 24px 48px -18px ${C.legacyShadowrgba13992246025_}`, transform: 'rotate(-2deg)' }}>
             <div style={{ transform: 'rotate(2deg)' }}>
-              <Icon icon={LayoutList} size={56} stroke="#8b5cf6" />
+              <Icon icon={LayoutList} size={56} stroke={C.violetLight} />
             </div>
           </div>
-          <h3 style={{ fontSize: 20, fontWeight: 800, color: '#2d264b', margin: '0 0 12px 0', fontFamily: "'Plus Jakarta Sans'" }}>
+          <h3 style={{ fontSize: 20, fontWeight: 800, color: C.ink750, margin: '0 0 12px 0', fontFamily: "'Plus Jakarta Sans'" }}>
             Quản lý chiến lược Content
           </h3>
-          <p style={{ fontSize: 14.5, color: '#8a85a0', margin: 0, maxWidth: 420, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 14.5, color: C.textMuted, margin: 0, maxWidth: 420, lineHeight: 1.6 }}>
             {t.csDetailEmpty}. Hãy chọn một chiến lược từ danh sách bên trái hoặc nhấn nút "+" để tạo chiến lược mới ngay.
           </p>
         </div>
@@ -302,16 +303,16 @@ export default function StrategyManager() {
   if (drawerMode) {
     return (
       <div className="view-pop" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <button onClick={() => setMobileOpen(true)} aria-label={t.csExpandList} style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid #efeaf8', background: '#fff', borderRadius: 12, padding: '9px 14px', fontSize: 13.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>
-          <Icon icon={LayoutList} size={16} stroke="#7c3aed" />{t.csListTitle}
+        <button onClick={() => setMobileOpen(true)} aria-label={t.csExpandList} style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 8, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 12, padding: '9px 14px', fontSize: 13.5, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>
+          <Icon icon={LayoutList} size={16} stroke={C.primary} />{t.csListTitle}
         </button>
         {detail}
         {mobileOpen && (
-          <div onClick={() => setMobileOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,16,40,.42)', zIndex: 60, display: 'flex' }}>
-            <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(86%, 360px)', height: '100%', background: '#faf8ff', padding: 16, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '12px 0 40px -16px rgba(40,20,90,.5)' }}>
+          <div onClick={() => setMobileOpen(false)} style={{ position: 'fixed', inset: 0, background: C.legacyBgrgba201640_42_, zIndex: 60, display: 'flex' }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(86%, 360px)', height: '100%', background: C.bg, padding: 16, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, boxShadow: `12px 0 40px -16px ${C.legacyShadowrgba402090_5_}` }}>
               {listHeader(
-                <button onClick={() => setMobileOpen(false)} aria-label={t.csCollapseList} title={t.csCollapseList} style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid #efeaf8', background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flex: 'none' }}>
-                  <Icon icon={X} size={17} stroke="#7c3aed" />
+                <button onClick={() => setMobileOpen(false)} aria-label={t.csCollapseList} title={t.csCollapseList} style={{ width: 34, height: 34, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flex: 'none' }}>
+                  <Icon icon={X} size={17} stroke={C.primary} />
                 </button>,
               )}
               {listBody}

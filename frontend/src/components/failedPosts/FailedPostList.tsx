@@ -5,6 +5,7 @@ import { Card, Icon } from '../ui.tsx';
 import Pagination from '../admin/Pagination.tsx';
 import type { FailedPost } from '../../api/failedPosts.ts';
 import FailedPostRow from './FailedPostRow.tsx';
+import { C } from '../../styles/colors';
 
 // Danh sách master của layout master–detail: bảng (desktop/tablet) hoặc card list (mobile).
 
@@ -16,7 +17,7 @@ function TableSkeleton() {
   return (
     <div style={{ padding: '6px 16px 16px' }}>
       {Array.from({ length: 5 }, (_, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 0', borderTop: i > 0 ? '1px solid #f6f3fc' : 'none' }}>
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 0', borderTop: i > 0 ? `1px solid ${C.surfaceMuted}` : 'none' }}>
           <span className="skeleton" style={{ width: 38, height: 38, borderRadius: 9, flex: 'none' }} />
           <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: 7 }}>
             <SkeletonBlock w="70%" />
@@ -35,7 +36,7 @@ function CardSkeleton() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {Array.from({ length: 4 }, (_, i) => (
-        <div key={i} style={{ border: '1px solid #efeaf8', borderRadius: 14, padding: 13, background: '#fff', display: 'flex', flexDirection: 'column', gap: 9 }}>
+        <div key={i} style={{ border: `1px solid ${C.border}`, borderRadius: 14, padding: 13, background: C.surface, display: 'flex', flexDirection: 'column', gap: 9 }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <span className="skeleton" style={{ width: 38, height: 38, borderRadius: 9, flex: 'none' }} />
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -53,9 +54,9 @@ function CardSkeleton() {
 function EmptyState() {
   const { t } = useApp();
   return (
-    <div style={{ textAlign: 'center', padding: '54px 16px', color: '#8a85a0' }}>
-      <div style={{ width: 48, height: 48, borderRadius: 14, background: '#f4f1fb', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-        <Icon icon={Inbox} stroke="#a39bbf" />
+    <div style={{ textAlign: 'center', padding: '54px 16px', color: C.textMuted }}>
+      <div style={{ width: 48, height: 48, borderRadius: 14, background: C.surfaceMuted, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+        <Icon icon={Inbox} stroke={C.ink350} />
       </div>
       <div style={{ fontSize: 14.5, fontWeight: 600 }}>{t.fpEmpty}</div>
     </div>
@@ -99,8 +100,8 @@ export default function FailedPostList({
   }
 
   const th: CSSProperties = {
-    fontSize: 12, fontWeight: 600, color: '#a59fbb', padding: '12px 16px', whiteSpace: 'nowrap',
-    textAlign: 'left', background: '#faf9fe', borderBottom: '1px solid #f1eef8',
+    fontSize: 12, fontWeight: 600, color: C.textFaint, padding: '12px 16px', whiteSpace: 'nowrap',
+    textAlign: 'left', background: C.surfaceSubtle, borderBottom: `1px solid ${C.surfaceMuted}`,
   };
   const heads = [t.fpColPost, t.fpColPlatform, t.fpColReason, t.fpErrorCode, t.fpColTime];
 

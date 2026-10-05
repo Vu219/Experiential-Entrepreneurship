@@ -15,11 +15,22 @@
 
 ## 1. Hệ màu & theme
 
-- **3 theme gradient** trong [`theme.ts`](src/theme.ts): `aurora` (mặc định), `sunset`, `ocean`.
+- **3 theme gradient** trong [`tokens.css`](src/styles/tokens.css): Đại dương (`ocean`, mặc định),
+  Tím sương (`aurora`) và Hồng sương (`sunset`). Giữ key cũ để tương thích lựa chọn localStorage đã lưu.
   Theme đang chọn được bơm vào CSS var `--brand` (và `--soft`) ở [`App.tsx`](src/App.tsx).
 - **Dùng `var(--brand)`** cho mọi nền/chữ gradient thương hiệu — đừng hardcode lại chuỗi gradient.
   Chữ gradient: thêm class `.gradtext`. Ví dụ nút chính: `background: var(--brand)`.
 - **Màu nền tảng** lấy từ `PLATFORM_BG` (FB `#1877f2`, IG gradient, TH `#000`). Không tự bịa mã màu nền tảng.
+- **Màu giao diện sáng/tối** dùng token trong `src/styles/tokens.css`: inline style import `C`
+  từ `styles/colors` (`background: C.surface`, `color: C.textStrong`, ``border: `1px solid ${C.border}```);
+  CSS dùng `var(--c-*)`. Độ trong suốt dùng `alpha(C.primary, 0.1)`, không ghép hậu tố hex vào `var()`.
+  Token mới phải khai báo cả sáng (`:root`) và tối (`:root.dark`, chỉ `@media screen`) rồi thêm vào `C`.
+  Badge trạng thái lấy từ `statusTokens.ts`. Nền gradient thương hiệu dùng `color: C.onBrand`
+  (CSS: `var(--c-on-brand)`) cho chữ/icon: Đại dương trắng, hai palette pastel tím đậm `#35274D`.
+  `.gradtext` dùng gradient chữ đậm trên nền sáng, pastel trên nền tối cho hai palette mới.
+  `data-theme` chọn bảng màu thương hiệu, class `dark` chọn chế độ; bản in luôn sáng.
+  `VITE_ENABLE_DARK_MODE` mặc định bật sau khi hoàn tất app/admin/public (2026-10-05).
+  Lựa chọn ban đầu vẫn Sáng; đặt cờ `false` để giữ tất cả trang sáng và ẩn control.
 - **Bảng màu nền/chữ cơ bản** (theo `index.css`):
   - Nền trang: `#f7f6fd`; nền card: `#fff`; viền nhạt: `#efeaf8` / `#ece7f6`.
   - Chữ chính: `#1b1730`; chữ phụ/muted: `#6b6680` / `#8a85a0`.
@@ -55,6 +66,8 @@ Thứ tự ưu tiên khi tạo UI mới:
 
 - **Khung app đã đăng nhập**: [`AppShell`](src/components/AppShell.tsx) (sidebar + topbar) bọc mọi trang
   trong `AppLayout`. Trang mới chỉ render nội dung, không tự dựng lại sidebar/topbar.
+- **Toast**: `.toast-stack` nằm dưới `.app-topbar` 16px. Header và toast cùng đọc
+  `--app-header-height` (62px mobile, 70px desktop); CSS cập nhật ngay khi khung app xuất hiện sau login.
 - **Card** là đơn vị bố cục chính: bo góc `20`, viền `#efeaf8`, shadow nhẹ (xem `cardStyle`).
 - **Icon**: dùng `Icon`/`GradIcon` (single-path SVG) hoặc `lucide-react`. Giữ `strokeWidth ~1.8`.
 - **Loading**: dùng `<Loader />` (bouncing-ball). `fullScreen` để căn giữa viewport khi chờ auth/fetch.

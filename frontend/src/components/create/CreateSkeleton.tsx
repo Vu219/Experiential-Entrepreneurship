@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Card } from '../ui';
+import { C } from '../../styles/colors';
 
 const srOnly: CSSProperties = {
   position: 'absolute',
@@ -32,14 +33,14 @@ export function ContentTableSkeleton({ rows = 6 }: { rows?: number }) {
       <span style={srOnly}>{t.listLoading}</span>
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <div aria-hidden="true">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '13px 16px', background: '#faf9fe' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '13px 16px', background: C.surfaceSubtle }}>
             <Sk w={15} h={15} r={4} />
             {[90, 160, 70, 90, 70, 80, 70].map((w, i) => (
               <Sk key={i} w={w} h={10} />
             ))}
           </div>
           {Array.from({ length: rows }).map((_, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '13px 16px', borderTop: '1px solid #f1eef8' }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '13px 16px', borderTop: `1px solid ${C.surfaceMuted}` }}>
               <Sk w={15} h={15} r={4} />
               <Sk w={36} h={36} r={10} />
               <div style={{ flex: 1, minWidth: 120 }}>
@@ -134,7 +135,7 @@ export function ContentViewSkeleton() {
 
   // Khối một phần kịch bản (khớp ScriptSections 2 cột): badge + timing, trái nội dung / phải gợi ý cảnh quay.
   const scriptBlock = (
-    <div style={{ border: '1px solid #ece7f6', borderRadius: 14, background: '#faf8fe', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ border: `1px solid ${C.border}`, borderRadius: 14, background: C.bg, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', gap: 7 }}>
         <Sk w={64} h={18} r={7} />
         <Sk w={46} h={18} r={7} />

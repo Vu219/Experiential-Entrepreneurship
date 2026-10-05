@@ -19,6 +19,16 @@
 
 **UI/UX principles**: simple and usable for non-technical users; responsive (desktop/laptop/tablet); consistent, modern design; **AI transparency** — clearly mark which content is AI-generated / needs review / was auto-posted.
 
+**Color mode (completed 2026-10-05):** app/admin and Landing/Auth/Legal/Pricing support Light / Dark /
+System, independent of the three brand palettes. Store the choice only in localStorage
+(`aima-color-mode`), default Light. `VITE_ENABLE_DARK_MODE` defaults to true; explicitly setting it
+to false keeps all pages light and hides the controls. The topbar, public header/auth control and
+Settings › Appearance share the same preference. Shared dialogs, page surfaces, charts and status
+colors use tokens. Print uses light colors and logos. Landing header/footer use `aima-v-dark.png`
+in dark mode; the final CTA/footer gradients and FailedPosts overview chart match the selected
+mode. Verification uses intercepted API fixtures; this is not backend integration testing.
+See [DARK_MODE_PROGRESS.md](./DARK_MODE_PROGRESS.md).
+
 ---
 
 ## API

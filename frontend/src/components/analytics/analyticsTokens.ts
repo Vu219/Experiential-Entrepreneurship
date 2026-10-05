@@ -8,6 +8,7 @@
  */
 
 import type { StatTone } from '../dashboard/dashboardTokens';
+import { C } from '../../styles/colors';
 
 export type MetricKey = 'views' | 'likes' | 'comments' | 'shares';
 
@@ -30,12 +31,12 @@ export const METRIC_TONE: Record<MetricKey, StatTone> = {
 /** Thứ tự metric hiển thị nhất quán ở KPI, chart, bảng. */
 export const METRIC_ORDER: MetricKey[] = ['views', 'likes', 'comments', 'shares'];
 
-export const GRID_LINE = '#f1eef8';
-export const AXIS_TEXT = '#a59fbb';
+export const GRID_LINE = C.chartGrid;
+export const AXIS_TEXT = C.chartAxis;
 
 /** Màu donut nền tảng — cố định theo nền tảng để khớp `PlatformTag`. */
 export const PLATFORM_DONUT: Record<string, string> = {
   FACEBOOK: '#1877f2',
   INSTAGRAM: '#ee2a7b',
-  THREADS: '#111111',
+  THREADS: C.chartThreads,
 };

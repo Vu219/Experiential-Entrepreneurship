@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { getDataDeletionStatus, type DataDeletionStatus } from '../../api/legal';
 import LegalPage from './LegalPage';
+import { C } from '../../styles/colors';
 
 // /data-deletion — hướng dẫn xoá dữ liệu; có ?code= (Meta dẫn về sau khi user gửi yêu cầu xoá)
 // thì tra cứu và hiện trạng thái yêu cầu ngay đầu trang.
@@ -40,16 +41,16 @@ export default function DataDeletionPage() {
   return (
     <LegalPage docKey="dataDeletion">
       {code && (
-        <div role="status" aria-live="polite" style={{ marginTop: 24, border: '1px solid #e6dcfb', background: '#faf7ff', borderRadius: 16, padding: '18px 20px' }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#1b1730', marginBottom: 10 }}>{t.lgStatusTitle}</div>
-          {state === 'loading' && <div style={{ fontSize: 14, color: '#6b6680' }}>{t.lgStatusLoading}</div>}
-          {state === 'notFound' && <div style={{ fontSize: 14, color: '#b42318' }}>{t.lgStatusNotFound}</div>}
+        <div role="status" aria-live="polite" style={{ marginTop: 24, border: `1px solid ${C.legacyBordere6dcfb}`, background: C.bg, borderRadius: 16, padding: '18px 20px' }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: C.textStrong, marginBottom: 10 }}>{t.lgStatusTitle}</div>
+          {state === 'loading' && <div style={{ fontSize: 14, color: C.textSecondary }}>{t.lgStatusLoading}</div>}
+          {state === 'notFound' && <div style={{ fontSize: 14, color: C.legacyTextb42318 }}>{t.lgStatusNotFound}</div>}
           {state === 'done' && (
             <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'minmax(140px, auto) 1fr', gap: '6px 16px', fontSize: 14 }}>
               {rows.map(([label, value]) => (
                 <div key={label} style={{ display: 'contents' }}>
-                  <dt style={{ color: '#6b6680' }}>{label}</dt>
-                  <dd style={{ margin: 0, color: '#1b1730', fontWeight: 600, wordBreak: 'break-all' }}>{value}</dd>
+                  <dt style={{ color: C.textSecondary }}>{label}</dt>
+                  <dd style={{ margin: 0, color: C.textStrong, fontWeight: 600, wordBreak: 'break-all' }}>{value}</dd>
                 </div>
               ))}
             </dl>

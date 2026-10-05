@@ -1,0 +1,1510 @@
+{
+  "--c-landing-footer": {
+    "light": "linear-gradient(180deg,rgba(247,246,253,0),rgba(244,243,251,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.12),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.10),transparent 60%),#fbfafe",
+    "dark": "linear-gradient(180deg,rgba(11,15,30,0),rgba(13,18,36,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.08),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.06),transparent 60%),#0b0f1e"
+  },
+  "--c-landing-cta": {
+    "light": "linear-gradient(135deg, #DBEAFE 0%, #F5F3FF 50%, #FCE7F3 100%)",
+    "dark": "linear-gradient(135deg, #111c31 0%, #191832 50%, #251a36 100%)"
+  },
+  "--c-landing-cta-title": {
+    "light": "#1e1b4b",
+    "dark": "#f1f3fb"
+  },
+  "--c-landing-cta-text": {
+    "light": "#475569",
+    "dark": "#a3abc4"
+  },
+  "--c-landing-cta-small": {
+    "light": "#334155",
+    "dark": "#c3c9db"
+  },
+  "--c-landing-cta-button": {
+    "light": "#1e293b",
+    "dark": "#f1f3fb"
+  },
+  "--c-landing-cta-glow-blue": {
+    "light": "radial-gradient(circle, rgba(147,197,253,.4) 0%, rgba(147,197,253,0) 62%)",
+    "dark": "radial-gradient(circle, rgba(59,130,246,.12) 0%, rgba(59,130,246,0) 62%)"
+  },
+  "--c-landing-cta-glow-pink": {
+    "light": "radial-gradient(circle, rgba(249,168,212,.45) 0%, rgba(249,168,212,0) 62%)",
+    "dark": "radial-gradient(circle, rgba(236,72,153,.12) 0%, rgba(236,72,153,0) 62%)"
+  },
+  "--c-on-brand": {
+    "light": "#ffffff",
+    "dark": "#ffffff"
+  },
+  "--c-surface": {
+    "light": "#ffffff",
+    "dark": "#121829"
+  },
+  "--c-surface-subtle": {
+    "light": "#fbfaff",
+    "dark": "#151c2f"
+  },
+  "--c-bg": {
+    "light": "#f7f6fd",
+    "dark": "#0b0f1e"
+  },
+  "--c-surface-muted": {
+    "light": "#f1eef8",
+    "dark": "#182036"
+  },
+  "--c-border": {
+    "light": "#ece8f6",
+    "dark": "#232b42"
+  },
+  "--c-border-strong": {
+    "light": "#d9d3ea",
+    "dark": "#2e3752"
+  },
+  "--c-ink-200": {
+    "light": "#c4bdd6",
+    "dark": "#3d4762"
+  },
+  "--c-ink-250": {
+    "light": "#b3acc6",
+    "dark": "#4f5975"
+  },
+  "--c-text-faint": {
+    "light": "#a59fbb",
+    "dark": "#8690aa"
+  },
+  "--c-ink-350": {
+    "light": "#9b94b5",
+    "dark": "#8c96b0"
+  },
+  "--c-text-muted": {
+    "light": "#8a85a0",
+    "dark": "#939db6"
+  },
+  "--c-text-secondary": {
+    "light": "#6b6680",
+    "dark": "#a3abc4"
+  },
+  "--c-ink-550": {
+    "light": "#5b5670",
+    "dark": "#b0b8cf"
+  },
+  "--c-ink-600": {
+    "light": "#574f6e",
+    "dark": "#b7bed3"
+  },
+  "--c-ink-650": {
+    "light": "#4b4660",
+    "dark": "#c3c9db"
+  },
+  "--c-text": {
+    "light": "#3f3a55",
+    "dark": "#d5d9e8"
+  },
+  "--c-ink-750": {
+    "light": "#2b2543",
+    "dark": "#e2e6f1"
+  },
+  "--c-text-strong": {
+    "light": "#211c38",
+    "dark": "#f1f3fb"
+  },
+  "--c-ink-900": {
+    "light": "#171327",
+    "dark": "#f7f8fc"
+  },
+  "--c-shell": {
+    "light": "#ffffff",
+    "dark": "#0b0f1e"
+  },
+  "--c-topbar": {
+    "light": "rgba(255, 255, 255, 0.86)",
+    "dark": "rgba(11, 15, 30, 0.86)"
+  },
+  "--c-primary": {
+    "light": "#7c3aed",
+    "dark": "#a78bfa"
+  },
+  "--c-primary-strong": {
+    "light": "#6d28d9",
+    "dark": "#c4b5fd"
+  },
+  "--c-primary-soft": {
+    "light": "#f3edff",
+    "dark": "rgba(139, 92, 246, 0.18)"
+  },
+  "--c-purple-soft": {
+    "light": "#f1e9ff",
+    "dark": "rgba(139, 92, 246, 0.16)"
+  },
+  "--c-success": {
+    "light": "#16a34a",
+    "dark": "#4ade80"
+  },
+  "--c-success-soft": {
+    "light": "#e8f8ee",
+    "dark": "rgba(34, 197, 94, 0.14)"
+  },
+  "--c-success-soft-2": {
+    "light": "#dcfce7",
+    "dark": "rgba(34, 197, 94, 0.14)"
+  },
+  "--c-warning": {
+    "light": "#d97706",
+    "dark": "#fbbf24"
+  },
+  "--c-warning-soft": {
+    "light": "#fdf0dc",
+    "dark": "rgba(245, 158, 11, 0.15)"
+  },
+  "--c-warning-soft-2": {
+    "light": "#fef3c7",
+    "dark": "rgba(245, 158, 11, 0.15)"
+  },
+  "--c-amber-soft": {
+    "light": "#fdf4e5",
+    "dark": "rgba(245, 158, 11, 0.15)"
+  },
+  "--c-orange": {
+    "light": "#c2410c",
+    "dark": "#fb923c"
+  },
+  "--c-orange-soft": {
+    "light": "#ffedd5",
+    "dark": "rgba(249, 115, 22, 0.15)"
+  },
+  "--c-danger": {
+    "light": "#dc2626",
+    "dark": "#f87171"
+  },
+  "--c-danger-soft": {
+    "light": "#fde8e8",
+    "dark": "rgba(239, 68, 68, 0.15)"
+  },
+  "--c-danger-soft-2": {
+    "light": "#fee2e2",
+    "dark": "rgba(239, 68, 68, 0.15)"
+  },
+  "--c-rose": {
+    "light": "#e23d6e",
+    "dark": "#fb7185"
+  },
+  "--c-rose-soft": {
+    "light": "#fdecf1",
+    "dark": "rgba(244, 63, 94, 0.15)"
+  },
+  "--c-info": {
+    "light": "#0e7490",
+    "dark": "#22d3ee"
+  },
+  "--c-info-soft": {
+    "light": "#e0f7fb",
+    "dark": "rgba(34, 211, 238, 0.13)"
+  },
+  "--c-slate": {
+    "light": "#64748b",
+    "dark": "#94a3b8"
+  },
+  "--c-slate-soft": {
+    "light": "#eef2f7",
+    "dark": "rgba(148, 163, 184, 0.12)"
+  },
+  "--c-gray": {
+    "light": "#6b7280",
+    "dark": "#9ca3af"
+  },
+  "--c-gray-soft": {
+    "light": "#f3f4f6",
+    "dark": "rgba(156, 163, 175, 0.12)"
+  },
+  "--c-chart-grid": {
+    "light": "#f1eef8",
+    "dark": "rgba(255, 255, 255, 0.06)"
+  },
+  "--c-chart-axis": {
+    "light": "#a59fbb",
+    "dark": "#8c96b0"
+  },
+  "--c-chart-threads": {
+    "light": "#111111",
+    "dark": "#94a3b8"
+  },
+  "--c-shadow-card": {
+    "light": "0 18px 38px -34px rgba(80, 40, 140, 0.5)",
+    "dark": "none"
+  },
+  "--c-focus": {
+    "light": "#7c3aed",
+    "dark": "#a78bfa"
+  },
+  "--c-scroll-thumb": {
+    "light": "#e0ddee",
+    "dark": "#2a3350"
+  },
+  "--c-scroll-thumb-2": {
+    "light": "#dcd7ed",
+    "dark": "#2a3350"
+  },
+  "--c-scroll-thumb-2-hover": {
+    "light": "#c3b9df",
+    "dark": "#3a4566"
+  },
+  "--c-skeleton": {
+    "light": "#efeaf8",
+    "dark": "#1a2236"
+  },
+  "--c-skeleton-shine": {
+    "light": "rgba(255, 255, 255, 0.65)",
+    "dark": "rgba(255, 255, 255, 0.05)"
+  },
+  "--c-scroll-thumb-sb": {
+    "light": "#d9d2ec",
+    "dark": "#2a3350"
+  },
+  "--c-scroll-thumb-sb-hover": {
+    "light": "#c4bbe0",
+    "dark": "#3a4566"
+  },
+  "--c-scroll-thumb-3": {
+    "light": "#cbd5e1",
+    "dark": "#2a3350"
+  },
+  "--c-scroll-thumb-3-hover": {
+    "light": "#94a3b8",
+    "dark": "#3a4566"
+  },
+  "--c-row-hover": {
+    "light": "#faf9fe",
+    "dark": "#182036"
+  },
+  "--c-glass": {
+    "light": "rgba(255, 255, 255, 0.92)",
+    "dark": "rgba(18, 24, 41, 0.92)"
+  },
+  "--c-accent-border": {
+    "light": "#e3d8f7",
+    "dark": "rgba(167, 139, 250, 0.35)"
+  },
+  "--c-btn-outline-hover-bg": {
+    "light": "#faf7ff",
+    "dark": "rgba(139, 92, 246, 0.12)"
+  },
+  "--c-btn-outline-hover-border": {
+    "light": "#b79df0",
+    "dark": "rgba(167, 139, 250, 0.5)"
+  },
+  "--c-accent-soft": {
+    "light": "#f4ecff",
+    "dark": "rgba(139, 92, 246, 0.14)"
+  },
+  "--c-accent-soft-hover": {
+    "light": "#efe4ff",
+    "dark": "rgba(139, 92, 246, 0.22)"
+  },
+  "--c-accent-line": {
+    "light": "#e7d9fb",
+    "dark": "rgba(167, 139, 250, 0.3)"
+  },
+  "--c-accent-text": {
+    "light": "#5b2b9e",
+    "dark": "#d8c9ff"
+  },
+  "--c-accent-text-muted": {
+    "light": "#7d6aa3",
+    "dark": "#a59bc7"
+  },
+  "--c-accent-icon-muted": {
+    "light": "#a58fd0",
+    "dark": "#8b7bb8"
+  },
+  "--c-violet": {
+    "light": "#7c5cff",
+    "dark": "#a592ff"
+  },
+  "--c-promo-bg": {
+    "light": "linear-gradient(150deg, #f6f2ff, #fcf1fc)",
+    "dark": "linear-gradient(150deg, rgba(139, 92, 246, 0.16), rgba(236, 72, 153, 0.08))"
+  },
+  "--c-promo-border": {
+    "light": "#efe6fb",
+    "dark": "rgba(167, 139, 250, 0.22)"
+  },
+  "--c-track": {
+    "light": "#ece6f8",
+    "dark": "#232b42"
+  },
+  "--c-nav-nested": {
+    "light": "#7d7894",
+    "dark": "#8f98b2"
+  },
+  "--c-divider-soft": {
+    "light": "rgba(90, 80, 120, 0.18)",
+    "dark": "rgba(255, 255, 255, 0.1)"
+  },
+  "--c-menu-header": {
+    "light": "linear-gradient(135deg, #edf9ff, #f6effc)",
+    "dark": "linear-gradient(135deg, rgba(34, 211, 238, 0.07), rgba(139, 92, 246, 0.1))"
+  },
+  "--c-hover": {
+    "light": "#f7f6fd",
+    "dark": "#1a2238"
+  },
+  "--c-success-tint": {
+    "light": "#eafbf1",
+    "dark": "rgba(34, 197, 94, 0.12)"
+  },
+  "--c-success-line": {
+    "light": "#c9ecd6",
+    "dark": "rgba(74, 222, 128, 0.3)"
+  },
+  "--c-rose-tint": {
+    "light": "#fdeef2",
+    "dark": "rgba(244, 63, 94, 0.13)"
+  },
+  "--c-purple-tint": {
+    "light": "#f3edfd",
+    "dark": "rgba(139, 92, 246, 0.16)"
+  },
+  "--c-orange-2": {
+    "light": "#ea580c",
+    "dark": "#fb923c"
+  },
+  "--c-orange-tint": {
+    "light": "#fdefe6",
+    "dark": "rgba(249, 115, 22, 0.15)"
+  },
+  "--c-amber-text": {
+    "light": "#b45309",
+    "dark": "#fbbf24"
+  },
+  "--c-slate-tint": {
+    "light": "#f1f5f9",
+    "dark": "rgba(148, 163, 184, 0.12)"
+  },
+  "--c-surface-alt": {
+    "light": "#f7f6fd",
+    "dark": "#19213a"
+  },
+  "--c-platform-ring": {
+    "light": "transparent",
+    "dark": "rgba(255, 255, 255, 0.14)"
+  },
+  "--c-shadow-pop": {
+    "light": "0 30px 60px -28px rgba(80, 40, 140, 0.5)",
+    "dark": "0 24px 48px -16px rgba(0, 0, 0, 0.65)"
+  },
+  "--c-shadow-flyout": {
+    "light": "0 24px 50px -22px rgba(80, 40, 140, 0.5)",
+    "dark": "0 24px 48px -16px rgba(0, 0, 0, 0.65)"
+  },
+  "--c-modal-overlay": {
+    "light": "rgba(26, 18, 48, 0.5)",
+    "dark": "rgba(0, 0, 0, 0.65)"
+  },
+  "--c-drawer-overlay": {
+    "light": "rgba(26, 18, 48, 0.42)",
+    "dark": "rgba(0, 0, 0, 0.6)"
+  },
+  "--c-shadow-modal": {
+    "light": "0 40px 80px -30px rgba(60, 30, 110, 0.55)",
+    "dark": "0 40px 80px -30px rgba(0, 0, 0, 0.65)"
+  },
+  "--c-shadow-datepicker": {
+    "light": "0 18px 38px -12px rgba(80, 40, 140, 0.35)",
+    "dark": "0 18px 38px -12px rgba(0, 0, 0, 0.65)"
+  },
+  "--c-date-disabled": {
+    "light": "#d0cce0",
+    "dark": "#4f5975"
+  },
+  "--c-violet-light": {
+    "light": "#8b5cf6",
+    "dark": "#a78bfa"
+  },
+  "--c-violet-line": {
+    "light": "#d8cdf2",
+    "dark": "rgba(167, 139, 250, 0.4)"
+  },
+  "--c-violet-line-hover": {
+    "light": "#b79df0",
+    "dark": "rgba(167, 139, 250, 0.65)"
+  },
+  "--c-violet-selected": {
+    "light": "#faf6ff",
+    "dark": "rgba(139, 92, 246, 0.14)"
+  },
+  "--c-violet-hover": {
+    "light": "#ede8f9",
+    "dark": "rgba(139, 92, 246, 0.18)"
+  },
+  "--c-violet-hover-strong": {
+    "light": "#e3dcf6",
+    "dark": "rgba(139, 92, 246, 0.28)"
+  },
+  "--c-rose-border": {
+    "light": "#f6cdd9",
+    "dark": "rgba(251, 113, 133, 0.3)"
+  },
+  "--c-input-error-border": {
+    "light": "#f3aabf",
+    "dark": "rgba(251, 113, 133, 0.55)"
+  },
+  "--c-strength-fair": {
+    "light": "#f59e0b",
+    "dark": "#fbbf24"
+  },
+  "--c-toast-surface": {
+    "light": "rgba(255, 255, 255, 0.98)",
+    "dark": "rgba(18, 24, 41, 0.98)"
+  },
+  "--c-toast-border": {
+    "light": "rgba(15, 23, 42, 0.08)",
+    "dark": "#232b42"
+  },
+  "--c-toast-title": {
+    "light": "#1f2937",
+    "dark": "#f1f3fb"
+  },
+  "--c-toast-close": {
+    "light": "#9ca3af",
+    "dark": "#939db6"
+  },
+  "--c-shadow-toast": {
+    "light": "0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.06)",
+    "dark": "0 12px 32px rgba(0, 0, 0, 0.4)"
+  },
+  "--c-legacy-border-f3c9d6": {
+    "light": "#f3c9d6",
+    "dark": "color-mix(in srgb, #f9a8d4 30%, transparent)"
+  },
+  "--c-legacy-text-c0285a": {
+    "light": "#c0285a",
+    "dark": "#f9a8d4"
+  },
+  "--c-legacy-text-8a5566": {
+    "light": "#8a5566",
+    "dark": "#f9a8d4"
+  },
+  "--c-legacy-shadow-rgba_139_92_246__6_": {
+    "light": "rgba(139,92,246,.6)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-shadow-rgba_139_92_246__7_": {
+    "light": "rgba(139,92,246,.7)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-rgba_20_12_40__45_": {
+    "light": "rgba(20,12,40,.45)",
+    "dark": "rgba(20,12,40,.45)"
+  },
+  "--c-legacy-shadow-rgba_60_30_110__4_": {
+    "light": "rgba(60,30,110,.4)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-shadow-rgba_80_40_140__5_": {
+    "light": "rgba(80,40,140,.5)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-rgba_26_18_48__5_": {
+    "light": "rgba(26,18,48,.5)",
+    "dark": "rgba(26,18,48,.5)"
+  },
+  "--c-legacy-shadow-rgba_0_0_0__6_": {
+    "light": "rgba(0,0,0,.6)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-shadow-rgba_226_61_110__6_": {
+    "light": "rgba(226,61,110,.6)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-shadow-rgba_0_0_0__25_": {
+    "light": "rgba(0,0,0,.25)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-e9f0ff": {
+    "light": "#e9f0ff",
+    "dark": "color-mix(in srgb, #93c5fd 14%, #121829)"
+  },
+  "--c-legacy-bg-f4f1fb": {
+    "light": "#f4f1fb",
+    "dark": "#182036"
+  },
+  "--c-legacy-shadow-rgba_0_0_0__15_": {
+    "light": "rgba(0,0,0,.15)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-fff5f5": {
+    "light": "#fff5f5",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  "--c-legacy-shadow-rgba_40_20_90__22_": {
+    "light": "rgba(40,20,90,.22)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-shadow-rgba_40_20_90__05_": {
+    "light": "rgba(40,20,90,.05)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-shadow-rgba_255_255_255__3_": {
+    "light": "rgba(255,255,255,.3)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-border-f4cccc": {
+    "light": "#f4cccc",
+    "dark": "color-mix(in srgb, #f87171 30%, transparent)"
+  },
+  "--c-legacy-bg-fdf6ea": {
+    "light": "#fdf6ea",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  "--c-legacy-border-f6e2c2": {
+    "light": "#f6e2c2",
+    "dark": "color-mix(in srgb, #fb923c 30%, transparent)"
+  },
+  "--c-legacy-bg-fdf1dd": {
+    "light": "#fdf1dd",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  "--c-legacy-border-f3d9a8": {
+    "light": "#f3d9a8",
+    "dark": "color-mix(in srgb, #fb923c 30%, transparent)"
+  },
+  "--c-legacy-text-92400e": {
+    "light": "#92400e",
+    "dark": "#fb923c"
+  },
+  "--c-legacy-text-a16207": {
+    "light": "#a16207",
+    "dark": "#fb923c"
+  },
+  "--c-legacy-border-d9cef7": {
+    "light": "#d9cef7",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-border-ddd0fb": {
+    "light": "#ddd0fb",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-bg-fff7ed": {
+    "light": "#fff7ed",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  "--c-legacy-border-fed7aa": {
+    "light": "#fed7aa",
+    "dark": "color-mix(in srgb, #fb923c 30%, transparent)"
+  },
+  "--c-legacy-border-f6dfae": {
+    "light": "#f6dfae",
+    "dark": "color-mix(in srgb, #fb923c 30%, transparent)"
+  },
+  "--c-legacy-text-7c4a08": {
+    "light": "#7c4a08",
+    "dark": "#fb923c"
+  },
+  "--c-legacy-bg-rgba_26_18_48__42_": {
+    "light": "rgba(26,18,48,.42)",
+    "dark": "rgba(26,18,48,.42)"
+  },
+  "--c-legacy-shadow-rgba_60_30_110__5_": {
+    "light": "rgba(60,30,110,.5)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-border-b9a7ea": {
+    "light": "#b9a7ea",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-bg-rgba_139_92_246__45_": {
+    "light": "rgba(139,92,246,.45)",
+    "dark": "rgba(139,92,246,.45)"
+  },
+  "--c-legacy-bg-fffaf0": {
+    "light": "#fffaf0",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  "--c-legacy-border-fce7c3": {
+    "light": "#fce7c3",
+    "dark": "color-mix(in srgb, #fb923c 30%, transparent)"
+  },
+  "--c-legacy-shadow-rgba_80_40_140__6_": {
+    "light": "rgba(80,40,140,.6)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-text-d5cfe8": {
+    "light": "#d5cfe8",
+    "dark": "#a3abc4"
+  },
+  "--c-legacy-border-e4dbfa": {
+    "light": "#e4dbfa",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-text-5b21b6": {
+    "light": "#5b21b6",
+    "dark": "#c4b5fd"
+  },
+  "--c-legacy-border-dcd6ec": {
+    "light": "#dcd6ec",
+    "dark": "#2e3752"
+  },
+  "--c-legacy-border-d8c9ff": {
+    "light": "#d8c9ff",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-bg-cfc9e0": {
+    "light": "#cfc9e0",
+    "dark": "#182036"
+  },
+  "--c-legacy-bg-fdf7f9": {
+    "light": "#fdf7f9",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  "--c-legacy-bg-ecfdf5": {
+    "light": "#ecfdf5",
+    "dark": "color-mix(in srgb, #4ade80 14%, #121829)"
+  },
+  "--c-legacy-text-047857": {
+    "light": "#047857",
+    "dark": "#4ade80"
+  },
+  "--c-legacy-border-a7f3d0": {
+    "light": "#a7f3d0",
+    "dark": "color-mix(in srgb, #4ade80 30%, transparent)"
+  },
+  "--c-legacy-bg-fef2f2": {
+    "light": "#fef2f2",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  "--c-legacy-text-b91c1c": {
+    "light": "#b91c1c",
+    "dark": "#f87171"
+  },
+  "--c-legacy-border-fecaca": {
+    "light": "#fecaca",
+    "dark": "color-mix(in srgb, #f87171 30%, transparent)"
+  },
+  "--c-legacy-border-e5e7eb": {
+    "light": "#e5e7eb",
+    "dark": "#2e3752"
+  },
+  "--c-legacy-shadow-rgba_124_58_237_0_4_": {
+    "light": "rgba(124, 58, 237, 0.4)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-faf8fe": {
+    "light": "#faf8fe",
+    "dark": "#182036"
+  },
+  "--c-legacy-bg-f6f3fc": {
+    "light": "#f6f3fc",
+    "dark": "#182036"
+  },
+  "--c-legacy-bg-fffdf7": {
+    "light": "#fffdf7",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  "--c-legacy-bg-f6f2ff": {
+    "light": "#f6f2ff",
+    "dark": "#182036"
+  },
+  "--c-legacy-bg-fcf1fc": {
+    "light": "#fcf1fc",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  "--c-legacy-border-d6cdf0": {
+    "light": "#d6cdf0",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-text-9b7fd6": {
+    "light": "#9b7fd6",
+    "dark": "#c4b5fd"
+  },
+  "--c-legacy-text-d6336c": {
+    "light": "#d6336c",
+    "dark": "#f9a8d4"
+  },
+  "--c-legacy-border-ece2fb": {
+    "light": "#ece2fb",
+    "dark": "#2e3752"
+  },
+  "--c-legacy-text-5b4b86": {
+    "light": "#5b4b86",
+    "dark": "#c3c9db"
+  },
+  "--c-legacy-text-a78bfa": {
+    "light": "#a78bfa",
+    "dark": "#c4b5fd"
+  },
+  "--c-legacy-border-e0d5fb": {
+    "light": "#e0d5fb",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-border-e2e8f0": {
+    "light": "#e2e8f0",
+    "dark": "#2e3752"
+  },
+  "--c-legacy-bg-rgba_255_255_255__25_": {
+    "light": "rgba(255,255,255,.25)",
+    "dark": "rgba(18, 24, 41, .25)"
+  },
+  "--c-legacy-shadow-rgba_40_20_90__28_": {
+    "light": "rgba(40,20,90,.28)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-border-c9bdf3": {
+    "light": "#c9bdf3",
+    "dark": "color-mix(in srgb, #93c5fd 30%, transparent)"
+  },
+  "--c-legacy-bg-rgba_16_10_32__78_": {
+    "light": "rgba(16,10,32,.78)",
+    "dark": "rgba(16,10,32,.78)"
+  },
+  "--c-legacy-border-rgba_255_255_255__25_": {
+    "light": "rgba(255,255,255,.25)",
+    "dark": "#2e3752"
+  },
+  "--c-legacy-bg-rgba_255_255_255__12_": {
+    "light": "rgba(255,255,255,.12)",
+    "dark": "rgba(18, 24, 41, .12)"
+  },
+  "--c-legacy-border-a855f7": {
+    "light": "#a855f7",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-bg-rgba_168_85_247_0_06_": {
+    "light": "rgba(168, 85, 247, 0.06)",
+    "dark": "rgba(168, 85, 247, 0.06)"
+  },
+  "--c-legacy-shadow-rgba_168_85_247_0_12_": {
+    "light": "rgba(168, 85, 247, 0.12)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-text-b08968": {
+    "light": "#b08968",
+    "dark": "#fb923c"
+  },
+  "--c-legacy-bg-fdf6ec": {
+    "light": "#fdf6ec",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  "--c-legacy-shadow-rgba_0_0_0_0_03_": {
+    "light": "rgba(0,0,0,0.03)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-fdfbff": {
+    "light": "#fdfbff",
+    "dark": "#182036"
+  },
+  "--c-legacy-shadow-rgba_139_92_246_0_25_": {
+    "light": "rgba(139,92,246,0.25)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-rgba_20_16_40__42_": {
+    "light": "rgba(20,16,40,.42)",
+    "dark": "rgba(20,16,40,.42)"
+  },
+  "--c-legacy-shadow-rgba_40_20_90__5_": {
+    "light": "rgba(40,20,90,.5)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-border-e9defb": {
+    "light": "#e9defb",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-border-e3d9fb": {
+    "light": "#e3d9fb",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-shadow-rgba_60_30_110__45_": {
+    "light": "rgba(60,30,110,.45)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-border-c4b5fd": {
+    "light": "#c4b5fd",
+    "dark": "color-mix(in srgb, #93c5fd 30%, transparent)"
+  },
+  "--c-legacy-text-a39fb3": {
+    "light": "#a39fb3",
+    "dark": "#a3abc4"
+  },
+  "--c-legacy-bg-ebe4f9": {
+    "light": "#ebe4f9",
+    "dark": "#182036"
+  },
+  "--c-legacy-bg-rgba_20_14_38_0_55_": {
+    "light": "rgba(20, 14, 38, 0.55)",
+    "dark": "rgba(20, 14, 38, 0.55)"
+  },
+  "--c-legacy-shadow-rgba_40_20_90_0_45_": {
+    "light": "rgba(40, 20, 90, 0.45)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-shadow-rgba_124_58_237_0_08_": {
+    "light": "rgba(124,58,237,0.08)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-ebe5f8": {
+    "light": "#ebe5f8",
+    "dark": "#182036"
+  },
+  "--c-legacy-shadow-rgba_0_0_0_0_08_": {
+    "light": "rgba(0,0,0,0.08)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-fdf1f1": {
+    "light": "#fdf1f1",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  "--c-legacy-border-f9d2d8": {
+    "light": "#f9d2d8",
+    "dark": "color-mix(in srgb, #f87171 30%, transparent)"
+  },
+  "--c-legacy-text-991b1b": {
+    "light": "#991b1b",
+    "dark": "#f87171"
+  },
+  "--c-legacy-bg-fdf6e7": {
+    "light": "#fdf6e7",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  "--c-legacy-border-f6e2b3": {
+    "light": "#f6e2b3",
+    "dark": "color-mix(in srgb, #fb923c 30%, transparent)"
+  },
+  "--c-legacy-border-e5e0f2": {
+    "light": "#e5e0f2",
+    "dark": "#2e3752"
+  },
+  "--c-legacy-bg-efe9fb": {
+    "light": "#efe9fb",
+    "dark": "#182036"
+  },
+  "--c-legacy-shadow-rgba_70_40_120_0_12_": {
+    "light": "rgba(70,40,120,0.12)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-rgba_255_255_255_0_18_": {
+    "light": "rgba(255,255,255,0.18)",
+    "dark": "rgba(18, 24, 41, 0.18)"
+  },
+  "--c-legacy-shadow-rgba_0_0_0_0_2_": {
+    "light": "rgba(0,0,0,0.2)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-text-f3efff": {
+    "light": "#f3efff",
+    "dark": "#a3abc4"
+  },
+  "--c-legacy-text-c9bce8": {
+    "light": "#c9bce8",
+    "dark": "#c4b5fd"
+  },
+  "--c-legacy-bg-rgba_0_0_0_0_5_": {
+    "light": "rgba(0,0,0,0.5)",
+    "dark": "rgba(18, 24, 41, 0.5)"
+  },
+  "--c-legacy-border-f2c9d4": {
+    "light": "#f2c9d4",
+    "dark": "color-mix(in srgb, #f9a8d4 30%, transparent)"
+  },
+  "--c-legacy-border-d4cbf2": {
+    "light": "#d4cbf2",
+    "dark": "color-mix(in srgb, #93c5fd 30%, transparent)"
+  },
+  "--c-legacy-text-6025d8": {
+    "light": "#6025d8",
+    "dark": "#c4b5fd"
+  },
+  "--c-legacy-text-c4b5fd": {
+    "light": "#c4b5fd",
+    "dark": "#93c5fd"
+  },
+  "--c-legacy-shadow-rgba_33_28_56_0_05_": {
+    "light": "rgba(33, 28, 56, 0.05)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-shadow-rgba_0_0_0_0_02_": {
+    "light": "rgba(0, 0, 0, 0.02)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-border-ddd7ed": {
+    "light": "#ddd7ed",
+    "dark": "#2e3752"
+  },
+  "--c-legacy-shadow-rgba_35_20_65_0_16_": {
+    "light": "rgba(35, 20, 65, 0.16)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-f7f5fc": {
+    "light": "#f7f5fc",
+    "dark": "#182036"
+  },
+  "--c-legacy-bg-fdf1f4": {
+    "light": "#fdf1f4",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  "--c-legacy-bg-eaf8ef": {
+    "light": "#eaf8ef",
+    "dark": "color-mix(in srgb, #4ade80 14%, #121829)"
+  },
+  "--c-legacy-border-e5ddf5": {
+    "light": "#e5ddf5",
+    "dark": "#2e3752"
+  },
+  "--c-legacy-border-e0daee": {
+    "light": "#e0daee",
+    "dark": "#2e3752"
+  },
+  "--c-legacy-bg-f5f2fa": {
+    "light": "#f5f2fa",
+    "dark": "#182036"
+  },
+  "--c-legacy-border-d2c8ea": {
+    "light": "#d2c8ea",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-shadow-rgba_70_40_120_0_08_": {
+    "light": "rgba(70,40,120,0.08)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-text-65676b": {
+    "light": "#65676b",
+    "dark": "#c3c9db"
+  },
+  "--c-legacy-bg-rgba_0_0_0_0_45_": {
+    "light": "rgba(0,0,0,0.45)",
+    "dark": "rgba(18, 24, 41, 0.45)"
+  },
+  "--c-legacy-bg-rgba_255_255_255_0_22_": {
+    "light": "rgba(255, 255, 255, 0.22)",
+    "dark": "rgba(18, 24, 41, 0.22)"
+  },
+  "--c-legacy-border-rgba_255_255_255_0_35_": {
+    "light": "rgba(255, 255, 255, 0.35)",
+    "dark": "#2e3752"
+  },
+  "--c-legacy-shadow-rgba_0_0_0_0_3_": {
+    "light": "rgba(0, 0, 0, 0.3)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-rgba_0_0_0_0_6_": {
+    "light": "rgba(0,0,0,0.6)",
+    "dark": "rgba(18, 24, 41, 0.6)"
+  },
+  "--c-legacy-shadow-rgba_124_58_237_0_28_": {
+    "light": "rgba(124, 58, 237, 0.28)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-shadow-rgba_124_58_237_0_15_": {
+    "light": "rgba(124, 58, 237, 0.15)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-border-efeaf8": {
+    "light": "#efeaf8",
+    "dark": "#2e3752"
+  },
+  "--c-legacy-bg-fcfbfe": {
+    "light": "#fcfbfe",
+    "dark": "#182036"
+  },
+  "--c-legacy-border-dcd4f0": {
+    "light": "#dcd4f0",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-bg-f4effe": {
+    "light": "#f4effe",
+    "dark": "#182036"
+  },
+  "--c-legacy-border-f2d9df": {
+    "light": "#f2d9df",
+    "dark": "#2e3752"
+  },
+  "--c-legacy-bg-fdf5f7": {
+    "light": "#fdf5f7",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  "--c-legacy-text-c0356a": {
+    "light": "#c0356a",
+    "dark": "#f9a8d4"
+  },
+  "--c-legacy-text-92600a": {
+    "light": "#92600a",
+    "dark": "#fb923c"
+  },
+  "--c-legacy-border-d9cef5": {
+    "light": "#d9cef5",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-bg-e5ddf6": {
+    "light": "#e5ddf6",
+    "dark": "#182036"
+  },
+  "--c-legacy-shadow-rgba_80_60_140__25_": {
+    "light": "rgba(80,60,140,.25)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-shadow-rgba_255_255_255__5_": {
+    "light": "rgba(255,255,255,.5)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-fdeef5": {
+    "light": "#fdeef5",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  "--c-legacy-text-be185d": {
+    "light": "#be185d",
+    "dark": "#f9a8d4"
+  },
+  "--c-legacy-border-e3dcf4": {
+    "light": "#e3dcf4",
+    "dark": "#2e3752"
+  },
+  "--c-legacy-bg-d9cef5": {
+    "light": "#d9cef5",
+    "dark": "color-mix(in srgb, #c4b5fd 14%, #121829)"
+  },
+  "--c-legacy-bg-e3dcf4": {
+    "light": "#e3dcf4",
+    "dark": "#182036"
+  },
+  "--c-legacy-shadow-rgba_80_40_140__35_": {
+    "light": "rgba(80,40,140,.35)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-rgba_0_0_0__45_": {
+    "light": "rgba(0,0,0,.45)",
+    "dark": "rgba(18, 24, 41, .45)"
+  },
+  "--c-legacy-shadow-rgba_60_30_110__55_": {
+    "light": "rgba(60,30,110,.55)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-text-e9e4f9": {
+    "light": "#e9e4f9",
+    "dark": "#a3abc4"
+  },
+  "--c-legacy-text-4c1d95": {
+    "light": "#4c1d95",
+    "dark": "#c4b5fd"
+  },
+  "--c-legacy-text-15803d": {
+    "light": "#15803d",
+    "dark": "#4ade80"
+  },
+  "--c-legacy-border-bbf7d0": {
+    "light": "#bbf7d0",
+    "dark": "color-mix(in srgb, #4ade80 30%, transparent)"
+  },
+  "--c-legacy-text-c9c4d8": {
+    "light": "#c9c4d8",
+    "dark": "#a3abc4"
+  },
+  "--c-legacy-bg-fdeaea": {
+    "light": "#fdeaea",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  "--c-legacy-bg-fae9ff": {
+    "light": "#fae9ff",
+    "dark": "#182036"
+  },
+  "--c-legacy-text-6366f1": {
+    "light": "#6366f1",
+    "dark": "#93c5fd"
+  },
+  "--c-legacy-bg-e7fff4": {
+    "light": "#e7fff4",
+    "dark": "color-mix(in srgb, #4ade80 14%, #121829)"
+  },
+  "--c-legacy-bg-e9f7ff": {
+    "light": "#e9f7ff",
+    "dark": "color-mix(in srgb, #93c5fd 14%, #121829)"
+  },
+  "--c-legacy-text-10b981": {
+    "light": "#10b981",
+    "dark": "#4ade80"
+  },
+  "--c-legacy-bg-e7f6ff": {
+    "light": "#e7f6ff",
+    "dark": "color-mix(in srgb, #93c5fd 14%, #121829)"
+  },
+  "--c-legacy-bg-eef2ff": {
+    "light": "#eef2ff",
+    "dark": "color-mix(in srgb, #93c5fd 14%, #121829)"
+  },
+  "--c-legacy-text-3b82f6": {
+    "light": "#3b82f6",
+    "dark": "#93c5fd"
+  },
+  "--c-legacy-bg-fff3e0": {
+    "light": "#fff3e0",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  "--c-legacy-bg-ffe9f3": {
+    "light": "#ffe9f3",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  "--c-legacy-text-d9cef0": {
+    "light": "#d9cef0",
+    "dark": "#c4b5fd"
+  },
+  "--c-legacy-text-b9a8e6": {
+    "light": "#b9a8e6",
+    "dark": "#c4b5fd"
+  },
+  "--c-legacy-shadow-rgba_80_40_140__4_": {
+    "light": "rgba(80,40,140,.4)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-f1eef9": {
+    "light": "#f1eef9",
+    "dark": "#182036"
+  },
+  "--c-legacy-bg-fdecec": {
+    "light": "#fdecec",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  "--c-legacy-border-f6c6c6": {
+    "light": "#f6c6c6",
+    "dark": "color-mix(in srgb, #f87171 30%, transparent)"
+  },
+  "--c-legacy-border-ded7ee": {
+    "light": "#ded7ee",
+    "dark": "#2e3752"
+  },
+  "--c-legacy-bg-f1ecfe": {
+    "light": "#f1ecfe",
+    "dark": "#182036"
+  },
+  "--c-legacy-bg-e3f3f6": {
+    "light": "#e3f3f6",
+    "dark": "color-mix(in srgb, #5eead4 14%, #121829)"
+  },
+  "--c-legacy-bg-e8f0fe": {
+    "light": "#e8f0fe",
+    "dark": "color-mix(in srgb, #93c5fd 14%, #121829)"
+  },
+  "--c-legacy-border-ddc9fb": {
+    "light": "#ddc9fb",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-text-ec4899": {
+    "light": "#ec4899",
+    "dark": "#f9a8d4"
+  },
+  "--c-legacy-border-f7dca6": {
+    "light": "#f7dca6",
+    "dark": "color-mix(in srgb, #fb923c 30%, transparent)"
+  },
+  "--c-legacy-border-fbdce7": {
+    "light": "#fbdce7",
+    "dark": "color-mix(in srgb, #f9a8d4 30%, transparent)"
+  },
+  "--c-legacy-shadow-rgba_255_255_255__8_": {
+    "light": "rgba(255,255,255,.8)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-shadow-rgba_139_92_246_0_15_": {
+    "light": "rgba(139,92,246,0.15)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-f5f3ff": {
+    "light": "#f5f3ff",
+    "dark": "#182036"
+  },
+  "--c-legacy-border-ddd6fe": {
+    "light": "#ddd6fe",
+    "dark": "color-mix(in srgb, #93c5fd 30%, transparent)"
+  },
+  "--c-legacy-bg-ede9fe": {
+    "light": "#ede9fe",
+    "dark": "#182036"
+  },
+  "--c-legacy-text-e3ddf2": {
+    "light": "#e3ddf2",
+    "dark": "#a3abc4"
+  },
+  "--c-legacy-text-e25c84": {
+    "light": "#e25c84",
+    "dark": "#f9a8d4"
+  },
+  "--c-legacy-bg-rgba_124_58_237__035_": {
+    "light": "rgba(124,58,237,.035)",
+    "dark": "rgba(124,58,237,.035)"
+  },
+  "--c-legacy-bg-fef3e2": {
+    "light": "#fef3e2",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  "--c-legacy-bg-fef8ee": {
+    "light": "#fef8ee",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  "--c-legacy-border-f6e2bf": {
+    "light": "#f6e2bf",
+    "dark": "color-mix(in srgb, #fb923c 30%, transparent)"
+  },
+  "--c-legacy-text-6b5ca8": {
+    "light": "#6b5ca8",
+    "dark": "#c3c9db"
+  },
+  "--c-legacy-border-rgba_124_58_237__35_": {
+    "light": "rgba(124,58,237,.35)",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-border-e4d9fb": {
+    "light": "#e4d9fb",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-text-5b3fa8": {
+    "light": "#5b3fa8",
+    "dark": "#c4b5fd"
+  },
+  "--c-legacy-bg-fff1e9": {
+    "light": "#fff1e9",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  "--c-legacy-bg-ffe9f1": {
+    "light": "#ffe9f1",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  "--c-legacy-bg-fff0f0": {
+    "light": "#fff0f0",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  "--c-legacy-text-059669": {
+    "light": "#059669",
+    "dark": "#4ade80"
+  },
+  "--c-legacy-shadow-rgba_139_92_246__8_": {
+    "light": "rgba(139,92,246,.8)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-text-7c6f4f": {
+    "light": "#7c6f4f",
+    "dark": "#fb923c"
+  },
+  "--c-legacy-border-f3e6c4": {
+    "light": "#f3e6c4",
+    "dark": "color-mix(in srgb, #fb923c 30%, transparent)"
+  },
+  "--c-legacy-border-f6d9d9": {
+    "light": "#f6d9d9",
+    "dark": "color-mix(in srgb, #f87171 30%, transparent)"
+  },
+  "--c-legacy-bg-fff7fa": {
+    "light": "#fff7fa",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  "--c-legacy-border-e25c84": {
+    "light": "#e25c84",
+    "dark": "color-mix(in srgb, #f9a8d4 30%, transparent)"
+  },
+  "--c-legacy-text-c9c2e8": {
+    "light": "#c9c2e8",
+    "dark": "#93c5fd"
+  },
+  "--c-legacy-bg-efeafc": {
+    "light": "#efeafc",
+    "dark": "#182036"
+  },
+  "--c-legacy-text-e6e1ff": {
+    "light": "#e6e1ff",
+    "dark": "#93c5fd"
+  },
+  "--c-legacy-text-ffd9d9": {
+    "light": "#ffd9d9",
+    "dark": "#f87171"
+  },
+  "--c-legacy-bg-ffe9ec": {
+    "light": "#ffe9ec",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  "--c-legacy-bg-fff1f3": {
+    "light": "#fff1f3",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  "--c-legacy-bg-faf0ff": {
+    "light": "#faf0ff",
+    "dark": "#182036"
+  },
+  "--c-legacy-bg-fff1dc": {
+    "light": "#fff1dc",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  "--c-legacy-bg-fff8ec": {
+    "light": "#fff8ec",
+    "dark": "color-mix(in srgb, #fb923c 14%, #121829)"
+  },
+  "--c-legacy-bg-e0f2fe": {
+    "light": "#e0f2fe",
+    "dark": "color-mix(in srgb, #93c5fd 14%, #121829)"
+  },
+  "--c-legacy-bg-eff8ff": {
+    "light": "#eff8ff",
+    "dark": "color-mix(in srgb, #93c5fd 14%, #121829)"
+  },
+  "--c-legacy-text-f43f5e": {
+    "light": "#f43f5e",
+    "dark": "#f9a8d4"
+  },
+  "--c-legacy-bg-fff1f2": {
+    "light": "#fff1f2",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  "--c-legacy-text-e11d48": {
+    "light": "#e11d48",
+    "dark": "#f9a8d4"
+  },
+  "--c-legacy-text-94a3b8": {
+    "light": "#94a3b8",
+    "dark": "#93c5fd"
+  },
+  "--c-legacy-text-ddd6fe": {
+    "light": "#ddd6fe",
+    "dark": "#93c5fd"
+  },
+  "--c-legacy-shadow-rgba_43_37_67__12_": {
+    "light": "rgba(43,37,67,.12)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-border-e9dcff": {
+    "light": "#e9dcff",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-border-f5c2d3": {
+    "light": "#f5c2d3",
+    "dark": "color-mix(in srgb, #f9a8d4 30%, transparent)"
+  },
+  "--c-legacy-border-d9c8fb": {
+    "light": "#d9c8fb",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-bg-fdeef3": {
+    "light": "#fdeef3",
+    "dark": "color-mix(in srgb, #f9a8d4 14%, #121829)"
+  },
+  "--c-legacy-border-d6cfe8": {
+    "light": "#d6cfe8",
+    "dark": "#2e3752"
+  },
+  "--c-legacy-border-d9cdf7": {
+    "light": "#d9cdf7",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-text-d1435b": {
+    "light": "#d1435b",
+    "dark": "#f9a8d4"
+  },
+  "--c-legacy-bg-fdf1f3": {
+    "light": "#fdf1f3",
+    "dark": "color-mix(in srgb, #f87171 14%, #121829)"
+  },
+  "--c-legacy-bg-effcf3": {
+    "light": "#effcf3",
+    "dark": "color-mix(in srgb, #4ade80 14%, #121829)"
+  },
+  "--c-legacy-bg-f1fbf6": {
+    "light": "#f1fbf6",
+    "dark": "color-mix(in srgb, #4ade80 14%, #121829)"
+  },
+  "--c-legacy-shadow-rgba_124_58_237__5_": {
+    "light": "rgba(124,58,237,.5)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-shadow-rgba_139_92_246__65_": {
+    "light": "rgba(139,92,246,.65)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-bg-edf9ff": {
+    "light": "#edf9ff",
+    "dark": "color-mix(in srgb, #93c5fd 14%, #121829)"
+  },
+  "--c-legacy-bg-f6effc": {
+    "light": "#f6effc",
+    "dark": "#182036"
+  },
+  "--c-legacy-border-cdeed8": {
+    "light": "#cdeed8",
+    "dark": "color-mix(in srgb, #4ade80 30%, transparent)"
+  },
+  "--c-legacy-shadow-rgba_120_60_180__6_": {
+    "light": "rgba(120,60,180,.6)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-border-d7d2e3": {
+    "light": "#d7d2e3",
+    "dark": "#2e3752"
+  },
+  "--c-legacy-bg-f9fafb": {
+    "light": "#f9fafb",
+    "dark": "color-mix(in srgb, #93c5fd 14%, #121829)"
+  },
+  "--c-legacy-shadow-rgba_139_92_246__55_": {
+    "light": "rgba(139,92,246,.55)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-shadow-rgba_80_40_140__45_": {
+    "light": "rgba(80,40,140,.45)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-text-9a95ad": {
+    "light": "#9a95ad",
+    "dark": "#a3abc4"
+  },
+  "--c-legacy-bg-rgba_0_0_0__4_": {
+    "light": "rgba(0,0,0,.4)",
+    "dark": "rgba(18, 24, 41, .4)"
+  },
+  "--c-legacy-text-1877f2": {
+    "light": "#1877f2",
+    "dark": "#93c5fd"
+  },
+  "--c-legacy-text-000000": {
+    "light": "#000",
+    "dark": "#f1f3fb"
+  },
+  "--c-legacy-text-6e8efb": {
+    "light": "#6e8efb",
+    "dark": "#93c5fd"
+  },
+  "--c-legacy-border-e6dcfb": {
+    "light": "#e6dcfb",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-text-b42318": {
+    "light": "#b42318",
+    "dark": "#f87171"
+  },
+  "--c-legacy-text-334155": {
+    "light": "#334155",
+    "dark": "#93c5fd"
+  },
+  "--c-legacy-shadow-rgba_15_23_42__15_": {
+    "light": "rgba(15,23,42,.15)",
+    "dark": "rgba(0, 0, 0, 0.5)"
+  },
+  "--c-legacy-text-475569": {
+    "light": "#475569",
+    "dark": "#93c5fd"
+  },
+  "--c-legacy-text-1e293b": {
+    "light": "#1e293b",
+    "dark": "#93c5fd"
+  },
+  "--c-legacy-border-ddd0f7": {
+    "light": "#ddd0f7",
+    "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)"
+  },
+  "--c-legacy-bg-d9cbf8": {
+    "light": "#d9cbf8",
+    "dark": "color-mix(in srgb, #c4b5fd 14%, #121829)"
+  },
+  "--c-legacy-bg-rgba_231_222_250_0_": {
+    "light": "rgba(231,222,250,0)",
+    "dark": "rgba(231,222,250,0)"
+  },
+  "--c-legacy-border-bfe8cd": {
+    "light": "#bfe8cd",
+    "dark": "color-mix(in srgb, #4ade80 30%, transparent)"
+  },
+  "--c-legacy-text-2563eb": {
+    "light": "#2563eb",
+    "dark": "#93c5fd"
+  }
+}

@@ -18,6 +18,7 @@ import {
   type VersionStatus,
 } from '../../api/adminApiVersions';
 import PageContainer from '../../components/PageContainer';
+import { C } from '../../styles/colors';
 
 const PLATFORM_NAMES: Record<PlatformEnum, string> = {
   FACEBOOK: 'Facebook Graph API',
@@ -148,22 +149,22 @@ export default function ApiVersions() {
           onClick={handleCheckNow}
           disabled={checking || load === 'loading'}
           style={{
-            border: '1.5px solid #ece8f6',
-            background: '#fff',
+            border: `1.5px solid ${C.border}`,
+            background: C.surface,
             borderRadius: 10,
             padding: '8px 16px',
             fontSize: 13,
             fontWeight: 700,
-            color: '#7c3aed',
+            color: C.primary,
             cursor: checking ? 'wait' : 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            boxShadow: '0 2px 8px rgba(124,58,237,0.08)',
+            boxShadow: `0 2px 8px ${C.legacyShadowrgba12458237008_}`,
             opacity: checking ? 0.6 : 1,
           }}
         >
-          <RefreshCw size={15} color="#7c3aed" strokeWidth={2.2} />
+          <RefreshCw size={15} color={C.primary} strokeWidth={2.2} />
           {checking ? t.processing : t.apiCheckNow}
         </button>
       </div>
@@ -177,15 +178,15 @@ export default function ApiVersions() {
             const upToDate = p.status === 'UP_TO_DATE';
 
             return (
-              <tr key={p.platform} style={{ borderTop: '1px solid #f1eef8' }}>
+              <tr key={p.platform} style={{ borderTop: `1px solid ${C.surfaceMuted}` }}>
                 <td style={{ padding: '13px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <PlatformTag tag={tag} bg={PLATFORM_BG[tag]} />
-                    <span style={{ fontSize: 13.5, fontWeight: 600, color: '#2b2543' }}>{name}</span>
+                    <span style={{ fontSize: 13.5, fontWeight: 600, color: C.ink750 }}>{name}</span>
                   </div>
                 </td>
-                <td style={{ padding: '13px 16px', fontSize: 13.5, fontWeight: 700, color: '#3f3a55' }}>{p.currentVersion}</td>
-                <td style={{ padding: '13px 16px', fontSize: 13.5, fontWeight: 700, color: upToDate ? '#3f3a55' : '#7c3aed' }}>
+                <td style={{ padding: '13px 16px', fontSize: 13.5, fontWeight: 700, color: C.text }}>{p.currentVersion}</td>
+                <td style={{ padding: '13px 16px', fontSize: 13.5, fontWeight: 700, color: upToDate ? C.text : C.primary }}>
                   {p.latestVersion}
                 </td>
                 <td style={{ padding: '13px 16px' }}>
@@ -196,13 +197,13 @@ export default function ApiVersions() {
                     <button
                       onClick={() => handleOpenHistory(p)}
                       style={{
-                        border: '1px solid #ece8f6',
-                        background: '#fff',
+                        border: `1px solid ${C.border}`,
+                        background: C.surface,
                         borderRadius: 9,
                         padding: '6px 12px',
                         fontSize: 12.5,
                         fontWeight: 700,
-                        color: '#5b5670',
+                        color: C.ink550,
                         cursor: 'pointer',
                       }}
                     >
@@ -216,7 +217,7 @@ export default function ApiVersions() {
                         padding: '6px 14px',
                         fontSize: 12.5,
                         fontWeight: 700,
-                        color: '#fff',
+                        color: C.onBrand,
                         cursor: 'pointer',
                         background: brandGradient,
                       }}
@@ -237,24 +238,24 @@ export default function ApiVersions() {
           {historyLoading ? (
             <Loader label={t.listLoading} />
           ) : historyData.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px 0', color: '#8a85a0', fontSize: 13.5 }}>
+            <div style={{ textAlign: 'center', padding: '24px 0', color: C.textMuted, fontSize: 13.5 }}>
               {t.listEmpty}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0, maxHeight: 400, overflowY: 'auto' }}>
               {historyData.map((h, i) => (
-                <div key={h.id || i} style={{ display: 'flex', gap: 12, padding: '14px 0', borderTop: i === 0 ? 'none' : '1px solid #f1eef8' }}>
+                <div key={h.id || i} style={{ display: 'flex', gap: 12, padding: '14px 0', borderTop: i === 0 ? 'none' : `1px solid ${C.surfaceMuted}` }}>
                   <div style={{ display: 'flex', flexDirection: 'column', minWidth: 85 }}>
-                    <span style={{ fontSize: 13.5, fontWeight: 800, color: '#7c3aed' }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 800, color: C.primary }}>
                       {h.fromVersion ? `${h.fromVersion} → ${h.toVersion}` : h.toVersion}
                     </span>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: '#8a85a0', textTransform: 'uppercase', marginTop: 2 }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', marginTop: 2 }}>
                       {h.changeType}
                     </span>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, color: '#3f3a55', lineHeight: 1.4 }}>{h.notes || '—'}</div>
-                    <div style={{ fontSize: 11.5, color: '#a59fbb', marginTop: 4 }}>
+                    <div style={{ fontSize: 13, color: C.text, lineHeight: 1.4 }}>{h.notes || '—'}</div>
+                    <div style={{ fontSize: 11.5, color: C.textFaint, marginTop: 4 }}>
                       {formatDate(h.createdAt)} {h.changedByName ? `· ${h.changedByName}` : ''}
                     </div>
                   </div>
@@ -270,14 +271,14 @@ export default function ApiVersions() {
         <Modal title={`${t.apiUpdateTitle} · ${PLATFORM_NAMES[updateTarget.platform]}`} maxWidth={460} onClose={() => setUpdateTarget(null)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {updateError && (
-              <div style={{ padding: '10px 14px', borderRadius: 8, background: '#fee2e2', color: '#dc2626', fontSize: 13, fontWeight: 600 }}>
+              <div style={{ padding: '10px 14px', borderRadius: 8, background: C.dangerSoft2, color: C.danger, fontSize: 13, fontWeight: 600 }}>
                 {updateError}
               </div>
             )}
 
             <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#3f3a55', marginBottom: 6 }}>
-                Version hiện tại: <span style={{ color: '#7c3aed' }}>{updateTarget.currentVersion}</span> (Mới nhất: {updateTarget.latestVersion})
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                Version hiện tại: <span style={{ color: C.primary }}>{updateTarget.currentVersion}</span> (Mới nhất: {updateTarget.latestVersion})
               </label>
               <input
                 type="text"
@@ -286,19 +287,19 @@ export default function ApiVersions() {
                 placeholder="vd: v20.0"
                 style={{
                   width: '100%',
-                  border: '1.5px solid #ece8f6',
+                  border: `1.5px solid ${C.border}`,
                   borderRadius: 10,
                   padding: '10px 14px',
                   fontSize: 14,
                   fontWeight: 600,
-                  color: '#2b2543',
+                  color: C.ink750,
                   outline: 'none',
                 }}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#3f3a55', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                 {t.apiNotes}
               </label>
               <textarea
@@ -308,11 +309,11 @@ export default function ApiVersions() {
                 placeholder="Nhập lý do hoặc ghi chú nâng cấp..."
                 style={{
                   width: '100%',
-                  border: '1.5px solid #ece8f6',
+                  border: `1.5px solid ${C.border}`,
                   borderRadius: 10,
                   padding: '10px 14px',
                   fontSize: 13.5,
-                  color: '#2b2543',
+                  color: C.ink750,
                   outline: 'none',
                   resize: 'vertical',
                   fontFamily: 'inherit',
@@ -324,13 +325,13 @@ export default function ApiVersions() {
               <button
                 onClick={() => setUpdateTarget(null)}
                 style={{
-                  border: '1.5px solid #ece8f6',
-                  background: '#fff',
+                  border: `1.5px solid ${C.border}`,
+                  background: C.surface,
                   borderRadius: 10,
                   padding: '9px 18px',
                   fontSize: 13,
                   fontWeight: 700,
-                  color: '#5b5670',
+                  color: C.ink550,
                   cursor: 'pointer',
                 }}
               >
@@ -346,7 +347,7 @@ export default function ApiVersions() {
                   padding: '9px 20px',
                   fontSize: 13,
                   fontWeight: 700,
-                  color: '#fff',
+                  color: C.onBrand,
                   cursor: updating ? 'wait' : 'pointer',
                   opacity: updating ? 0.6 : 1,
                 }}

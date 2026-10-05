@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import Modal from '../Modal';
 import type { ContentSort } from '../../api/contentCreationService';
+import { C } from '../../styles/colors';
 
 export interface ContentFilters {
   platform: string; // 'all' | Platform
@@ -15,10 +16,10 @@ export const DEFAULT_FILTERS: ContentFilters = { platform: 'all', brandId: 'all'
 export const activeFilterCount = (f: ContentFilters): number =>
   (f.platform !== 'all' ? 1 : 0) + (f.brandId !== 'all' ? 1 : 0) + (f.sort !== 'newest' ? 1 : 0);
 
-const label = { display: 'block', fontSize: 12.5, fontWeight: 700, color: '#574f6e', marginBottom: 8 } as const;
+const label = { display: 'block', fontSize: 12.5, fontWeight: 700, color: C.ink600, marginBottom: 8 } as const;
 const select = {
-  width: '100%', border: '1.5px solid #e7e2f2', borderRadius: 12, padding: '10px 14px',
-  fontSize: 14, color: '#241f3a', background: '#fbfaff', outline: 'none', cursor: 'pointer',
+  width: '100%', border: `1.5px solid ${C.border}`, borderRadius: 12, padding: '10px 14px',
+  fontSize: 14, color: C.textStrong, background: C.surfaceSubtle, outline: 'none', cursor: 'pointer',
 } as const;
 
 /**
@@ -81,14 +82,14 @@ export default function ContentFilterDrawer({
         <button
           onClick={() => setDraft(DEFAULT_FILTERS)}
           className="btn-soft"
-          style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 11, padding: '11px 18px', fontSize: 13.5, fontWeight: 700, color: '#574f6e', cursor: 'pointer' }}
+          style={{ border: `1px solid ${C.border}`, background: C.surface, borderRadius: 11, padding: '11px 18px', fontSize: 13.5, fontWeight: 700, color: C.ink600, cursor: 'pointer' }}
         >
           {t.clFilterReset}
         </button>
         <button
           onClick={() => onApply(draft)}
           className="btn-grad"
-          style={{ flex: 1, border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 13.5, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer' }}
+          style={{ flex: 1, border: 'none', borderRadius: 11, padding: '11px 18px', fontSize: 13.5, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}
         >
           {t.clFilterApply}
         </button>

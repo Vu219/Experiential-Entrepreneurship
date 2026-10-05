@@ -19,12 +19,13 @@ import {
   type ActivityLog,
   type ActivityResult,
 } from '../../../api/admin';
+import { C } from '../../../styles/colors';
 
 // Tab B "Log hoạt động người dùng" — bảng RIÊNG activity_logs. Dùng lại đúng khung
 // AdminListPage + DataTable + Pagination của tab lỗi; chỉ khác cột và nguồn dữ liệu.
 
-const td: React.CSSProperties = { padding: '11px 16px', fontSize: 13, color: '#2b2543', whiteSpace: 'nowrap' };
-const tdMuted: React.CSSProperties = { ...td, color: '#8a85a0', fontSize: 12.5 };
+const td: React.CSSProperties = { padding: '11px 16px', fontSize: 13, color: C.ink750, whiteSpace: 'nowrap' };
+const tdMuted: React.CSSProperties = { ...td, color: C.textMuted, fontSize: 12.5 };
 const initialsOf = (name: string) => name.trim().split(/\s+/).map((w) => w[0]).slice(-2).join('').toUpperCase();
 
 export default function ActivityLogTab() {
@@ -110,14 +111,14 @@ export default function ActivityLogTab() {
   };
 
   const state: ListState = load === 'loading' ? 'loading' : load === 'error' ? 'error' : rows.length === 0 ? 'empty' : 'ready';
-  const dateInput = { height: 38, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '0 10px', fontSize: 13, color: '#4b4660', cursor: 'pointer' } as const;
+  const dateInput = { height: 38, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '0 10px', fontSize: 13, color: C.ink650, cursor: 'pointer' } as const;
 
   const toolbar = (
     <>
       <SearchInput value={query} onChange={setQuery} placeholder={t.alSearchPh} />
       {/* Danh sách action dài → gom optgroup theo nhóm nghiệp vụ cho dễ tìm. */}
       <select value={action} onChange={(e) => setAction(e.target.value as ActivityAction | '')}
-        style={{ height: 38, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '0 12px', fontSize: 13.5, fontWeight: 600, color: '#4b4660', cursor: 'pointer', maxWidth: 240 }}>
+        style={{ height: 38, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '0 12px', fontSize: 13.5, fontWeight: 600, color: C.ink650, cursor: 'pointer', maxWidth: 240 }}>
         <option value="">{`${t.alColAction}: ${t.filterAll}`}</option>
         {(Object.keys(ACTIONS_BY_GROUP) as ActivityActionGroup[]).map((group) => (
           <optgroup key={group} label={actionGroupLabel(lang, group)}>
@@ -129,21 +130,21 @@ export default function ActivityLogTab() {
       </select>
       <FilterSelect value={result} onChange={(v) => setResult(v as ActivityResult | '')}
         options={[['', `${t.alColResult}: ${t.filterAll}`], ['SUCCESS', t.alResultSuccess], ['FAILURE', t.alResultFailure]]} />
-      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#8a85a0' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: C.textMuted }}>
         {t.filterFrom}<input type="date" value={from} onChange={(e) => setFrom(e.target.value)} style={dateInput} />
       </label>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#8a85a0' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: C.textMuted }}>
         {t.filterTo}<input type="date" value={to} onChange={(e) => setTo(e.target.value)} style={dateInput} />
       </label>
       {/* Lọc theo người dùng đến từ link "xem hoạt động của user này"; ở đây chỉ cần gỡ được. */}
       {userId && (
         <button onClick={() => setUserId('')} title={t.aueUserClear}
-          style={{ height: 38, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '0 12px', fontSize: 12.5, fontWeight: 700, color: '#7d6aa3', cursor: 'pointer' }}>
+          style={{ height: 38, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '0 12px', fontSize: 12.5, fontWeight: 700, color: C.accentTextMuted, cursor: 'pointer' }}>
           {t.alFilteredByUser} ✕
         </button>
       )}
       <button onClick={doExport} disabled={exporting}
-        style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', height: 38, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '0 12px', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: exporting ? 'wait' : 'pointer', opacity: exporting ? 0.6 : 1 }}>
+        style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', height: 38, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '0 12px', fontSize: 12.5, fontWeight: 700, color: C.ink550, cursor: exporting ? 'wait' : 'pointer', opacity: exporting ? 0.6 : 1 }}>
         <Download size={14} /> {t.aueExport}
       </button>
     </>
@@ -154,7 +155,7 @@ export default function ActivityLogTab() {
       <AdminListPage state={state} toolbar={toolbar} onRetry={() => setReload((r) => r + 1)} emptyLabel={t.alEmpty}>
         <DataTable head={[t.colTime, t.alColUser, t.alColAction, t.alColTarget, t.alColClient, t.alColResult, '']} minWidth={1040}>
           {rows.map((l) => (
-            <tr key={l.id} onClick={() => setSelected(l)} style={{ borderTop: '1px solid #f1eef8', cursor: 'pointer' }}>
+            <tr key={l.id} onClick={() => setSelected(l)} style={{ borderTop: `1px solid ${C.surfaceMuted}`, cursor: 'pointer' }}>
               <td style={tdMuted}>{l.createdAt.slice(0, 19).replace('T', ' ')}</td>
               <td style={td}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -163,7 +164,7 @@ export default function ActivityLogTab() {
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 600 }}>{l.userFullName || l.userEmail || t.alSystemActor}</div>
                     {l.userFullName && l.userEmail && (
-                      <div style={{ fontSize: 12, color: '#a59fbb' }}>{l.userEmail}</div>
+                      <div style={{ fontSize: 12, color: C.textFaint }}>{l.userEmail}</div>
                     )}
                   </div>
                 </div>
@@ -174,7 +175,7 @@ export default function ActivityLogTab() {
                   <>
                     {l.targetType}
                     {l.targetId && (
-                      <div style={{ fontSize: 11.5, color: '#c4bdd6', fontFamily: 'ui-monospace,Menlo,Consolas,monospace' }}>
+                      <div style={{ fontSize: 11.5, color: C.ink200, fontFamily: 'ui-monospace,Menlo,Consolas,monospace' }}>
                         {l.targetId.length > 12 ? `${l.targetId.slice(0, 12)}…` : l.targetId}
                       </div>
                     )}
@@ -184,7 +185,7 @@ export default function ActivityLogTab() {
               <td style={tdMuted}>
                 {l.ip || '—'}
                 {l.userAgent && (
-                  <div style={{ fontSize: 11.5, color: '#c4bdd6', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }} title={l.userAgent}>
+                  <div style={{ fontSize: 11.5, color: C.ink200, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }} title={l.userAgent}>
                     {l.userAgent}
                   </div>
                 )}
@@ -195,7 +196,7 @@ export default function ActivityLogTab() {
               </td>
               <td style={{ ...td, textAlign: 'right' }}>
                 <button onClick={(e) => { e.stopPropagation(); setSelected(l); }}
-                  style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>
+                  style={{ border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>
                   {t.detail}
                 </button>
               </td>

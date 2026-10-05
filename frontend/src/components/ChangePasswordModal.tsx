@@ -9,6 +9,7 @@ import PasswordStrengthBar from './PasswordStrengthBar';
 import { passwordValid } from '../validations/password';
 import { otpValid, passwordsMatch } from '../validations/authValidation';
 import { useToast } from './toast/ToastProvider';
+import { C } from '../styles/colors';
 
 type Step = 'current' | 'otp' | 'new';
 
@@ -17,17 +18,17 @@ const OTP_TTL = 90;
 const OTP_NOT_FOUND = 1060; // OTP hết hạn / không tồn tại
 const OTP_ATTEMPTS_EXCEEDED = 1072; // sai quá số lần cho phép
 
-const labelStyle: CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', color: '#574f6e', marginBottom: 8 };
-const inputWrap: CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, border: '1.5px solid #e7e2f2', borderRadius: 13, padding: '0 15px', background: '#fbfaff' };
-const inputStyle: CSSProperties = { flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 15, padding: '13px 0', color: '#241f3a' };
+const labelStyle: CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', color: C.ink600, marginBottom: 8 };
+const inputWrap: CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, border: `1.5px solid ${C.border}`, borderRadius: 13, padding: '0 15px', background: C.surfaceSubtle };
+const inputStyle: CSSProperties = { flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 15, padding: '13px 0', color: C.textStrong };
 
-const LockIcon = () => <Lock size={18} color="#a39bbf" strokeWidth={1.7} />;
-const KeyIcon = () => <KeyRound size={18} color="#a39bbf" strokeWidth={1.7} />;
+const LockIcon = () => <Lock size={18} color={C.ink350} strokeWidth={1.7} />;
+const KeyIcon = () => <KeyRound size={18} color={C.ink350} strokeWidth={1.7} />;
 const EyeBtn = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
-  <button type="button" onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a39bbf', display: 'flex', position: 'relative' }}>
+  <button type="button" onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.ink350, display: 'flex', position: 'relative' }}>
     <Eye size={19} strokeWidth={1.7} />
     <svg width="19" height="19" viewBox="0 0 24 24" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
-      <line x1="3" y1="3" x2="21" y2="21" stroke="#fbfaff" strokeWidth="4" strokeLinecap="round" style={{ strokeDasharray: 26, strokeDashoffset: on ? 26 : 0, transition: 'stroke-dashoffset 0.2s ease-out' }} />
+      <line x1="3" y1="3" x2="21" y2="21" stroke={C.surfaceSubtle} strokeWidth="4" strokeLinecap="round" style={{ strokeDasharray: 26, strokeDashoffset: on ? 26 : 0, transition: 'stroke-dashoffset 0.2s ease-out' }} />
       <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ strokeDasharray: 26, strokeDashoffset: on ? 26 : 0, transition: 'stroke-dashoffset 0.2s ease-out' }} />
     </svg>
   </button>
@@ -126,7 +127,7 @@ export default function ChangePasswordModal({ onClose, onSuccess }: { onClose: (
   };
 
   const sub = step === 'current' ? t.cpSubCurrent : step === 'otp' ? t.cpSubOtp : t.cpSubNew;
-  const btnPrimary: CSSProperties = { width: '100%', border: 'none', borderRadius: 13, padding: 14, fontWeight: 700, fontSize: 14.5, letterSpacing: '.04em', color: '#fff', background: brandGradient, boxShadow: '0 14px 28px -12px rgba(139,92,246,.6)', cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.75 : 1 };
+  const btnPrimary: CSSProperties = { width: '100%', border: 'none', borderRadius: 13, padding: 14, fontWeight: 700, fontSize: 14.5, letterSpacing: '.04em', color: C.onBrand, background: brandGradient, boxShadow: '0 14px 28px -12px rgba(139,92,246,.6)', cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.75 : 1 };
 
   const steps: { key: Step; label: string }[] = [
     { key: 'current', label: t.cpStepCurrent },
@@ -141,16 +142,16 @@ export default function ChangePasswordModal({ onClose, onSuccess }: { onClose: (
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20 }}>
         {steps.map((s, i) => (
           <div key={s.key} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flex: 'none', color: i <= activeIdx ? '#fff' : '#a39bbf', background: i <= activeIdx ? brandGradient : '#efecf7' }}>
+            <div style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flex: 'none', color: i <= activeIdx ? C.onBrand : C.ink350, background: i <= activeIdx ? brandGradient : C.surfaceMuted }}>
               {i < activeIdx ? '✓' : i + 1}
             </div>
-            <span style={{ fontSize: 12, fontWeight: 600, color: i <= activeIdx ? '#3f3a55' : '#a39bbf', whiteSpace: 'nowrap' }}>{s.label}</span>
-            {i < steps.length - 1 && <div style={{ flex: 1, height: 2, borderRadius: 2, background: i < activeIdx ? brandGradient : '#efecf7' }} />}
+            <span style={{ fontSize: 12, fontWeight: 600, color: i <= activeIdx ? C.text : C.ink350, whiteSpace: 'nowrap' }}>{s.label}</span>
+            {i < steps.length - 1 && <div style={{ flex: 1, height: 2, borderRadius: 2, background: i < activeIdx ? brandGradient : C.surfaceMuted }} />}
           </div>
         ))}
       </div>
 
-      {error && <div style={{ fontSize: 13, color: '#e23d6e', background: '#fdecf1', border: '1px solid #f6cdd9', borderRadius: 10, padding: '10px 13px', marginBottom: 14 }}>{error}</div>}
+      {error && <div style={{ fontSize: 13, color: C.rose, background: C.roseSoft, border: `1px solid ${C.roseBorder}`, borderRadius: 10, padding: '10px 13px', marginBottom: 14 }}>{error}</div>}
 
       {step === 'current' && (
         <form onSubmit={handleCurrent}>
@@ -171,13 +172,13 @@ export default function ChangePasswordModal({ onClose, onSuccess }: { onClose: (
             <KeyIcon />
             <input type="text" inputMode="numeric" maxLength={6} value={otpCode} onChange={(e) => { setOtpCode(e.target.value.replace(/\D/g, '')); setError(''); }} placeholder="••••••" style={{ ...inputStyle, letterSpacing: '.5em', fontWeight: 700 }} autoFocus />
           </div>
-          <div style={{ minHeight: 18, fontSize: 12.5, marginTop: 6, color: secondsLeft > 0 ? '#8a85a0' : '#e23d6e' }}>
+          <div style={{ minHeight: 18, fontSize: 12.5, marginTop: 6, color: secondsLeft > 0 ? C.textMuted : C.rose }}>
             {secondsLeft > 0 ? `${t.fpExpiresIn} ${secondsLeft}s` : t.fpExpired}
           </div>
           <button type="submit" disabled={submitting || secondsLeft <= 0} style={{ ...btnPrimary, marginTop: 6, opacity: submitting || secondsLeft <= 0 ? 0.6 : 1, cursor: secondsLeft <= 0 ? 'not-allowed' : btnPrimary.cursor }}>
             {submitting ? t.processing : t.fpVerify}
           </button>
-          <button type="button" onClick={sendOtp} disabled={submitting || secondsLeft > 0} style={{ width: '100%', marginTop: 10, border: '1.5px solid #e8e4f1', borderRadius: 13, padding: 12, background: '#fff', fontWeight: 600, fontSize: 13.5, color: secondsLeft > 0 ? '#a39bbf' : '#8b5cf6', cursor: secondsLeft > 0 ? 'not-allowed' : 'pointer' }}>
+          <button type="button" onClick={sendOtp} disabled={submitting || secondsLeft > 0} style={{ width: '100%', marginTop: 10, border: `1.5px solid ${C.border}`, borderRadius: 13, padding: 12, background: C.surface, fontWeight: 600, fontSize: 13.5, color: secondsLeft > 0 ? C.ink350 : C.violetLight, cursor: secondsLeft > 0 ? 'not-allowed' : 'pointer' }}>
             {secondsLeft > 0 ? `${t.fpResendIn} ${secondsLeft}s` : t.fpResend}
           </button>
         </form>

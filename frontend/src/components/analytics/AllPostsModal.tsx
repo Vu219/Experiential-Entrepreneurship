@@ -6,6 +6,7 @@ import Modal from '../Modal';
 import PostsTable from './PostsTable';
 import PostsCardList from './PostsCardList';
 import type { AnalyticsTopPost, TopPostSort } from '../../api/analytics';
+import { C } from '../../styles/colors';
 
 /** Số bài mỗi trang trong modal. */
 const PAGE_SIZE = 8;
@@ -58,7 +59,7 @@ export default function AllPostsModal({
             style={pageBtn(page === 0)} aria-label={t.anaPrevPage}>
             <ChevronLeft size={15} />
           </button>
-          <span style={{ fontSize: 12.5, color: '#6b6680', fontWeight: 600 }}>{page + 1} / {pageCount}</span>
+          <span style={{ fontSize: 12.5, color: C.textSecondary, fontWeight: 600 }}>{page + 1} / {pageCount}</span>
           <button type="button" disabled={page >= pageCount - 1} onClick={() => setPage((p) => p + 1)}
             style={pageBtn(page >= pageCount - 1)} aria-label={t.anaNextPage}>
             <ChevronRight size={15} />
@@ -70,7 +71,7 @@ export default function AllPostsModal({
 }
 
 const pageBtn = (disabled: boolean) => ({
-  width: 32, height: 32, borderRadius: 9, border: '1px solid #ece8f6', background: '#fff',
+  width: 32, height: 32, borderRadius: 9, border: `1px solid ${C.border}`, background: C.surface,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  color: disabled ? '#d5cfe8' : '#6b6680', cursor: disabled ? 'default' : 'pointer',
+  color: disabled ? C.legacyTextd5cfe8 : C.textSecondary, cursor: disabled ? 'default' : 'pointer',
 }) as const;

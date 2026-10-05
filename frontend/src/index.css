@@ -24,8 +24,8 @@ body {
 }
 body {
   font-family: 'Be Vietnam Pro', system-ui, sans-serif;
-  color: #1b1730;
-  background: #f7f6fd;
+  color: var(--c-text-strong);
+  background: var(--c-bg);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -37,17 +37,26 @@ body {
   --page-pad-x: 14px;
   --page-pad-t: 18px;
   --page-max: 1600px;
+  --app-header-height: 62px;
 }
 @media (min-width: 760px) {
   :root {
     --page-pad-x: 24px;
     --page-pad-t: 24px;
+    --app-header-height: 70px;
   }
 }
 @media (min-width: 1536px) {
   :root {
     --page-pad-x: 32px;
   }
+}
+/* Toast follows the signed-in header as it mounts after login. */
+.toast-stack {
+  top: 16px;
+}
+body:has(.app-topbar) .toast-stack {
+  top: calc(var(--app-header-height) + 16px);
 }
 /* Vùng nội dung mọi trang (app + admin): chiếm trọn chiều rộng còn lại sau sidebar,
    giới hạn 1600px CĂN GIỮA (margin auto — phần dư chia đều hai bên), padding hai bên
@@ -106,7 +115,7 @@ button {
    Visible violet ring for keyboard users only; pointer focus stays clean.
    Modern browsers round the outline to follow each element's border-radius. */
 :focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid var(--c-focus);
   outline-offset: 2px;
 }
 :focus:not(:focus-visible) {
@@ -120,15 +129,15 @@ button {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #e0ddee;
+  background: var(--c-scroll-thumb);
   border-radius: 20px;
-  border: 2px solid #f7f6fd;
+  border: 2px solid var(--c-bg);
 }
 
 /* Custom scrollbar thanh mảnh cho container cuộn nội bộ (Hàng đợi đăng bài, Drawer) */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #dcd7ed transparent;
+  scrollbar-color: var(--c-scroll-thumb-2) transparent;
 }
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -138,22 +147,22 @@ button {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #dcd7ed;
+  background: var(--c-scroll-thumb-2);
   border-radius: 999px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #c3b9df;
+  background: var(--c-scroll-thumb-2-hover);
 }
 
 .scrollbar-thin {
   scrollbar-width: thin;
 }
 .scrollbar-thumb-slate-200::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--c-scroll-thumb-3);
   border-radius: 999px;
 }
 .scrollbar-thumb-slate-200::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--c-scroll-thumb-3-hover);
 }
 
 
@@ -228,7 +237,7 @@ button {
   }
 }
 .gradtext {
-  background: var(--brand, linear-gradient(135deg, #22d3ee, #3b82f6, #8b5cf6));
+  background: var(--brand-text-gradient, var(--brand, linear-gradient(135deg, #22d3ee, #3b82f6, #8b5cf6)));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -241,7 +250,7 @@ button {
 .ambient-surface {
   position: relative;
   z-index: 0; /* stacking context để ::before (z-index -1) nằm dưới nội dung, trên nền phẳng */
-  background: #f9f8fd; /* nền phẳng: đổi chiều cao KHÔNG repaint */
+  background: var(--c-surface-subtle); /* nền phẳng (#f9f8fd ≈ #fbfaff, bảng màu): đổi chiều cao KHÔNG repaint */
 }
 /* Lớp ambient TĨNH: fixed theo viewport (KHÔNG theo chiều cao nội dung) → trang cao
    lên/thu lại (mở FAQ…) KHÔNG repaint nền, lại là compositor layer riêng. Trước đây
@@ -257,6 +266,15 @@ button {
     radial-gradient(1100px 600px at 82% -10%, color-mix(in srgb, var(--theme-surface-via) 15%, transparent), transparent 60%),
     radial-gradient(900px 620px at -6% 8%, color-mix(in srgb, var(--theme-surface-from) 17%, transparent), transparent 55%),
     radial-gradient(760px 520px at 50% 112%, color-mix(in srgb, var(--theme-surface-to) 12%, transparent), transparent 60%);
+}
+/* Chế độ tối: nền navy phẳng như thiết kế — bỏ lớp tint ambient (tint brand trên nền tối làm bẩn màu). */
+@media screen {
+  :root.dark .ambient-surface {
+    background: var(--c-bg);
+  }
+  :root.dark .ambient-surface::before {
+    display: none;
+  }
 }
 
 /* ===== Tiện ích hiệu năng cuộn/animation ===== */
@@ -379,14 +397,14 @@ html {
 }
 .login-pill .sign svg {
   width: 18px;
-  color: #fff;
+  color: var(--c-on-brand);
 }
 .login-pill .btn-text {
   position: absolute;
   right: 0;
   width: 0;
   opacity: 0;
-  color: #fff;
+  color: var(--c-on-brand);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -413,7 +431,7 @@ html {
 
 /* Nút "Đăng nhập với Google" (Auth) — hover làm sáng nền, active thu nhẹ. */
 .google-btn:hover {
-  background: #f7f6fb;
+  background: var(--c-surface-muted);
 }
 .google-btn:active {
   transform: scale(0.985);
@@ -433,10 +451,10 @@ html {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  color: #7c5cff;
-  background: #fff;
-  border: 1px solid #ece7f6;
-  box-shadow: 0 8px 18px -14px rgba(80, 40, 140, 0.5);
+  color: var(--c-violet);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  box-shadow: 0 8px 18px -14px var(--c-legacy-shadow-rgba_80_40_140__5_);
   cursor: pointer;
   transition: color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
 }
@@ -534,7 +552,7 @@ html {
   height: 7px;
   width: 45px;
   border-radius: 4px;
-  box-shadow: 0 5px 0 #e0ddee, -35px 50px 0 #e0ddee, -70px 95px 0 #e0ddee;
+  box-shadow: 0 5px 0 var(--c-border), -35px 50px 0 var(--c-border), -70px 95px 0 var(--c-border);
   animation: loading-step 1s ease-in-out infinite;
 }
 @keyframes loading-bounce {
@@ -553,10 +571,10 @@ html {
 }
 @keyframes loading-step {
   0% {
-    box-shadow: 0 10px 0 rgba(0, 0, 0, 0), 0 10px 0 #e0ddee, -35px 50px 0 #e0ddee, -70px 90px 0 #e0ddee;
+    box-shadow: 0 10px 0 rgba(0, 0, 0, 0), 0 10px 0 var(--c-border), -35px 50px 0 var(--c-border), -70px 90px 0 var(--c-border);
   }
   100% {
-    box-shadow: 0 10px 0 #e0ddee, -35px 50px 0 #e0ddee, -70px 90px 0 #e0ddee, -70px 90px 0 rgba(0, 0, 0, 0);
+    box-shadow: 0 10px 0 var(--c-border), -35px 50px 0 var(--c-border), -70px 90px 0 var(--c-border), -70px 90px 0 rgba(0, 0, 0, 0);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -658,9 +676,9 @@ html {
   right: 0;
   width: 220px;
   padding: 18px;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--c-glass);
   backdrop-filter: blur(10px);
-  border: 1px solid #efeaf8;
+  border: 1px solid var(--c-border);
   border-radius: 16px;
   box-shadow: 0 15px 30px rgba(80, 40, 140, 0.22);
   opacity: 0;
@@ -686,16 +704,16 @@ html {
   right: 22px;
   width: 14px;
   height: 14px;
-  background: rgba(255, 255, 255, 0.92);
-  border-right: 1px solid #efeaf8;
-  border-bottom: 1px solid #efeaf8;
+  background: var(--c-glass);
+  border-right: 1px solid var(--c-border);
+  border-bottom: 1px solid var(--c-border);
   transform: rotate(45deg);
 }
 .share-menu-title {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: #6b6680;
+  color: var(--c-text-secondary);
   text-align: center;
   margin-bottom: 14px;
 }
@@ -715,7 +733,7 @@ html {
   border-radius: 50%;
   border: none;
   cursor: pointer;
-  background: #f1eefb;
+  background: var(--c-surface-muted);
   box-shadow: 0 4px 8px rgba(80, 40, 140, 0.1);
   transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), background 0.3s ease, box-shadow 0.4s ease;
 }
@@ -763,11 +781,11 @@ html {
   font-size: 12.5px;
   font-weight: 600;
   min-height: 16px;
-  color: #8a85a0;
+  color: var(--c-text-muted);
   transition: color 0.2s ease;
 }
 .share-status.copied {
-  color: #16a34a;
+  color: var(--c-success);
 }
 
 @keyframes share-pulse {
@@ -884,9 +902,9 @@ html {
 }
 .btn-outline:hover {
   transform: translateY(-3px);
-  background: #faf7ff !important;
-  border-color: #b79df0 !important;
-  color: #6d28d9 !important;
+  background: var(--c-btn-outline-hover-bg) !important;
+  border-color: var(--c-btn-outline-hover-border) !important;
+  color: var(--c-primary-strong) !important;
   box-shadow: 0 16px 30px -18px rgba(124, 58, 237, 0.5) !important;
 }
 .btn-outline:active {
@@ -900,8 +918,8 @@ html {
 }
 .cta-btn-demo:hover {
   transform: translateY(-2px);
-  background: #f8fafc !important;
-  border-color: #cbd5e1 !important;
+  background: var(--c-surface) !important;
+  border-color: var(--c-scroll-thumb-3) !important;
   box-shadow: 0 12px 24px -18px rgba(15, 23, 42, 0.4) !important;
 }
 .cta-btn-demo:active {
@@ -913,7 +931,7 @@ html {
 }
 .btn-soft:hover {
   transform: translateY(-2px);
-  background: #f1ecfc !important;
+  background: var(--c-border) !important;
   box-shadow: 0 10px 20px -14px rgba(124, 58, 237, 0.5) !important;
 }
 .btn-soft:active {
@@ -925,7 +943,7 @@ html {
 }
 .lift-card:hover {
   transform: translateY(-6px);
-  border-color: #e3d8f7 !important;
+  border-color: var(--c-accent-border) !important;
   box-shadow: 0 30px 50px -28px rgba(80, 40, 140, 0.55) !important;
 }
 
@@ -1101,7 +1119,7 @@ html {
 }
 .strategy-card:hover {
   transform: translateY(-2px);
-  border-color: #e3d8f7;
+  border-color: var(--c-accent-border);
   box-shadow: 0 14px 26px -18px rgba(80, 40, 140, 0.45);
 }
 
@@ -1125,7 +1143,7 @@ html {
   transition: transform 0.28s cubic-bezier(0.4, 0.7, 0.3, 1);
 }
 .link-underline:hover {
-  color: #7c3aed !important;
+  color: var(--c-primary) !important;
 }
 .link-underline:hover::after {
   transform: scaleX(1);
@@ -1168,24 +1186,24 @@ html {
 /* Vùng cuộn dọc của sidebar khi màn hình thấp — thanh cuộn mảnh, kín đáo. */
 .sb-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #d9d2ec transparent;
+  scrollbar-color: var(--c-scroll-thumb-sb) transparent;
 }
 .sb-scroll::-webkit-scrollbar {
   width: 6px;
 }
 .sb-scroll::-webkit-scrollbar-thumb {
-  background: #d9d2ec;
+  background: var(--c-scroll-thumb-sb);
   border-radius: 99px;
 }
 .sb-scroll::-webkit-scrollbar-thumb:hover {
-  background: #c4bbe0;
+  background: var(--c-scroll-thumb-sb-hover);
 }
 
 /* ===== Skeleton shimmer (loading states) ===== */
 .sk {
   position: relative;
   overflow: hidden;
-  background: #efeaf8;
+  background: var(--c-skeleton);
   border-radius: 10px;
 }
 .sk::after {
@@ -1193,7 +1211,7 @@ html {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  background: linear-gradient(90deg, transparent, var(--c-skeleton-shine), transparent);
   animation: sk-shimmer 1.3s ease-in-out infinite;
 }
 @keyframes sk-shimmer {
@@ -1372,7 +1390,7 @@ html {
   transition: all 0.2s ease;
 }
 .toast-close:hover {
-  background: #f3f4f6 !important;
+  background: var(--c-gray-soft) !important;
 }
 
 .dots-container {
@@ -1429,7 +1447,7 @@ html {
 /* ===== Trang "Bài lỗi & cần xử lý" ===== */
 /* Skeleton shimmer khi đang tải danh sách. */
 .skeleton {
-  background: linear-gradient(90deg, #f1eef8 25%, #faf9fe 45%, #f1eef8 65%);
+  background: linear-gradient(90deg, var(--c-surface-muted) 25%, var(--c-surface-subtle) 45%, var(--c-surface-muted) 65%);
   background-size: 200% 100%;
   animation: skeleton-wave 1.4s ease infinite;
   border-radius: 8px;
@@ -1442,7 +1460,62 @@ html {
 
 /* Hàng bảng/card chọn được — hover nhạt (hàng đang chọn set background inline nên vẫn thắng). */
 .row-hover:hover {
-  background: #faf9fe;
+  background: var(--c-row-hover);
+}
+
+/* ===== Hover của menu/dropdown bằng CSS (thay state onMouseEnter) — màu theo token sáng/tối =====
+   Mục đang chọn/active vẫn set background + color INLINE (gradient brand, chữ trắng) nên tự thắng
+   các rule không !important bên dưới. */
+/* Dropdown avatar (UserMenu) */
+.menu-item {
+  background: transparent;
+  color: var(--c-ink-600);
+  transition: background 0.15s, color 0.15s;
+}
+.menu-item:hover {
+  background: var(--c-hover);
+  color: var(--c-primary);
+}
+.menu-item__icon {
+  color: var(--c-ink-350);
+}
+.menu-item--danger,
+.menu-item--danger .menu-item__icon,
+.menu-item--danger:hover {
+  color: var(--c-rose);
+}
+.menu-item--danger:hover {
+  background: var(--c-rose-soft);
+}
+/* Hàng thông báo (NotificationBell) */
+.ntf-row {
+  background: transparent;
+  transition: background 0.15s;
+}
+.ntf-row--unread {
+  background: var(--c-surface-subtle);
+}
+.ntf-row:hover {
+  background: var(--c-hover);
+}
+/* Mục trong flyout nhóm sidebar thu gọn — :focus cho điều hướng bàn phím (roving tabIndex). */
+.flyout-item {
+  background: transparent;
+  color: var(--c-ink-550);
+  transition: background 0.15s, color 0.15s;
+}
+.flyout-item__icon {
+  display: flex;
+  color: var(--c-ink-350);
+}
+.flyout-item:hover,
+.flyout-item:focus {
+  background: var(--c-surface-muted);
+  color: var(--c-primary-strong);
+}
+.flyout-item:hover .flyout-item__icon,
+.flyout-item:focus .flyout-item__icon {
+  color: var(--c-primary);
 }
 
 /* Chấm "đang live" nhấp nháy — trang Trạng thái hệ thống (auto-refresh, mục 6). */
@@ -1463,3 +1536,38 @@ html {
     animation: none;
   }
 }
+
+/* Shared picker/password hover states use the active color mode. */
+.date-picker-nav:hover { background: var(--c-border) !important; }
+.date-picker-day:hover, .date-picker-today:hover { background: var(--c-surface-muted) !important; }
+.date-picker-clear:hover { background: var(--c-rose-tint) !important; }
+.password-suggest:hover { background: var(--c-violet-hover) !important; border-color: var(--c-violet-line-hover) !important; }
+.password-regenerate:hover { background: var(--c-violet-hover-strong) !important; }
+
+/* Style hover handlers migrated to CSS; conditions remain on className. */
+.dm-hover-47995b3:hover { filter: brightness(0.95) !important; }
+.dm-hover-c3ef885:hover { background: var(--c-legacy-bg-f4f1fb) !important; }
+.dm-hover-0319902:hover { background: var(--c-legacy-bg-f4f1fb) !important; }
+.dm-hover-ec0fddb:hover { background: var(--c-violet-selected) !important; }
+.dm-hover-23b7439:hover { background: var(--c-legacy-bg-fff5f5) !important; }
+.dm-hover-0a720a3:hover { background: var(--c-legacy-bg-fdf7f9) !important; }
+.dm-hover-a29de51:hover { opacity: 0.92 !important; transform: translateY(-1px) !important; }
+.dm-hover-c8e5e64:hover { background-color: var(--c-legacy-bg-faf8fe) !important; }
+.dm-hover-b6aea2e:hover { background: var(--c-legacy-bg-f6f3fc) !important; }
+.dm-hover-d3ee418:hover { background: var(--c-legacy-bg-f6f3fc) !important; }
+.dm-hover-18a5609-yes:hover { background: var(--c-rose-tint) !important; }
+.dm-hover-18a5609-no:hover { background: var(--c-legacy-bg-f4f1fb) !important; }
+.dm-hover-f1ea0bc:hover { background: var(--c-legacy-bg-ebe4f9) !important; color: var(--c-primary) !important; }
+.dm-hover-b61817e:hover { background: var(--c-legacy-bg-ebe5f8) !important; color: var(--c-text-strong) !important; }
+.dm-hover-9f72e0d:hover { color: var(--c-legacy-text-6025d8) !important; }
+.dm-hover-32465b1:hover { background: var(--c-legacy-bg-f4f1fb) !important; border-color: var(--c-legacy-border-ddd7ed) !important; }
+.dm-hover-0863acb:hover { background: var(--c-legacy-bg-f7f5fc) !important; }
+.dm-hover-ac7312d:hover { background: var(--c-legacy-bg-f7f5fc) !important; }
+.dm-hover-0298a54:hover { background: var(--c-legacy-bg-f7f5fc) !important; }
+.dm-hover-2c0f366:hover { background: var(--c-legacy-bg-fdf1f4) !important; }
+.dm-hover-1c7c845:hover { background: var(--c-legacy-bg-ebe5f8) !important; color: var(--c-text-strong) !important; }
+.dm-hover-0a5405d:hover { background: var(--c-legacy-bg-f5f2fa) !important; border-color: var(--c-legacy-border-d2c8ea) !important; color: var(--c-text-strong) !important; }
+.dm-hover-f679a8a:hover { transform: scale(1.06) !important; }
+.dm-hover-4529d5b:hover { border-color: var(--c-legacy-border-c4b5fd) !important; background: var(--c-shell) !important; box-shadow: 0 6px 16px -6px var(--c-legacy-shadow-rgba_124_58_237_0_15_) !important; transform: translateY(-1px) !important; }
+.dm-hover-1117888:hover { background: var(--c-legacy-bg-f4effe) !important; border-color: var(--c-legacy-border-c4b5fd) !important; }
+.dm-hover-3986d49:hover { background: var(--c-legacy-bg-f5f3ff) !important; border-color: var(--c-legacy-border-ddd6fe) !important; }

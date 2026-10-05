@@ -1,0 +1,9 @@
+{
+  "name": "aima-dark-mode-review",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "playwright-core": "1.63.0",
+    "pngjs": "7.0.0"
+  }
+}

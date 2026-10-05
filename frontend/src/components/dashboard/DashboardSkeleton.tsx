@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { C } from '../../styles/colors';
 
 /**
  * Khung xương phản chiếu đúng bố cục Bảng điều khiển (kể cả 2 cột ở desktop) để lúc tải
@@ -14,9 +15,9 @@ export default function DashboardSkeleton({ isMobile, isTablet }: { isMobile: bo
     <div style={{
       borderRadius: 22,
       padding: isMobile ? '24px 22px' : '28px 34px',
-      background: '#fff',
-      border: '1px solid #efeaf8',
-      boxShadow: '0 18px 38px -34px rgba(80,40,140,.4)',
+      background: C.surface,
+      border: `1px solid ${C.border}`,
+      boxShadow: `0 18px 38px -34px ${C.legacyShadowrgba8040140_4_}`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -103,7 +104,7 @@ export default function DashboardSkeleton({ isMobile, isTablet }: { isMobile: bo
       </div>
       <div style={{ height: 260, marginTop: 8, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}>
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} style={{ borderBottom: '1px dashed #efeaf8', width: '100%' }} />
+          <div key={i} style={{ borderBottom: `1px dashed ${C.border}`, width: '100%' }} />
         ))}
         <div style={{ position: 'absolute', inset: '10px 0 24px', display: 'flex', alignItems: 'flex-end', gap: 8 }}>
           {Array.from({ length: 7 }).map((_, i) => (
@@ -152,7 +153,7 @@ export default function DashboardSkeleton({ isMobile, isTablet }: { isMobile: bo
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          <div style={{ width: 90, height: 90, borderRadius: '50%', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+          <div style={{ width: 90, height: 90, borderRadius: '50%', background: C.surface, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
             <div className="sk" style={{ width: 35, height: 22, borderRadius: 4 }} />
             <div className="sk" style={{ width: 50, height: 11 }} />
           </div>
@@ -181,7 +182,7 @@ export default function DashboardSkeleton({ isMobile, isTablet }: { isMobile: bo
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginTop: 16 }}>
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} style={{ border: '1px solid #efeaf8', borderRadius: 14, padding: 14, background: '#fcfbfe', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div key={i} style={{ border: `1px solid ${C.border}`, borderRadius: 14, padding: 14, background: C.surfaceSubtle, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div className="sk" style={{ width: 34, height: 34, borderRadius: 10, flex: 'none' }} />
               <div style={{ flex: 1 }}>
@@ -253,11 +254,11 @@ function Column({ children }: { children: ReactNode }) {
 }
 
 const skCard: CSSProperties = {
-  background: '#fff',
-  border: '1px solid #efeaf8',
+  background: C.surface,
+  border: `1px solid ${C.border}`,
   borderRadius: 20,
   padding: 24,
-  boxShadow: '0 18px 38px -34px rgba(80,40,140,.5)',
+  boxShadow: C.shadowCard,
   minWidth: 0,
 };
 

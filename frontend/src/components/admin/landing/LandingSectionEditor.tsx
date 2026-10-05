@@ -1,3 +1,4 @@
+import { C } from '../../../styles/colors';
 import { useApp } from '../../../context/AppContext';
 import { useBreakpoint } from '../../../hooks/useBreakpoint';
 import { tr, type L10n, type LandingContent, type LandingSectionKey } from '../../../api/landing';
@@ -71,7 +72,7 @@ function HeroEditor({ value: v, onChange, errors }: EditorProps<'hero'>) {
                   value={Number.isFinite(s.value) ? s.value : ''}
                   onChange={(e) => update({ ...s, value: e.target.value === '' ? NaN : Number(e.target.value) })}
                   aria-invalid={errors.has(`stats.${i}.value`)}
-                  style={errors.has(`stats.${i}.value`) ? { ...fieldStyle, borderColor: '#e25c84' } : fieldStyle}
+                  style={errors.has(`stats.${i}.value`) ? { ...fieldStyle, borderColor: C.legacyBordere25c84 } : fieldStyle}
                 />
               </label>
               <TextInput label={t.lpFStatSuffix} value={s.suffix} onChange={(x) => update({ ...s, suffix: x })} path={`stats.${i}.suffix`} errors={errors} placeholder="+ · /7 · ×" />

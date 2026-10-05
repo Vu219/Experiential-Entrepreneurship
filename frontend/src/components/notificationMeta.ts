@@ -1,6 +1,7 @@
 import { CalendarX, CheckCircle2, CreditCard, Lightbulb, PlugZap, ShieldAlert, TriangleAlert, XCircle, type LucideIcon } from 'lucide-react';
 import type { NotificationType } from '../api/notifications';
 import type { Route } from '../types';
+import { C } from '../styles/colors';
 
 /**
  * Điều hướng + biểu tượng theo loại thông báo, dùng chung cho chuông thông báo (NotificationBell)
@@ -24,14 +25,15 @@ export const ROUTE_BY_TYPE: Record<NotificationType, Route> = {
   PAYMENT_WEBHOOK_ALERT: 'adminPayments',
 };
 
+// Màu = token sáng/tối (styles/colors.ts); mã hex ở comment = giá trị sáng.
 export const TYPE_META: Record<NotificationType, { icon: LucideIcon; color: string; bg: string }> = {
-  POST_PUBLISHED: { icon: CheckCircle2, color: '#16a34a', bg: '#eafbf1' },
-  POST_FAILED: { icon: XCircle, color: '#e23d6e', bg: '#fdecf1' },
-  REVIEW_NEEDED: { icon: ShieldAlert, color: '#d97706', bg: '#fdf4e5' },
-  RECONNECT_NEEDED: { icon: PlugZap, color: '#ea580c', bg: '#fdefe6' },
-  NEW_INSIGHT: { icon: Lightbulb, color: '#7c3aed', bg: '#f3edfd' },
-  SCHEDULE_OVERDUE: { icon: CalendarX, color: '#d97706', bg: '#fdf4e5' },
-  PAYMENT_SUCCEEDED: { icon: CreditCard, color: '#16a34a', bg: '#eafbf1' },
-  PLAN_EXPIRED: { icon: CalendarX, color: '#d97706', bg: '#fdf4e5' },
-  PAYMENT_WEBHOOK_ALERT: { icon: TriangleAlert, color: '#e23d6e', bg: '#fdecf1' },
+  POST_PUBLISHED: { icon: CheckCircle2, color: C.success, bg: C.successTint }, // #16a34a / #eafbf1
+  POST_FAILED: { icon: XCircle, color: C.rose, bg: C.roseSoft }, // #e23d6e / #fdecf1
+  REVIEW_NEEDED: { icon: ShieldAlert, color: C.warning, bg: C.amberSoft }, // #d97706 / #fdf4e5
+  RECONNECT_NEEDED: { icon: PlugZap, color: C.orange2, bg: C.orangeTint }, // #ea580c / #fdefe6
+  NEW_INSIGHT: { icon: Lightbulb, color: C.primary, bg: C.purpleTint }, // #7c3aed / #f3edfd
+  SCHEDULE_OVERDUE: { icon: CalendarX, color: C.warning, bg: C.amberSoft }, // #d97706 / #fdf4e5
+  PAYMENT_SUCCEEDED: { icon: CreditCard, color: C.success, bg: C.successTint }, // #16a34a / #eafbf1
+  PLAN_EXPIRED: { icon: CalendarX, color: C.warning, bg: C.amberSoft }, // #d97706 / #fdf4e5
+  PAYMENT_WEBHOOK_ALERT: { icon: TriangleAlert, color: C.rose, bg: C.roseSoft }, // #e23d6e / #fdecf1
 };

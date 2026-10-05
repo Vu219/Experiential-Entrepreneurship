@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { C } from '../../styles/colors';
 
 /**
  * Khung xương trang Phân tích — phản chiếu đúng bố cục v2 (hàng công cụ + 4 KPI ngang + chart 8/nền
@@ -229,7 +230,7 @@ export function TopPostsSkeleton() {
         {/* 6 dòng — cao 66px như dòng thật (padding 14 + hai dòng chữ). */}
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} style={{
-            display: 'flex', alignItems: 'center', gap: 12, height: 66, borderTop: '1px solid #f1eef8',
+            display: 'flex', alignItems: 'center', gap: 12, height: 66, borderTop: `1px solid ${C.surfaceMuted}`,
           }}>
             <div className="sk" style={{ width: 16, height: 12, flex: 'none' }} />
             <div style={{ flex: 2, minWidth: 0 }}>
@@ -259,7 +260,7 @@ export function InsightsSkeleton({ cols }: { cols: number }) {
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} style={{
             display: 'flex', alignItems: 'flex-start', gap: 10, padding: '4px 14px',
-            borderLeft: i % cols === 0 ? 'none' : '1px solid #f1eef8',
+            borderLeft: i % cols === 0 ? 'none' : `1px solid ${C.surfaceMuted}`,
           }}>
             <div className="sk" style={{ width: 34, height: 34, borderRadius: 10, flex: 'none' }} />
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -327,9 +328,9 @@ function SkHeader({
 }
 
 const skCard: CSSProperties = {
-  background: '#fff',
-  border: '1px solid #efeaf8',
+  background: C.surface,
+  border: `1px solid ${C.border}`,
   borderRadius: 20,
   padding: 24,
-  boxShadow: '0 18px 38px -34px rgba(80,40,140,.5)',
+  boxShadow: `0 18px 38px -34px ${C.legacyShadowrgba8040140_5_}`,
 };

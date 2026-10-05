@@ -3,6 +3,7 @@ import { AlertTriangle, CalendarClock, CheckCircle2, ChevronRight, Minus, PauseC
 import { Card, Icon, cardStyle } from '../ui.tsx';
 import { TONE_COLORS, type Tone } from '../../statusTokens.ts';
 import { useApp } from '../../context/AppContext.tsx';
+import { C } from '../../styles/colors';
 
 // Hàng 4 thẻ thống kê lịch đăng (UI-07): icon chip bên trái, cột nội dung bên phải
 // (số → nhãn → dòng so với tuần trước). Đếm client-side từ list /schedules.
@@ -29,7 +30,7 @@ function DeltaLine({ delta }: { delta: PostedDelta | null }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 4, height: DELTA_LINE_HEIGHT, fontSize: 11.5, fontWeight: 700, color }}>
       <TrendIcon size={12} aria-hidden="true" />
       {diff > 0 ? `+${diff}` : String(diff)}
-      <span style={{ fontWeight: 600, color: '#a59fbb' }}>{t.calVsLastWeek}</span>
+      <span style={{ fontWeight: 600, color: C.textFaint }}>{t.calVsLastWeek}</span>
     </div>
   );
 }
@@ -44,11 +45,11 @@ function StatBody({ icon, tone, value, label, delta, arrow = false }: {
         <Icon icon={icon} stroke={c.color} />
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 24, lineHeight: 1.15, color: '#211c38' }}>{value}</div>
-        <div style={{ fontSize: 13, color: '#8a85a0', margin: '2px 0 5px' }}>{label}</div>
+        <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 24, lineHeight: 1.15, color: C.textStrong }}>{value}</div>
+        <div style={{ fontSize: 13, color: C.textMuted, margin: '2px 0 5px' }}>{label}</div>
         <DeltaLine delta={delta} />
       </div>
-      {arrow && <ChevronRight size={16} color="#a59fbb" aria-hidden="true" style={{ flex: 'none', marginTop: 2 }} />}
+      {arrow && <ChevronRight size={16} color={C.textFaint} aria-hidden="true" style={{ flex: 'none', marginTop: 2 }} />}
     </div>
   );
 }

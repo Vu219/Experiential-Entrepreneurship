@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { C } from '../../styles/colors';
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
@@ -61,7 +62,7 @@ export default function DaySheet({ title, subtitle, onClose, children, footer }:
       onMouseDown={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(26,18,48,.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+        background: C.legacyBgrgba261848_5_, backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
         display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
       }}
     >
@@ -73,27 +74,27 @@ export default function DaySheet({ title, subtitle, onClose, children, footer }:
         onMouseDown={(e) => e.stopPropagation()}
         className="view-pop"
         style={{
-          width: '100%', maxWidth: 560, background: '#fff', borderRadius: '22px 22px 0 0',
-          boxShadow: '0 -20px 60px -20px rgba(60,30,110,.45)',
+          width: '100%', maxWidth: 560, background: C.surface, borderRadius: '22px 22px 0 0',
+          boxShadow: `0 -20px 60px -20px ${C.legacyShadowrgba6030110_45_}`,
           maxHeight: '86vh', display: 'flex', flexDirection: 'column', position: 'relative',
         }}
       >
         <button
           onClick={onClose}
           aria-label="Close"
-          style={{ position: 'absolute', top: 14, right: 14, width: 32, height: 32, border: 'none', borderRadius: 9, background: '#f4f1fb', color: '#6b6680', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ position: 'absolute', top: 14, right: 14, width: 32, height: 32, border: 'none', borderRadius: 9, background: C.surfaceMuted, color: C.textSecondary, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           <X size={16} strokeWidth={2} />
         </button>
         <div style={{ padding: '18px 16px 0', flex: 'none' }}>
-          <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: '#211c38', paddingRight: 34 }}>{title}</div>
-          {subtitle && <div style={{ fontSize: 12.5, color: '#6b6680', marginTop: 4 }}>{subtitle}</div>}
+          <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: C.textStrong, paddingRight: 34 }}>{title}</div>
+          {subtitle && <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 4 }}>{subtitle}</div>}
         </div>
         <div style={{ padding: footer ? '14px 16px' : '14px 16px calc(18px + env(safe-area-inset-bottom))', overflowY: 'auto', flex: 1, minHeight: 0 }}>
           {children}
         </div>
         {footer && (
-          <div style={{ flex: 'none', padding: '12px 16px calc(14px + env(safe-area-inset-bottom))', borderTop: '1px solid #efeaf8', background: '#fff' }}>
+          <div style={{ flex: 'none', padding: '12px 16px calc(14px + env(safe-area-inset-bottom))', borderTop: `1px solid ${C.border}`, background: C.surface }}>
             {footer}
           </div>
         )}

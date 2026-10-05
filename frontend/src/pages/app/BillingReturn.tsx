@@ -12,6 +12,7 @@ import {
   type Payment,
 } from '../../api/payments';
 import type { ApiError } from '../../api/apiClient';
+import { C } from '../../styles/colors';
 
 /**
  * Trang cổng thanh toán đưa TRÌNH DUYỆT quay về ({@code /billing/return}).
@@ -75,7 +76,7 @@ export default function BillingReturn() {
         {loading ? (
           <>
             <Loader />
-            <p style={{ margin: '14px 0 0', fontSize: 14, color: '#6b6680' }}>{t.blVerifying}</p>
+            <p style={{ margin: '14px 0 0', fontSize: 14, color: C.textSecondary }}>{t.blVerifying}</p>
           </>
         ) : (
           <>
@@ -88,10 +89,10 @@ export default function BillingReturn() {
             >
               <view.icon size={28} color={view.color} strokeWidth={1.9} />
             </span>
-            <h1 style={{ margin: '16px 0 0', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 22, color: '#1b1730' }}>
+            <h1 style={{ margin: '16px 0 0', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 22, color: C.textStrong }}>
               {view.title}
             </h1>
-            <p style={{ margin: '8px auto 0', fontSize: 14, lineHeight: 1.6, color: '#6b6680', maxWidth: 420 }}>
+            <p style={{ margin: '8px auto 0', fontSize: 14, lineHeight: 1.6, color: C.textSecondary, maxWidth: 420 }}>
               {view.message}
             </p>
 
@@ -103,7 +104,7 @@ export default function BillingReturn() {
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8, borderRadius: 12,
                     padding: '11px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                    color: '#6b6680', background: '#fff', border: '1px solid #eae6f4',
+                    color: C.textSecondary, background: C.surface, border: `1px solid ${C.border}`,
                   }}
                 >
                   <RotateCcw size={16} strokeWidth={1.9} />
@@ -115,7 +116,7 @@ export default function BillingReturn() {
                 onClick={() => go('billing')}
                 style={{
                   borderRadius: 12, padding: '11px 18px', fontSize: 14, fontWeight: 700,
-                  cursor: 'pointer', color: '#fff', background: 'var(--brand)', border: 'none',
+                  cursor: 'pointer', color: C.onBrand, background: 'var(--brand)', border: 'none',
                 }}
               >
                 {t.blBackToBilling}
@@ -133,20 +134,20 @@ type Dict = ReturnType<typeof useApp>['t'];
 /** Một trạng thái đơn → một màn hình. Không suy đoán gì từ URL. */
 function resolveView(payment: Payment | null, error: string | null, t: Dict) {
   if (error) {
-    return { icon: CircleX, color: '#dc2626', bg: '#fde8e8', title: t.blErrGeneric, message: error, canRecheck: true };
+    return { icon: CircleX, color: C.danger, bg: C.dangerSoft, title: t.blErrGeneric, message: error, canRecheck: true };
   }
   switch (payment?.status) {
     case 'PAID':
-      return { icon: CircleCheck, color: '#16a34a', bg: '#e8f8ee', title: t.blReturnPaid, message: t.blReturnPaidSub, canRecheck: false };
+      return { icon: CircleCheck, color: C.success, bg: C.successSoft, title: t.blReturnPaid, message: t.blReturnPaidSub, canRecheck: false };
     case 'FAILED':
-      return { icon: CircleX, color: '#dc2626', bg: '#fde8e8', title: t.blReturnFailed, message: t.blReturnFailedSub, canRecheck: false };
+      return { icon: CircleX, color: C.danger, bg: C.dangerSoft, title: t.blReturnFailed, message: t.blReturnFailedSub, canRecheck: false };
     case 'CANCELLED':
-      return { icon: CircleX, color: '#6b7280', bg: '#f3f4f6', title: t.blReturnCancelled, message: t.blReturnFailedSub, canRecheck: false };
+      return { icon: CircleX, color: C.gray, bg: C.graySoft, title: t.blReturnCancelled, message: t.blReturnFailedSub, canRecheck: false };
     case 'EXPIRED':
-      return { icon: Clock, color: '#c2410c', bg: '#ffedd5', title: t.blReturnExpired, message: t.blReturnFailedSub, canRecheck: false };
+      return { icon: Clock, color: C.orange, bg: C.orangeSoft, title: t.blReturnExpired, message: t.blReturnFailedSub, canRecheck: false };
     default:
       // PENDING (hoặc chưa đọc được đơn): tiền có thể đang trên đường — cho user kiểm tra lại,
       // KHÔNG nói là thất bại.
-      return { icon: Clock, color: '#d97706', bg: '#fdf0dc', title: t.blReturnPending, message: t.blReturnPendingSub, canRecheck: true };
+      return { icon: Clock, color: C.warning, bg: C.warningSoft, title: t.blReturnPending, message: t.blReturnPendingSub, canRecheck: true };
   }
 }

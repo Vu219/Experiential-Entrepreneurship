@@ -1,0 +1,422 @@
+[
+  {
+    "width": 1440,
+    "mode": "light",
+    "name": "source",
+    "audit": [
+      {
+        "title": "Tổng quan nguồn đã chọnAI sẽ dựa vào các thông tin dưới đây ",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "light",
+    "name": "generate",
+    "audit": [
+      {
+        "title": "TThông tin nguồnThương hiệu kiểm traHồ sơ thương hiệuThương ",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      },
+      {
+        "title": "Kiểm tra brand voiceKiểm tra lạiPhù hợp (92%)Ngưỡng phù hợp:",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      },
+      {
+        "title": "Xem trước bài đăngSinh ảnhThương hiệu kiểm traFacebook · ✨ A",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "light",
+    "name": "finalize",
+    "audit": [
+      {
+        "title": "Xem trước bài đăngThương hiệu kiểm traFacebook · ✨ AI tạoCap",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      },
+      {
+        "title": "SẴN SÀNG LÊN LỊCHFacebookChưa định dạng cho nền tảng nàyĐịnh",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      },
+      {
+        "title": "Trạng thái khi lưuNhápCần duyệtĐã duyệtGiữ \"Nháp\" nếu chưa m",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      },
+      {
+        "title": "TThông tin nguồnThương hiệu kiểm tra",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      },
+      {
+        "title": "Kiểm tra brand voicePhù hợp · 92%Kiểm tra lại",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "light",
+    "name": "schedule",
+    "audit": [
+      {
+        "title": "Xem trước bài đăngThương hiệu kiểm traFacebook · ✨ AI tạoCap",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "light",
+    "name": "detail",
+    "audit": [
+      {
+        "title": "TThông tin nguồnThương hiệu kiểm traHồ sơ thương hiệuThương ",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      },
+      {
+        "title": "Kiểm tra brand voicePhù hợp (92%)Ngưỡng phù hợp: 70%Giọng vă",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      },
+      {
+        "title": "Xem trước bài đăngThương hiệu kiểm traFacebook · ✨ AI tạoCap",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "name": "source",
+    "audit": [
+      {
+        "title": "Tổng quan nguồn đã chọnAI sẽ dựa vào các thông tin dưới đây ",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "name": "generate",
+    "audit": [
+      {
+        "title": "TThông tin nguồnThương hiệu kiểm traHồ sơ thương hiệuThương ",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      },
+      {
+        "title": "Kiểm tra brand voiceKiểm tra lạiPhù hợp (92%)Ngưỡng phù hợp:",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      },
+      {
+        "title": "Xem trước bài đăngSinh ảnhThương hiệu kiểm traFacebook · ✨ A",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "name": "finalize",
+    "audit": [
+      {
+        "title": "Xem trước bài đăngThương hiệu kiểm traFacebook · ✨ AI tạoCap",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      },
+      {
+        "title": "SẴN SÀNG LÊN LỊCHFacebookChưa định dạng cho nền tảng nàyĐịnh",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      },
+      {
+        "title": "Trạng thái khi lưuNhápCần duyệtĐã duyệtGiữ \"Nháp\" nếu chưa m",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      },
+      {
+        "title": "TThông tin nguồnThương hiệu kiểm tra",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      },
+      {
+        "title": "Kiểm tra brand voicePhù hợp · 92%Kiểm tra lại",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "name": "schedule",
+    "audit": [
+      {
+        "title": "Xem trước bài đăngThương hiệu kiểm traFacebook · ✨ AI tạoCap",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "mode": "dark",
+    "name": "detail",
+    "audit": [
+      {
+        "title": "TThông tin nguồnThương hiệu kiểm traHồ sơ thương hiệuThương ",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      },
+      {
+        "title": "Kiểm tra brand voicePhù hợp (92%)Ngưỡng phù hợp: 70%Giọng vă",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      },
+      {
+        "title": "Xem trước bài đăngThương hiệu kiểm traFacebook · ✨ AI tạoCap",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "light",
+    "name": "source",
+    "audit": [
+      {
+        "title": "Tổng quan nguồn đã chọnAI sẽ dựa vào các thông tin dưới đây ",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "light",
+    "name": "generate",
+    "audit": [
+      {
+        "title": "TThông tin nguồnThương hiệu kiểm traHồ sơ thương hiệuThương ",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      },
+      {
+        "title": "Kiểm tra brand voiceKiểm tra lạiPhù hợp (92%)Ngưỡng phù hợp:",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      },
+      {
+        "title": "Xem trước bài đăngSinh ảnhThương hiệu kiểm traFacebook · ✨ A",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "light",
+    "name": "finalize",
+    "audit": [
+      {
+        "title": "Xem trước bài đăngThương hiệu kiểm traFacebook · ✨ AI tạoCap",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      },
+      {
+        "title": "SẴN SÀNG LÊN LỊCHFacebookChưa định dạng cho nền tảng nàyĐịnh",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      },
+      {
+        "title": "Trạng thái khi lưuNhápCần duyệtĐã duyệtGiữ \"Nháp\" nếu chưa m",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      },
+      {
+        "title": "TThông tin nguồnThương hiệu kiểm tra",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      },
+      {
+        "title": "Kiểm tra brand voicePhù hợp · 92%Kiểm tra lại",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "light",
+    "name": "schedule",
+    "audit": [
+      {
+        "title": "Xem trước bài đăngThương hiệu kiểm traFacebook · ✨ AI tạoCap",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "light",
+    "name": "detail",
+    "audit": [
+      {
+        "title": "TThông tin nguồnThương hiệu kiểm traHồ sơ thương hiệuThương ",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      },
+      {
+        "title": "Kiểm tra brand voicePhù hợp (92%)Ngưỡng phù hợp: 70%Giọng vă",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      },
+      {
+        "title": "Xem trước bài đăngThương hiệu kiểm traFacebook · ✨ AI tạoCap",
+        "background": "linear-gradient(150deg, rgb(246, 242, 255), rgb(252, 241, 252))",
+        "border": "rgb(239, 230, 251)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "name": "source",
+    "audit": [
+      {
+        "title": "Tổng quan nguồn đã chọnAI sẽ dựa vào các thông tin dưới đây ",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "name": "generate",
+    "audit": [
+      {
+        "title": "TThông tin nguồnThương hiệu kiểm traHồ sơ thương hiệuThương ",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      },
+      {
+        "title": "Kiểm tra brand voiceKiểm tra lạiPhù hợp (92%)Ngưỡng phù hợp:",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      },
+      {
+        "title": "Xem trước bài đăngSinh ảnhThương hiệu kiểm traFacebook · ✨ A",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "name": "finalize",
+    "audit": [
+      {
+        "title": "Xem trước bài đăngThương hiệu kiểm traFacebook · ✨ AI tạoCap",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      },
+      {
+        "title": "SẴN SÀNG LÊN LỊCHFacebookChưa định dạng cho nền tảng nàyĐịnh",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      },
+      {
+        "title": "Trạng thái khi lưuNhápCần duyệtĐã duyệtGiữ \"Nháp\" nếu chưa m",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      },
+      {
+        "title": "TThông tin nguồnThương hiệu kiểm tra",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      },
+      {
+        "title": "Kiểm tra brand voicePhù hợp · 92%Kiểm tra lại",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "name": "schedule",
+    "audit": [
+      {
+        "title": "Xem trước bài đăngThương hiệu kiểm traFacebook · ✨ AI tạoCap",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      }
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "dark",
+    "name": "detail",
+    "audit": [
+      {
+        "title": "TThông tin nguồnThương hiệu kiểm traHồ sơ thương hiệuThương ",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      },
+      {
+        "title": "Kiểm tra brand voicePhù hợp (92%)Ngưỡng phù hợp: 70%Giọng vă",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      },
+      {
+        "title": "Xem trước bài đăngThương hiệu kiểm traFacebook · ✨ AI tạoCap",
+        "background": "linear-gradient(150deg, rgb(24, 32, 54), color(srgb 0.197412 0.173176 0.254667))",
+        "border": "rgba(167, 139, 250, 0.22)"
+      }
+    ],
+    "errors": []
+  }
+]

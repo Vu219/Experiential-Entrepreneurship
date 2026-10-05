@@ -6,6 +6,7 @@ import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Reveal, RevealGroup, RevealItem } from '../motion/Reveal';
 import { useLandingContent } from '../../hooks/useLandingContent';
 import { tr } from '../../api/landing';
+import { C } from '../../styles/colors';
 
 // FAQ accordion (nội dung từ admin) — panel mở/đóng bằng CSS grid-template-rows 0fr ↔ 1fr:
 // không cần JS đo chiều cao như framer height:auto trước đây. Vẫn là animation LAYOUT (mỗi
@@ -23,8 +24,8 @@ export default function FaqSection() {
     <section id="faq" className="scroll-anchor" style={{ maxWidth: 760, margin: '0 auto', padding: isMobile ? '10px 18px 56px' : '10px 28px 80px', contain: 'layout' }}>
       <Reveal>
         <div style={{ textAlign: 'center', margin: '0 auto 32px' }}>
-          <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 30 : 38, letterSpacing: '-.02em', margin: 0, color: '#171327' }}>{tr(faq.title, lang)}</h2>
-          <p style={{ fontSize: 17, color: '#5b5670', margin: '12px 0 0' }}>{tr(faq.subtitle, lang)}</p>
+          <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 30 : 38, letterSpacing: '-.02em', margin: 0, color: C.ink900 }}>{tr(faq.title, lang)}</h2>
+          <p style={{ fontSize: 17, color: C.ink550, margin: '12px 0 0' }}>{tr(faq.subtitle, lang)}</p>
         </div>
       </Reveal>
       <RevealGroup style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -32,7 +33,7 @@ export default function FaqSection() {
           const isOpen = open === i;
           return (
             <RevealItem key={i} y={16}>
-              <div style={{ background: '#fff', border: `1px solid ${isOpen ? '#ddd0f7' : '#efeaf8'}`, borderRadius: 16, boxShadow: '0 16px 32px -28px rgba(80,40,140,.5)', overflow: 'hidden', transition: 'border-color .25s ease' }}>
+              <div style={{ background: C.surface, border: `1px solid ${isOpen ? C.legacyBorderddd0f7 : C.border}`, borderRadius: 16, boxShadow: `0 16px 32px -28px ${C.legacyShadowrgba8040140_5_}`, overflow: 'hidden', transition: 'border-color .25s ease' }}>
                 <button
                   type="button"
                   aria-expanded={isOpen}
@@ -40,8 +41,8 @@ export default function FaqSection() {
                   onClick={() => setOpen(isOpen ? null : i)}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', padding: isMobile ? '16px 18px' : '18px 22px' }}
                 >
-                  <span style={{ fontWeight: 700, fontSize: 15.5, color: '#211c38', fontFamily: "'Plus Jakarta Sans'" }}>{tr(item.question, lang)}</span>
-                  <ChevronDown size={18} color="#7c3aed" strokeWidth={2.2} style={{ flex: 'none', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .3s ease' }} />
+                  <span style={{ fontWeight: 700, fontSize: 15.5, color: C.textStrong, fontFamily: "'Plus Jakarta Sans'" }}>{tr(item.question, lang)}</span>
+                  <ChevronDown size={18} color={C.primary} strokeWidth={2.2} style={{ flex: 'none', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .3s ease' }} />
                 </button>
                 <div
                   id={`faq-panel-${i}`}
@@ -63,7 +64,7 @@ export default function FaqSection() {
                       transition: reduced ? undefined : 'opacity .18s ease-out',
                     }}
                   >
-                    <p style={{ fontSize: 14.5, lineHeight: 1.6, color: '#5b5670', margin: 0, padding: isMobile ? '0 18px 16px' : '0 22px 20px' }}>{tr(item.answer, lang)}</p>
+                    <p style={{ fontSize: 14.5, lineHeight: 1.6, color: C.ink550, margin: 0, padding: isMobile ? '0 18px 16px' : '0 22px 20px' }}>{tr(item.answer, lang)}</p>
                   </div>
                 </div>
               </div>

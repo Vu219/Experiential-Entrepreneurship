@@ -13,6 +13,7 @@ import {
   type SystemActivity, type ActivityRange,
 } from '../../api/admin';
 import { getAiStatus, type AiEffectiveStatus } from '../../api/adminAi';
+import { C } from '../../styles/colors';
 
 // Trang Trạng thái hệ thống — REALTIME (mục 6): backend chưa có SSE/WebSocket nên dùng
 // polling (setTimeout tự quản, không thêm dependency React Query/SWR):
@@ -126,8 +127,8 @@ export default function SystemStatus() {
   if (initial === 'error' || !data) return (
     <PageContainer>
       <Card style={{ textAlign: 'center', padding: '54px 16px' }}>
-        <div style={{ fontSize: 14.5, fontWeight: 600, color: '#5b5670', marginBottom: 14 }}>{t.listError}</div>
-        <button onClick={() => { setInitial('loading'); pollStatus(); }} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
+        <div style={{ fontSize: 14.5, fontWeight: 600, color: C.ink550, marginBottom: 14 }}>{t.listError}</div>
+        <button onClick={() => { setInitial('loading'); pollStatus(); }} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
       </Card>
     </PageContainer>
   );
@@ -147,8 +148,8 @@ export default function SystemStatus() {
     return out;
   };
 
-  const label = { fontSize: 12.5, color: '#8a85a0' } as const;
-  const val = { color: '#3f3a55', fontWeight: 600 } as const;
+  const label = { fontSize: 12.5, color: C.textMuted } as const;
+  const val = { color: C.text, fontWeight: 600 } as const;
 
   // Sức khỏe cấu hình AI (dùng /admin/ai/status có sẵn).
   const enabledRoutes = ai ? ai.routes.filter((r) => r.enabled).length : 0;
@@ -203,16 +204,16 @@ export default function SystemStatus() {
       {/* Chỉ báo live: chấm nhấp nháy + thời điểm cập nhật + nút tạm dừng/tiếp tục. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span className="live-dot" style={{ background: disconnected ? '#ef4444' : paused ? '#a59fbb' : '#22c55e', animationPlayState: paused ? 'paused' : 'running' }} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: disconnected ? '#dc2626' : '#3f3a55' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: disconnected ? C.danger : C.text }}>
           {paused ? t.sysPausedLabel : t.sysLive}
         </span>
         {updatedAt && (
-          <span style={{ fontSize: 12, color: '#8a85a0' }}>{t.sysUpdatedAt} {fmtClock(updatedAt)}</span>
+          <span style={{ fontSize: 12, color: C.textMuted }}>{t.sysUpdatedAt} {fmtClock(updatedAt)}</span>
         )}
         {disconnected && <StatusBadge tone="danger" label={t.sysDisconnected} />}
         <button
           onClick={() => setPaused((v) => !v)}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 'auto', border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 'auto', border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}
         >
           {paused ? <Play size={13} strokeWidth={2.2} /> : <Pause size={13} strokeWidth={2.2} />}
           {paused ? t.sysResume : t.sysPause}
@@ -227,12 +228,12 @@ export default function SystemStatus() {
           return (
             <Card key={svc.key} style={{ padding: 18 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: '#2b2543' }}>{svc.name}</span>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: C.ink750 }}>{svc.name}</span>
                 <StatusBadge tone={m.tone} label={m.label} />
               </div>
               <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {svc.status !== 'operational' && svc.detail && (
-                  <div style={{ fontSize: 12, color: '#dc2626', wordBreak: 'break-word' }}>{svc.detail}</div>
+                  <div style={{ fontSize: 12, color: C.danger, wordBreak: 'break-word' }}>{svc.detail}</div>
                 )}
                 {lines.map(([k, v]) => (
                   <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
@@ -251,17 +252,17 @@ export default function SystemStatus() {
       {/* Sức khỏe cấu hình AI (poll 15s) + Tài nguyên container (poll 5s) */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : (host ? '1fr 1fr' : '1fr'), gap: 16 }}>
         <Card style={{ padding: 18 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: '#2b2543', marginBottom: 14 }}>{t.sysAiHealth}</div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: C.ink750, marginBottom: 14 }}>{t.sysAiHealth}</div>
           {ai ? (
             <>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <MiniStat tone="#16a34a" bg="#e8f8ee" value={<AnimatedNumber value={aiOk} />} label={t.sysAiOk} />
-                <MiniStat tone="#d97706" bg="#fef3e2" value={<AnimatedNumber value={ai.degradedCount} />} label={t.sysAiDegraded} />
-                <MiniStat tone="#dc2626" bg="#fdeaea" value={<AnimatedNumber value={ai.errorCount} />} label={t.sysAiError} />
+                <MiniStat tone="#16a34a" bg={C.successSoft} value={<AnimatedNumber value={aiOk} />} label={t.sysAiOk} />
+                <MiniStat tone="#d97706" bg={C.legacyBgfef3e2} value={<AnimatedNumber value={ai.degradedCount} />} label={t.sysAiDegraded} />
+                <MiniStat tone="#dc2626" bg={C.legacyBgfdeaea} value={<AnimatedNumber value={ai.errorCount} />} label={t.sysAiError} />
               </div>
-              <div style={{ fontSize: 12, color: '#a59fbb', marginTop: 12 }}>{enabledRoutes} {t.sysAiTasks}</div>
+              <div style={{ fontSize: 12, color: C.textFaint, marginTop: 12 }}>{enabledRoutes} {t.sysAiTasks}</div>
               {!ai.fromDb && (
-                <div style={{ fontSize: 12, color: '#d97706', marginTop: 8, background: '#fef8ee', border: '1px solid #f6e2bf', borderRadius: 8, padding: '8px 10px' }}>
+                <div style={{ fontSize: 12, color: C.warning, marginTop: 8, background: C.legacyBgfef8ee, border: `1px solid ${C.legacyBorderf6e2bf}`, borderRadius: 8, padding: '8px 10px' }}>
                   {t.sysAiFromDbOff}
                 </div>
               )}
@@ -272,8 +273,8 @@ export default function SystemStatus() {
         {host && (
           <Card style={{ padding: 18 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 14 }}>
-              <span style={{ fontSize: 13.5, fontWeight: 700, color: '#2b2543' }}>{t.sysHost}</span>
-              <span style={{ fontSize: 10.5, color: '#a59fbb' }}>{t.sysHostNote}</span>
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: C.ink750 }}>{t.sysHost}</span>
+              <span style={{ fontSize: 10.5, color: C.textFaint }}>{t.sysHostNote}</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {host.cpuLoad != null && (
@@ -291,11 +292,11 @@ export default function SystemStatus() {
         <SectionCard
           title={t.sysActivity}
           action={
-            <div style={{ display: 'flex', gap: 4, background: '#f4f1fb', borderRadius: 10, padding: 3 }}>
+            <div style={{ display: 'flex', gap: 4, background: C.surfaceMuted, borderRadius: 10, padding: 3 }}>
               {RANGES.map((r) => (
                 <button key={r} onClick={() => changeRange(r)} style={{
                   border: 'none', borderRadius: 8, padding: '5px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                  color: r === range ? '#fff' : '#6b5ca8', background: r === range ? brandGradient : 'transparent',
+                  color: r === range ? C.onBrand : C.legacyText6b5ca8, background: r === range ? brandGradient : 'transparent',
                 }}>{t[`rng${r}` as keyof typeof t] as string}</button>
               ))}
             </div>
@@ -304,61 +305,61 @@ export default function SystemStatus() {
           {actLoading ? (
             <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader /></div>
           ) : !hasActivity ? (
-            <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a59fbb', fontSize: 13.5, fontWeight: 600 }}>
+            <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.textFaint, fontSize: 13.5, fontWeight: 600 }}>
               {t.sysActivityEmpty}
             </div>
           ) : (
             <>
               {/* Hàng chỉ số: đếm tuyệt đối + TỈ LỆ LỖI + THROUGHPUT sparkline (mục 6) */}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <MiniStat tone="#6b5ca8" bg="#f4f1fb" value={<AnimatedNumber value={shown ? shown.posts : actSum.posts} />} label={t.sysPosts} />
-                <MiniStat tone="#0e7490" bg="#e0f7fb" value={<AnimatedNumber value={shown ? shown.jobs : actSum.jobs} />} label={t.sysJobs} />
-                <MiniStat tone="#dc2626" bg="#fde8e8" value={<AnimatedNumber value={shown ? shown.errors : actSum.errors} />} label={t.sysErrors} />
-                <MiniStat tone={errRate !== null && errRate > 5 ? '#dc2626' : '#16a34a'} bg={errRate !== null && errRate > 5 ? '#fde8e8' : '#e8f8ee'}
+                <MiniStat tone="#6b5ca8" bg={C.legacyBgf4f1fb} value={<AnimatedNumber value={shown ? shown.posts : actSum.posts} />} label={t.sysPosts} />
+                <MiniStat tone="#0e7490" bg={C.infoSoft} value={<AnimatedNumber value={shown ? shown.jobs : actSum.jobs} />} label={t.sysJobs} />
+                <MiniStat tone="#dc2626" bg={C.dangerSoft} value={<AnimatedNumber value={shown ? shown.errors : actSum.errors} />} label={t.sysErrors} />
+                <MiniStat tone={errRate !== null && errRate > 5 ? '#dc2626' : '#16a34a'} bg={errRate !== null && errRate > 5 ? C.dangerSoft : C.successSoft}
                   value={errRate === null ? '—' : `${errRate.toFixed(1)}%`} label={t.sysErrRate} />
-                <div style={{ flex: '1 1 120px', background: '#f4f1fb', borderRadius: 12, padding: '12px 14px', minWidth: 0, overflow: 'hidden' }}>
+                <div style={{ flex: '1 1 120px', background: C.surfaceMuted, borderRadius: 12, padding: '12px 14px', minWidth: 0, overflow: 'hidden' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, minWidth: 0 }}>
                     <div style={{ flex: 'none' }}>
-                      <div style={{ fontSize: 24, fontWeight: 800, color: '#6b5ca8', lineHeight: 1 }}>{throughputNow < 10 ? throughputNow.toFixed(1) : Math.round(throughputNow)}</div>
-                      <div style={{ fontSize: 12, color: '#6b6580', marginTop: 4, whiteSpace: 'nowrap' }}>{t.sysThroughput}</div>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: C.legacyText6b5ca8, lineHeight: 1 }}>{throughputNow < 10 ? throughputNow.toFixed(1) : Math.round(throughputNow)}</div>
+                      <div style={{ fontSize: 12, color: C.textSecondary, marginTop: 4, whiteSpace: 'nowrap' }}>{t.sysThroughput}</div>
                     </div>
-                    <Sparkline values={throughputSeries} color="#7c3aed" />
+                    <Sparkline values={throughputSeries} color={C.primary} />
                   </div>
                 </div>
               </div>
 
               {/* Hàng đợi job + uptime + sự cố gần nhất + latency percentile (cần API) */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 20px', marginTop: 12, fontSize: 12, color: '#8a85a0' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 20px', marginTop: 12, fontSize: 12, color: C.textMuted }}>
                 <span>
-                  {t.sysJobQueue}: <b style={{ color: '#3f3a55' }}>{data.counters.pendingSchedules}</b> {t.sysJobPending}
+                  {t.sysJobQueue}: <b style={{ color: C.text }}>{data.counters.pendingSchedules}</b> {t.sysJobPending}
                   {' · '}{t.sysJobRunning}: <span title={t.sysNeedApi}>—</span>
-                  {' · '}<b style={{ color: data.counters.failedLast24h > 0 ? '#dc2626' : '#3f3a55' }}>{data.counters.failedLast24h}</b> {t.sysJobFailed}
+                  {' · '}<b style={{ color: data.counters.failedLast24h > 0 ? C.danger : C.text }}>{data.counters.failedLast24h}</b> {t.sysJobFailed}
                 </span>
                 <span>{t.sysUptime}: <span title={t.sysNeedApi}>—</span></span>
-                {lastIncident && <span>{t.sysLastIncident}: <b style={{ color: '#3f3a55' }}>{lastIncident}</b></span>}
+                {lastIncident && <span>{t.sysLastIncident}: <b style={{ color: C.text }}>{lastIncident}</b></span>}
                 <span>{t.sysLatencyPct}: <span title={t.sysNeedApi}>— · {t.sysNeedApi}</span></span>
               </div>
 
               {/* Chú thích màu + ngữ cảnh readout (tổng theo kỳ / thời điểm cột đang trỏ) */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 12, fontSize: 11.5, color: '#8a85a0' }}>
-                <Dot color="#7c3aed" label={t.sysActLegendOk} />
-                <Dot color="#ec4899" label={t.sysActLegendErr} />
-                <span style={{ marginLeft: 'auto', fontWeight: 700, color: '#6b6580' }}>{shown ? fmtTick(shown.time) : t.sysActInRange}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 12, fontSize: 11.5, color: C.textMuted }}>
+                <Dot color={C.primary} label={t.sysActLegendOk} />
+                <Dot color={C.legacyTextec4899} label={t.sysActLegendErr} />
+                <span style={{ marginLeft: 'auto', fontWeight: 700, color: C.textSecondary }}>{shown ? fmtTick(shown.time) : t.sysActInRange}</span>
               </div>
               <div onMouseLeave={() => setHover(null)}
-                style={{ display: 'flex', alignItems: 'flex-end', gap: activeBuckets.length > 60 ? 1 : 3, height: 150, marginTop: 14, borderBottom: '1px solid #f1eef8' }}>
+                style={{ display: 'flex', alignItems: 'flex-end', gap: activeBuckets.length > 60 ? 1 : 3, height: 150, marginTop: 14, borderBottom: `1px solid ${C.surfaceMuted}` }}>
                 {activeBuckets.map((b, i) => (
                   <div key={i} onMouseEnter={() => setHover(i)}
                     title={`${fmtTick(b.time)} · ${t.sysPosts} ${b.posts} · ${t.sysJobs} ${b.jobs} · ${t.sysErrors} ${b.errors}`}
                     style={{ flex: 1, height: `${(b.total / maxTotal) * 100}%`, minHeight: b.total > 0 ? 3 : 0, borderRadius: 3,
                       background: b.errors > 0 ? 'linear-gradient(#ec4899,#f9a8d4)' : brandGradient,
-                      outline: hover === i ? '2px solid rgba(124,58,237,.35)' : 'none', outlineOffset: 1 }} />
+                      outline: hover === i ? `2px solid ${C.legacyBorderrgba12458237_35_}` : 'none', outlineOffset: 1 }} />
                 ))}
               </div>
               {/* Trục thời gian trải đều: nhãn ở ~6 mốc, thẳng cột với bucket tương ứng */}
               <div style={{ display: 'flex', gap: activeBuckets.length > 60 ? 1 : 3, marginTop: 8 }}>
                 {activeBuckets.map((b, i) => (
-                  <span key={i} style={{ flex: 1, fontSize: 10.5, color: '#a59fbb', whiteSpace: 'nowrap', overflow: 'visible' }}>
+                  <span key={i} style={{ flex: 1, fontSize: 10.5, color: C.textFaint, whiteSpace: 'nowrap', overflow: 'visible' }}>
                     {i % tickEvery === 0 ? fmtTick(b.time) : ''}
                   </span>
                 ))}
@@ -370,13 +371,13 @@ export default function SystemStatus() {
         {/* Alerts (gộp dòng trùng ×N + rút gọn, poll 5s) + link sang Logs */}
         <Card>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.sysAlerts}</div>
-            <button onClick={() => nav('/admin/logs')} style={{ border: 'none', background: 'transparent', color: '#6b5ca8', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{t.sysViewAll} →</button>
+            <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.sysAlerts}</div>
+            <button onClick={() => nav('/admin/logs')} style={{ border: 'none', background: 'transparent', color: C.legacyText6b5ca8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{t.sysViewAll} →</button>
           </div>
           {groupedAlerts.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '26px 8px', color: '#8a85a0' }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: '#e8f8ee', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                <Icon icon={Check} stroke="#16a34a" />
+            <div style={{ textAlign: 'center', padding: '26px 8px', color: C.textMuted }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: C.successSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <Icon icon={Check} stroke={C.success} />
               </div>
               <div style={{ fontSize: 13.5, fontWeight: 600 }}>{t.sysNoAlerts}</div>
             </div>
@@ -389,19 +390,19 @@ export default function SystemStatus() {
                     <StatusBadge tone={a.tone} label={a.level} />
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, color: '#3f3a55', lineHeight: 1.45, flex: 1, minWidth: 0, ...(open ? { whiteSpace: 'pre-wrap' as const, wordBreak: 'break-word' as const } : { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }) }} title={open ? undefined : a.message}>
+                        <div style={{ fontSize: 13, color: C.text, lineHeight: 1.45, flex: 1, minWidth: 0, ...(open ? { whiteSpace: 'pre-wrap' as const, wordBreak: 'break-word' as const } : { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }) }} title={open ? undefined : a.message}>
                           {a.message}
                         </div>
                         {a.count > 1 && (
-                          <span style={{ flex: 'none', fontSize: 11, fontWeight: 800, color: '#dc2626', background: '#fde8e8', borderRadius: 999, padding: '2px 8px' }}>
+                          <span style={{ flex: 'none', fontSize: 11, fontWeight: 800, color: C.danger, background: C.dangerSoft, borderRadius: 999, padding: '2px 8px' }}>
                             {t.sysTimes.replace('{n}', String(a.count))}
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: 11.5, color: '#a59fbb', marginTop: 3, display: 'flex', gap: 10 }}>
+                      <div style={{ fontSize: 11.5, color: C.textFaint, marginTop: 3, display: 'flex', gap: 10 }}>
                         <span>{a.time}</span>
                         {a.message.length > 80 && (
-                          <button onClick={() => setAlertOpen(open ? null : a.key)} style={{ border: 'none', background: 'none', padding: 0, fontSize: 11.5, fontWeight: 700, color: '#7c3aed', cursor: 'pointer' }}>
+                          <button onClick={() => setAlertOpen(open ? null : a.key)} style={{ border: 'none', background: 'none', padding: 0, fontSize: 11.5, fontWeight: 700, color: C.primary, cursor: 'pointer' }}>
                             {open ? t.sysXCollapse : t.sysXDetail}
                           </button>
                         )}
@@ -422,7 +423,7 @@ function MiniStat({ tone, bg, value, label }: { tone: string; bg: string; value:
   return (
     <div style={{ flex: '1 1 80px', background: bg, borderRadius: 12, padding: '12px 14px' }}>
       <div style={{ fontSize: 24, fontWeight: 800, color: tone, lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 12, color: '#6b6580', marginTop: 4 }}>{label}</div>
+      <div style={{ fontSize: 12, color: C.textSecondary, marginTop: 4 }}>{label}</div>
     </div>
   );
 }

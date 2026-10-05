@@ -9,6 +9,7 @@ import { PLATFORM_BG } from '../../../theme';
 import { AP_PLATFORM_NAME } from './platforms';
 import { categoryOf, REASON_META, reasonText, violationBullets } from './rejectionReasons';
 import type { AdminPostProblem } from '../../../api/admin';
+import { C } from '../../../styles/colors';
 
 // Khối F: panel chi tiết bài viết. Vỏ là Drawer dùng chung; component này chỉ lo NỘI DUNG.
 //
@@ -19,7 +20,7 @@ import type { AdminPostProblem } from '../../../api/admin';
 //    có endpoint admin cho hai hành động đó — thà không hiện còn hơn hiện nút bấm không làm gì.
 
 const sectionLabel = {
-  fontSize: 12, fontWeight: 700, color: '#a59fbb', marginBottom: 8, marginTop: 20,
+  fontSize: 12, fontWeight: 700, color: C.textFaint, marginBottom: 8, marginTop: 20,
 } as const;
 
 const CAPTION_CLAMP_LINES = 4;
@@ -56,7 +57,7 @@ export default function PostProblemDetail({
       stickyTop={stickyTop}
       stickyMaxHeight={stickyMaxHeight}
       closeLabel={t.close}
-      icon={<Icon icon={Sparkles} size={16} stroke="#8b5cf6" />}
+      icon={<Icon icon={Sparkles} size={16} stroke={C.violetLight} />}
       onClose={onClose}
       footer={
         <button
@@ -65,9 +66,9 @@ export default function PostProblemDetail({
           className="btn-soft"
           style={{
             width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            border: '1px solid #ece8f6', background: '#fff', borderRadius: 11, padding: '11px 0',
+            border: `1px solid ${C.border}`, background: C.surface, borderRadius: 11, padding: '11px 0',
             fontSize: 13.5, fontWeight: 700, cursor: post.content.trim() ? 'pointer' : 'default',
-            color: post.content.trim() ? '#5b5670' : '#c4bdd6',
+            color: post.content.trim() ? C.ink550 : C.ink200,
           }}
         >
           <Copy size={15} strokeWidth={1.8} />
@@ -89,18 +90,18 @@ export default function PostProblemDetail({
         </span>
         <div style={{ minWidth: 0 }}>
           <div style={{
-            fontSize: 14, fontWeight: 700, color: '#211c38', lineHeight: 1.45,
+            fontSize: 14, fontWeight: 700, color: C.textStrong, lineHeight: 1.45,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {caption ? caption.split(/\r?\n/)[0] : t.apNoContent}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 6, fontSize: 12, color: '#8a85a0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 6, fontSize: 12, color: C.textMuted }}>
             <span style={{ fontFamily: 'ui-monospace,Menlo,Consolas,monospace' }}>#{post.id.slice(0, 8)}</span>
             <span aria-hidden>·</span>
             <PlatformTag tag={post.platform} bg={PLATFORM_BG[post.platform]} size={18} radius={999} />
             {AP_PLATFORM_NAME[post.platform]}
           </div>
-          <div style={{ fontSize: 12, color: '#a59fbb', marginTop: 3 }}>
+          <div style={{ fontSize: 12, color: C.textFaint, marginTop: 3 }}>
             {formatDateTimeVN(post.date.replace(' ', 'T'))}
           </div>
         </div>
@@ -111,7 +112,7 @@ export default function PostProblemDetail({
         <>
           <div style={sectionLabel}>{t.postContent}</div>
           <div style={{
-            fontSize: 13, color: '#574f6e', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+            fontSize: 13, color: C.ink600, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
             ...(captionOpen ? {} : {
               display: '-webkit-box',
               WebkitLineClamp: CAPTION_CLAMP_LINES,
@@ -125,7 +126,7 @@ export default function PostProblemDetail({
             onClick={() => setCaptionOpen((v) => !v)}
             style={{
               border: 'none', background: 'transparent', padding: '6px 0 0', fontSize: 12.5,
-              fontWeight: 700, color: '#7c3aed', cursor: 'pointer',
+              fontWeight: 700, color: C.primary, cursor: 'pointer',
             }}
           >
             {captionOpen ? t.apSeeLess : t.apSeeMore}
@@ -138,14 +139,14 @@ export default function PostProblemDetail({
 
       <div style={sectionLabel}>{isSystem ? t.apColCause : t.apDrawerReason}</div>
       <StatusBadge tone={meta.tone} label={t[meta.labelKey]} />
-      <div style={{ fontSize: 13, color: '#574f6e', lineHeight: 1.6, marginTop: 8 }}>{reasonText(post, t)}</div>
+      <div style={{ fontSize: 13, color: C.ink600, lineHeight: 1.6, marginTop: 8 }}>{reasonText(post, t)}</div>
 
       {bullets.length > 1 && (
         <>
           <div style={sectionLabel}>{t.apViolationDetail}</div>
           <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {bullets.map((line, i) => (
-              <li key={i} style={{ fontSize: 12.5, color: '#574f6e', lineHeight: 1.55 }}>{line}</li>
+              <li key={i} style={{ fontSize: 12.5, color: C.ink600, lineHeight: 1.55 }}>{line}</li>
             ))}
           </ul>
         </>
@@ -156,12 +157,12 @@ export default function PostProblemDetail({
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 8 }}>
         <span style={{
           fontSize: 11.5, fontWeight: 800, fontFamily: 'ui-monospace,Menlo,Consolas,monospace',
-          color: '#6b5ca8', background: '#f3f0fa', borderRadius: 7, padding: '3px 9px',
+          color: C.legacyText6b5ca8, background: C.surfaceMuted, borderRadius: 7, padding: '3px 9px',
         }}>
           {t.apErrCode} {post.errorCode ?? '—'}
         </span>
         {isSystem && post.retryCount !== null && (
-          <span style={{ fontSize: 12, color: '#8a85a0' }}>
+          <span style={{ fontSize: 12, color: C.textMuted }}>
             {t.apColRetry}: {t.apRetryOf.replace('{n}', String(post.retryCount))}
             {post.nextRetryAt
               ? ` · ${t.apNextRetry} ${formatDateTimeVN(post.nextRetryAt.replace(' ', 'T'))}`
@@ -170,7 +171,7 @@ export default function PostProblemDetail({
         )}
       </div>
       <pre style={{
-        margin: 0, background: '#1f1b2e', color: '#ffd9d9', borderRadius: 10, padding: '12px 14px',
+        margin: 0, background: '#1f1b2e', color: C.legacyTextffd9d9, borderRadius: 10, padding: '12px 14px',
         fontSize: 12, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
         fontFamily: 'ui-monospace,Menlo,Consolas,monospace',
       }}>
@@ -178,9 +179,9 @@ export default function PostProblemDetail({
       </pre>
 
       <div style={sectionLabel}>{t.apAiAdvice}</div>
-      <div style={{ display: 'flex', gap: 10, background: '#f7f4ff', borderRadius: 12, padding: '12px 14px' }}>
-        <Icon icon={Sparkles} size={15} stroke="#7c3aed" />
-        <div style={{ fontSize: 12.5, color: '#574f6e', lineHeight: 1.6, minWidth: 0 }}>{t[meta.adviceKey]}</div>
+      <div style={{ display: 'flex', gap: 10, background: C.surfaceMuted, borderRadius: 12, padding: '12px 14px' }}>
+        <Icon icon={Sparkles} size={15} stroke={C.primary} />
+        <div style={{ fontSize: 12.5, color: C.ink600, lineHeight: 1.6, minWidth: 0 }}>{t[meta.adviceKey]}</div>
       </div>
     </Drawer>
   );

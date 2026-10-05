@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { C } from '../styles/colors';
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
@@ -76,7 +77,7 @@ export default function Modal({
       className={animateScale ? 'modal-fade-in' : undefined}
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(26,18,48,.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+        background: C.modalOverlay, backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18,
       }}
     >
@@ -88,20 +89,20 @@ export default function Modal({
         onMouseDown={(e) => e.stopPropagation()}
         className={animateScale ? 'modal-scale-in' : 'view-pop'}
         style={{
-          width: '100%', maxWidth, background: '#fff', borderRadius: 20,
-          boxShadow: '0 40px 80px -30px rgba(60,30,110,.55)', padding: 26, position: 'relative',
+          width: '100%', maxWidth, background: C.surface, borderRadius: 20,
+          boxShadow: C.shadowModal, padding: 26, position: 'relative',
           maxHeight: 'calc(100vh - 36px)', overflowY: 'auto',
         }}
       >
         <button
           onClick={onClose}
           aria-label="Close"
-          style={{ position: 'absolute', top: 16, right: 16, width: 32, height: 32, border: 'none', borderRadius: 9, background: '#f4f1fb', color: '#6b6680', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ position: 'absolute', top: 16, right: 16, width: 32, height: 32, border: 'none', borderRadius: 9, background: C.surfaceMuted, color: C.textSecondary, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           <X size={16} strokeWidth={2} />
         </button>
-        <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: '#211c38', paddingRight: 28 }}>{title}</div>
-        {subtitle && <div style={{ fontSize: 13.5, color: '#6b6680', marginTop: 6 }}>{subtitle}</div>}
+        <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: C.textStrong, paddingRight: 28 }}>{title}</div>
+        {subtitle && <div style={{ fontSize: 13.5, color: C.textSecondary, marginTop: 6 }}>{subtitle}</div>}
         <div style={{ marginTop: 18 }}>{children}</div>
       </div>
     </div>,

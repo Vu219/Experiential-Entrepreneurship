@@ -4,6 +4,7 @@ import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { formatVND } from '../../api/admin';
 import type { PlanDto } from '../../api/plans';
 import type { BillingOverview } from '../../api/payments';
+import { C } from '../../styles/colors';
 
 /**
  * Lưới gói bán được. Chỉ gói `isActive && price > 0` — gói Free không có gì để mua.
@@ -48,30 +49,30 @@ export default function PlanChoiceGrid({
             className={disabled ? undefined : 'lift-card'}
             style={{
               display: 'flex', flexDirection: 'column', borderRadius: 18, padding: 20,
-              background: '#fff',
-              border: isCurrent ? '2px solid transparent' : '1px solid #efeaf8',
-              backgroundImage: isCurrent ? `linear-gradient(#fff,#fff), ${brandGradient}` : undefined,
+              background: C.surface,
+              border: isCurrent ? '2px solid transparent' : `1px solid ${C.border}`,
+              backgroundImage: isCurrent ? `linear-gradient(${C.surface},${C.surface}), ${brandGradient}` : undefined,
               backgroundOrigin: isCurrent ? 'padding-box, border-box' : undefined,
               backgroundClip: isCurrent ? 'padding-box, border-box' : undefined,
-              boxShadow: '0 22px 44px -34px rgba(80,40,140,.5)',
+              boxShadow: `0 22px 44px -34px ${C.legacyShadowrgba8040140_5_}`,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
-              <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: '#211c38' }}>
+              <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: C.textStrong }}>
                 {lang === 'en' ? plan.nameEn : plan.nameVi}
               </span>
               {isCurrent && (
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#6d28d9', background: '#f3edff', border: '1px solid #e7d9fb', borderRadius: 999, padding: '2px 9px' }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: C.primaryStrong, background: C.primarySoft, border: `1px solid ${C.accentLine}`, borderRadius: 999, padding: '2px 9px' }}>
                   {t.blCurrent}
                 </span>
               )}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '12px 0 2px' }}>
-              <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 26, color: '#171327' }}>
+              <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 26, color: C.ink900 }}>
                 {formatVND(plan.price)}
               </span>
-              <span style={{ fontSize: 13, color: '#8a85a0' }}>
+              <span style={{ fontSize: 13, color: C.textMuted }}>
                 / {plan.billingIntervalMonths > 1 ? t.blPerCycle.replace('{n}', String(plan.billingIntervalMonths)) : t.blPerMonth}
               </span>
             </div>
@@ -79,10 +80,10 @@ export default function PlanChoiceGrid({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '14px 0 18px', flex: 1 }}>
               {(lang === 'en' ? plan.teaserFeaturesEn : plan.teaserFeaturesVi).slice(0, 3).map((f, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                  <span style={{ flex: 'none', width: 17, height: 17, borderRadius: '50%', background: '#f3edff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
-                    <Check size={11} strokeWidth={3} color="#7c3aed" />
+                  <span style={{ flex: 'none', width: 17, height: 17, borderRadius: '50%', background: C.primarySoft, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
+                    <Check size={11} strokeWidth={3} color={C.primary} />
                   </span>
-                  <span style={{ fontSize: 13, lineHeight: 1.5, color: '#4b4660' }}>{f}</span>
+                  <span style={{ fontSize: 13, lineHeight: 1.5, color: C.ink650 }}>{f}</span>
                 </div>
               ))}
             </div>
@@ -97,8 +98,8 @@ export default function PlanChoiceGrid({
                 width: '100%', border: 'none', borderRadius: 12, padding: '12px 14px',
                 fontWeight: 700, fontSize: 14,
                 cursor: disabled ? 'not-allowed' : 'pointer',
-                color: disabled ? '#a39bbf' : '#fff',
-                background: disabled ? '#f2f0f8' : brandGradient,
+                color: disabled ? C.ink350 : C.onBrand,
+                background: disabled ? C.surfaceMuted : brandGradient,
               }}
             >
               {lower && <Lock size={14} strokeWidth={2} />}

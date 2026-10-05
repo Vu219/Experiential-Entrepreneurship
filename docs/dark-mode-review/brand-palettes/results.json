@@ -1,0 +1,204 @@
+{
+  "results": [
+    {
+      "width": 1440,
+      "mode": "light",
+      "palette": "Đại dương",
+      "key": "ocean",
+      "saved": "ocean",
+      "dark": false,
+      "stops": [
+        "#22d3ee",
+        "#3b82f6",
+        "#8b5cf6"
+      ],
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "mode": "light",
+      "palette": "Tử tinh",
+      "key": "aurora",
+      "saved": "aurora",
+      "dark": false,
+      "stops": [
+        "#6d28d9",
+        "#7c3aed",
+        "#9333ea"
+      ],
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "mode": "light",
+      "palette": "Phong lan",
+      "key": "sunset",
+      "saved": "sunset",
+      "dark": false,
+      "stops": [
+        "#db2777",
+        "#c026d3",
+        "#9333ea"
+      ],
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "palette": "Đại dương",
+      "key": "ocean",
+      "saved": "ocean",
+      "dark": true,
+      "stops": [
+        "#22d3ee",
+        "#3b82f6",
+        "#8b5cf6"
+      ],
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "palette": "Tử tinh",
+      "key": "aurora",
+      "saved": "aurora",
+      "dark": true,
+      "stops": [
+        "#6d28d9",
+        "#7c3aed",
+        "#9333ea"
+      ],
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "palette": "Phong lan",
+      "key": "sunset",
+      "saved": "sunset",
+      "dark": true,
+      "stops": [
+        "#db2777",
+        "#c026d3",
+        "#9333ea"
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "palette": "Đại dương",
+      "key": "ocean",
+      "saved": "ocean",
+      "dark": false,
+      "stops": [
+        "#22d3ee",
+        "#3b82f6",
+        "#8b5cf6"
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "palette": "Tử tinh",
+      "key": "aurora",
+      "saved": "aurora",
+      "dark": false,
+      "stops": [
+        "#6d28d9",
+        "#7c3aed",
+        "#9333ea"
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "palette": "Phong lan",
+      "key": "sunset",
+      "saved": "sunset",
+      "dark": false,
+      "stops": [
+        "#db2777",
+        "#c026d3",
+        "#9333ea"
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "palette": "Đại dương",
+      "key": "ocean",
+      "saved": "ocean",
+      "dark": true,
+      "stops": [
+        "#22d3ee",
+        "#3b82f6",
+        "#8b5cf6"
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "palette": "Tử tinh",
+      "key": "aurora",
+      "saved": "aurora",
+      "dark": true,
+      "stops": [
+        "#6d28d9",
+        "#7c3aed",
+        "#9333ea"
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "palette": "Phong lan",
+      "key": "sunset",
+      "saved": "sunset",
+      "dark": true,
+      "stops": [
+        "#db2777",
+        "#c026d3",
+        "#9333ea"
+      ],
+      "errors": []
+    }
+  ],
+  "contrast": [
+    {
+      "palette": "Tử tinh",
+      "hex": "#6d28d9",
+      "whiteTextRatio": 7.104892978519159
+    },
+    {
+      "palette": "Tử tinh",
+      "hex": "#7c3aed",
+      "whiteTextRatio": 5.698586217871195
+    },
+    {
+      "palette": "Tử tinh",
+      "hex": "#9333ea",
+      "whiteTextRatio": 5.381521681093853
+    },
+    {
+      "palette": "Phong lan",
+      "hex": "#db2777",
+      "whiteTextRatio": 4.596590808200417
+    },
+    {
+      "palette": "Phong lan",
+      "hex": "#c026d3",
+      "whiteTextRatio": 4.7093981272673
+    },
+    {
+      "palette": "Phong lan",
+      "hex": "#9333ea",
+      "whiteTextRatio": 5.381521681093853
+    }
+  ]
+}

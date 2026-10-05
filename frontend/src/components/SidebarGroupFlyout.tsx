@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
 import { Icon } from './ui';
 import type { Route } from '../types';
+import { C } from '../styles/colors';
 
 export interface FlyoutItem {
   key: Route;
@@ -48,13 +49,12 @@ export default function SidebarGroupFlyout({
   // Mở bằng bàn phím → focus vào mục đầu/cuối ngay khi flyout hiện.
   const focusOnOpen = useRef<'first' | 'last' | null>(null);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
-  const [hi, setHi] = useState(-1);
   const menuId = `sb-flyout-${id}`;
 
   const menuItems = () => Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
 
   useLayoutEffect(() => {
-    if (!open) { setCoords(null); setHi(-1); return; }
+    if (!open) { setCoords(null); return; }
     const t = triggerRef.current?.getBoundingClientRect();
     const a = anchorRef.current?.getBoundingClientRect();
     const h = menuRef.current?.offsetHeight ?? 0;
@@ -137,17 +137,17 @@ export default function SidebarGroupFlyout({
         onKeyDown={onTriggerKey}
         onMouseEnter={onOpen}
         onMouseLeave={() => onClose(150)}
-        style={{ ...triggerStyle(active), ...(open && !active ? { background: '#f6f3fc' } : null) }}
+        style={{ ...triggerStyle(active), ...(open && !active ? { background: C.surfaceMuted } : null) }}
         whileHover={{
           y: -2,
           scale: 1.03,
           boxShadow: active ? '0 12px 24px -10px rgba(139,92,246,.95)' : '0 8px 16px -8px rgba(124,92,255,.25)',
-          background: active ? brandGradient : '#f6f3fc',
+          background: active ? brandGradient : C.surfaceMuted,
         }}
         whileTap={{ scale: 0.98 }}
         transition={{ type: 'spring', mass: 0.1, stiffness: 200, damping: 15 }}
       >
-        <Icon icon={icon} stroke={active ? '#fff' : open ? '#7c3aed' : '#9b94b5'} />
+          <Icon icon={icon} stroke={active ? C.onBrand : open ? C.primary : C.ink350} />
       </motion.button>
 
       {open && createPortal(
@@ -165,18 +165,18 @@ export default function SidebarGroupFlyout({
             visibility: coords ? 'visible' : 'hidden',
             // Trên Topbar (40) và aside (41); dưới modal/overlay (≥1000).
             zIndex: 60, minWidth: 220, maxWidth: 280,
-            background: '#fff', border: '1px solid #ece8f6', borderRadius: 14, padding: 6,
-            boxShadow: '0 24px 50px -22px rgba(80,40,140,.5)',
+            background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: 6,
+            boxShadow: C.shadowFlyout,
             display: 'flex', flexDirection: 'column', gap: 2,
           }}
         >
           <div
             id={`${menuId}-label`}
-            style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.05em', color: '#3f3a55', padding: '8px 10px 6px' }}
+            style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.05em', color: C.text, padding: '8px 10px 6px' }}
           >
             {label}
           </div>
-          {items.map((n, i) => {
+          {items.map((n) => {
             const itemActive = route === n.key;
             return (
               <button
@@ -186,21 +186,19 @@ export default function SidebarGroupFlyout({
                 tabIndex={-1}
                 aria-current={itemActive ? 'page' : undefined}
                 onClick={() => { onClose(); onNavigate(n.key); }}
-                onMouseEnter={() => setHi(i)}
-                onMouseLeave={() => setHi(-1)}
-                onFocus={() => setHi(i)}
-                onBlur={() => setHi(-1)}
+                // Hover/focus bằng class CSS (.flyout-item trong index.css); mục active set nền/chữ inline nên thắng.
+                className="flyout-item"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10, width: '100%', whiteSpace: 'nowrap',
                   border: 'none', borderRadius: 10, padding: '9px 10px', cursor: 'pointer', textAlign: 'left',
                   fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, outline: 'none',
-                  background: itemActive ? brandGradient : hi === i ? '#f6f3fc' : 'transparent',
-                  color: itemActive ? '#fff' : hi === i ? '#6d28d9' : '#5b5670',
+                  ...(itemActive ? { background: brandGradient, color: C.onBrand } : null),
                   boxShadow: itemActive ? '0 12px 24px -14px rgba(139,92,246,.8)' : 'none',
-                  transition: 'background .15s, color .15s',
                 }}
               >
-                <Icon icon={n.icon} size={18} stroke={itemActive ? '#fff' : hi === i ? '#7c3aed' : '#9b94b5'} />
+                <span className="flyout-item__icon" style={itemActive ? { color: C.onBrand } : undefined}>
+                  <Icon icon={n.icon} size={18} />
+                </span>
                 <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.label}</span>
               </button>
             );

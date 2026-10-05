@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { useUiStore } from '../../store/useUiStore';
 import { Card } from '../ui';
 import type { DashboardOnboarding } from '../../api/dashboard';
+import { C } from '../../styles/colors';
 
 /**
  * FR-86 — "Hoàn tất thiết lập AIMA": 4 bước, hiển thị tiến độ x/4 và TỰ ẨN khi đủ 4/4.
@@ -28,15 +29,15 @@ function SetupChecklist({ onboarding }: { onboarding: DashboardOnboarding }) {
     <Card>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 16, color: '#211c38' }}>{t.dbsTitle}</div>
-          <div style={{ fontSize: 12.5, color: '#6b6680', marginTop: 2 }}>{t.dbsSub}</div>
+          <div style={{ fontWeight: 800, fontSize: 16, color: C.textStrong }}>{t.dbsTitle}</div>
+          <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 2 }}>{t.dbsSub}</div>
         </div>
-        <span style={{ fontSize: 13, fontWeight: 800, color: '#7c3aed' }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: C.primary }}>
           {onboarding.completed}/{onboarding.total}
         </span>
       </div>
 
-      <div style={{ height: 8, borderRadius: 99, background: '#f1eef9', overflow: 'hidden', margin: '12px 0 16px' }}>
+      <div style={{ height: 8, borderRadius: 99, background: C.surfaceMuted, overflow: 'hidden', margin: '12px 0 16px' }}>
         <div style={{
           height: '100%', borderRadius: 99, background: brandGradient, transition: 'width .3s',
           width: `${(onboarding.completed / onboarding.total) * 100}%`,
@@ -54,16 +55,16 @@ function SetupChecklist({ onboarding }: { onboarding: DashboardOnboarding }) {
               style={{
                 display: 'flex', alignItems: 'center', gap: 7, borderRadius: 11, padding: '9px 14px',
                 fontSize: 12.5, fontWeight: 700, cursor: done ? 'default' : 'pointer',
-                border: `1px solid ${done ? '#c9ecd6' : '#ece8f6'}`,
-                background: done ? '#eafbf1' : '#fff',
-                color: done ? '#16a34a' : '#4b4660',
+                border: `1px solid ${done ? C.successLine : C.border}`,
+                background: done ? C.successTint : C.surface,
+                color: done ? C.success : C.ink650,
               }}
             >
               <span style={{
                 width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', background: done ? '#16a34a' : '#ece8f6', color: '#fff',
+                justifyContent: 'center', background: done ? '#16a34a' : C.border, color: '#fff',
               }}>
-                {done ? <Check size={12} /> : <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a39bbf' }} />}
+                {done ? <Check size={12} /> : <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.ink350 }} />}
               </span>
               {step.label}
             </button>

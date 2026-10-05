@@ -1,3 +1,5 @@
+import ColorModeToggle from '../components/ColorModeToggle';
+import { useIsDark } from '../hooks/useIsDark';
 import { useMemo, useRef, useState, type CSSProperties } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { User, Phone, Cake, Lock, Eye, EyeOff, Check } from "lucide-react";
@@ -11,28 +13,29 @@ import { passwordValid } from "../validations/password";
 import { passwordsMatch } from "../validations/authValidation";
 import { withToast } from "../utils/toastFlow";
 import { validateStep1 } from "../validations/profileValidation";
+import { C } from "../styles/colors";
 
 // ---- Design tokens (khớp với Auth.tsx để onboarding nhất quán với app) ----
 const inputWrap = (error?: string): CSSProperties => ({
   display: "flex",
   alignItems: "center",
   gap: 10,
-  border: `1.5px solid ${error ? "#f3aabf" : "#e7e2f2"}`,
+  border: `1.5px solid ${error ? C.inputErrorBorder : C.border}`,
   borderRadius: 13,
   padding: "0 15px",
-  background: "#fbfaff",
+  background: C.surfaceSubtle,
   transition: "border .2s",
 });
-const inputStyle: CSSProperties = { flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 15, padding: "14px 0", color: "#241f3a" };
-const labelStyle: CSSProperties = { display: "block", fontSize: 12.5, fontWeight: 700, letterSpacing: ".04em", color: "#574f6e", marginBottom: 8 };
-const errStyle: CSSProperties = { minHeight: 18, fontSize: 12.5, color: "#e23d6e", marginTop: 5 };
+const inputStyle: CSSProperties = { flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 15, padding: "14px 0", color: C.textStrong };
+const labelStyle: CSSProperties = { display: "block", fontSize: 12.5, fontWeight: 700, letterSpacing: ".04em", color: C.ink600, marginBottom: 8 };
+const errStyle: CSSProperties = { minHeight: 18, fontSize: 12.5, color: C.rose, marginTop: 5 };
 
-const UserIcon = () => <User size={17} color="#a39bbf" strokeWidth={1.7} />;
-const PhoneIcon = () => <Phone size={17} color="#a39bbf" strokeWidth={1.7} />;
-const CakeIcon = () => <Cake size={17} color="#a39bbf" strokeWidth={1.7} />;
-const LockIcon = () => <Lock size={18} color="#a39bbf" strokeWidth={1.7} />;
+const UserIcon = () => <User size={17} color={C.ink350} strokeWidth={1.7} />;
+const PhoneIcon = () => <Phone size={17} color={C.ink350} strokeWidth={1.7} />;
+const CakeIcon = () => <Cake size={17} color={C.ink350} strokeWidth={1.7} />;
+const LockIcon = () => <Lock size={18} color={C.ink350} strokeWidth={1.7} />;
 const EyeBtn = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
-  <button type="button" onClick={onClick} style={{ background: "none", border: "none", cursor: "pointer", color: "#a39bbf", display: "flex" }}>
+  <button type="button" onClick={onClick} style={{ background: "none", border: "none", cursor: "pointer", color: C.ink350, display: "flex" }}>
     {on ? <Eye size={19} strokeWidth={1.7} /> : <EyeOff size={19} strokeWidth={1.7} />}
   </button>
 );
@@ -40,6 +43,7 @@ const EyeBtn = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
 const STEPS = ["Thông tin cá nhân", "Thiết lập mật khẩu"];
 
 export default function CompleteProfilePage() {
+  const isDark = useIsDark();
   const { t, brandGradient } = useApp();
   const { user, loading, refreshUser } = useAuth();
   const navigate = useNavigate();
@@ -142,16 +146,17 @@ export default function CompleteProfilePage() {
 
   const btnPrimary = (enabled: boolean): CSSProperties => ({
     width: "100%", border: "none", borderRadius: 13, padding: 15, fontWeight: 700, fontSize: 15, letterSpacing: ".04em",
-    color: "#fff", background: brandGradient, boxShadow: "0 16px 30px -12px rgba(139,92,246,.55)",
+    color: C.onBrand, background: brandGradient, boxShadow: `0 16px 30px -12px ${C.legacyShadowrgba13992246_55_}`,
     cursor: enabled && !submitting ? "pointer" : "not-allowed", opacity: enabled && !submitting ? 1 : 0.5,
   });
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "radial-gradient(900px 700px at 18% 8%,rgba(34,211,238,.10),transparent 55%),radial-gradient(900px 700px at 90% 90%,rgba(217,70,239,.09),transparent 55%),linear-gradient(160deg,#f1f2fc,#f5f1fb 55%,#f9f1fc)", padding: 20 }}>
-      <div style={{ width: "100%", maxWidth: 440, background: "#fff", borderRadius: 22, boxShadow: "0 30px 60px -34px rgba(80,40,140,.45)", border: "1px solid #efeaf8", padding: "34px 34px 30px" }}>
-        <img src="/aima-logo.png" alt="AIMA" style={{ height: 46, width: "auto", marginBottom: 14 }} />
-        <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 25, letterSpacing: "-.01em", color: "#171327", margin: 0 }}>Hoàn tất hồ sơ</h1>
-        <p style={{ fontSize: 14, color: "#6b6680", margin: "6px 0 20px" }}>Bổ sung thông tin và đặt mật khẩu để bắt đầu dùng AIMA.</p>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: `radial-gradient(900px 700px at 18% 8%,rgba(34,211,238,.10),transparent 55%),radial-gradient(900px 700px at 90% 90%,rgba(217,70,239,.09),transparent 55%),linear-gradient(160deg,${C.bg},${C.surfaceMuted} 55%,${C.surfaceMuted})`, padding: 20 }}>
+      <div style={{ width: "100%", maxWidth: 440, background: C.surface, borderRadius: 22, boxShadow: `0 30px 60px -34px ${C.legacyShadowrgba8040140_45_}`, border: `1px solid ${C.border}`, padding: "34px 34px 30px" }}>
+        <div style={{ position: "fixed", top: 16, right: 18, zIndex: 101 }}><ColorModeToggle /></div>
+          <img src={isDark ? "/aima-h-dark.png" : "/aima-logo.png"} alt="AIMA" style={{ height: 46, width: "auto", marginBottom: 14 }} />
+        <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 25, letterSpacing: "-.01em", color: C.ink900, margin: 0 }}>Hoàn tất hồ sơ</h1>
+        <p style={{ fontSize: 14, color: C.textSecondary, margin: "6px 0 20px" }}>Bổ sung thông tin và đặt mật khẩu để bắt đầu dùng AIMA.</p>
 
         {/* Step indicator */}
         <div style={{ display: "flex", alignItems: "flex-start", margin: "0 0 24px" }}>
@@ -170,18 +175,18 @@ export default function CompleteProfilePage() {
                     style={{
                       width: 38, height: 38, borderRadius: "50%", border: "none",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontWeight: 800, fontSize: 14, color: done || current ? "#fff" : "#a39bbf",
-                      background: done ? "#16a34a" : current ? brandGradient : "#eceaf4",
-                      boxShadow: current ? "0 10px 20px -8px rgba(139,92,246,.6)" : "none",
+                      fontWeight: 800, fontSize: 14, color: done ? '#fff' : current ? C.onBrand : C.ink350,
+                      background: done ? "#16a34a" : current ? brandGradient : C.surfaceMuted,
+                      boxShadow: current ? `0 10px 20px -8px ${C.legacyShadowrgba13992246_6_}` : "none",
                       cursor: reachable || current ? "pointer" : "not-allowed",
                     }}
                   >
                     {done ? <Check size={18} color="#fff" strokeWidth={2.6} /> : num}
                   </button>
-                  <span style={{ fontSize: 11.5, fontWeight: current ? 700 : 600, color: current ? "#3f3a55" : "#9a95ad", textAlign: "center", lineHeight: 1.3 }}>{title}</span>
+                  <span style={{ fontSize: 11.5, fontWeight: current ? 700 : 600, color: current ? C.text : C.legacyText9a95ad, textAlign: "center", lineHeight: 1.3 }}>{title}</span>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div style={{ flex: 1, height: 3, borderRadius: 3, margin: "0 -6px", marginBottom: 22, background: done ? "#16a34a" : "#eceaf4" }} />
+                  <div style={{ flex: 1, height: 3, borderRadius: 3, margin: "0 -6px", marginBottom: 22, background: done ? "#16a34a" : C.surfaceMuted }} />
                 )}
               </div>
             );
@@ -252,7 +257,7 @@ export default function CompleteProfilePage() {
 
             <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
               <button type="button" onClick={() => { setStep(1); }}
-                style={{ flex: "none", width: 120, border: "1.5px solid #e8e4f1", borderRadius: 13, padding: 15, background: "#fff", fontWeight: 600, fontSize: 14, color: "#3f3a55", cursor: "pointer" }}>
+                style={{ flex: "none", width: 120, border: `1.5px solid ${C.border}`, borderRadius: 13, padding: 15, background: C.surface, fontWeight: 600, fontSize: 14, color: C.text, cursor: "pointer" }}>
                 Quay lại
               </button>
               <button type="submit" disabled={!step2Valid || submitting} style={{ ...btnPrimary(step2Valid), flex: 1 }}>

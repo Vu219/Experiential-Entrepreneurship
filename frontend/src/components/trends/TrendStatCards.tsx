@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Card, Icon } from '../ui';
 import { STATUS_COLORS } from '../../statusTokens';
 import type { TrendStat } from '../../trendsData';
+import { C } from '../../styles/colors';
 
 /** 4 thẻ thống kê đầu trang Nghiên cứu xu hướng (memo — stats được page memo hóa). */
 export default memo(function TrendStatCards({ stats }: { stats: TrendStat[] }) {
@@ -13,13 +14,13 @@ export default memo(function TrendStatCards({ stats }: { stats: TrendStat[] }) {
             <div style={{ width: 38, height: 38, flex: 'none', borderRadius: 11, background: s.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Icon icon={s.icon} size={19} stroke={s.iconColor} />
             </div>
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: '#5b5670', lineHeight: 1.3 }}>{s.label}</span>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: C.ink550, lineHeight: 1.3 }}>{s.label}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: s.badge ? 16 : 26, color: '#211c38', lineHeight: 1.2 }}>{s.value}</div>
+            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: s.badge ? 16 : 26, color: C.textStrong, lineHeight: 1.2 }}>{s.value}</div>
             {s.delta && (
               <span style={{ fontSize: 11.5, fontWeight: 700, color: s.deltaColor }}>
-                {s.delta} <span style={{ fontWeight: 500, color: '#8a85a0' }}>{s.deltaLabel}</span>
+                {s.delta} <span style={{ fontWeight: 500, color: C.textMuted }}>{s.deltaLabel}</span>
               </span>
             )}
             {s.badge && (

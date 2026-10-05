@@ -7,6 +7,7 @@ import DaySheet from './DaySheet.tsx';
 import SchedulePlanner from '../schedule/SchedulePlanner.tsx';
 import { updateSchedule, type PostSchedule } from '../../api/schedules.ts';
 import { nowLocal } from './dateUtils.ts';
+import { C } from '../../styles/colors';
 
 // Modal "Lên lịch đăng" (FR-47 + khung giờ vàng FR-48 — nay là vỏ của SchedulePlanner dùng chung) và
 // modal "Dời giờ / Kích hoạt lại" (FR-50).
@@ -64,11 +65,11 @@ export function RescheduleModal({ schedule, onClose, onSaved }: { schedule: Post
           <label style={lbl}>{t.schTime}</label>
           <input type="datetime-local" value={time} min={nowLocal()} onChange={(e) => setTime(e.target.value)} style={inp} />
         </div>
-        {error && <div style={{ fontSize: 12.5, color: '#e23d6e', background: '#fdecf1', borderRadius: 9, padding: '8px 11px' }}>{error}</div>}
+        {error && <div style={{ fontSize: 12.5, color: C.rose, background: C.roseSoft, borderRadius: 9, padding: '8px 11px' }}>{error}</div>}
         <button
           onClick={submit}
           disabled={saving}
-          style={{ border: 'none', borderRadius: 11, padding: '11px 16px', fontWeight: 800, fontSize: 14, color: '#fff', background: 'var(--brand-gradient)', cursor: 'pointer', opacity: saving ? 0.55 : 1 }}
+          style={{ border: 'none', borderRadius: 11, padding: '11px 16px', fontWeight: 800, fontSize: 14, color: C.onBrand, background: 'var(--brand-gradient)', cursor: 'pointer', opacity: saving ? 0.55 : 1 }}
         >
           {saving ? t.schCreating : t.schSave}
         </button>
@@ -77,5 +78,5 @@ export function RescheduleModal({ schedule, onClose, onSaved }: { schedule: Post
   );
 }
 
-const lbl = { display: 'block', fontSize: 12.5, fontWeight: 700, color: '#4b4660', marginBottom: 6 } as const;
-const inp = { width: '100%', border: '1px solid #ece8f6', borderRadius: 10, padding: '10px 12px', fontSize: 13.5, color: '#241f3a', background: '#fff', outline: 'none' } as const;
+const lbl = { display: 'block', fontSize: 12.5, fontWeight: 700, color: C.ink650, marginBottom: 6 } as const;
+const inp = { width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', fontSize: 13.5, color: C.textStrong, background: C.surface, outline: 'none' } as const;

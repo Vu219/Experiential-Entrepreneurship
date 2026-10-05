@@ -9,6 +9,7 @@ import { formatVND } from '../../../api/admin';
 import { formatCompactVND, formatDeltaPct } from '../../../utils/format';
 import type { RevenueForecast } from '../../../api/revenue';
 import { AREA_STROKE, AXIS_TEXT, PROJECTION_STROKE, SPARK_TONES } from './chartTokens';
+import { C } from '../../../styles/colors';
 
 interface Row {
   day: number;
@@ -46,16 +47,16 @@ function ForecastTooltip({ active, payload }: TooltipContentProps) {
   const row = payload[0].payload as Row;
   return (
     <div style={{
-      background: '#fff', border: '1px solid #ece8f6', borderRadius: 10, padding: '8px 10px',
-      boxShadow: '0 14px 30px -18px rgba(80,40,140,.5)', minWidth: 130,
+      background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px',
+      boxShadow: `0 14px 30px -18px ${C.legacyShadowrgba8040140_5_}`, minWidth: 130,
     }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#211c38', marginBottom: 4 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: C.textStrong, marginBottom: 4 }}>
         {t.revForecastDay.replace('{d}', String(row.day))}
       </div>
       {row.actual !== null ? (
         <>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: '#7c3aed' }}>{t.revChartCumulative}: {formatVND(row.actual)}</div>
-          <div style={{ fontSize: 11.5, color: '#8a85a0', marginTop: 2 }}>{t.revChartInBucket}: {formatVND(row.daily ?? 0)}</div>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: C.primary }}>{t.revChartCumulative}: {formatVND(row.actual)}</div>
+          <div style={{ fontSize: 11.5, color: C.textMuted, marginTop: 2 }}>{t.revChartInBucket}: {formatVND(row.daily ?? 0)}</div>
         </>
       ) : (
         <div style={{ fontSize: 12.5, fontWeight: 700, color: PROJECTION_STROKE }}>
@@ -82,18 +83,18 @@ function ForecastCard({ forecast }: { forecast: RevenueForecast }) {
   return (
     <div style={{ ...cardStyle, padding: 20, borderRadius: 18 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ fontSize: 13, color: '#8a85a0', fontWeight: 600 }}>{t.revForecast}</div>
+        <div style={{ fontSize: 13, color: C.textMuted, fontWeight: 600 }}>{t.revForecast}</div>
         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${badge}`}>
           {!flat && <span aria-hidden>{up ? '↑' : '↓'}</span>}
           {formatDeltaPct(forecast.deltaPct)}
         </span>
       </div>
       <div style={{
-        fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 25, color: '#211c38', lineHeight: 1.15, marginTop: 8,
+        fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 25, color: C.textStrong, lineHeight: 1.15, marginTop: 8,
       }}>
         {formatVND(forecast.projected)}
       </div>
-      <div style={{ fontSize: 12, color: '#a59fbb', marginTop: 4 }}>
+      <div style={{ fontSize: 12, color: C.textFaint, marginTop: 4 }}>
         {t.revVsPrevMonth} · {formatVND(forecast.previousMonth)}
       </div>
 
@@ -112,13 +113,13 @@ function ForecastCard({ forecast }: { forecast: RevenueForecast }) {
               tick={{ fontSize: 10.5, fill: AXIS_TEXT }}
               ticks={[1, Math.ceil(forecast.daysInMonth / 2), forecast.daysInMonth]} />
             {forecast.previousMonth > 0 && (
-              <ReferenceLine y={forecast.previousMonth} stroke="#d9d3ea" strokeDasharray="3 4"
+              <ReferenceLine y={forecast.previousMonth} stroke={C.borderStrong} strokeDasharray="3 4"
                 label={{
                   value: `${t.revForecastPrevMonth} ${formatCompactVND(forecast.previousMonth)}`,
                   position: 'insideTopRight', fontSize: 10.5, fill: AXIS_TEXT,
                 }} />
             )}
-            <Tooltip content={(props) => <ForecastTooltip {...props} />} cursor={{ stroke: '#ddd6fe', strokeWidth: 1.5 }} />
+            <Tooltip content={(props) => <ForecastTooltip {...props} />} cursor={{ stroke: C.legacyTextddd6fe, strokeWidth: 1.5 }} />
             <Area type="monotone" dataKey="actual" stroke={AREA_STROKE} strokeWidth={2.4}
               fill={`url(#${gradientId})`} connectNulls={false} dot={false}
               activeDot={{ r: 4 }} isAnimationActive={false} />
@@ -135,18 +136,18 @@ function ForecastCard({ forecast }: { forecast: RevenueForecast }) {
 
       {/* Tiến độ tháng: đã thu + số ngày còn lại. */}
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 12, fontSize: 12 }}>
-        <span style={{ color: '#8a85a0' }}>
-          {t.revForecastCollected} <strong style={{ color: '#3f3a55' }}>{formatVND(forecast.actualSoFar)}</strong>
+        <span style={{ color: C.textMuted }}>
+          {t.revForecastCollected} <strong style={{ color: C.text }}>{formatVND(forecast.actualSoFar)}</strong>
         </span>
-        <span style={{ color: '#8a85a0', whiteSpace: 'nowrap' }}>
+        <span style={{ color: C.textMuted, whiteSpace: 'nowrap' }}>
           {t.revForecastDaysLeft.replace('{n}', String(daysLeft))}
         </span>
       </div>
-      <div style={{ height: 5, borderRadius: 999, background: '#f1eef8', overflow: 'hidden', marginTop: 6 }}>
+      <div style={{ height: 5, borderRadius: 999, background: C.surfaceMuted, overflow: 'hidden', marginTop: 6 }}>
         <div style={{ width: `${elapsedPct}%`, height: '100%', borderRadius: 999, background: AREA_STROKE }} />
       </div>
 
-      <div style={{ fontSize: 11.5, color: '#a59fbb', marginTop: 10, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 11.5, color: C.textFaint, marginTop: 10, lineHeight: 1.5 }}>
         {t.revForecastNote
           .replace('{actual}', formatVND(forecast.actualSoFar))
           .replace('{elapsed}', String(forecast.daysElapsed))

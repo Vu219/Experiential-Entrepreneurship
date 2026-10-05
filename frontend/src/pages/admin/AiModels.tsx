@@ -34,30 +34,31 @@ import {
   type AiRoutingInfo,
 } from '../../api/adminAi';
 import PageContainer from '../../components/PageContainer';
+import { C } from '../../styles/colors';
 
 const btnOutline: CSSProperties = {
-  border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '6px 12px',
-  fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer',
+  border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '6px 12px',
+  fontSize: 12.5, fontWeight: 700, color: C.ink550, cursor: 'pointer',
 };
 
 const inputStyle: CSSProperties = {
-  width: '100%', border: '1.5px solid #ece8f6', borderRadius: 10, padding: '10px 14px',
-  fontSize: 14, color: '#2b2543', outline: 'none',
+  width: '100%', border: `1.5px solid ${C.border}`, borderRadius: 10, padding: '10px 14px',
+  fontSize: 14, color: C.ink750, outline: 'none',
 };
 
-const labelStyle: CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 700, color: '#3f3a55', marginBottom: 6 };
+const labelStyle: CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 700, color: C.text, marginBottom: 6 };
 
-const tdStyle: CSSProperties = { padding: '13px 16px', fontSize: 13.5, color: '#2b2543' };
+const tdStyle: CSSProperties = { padding: '13px 16px', fontSize: 13.5, color: C.ink750 };
 
 // Ô nhập trong chế độ "Chỉnh nhanh" định tuyến (gọn hơn tdStyle để vừa 1 hàng)
 const editCell: CSSProperties = { padding: '9px 12px', verticalAlign: 'top' };
 const miniSelect: CSSProperties = {
-  width: '100%', minWidth: 150, border: '1px solid #ece8f6', borderRadius: 8, padding: '7px 9px',
-  fontSize: 12.5, color: '#2b2543', outline: 'none', cursor: 'pointer', fontFamily: 'monospace',
+  width: '100%', minWidth: 150, border: `1px solid ${C.border}`, borderRadius: 8, padding: '7px 9px',
+  fontSize: 12.5, color: C.ink750, outline: 'none', cursor: 'pointer', fontFamily: 'monospace',
 };
 const miniInput: CSSProperties = {
-  width: 90, border: '1px solid #ece8f6', borderRadius: 8, padding: '7px 9px',
-  fontSize: 12.5, color: '#2b2543', outline: 'none',
+  width: 90, border: `1px solid ${C.border}`, borderRadius: 8, padding: '7px 9px',
+  fontSize: 12.5, color: C.ink750, outline: 'none',
 };
 
 /** Input số nullable: chuỗi rỗng ↔ null (temperature/max tokens/đơn giá). */
@@ -357,8 +358,8 @@ export default function AiModels() {
     return (
       <PageContainer>
         <Card style={{ textAlign: 'center', padding: '54px 16px' }}>
-          <div style={{ fontSize: 14.5, fontWeight: 600, color: '#5b5670', marginBottom: 14 }}>{t.listError}</div>
-          <button onClick={fetchAll} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
+          <div style={{ fontSize: 14.5, fontWeight: 600, color: C.ink550, marginBottom: 14 }}>{t.listError}</div>
+          <button onClick={fetchAll} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
         </Card>
       </PageContainer>
     );
@@ -417,7 +418,7 @@ export default function AiModels() {
   return (
     <PageContainer>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: 12.5, color: '#8a85a0' }}>{t.aiModelsHint}</div>
+        <div style={{ fontSize: 12.5, color: C.textMuted }}>{t.aiModelsHint}</div>
         <AiServiceStatusBadge />
       </div>
 
@@ -435,10 +436,10 @@ export default function AiModels() {
                 value={q}
                 onChange={(e) => { setQ(e.target.value); setMPage(1); }}
                 placeholder={t.admSearchPh}
-                style={{ border: '1px solid #ece8f6', borderRadius: 9, padding: '7px 12px', fontSize: 12.5, color: '#2b2543', outline: 'none', width: 180 }}
+                style={{ border: `1px solid ${C.border}`, borderRadius: 9, padding: '7px 12px', fontSize: 12.5, color: C.ink750, outline: 'none', width: 180 }}
               />
             )}
-            <button onClick={openCreateModel} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 9, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer' }}>
+            <button onClick={openCreateModel} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 9, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>
               <Plus size={14} strokeWidth={2.4} />{t.aiAddModel}
             </button>
           </div>
@@ -446,14 +447,14 @@ export default function AiModels() {
       >
         <DataTable head={['Model', t.aiColProvider, t.aiPriceIn, t.aiPriceOut, t.colStatus, t.colAction]} minWidth={820}>
           {pagedModels.map((m) => (
-            <tr key={m.id} style={{ borderTop: '1px solid #f1eef8' }}>
+            <tr key={m.id} style={{ borderTop: `1px solid ${C.surfaceMuted}` }}>
               <td style={tdStyle}>
                 <div style={{ fontWeight: 700 }}>{m.displayName || m.modelCode}</div>
                 {m.displayName && m.displayName !== m.modelCode && (
-                  <div style={{ fontSize: 11.5, color: '#a59fbb', fontFamily: 'monospace' }}>{m.modelCode}</div>
+                  <div style={{ fontSize: 11.5, color: C.textFaint, fontFamily: 'monospace' }}>{m.modelCode}</div>
                 )}
               </td>
-              <td style={{ ...tdStyle, color: '#6b6680' }}>{m.providerCode}</td>
+              <td style={{ ...tdStyle, color: C.textSecondary }}>{m.providerCode}</td>
               <td style={tdStyle}>{fmtPrice(m.inputPricePer1m)}</td>
               <td style={tdStyle}>{fmtPrice(m.outputPricePer1m)}</td>
               <td style={tdStyle}><StatusBadge tone={m.enabled ? 'success' : 'neutral'} label={m.enabled ? t.aiEnabled : t.aiDisabled} /></td>
@@ -461,7 +462,7 @@ export default function AiModels() {
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <button onClick={() => openEditModel(m)} style={btnOutline}>{t.aiEdit}</button>
                   <button onClick={() => toggleModel(m)} style={btnOutline}>{m.enabled ? t.aiDisable : t.aiEnable}</button>
-                  <button onClick={() => setDeletingModel(m)} style={{ ...btnOutline, color: '#dc2626' }}>{t.aiDelete}</button>
+                  <button onClick={() => setDeletingModel(m)} style={{ ...btnOutline, color: C.danger }}>{t.aiDelete}</button>
                 </div>
               </td>
             </tr>
@@ -482,12 +483,12 @@ export default function AiModels() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <button
               onClick={() => setOnlyProblems((v) => !v)}
-              style={{ ...btnOutline, ...(onlyProblems ? { background: '#fdecec', borderColor: '#f6c6c6', color: '#dc2626' } : {}) }}
+              style={{ ...btnOutline, ...(onlyProblems ? { background: C.legacyBgfdecec, borderColor: C.legacyBorderf6c6c6, color: C.danger } : {}) }}
             >
               {t.aiOnlyProblems}{problemCount > 0 ? ` (${problemCount})` : ''}
             </button>
             {!routeEdit && (
-              <button onClick={enterRouteEdit} style={{ ...btnOutline, borderColor: '#d9cef7', color: '#7c3aed' }}>
+              <button onClick={enterRouteEdit} style={{ ...btnOutline, borderColor: C.legacyBorderd9cef7, color: C.primary }}>
                 {t.aiQuickEdit}
               </button>
             )}
@@ -513,11 +514,11 @@ export default function AiModels() {
               const mt = numOrNull(d.maxTokens);
               const capExceeded = cap != null && mt != null && mt > cap;
               return (
-                <tr key={r.id} style={{ borderTop: '1px solid #f1eef8', background: failedRoutes.has(r.id) ? '#fef2f2' : undefined }}>
+                <tr key={r.id} style={{ borderTop: `1px solid ${C.surfaceMuted}`, background: failedRoutes.has(r.id) ? C.legacyBgfef2f2 : undefined }}>
                   <td style={editCell}>
                     <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSelect(r.id)} style={{ cursor: 'pointer' }} />
                   </td>
-                  <td style={{ ...editCell, fontWeight: 700, fontSize: 13.5, color: '#2b2543' }}>{aiTaskLabel(lang, r.taskCode)}</td>
+                  <td style={{ ...editCell, fontWeight: 700, fontSize: 13.5, color: C.ink750 }}>{aiTaskLabel(lang, r.taskCode)}</td>
                   <td style={editCell}>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       <select
@@ -545,7 +546,7 @@ export default function AiModels() {
                   </td>
                   <td style={editCell}>
                     <input type="number" min={1} step="1" value={d.maxTokens} onChange={(e) => patchDraft(r.id, { maxTokens: e.target.value })} placeholder={t.aiProviderDefault} style={miniInput} />
-                    {capExceeded && <div style={{ fontSize: 11, marginTop: 4, color: '#d97706', fontWeight: 700 }}>{t.aiMaxTokensWarn}</div>}
+                    {capExceeded && <div style={{ fontSize: 11, marginTop: 4, color: C.warning, fontWeight: 700 }}>{t.aiMaxTokensWarn}</div>}
                   </td>
                   <td style={editCell}>
                     <Switch checked={d.enabled} onChange={(v) => patchDraft(r.id, { enabled: v })} />
@@ -554,14 +555,14 @@ export default function AiModels() {
               );
             }
             return (
-              <tr key={r.id} style={{ borderTop: '1px solid #f1eef8' }}>
+              <tr key={r.id} style={{ borderTop: `1px solid ${C.surfaceMuted}` }}>
                 <td style={{ ...tdStyle, fontWeight: 700 }}>{aiTaskLabel(lang, r.taskCode)}</td>
                 <td style={tdStyle}>
                   <div style={{ fontFamily: 'monospace', fontSize: 13 }}>
                     {r.primaryModelCode}
                     <ModelBlockHint reason={rs?.primaryBlockReason ?? null} />
                   </div>
-                  <div style={{ fontSize: 11.5, color: '#a59fbb' }}>{r.primaryProviderCode}</div>
+                  <div style={{ fontSize: 11.5, color: C.textFaint }}>{r.primaryProviderCode}</div>
                 </td>
                 <td style={tdStyle}>
                   {chainOf(r).length > 0
@@ -572,16 +573,16 @@ export default function AiModels() {
                           const reason = m ? modelBlockReason(m, providers) : 'MODEL_DELETED';
                           return (
                             <li key={id} style={{ fontFamily: 'monospace', fontSize: 13, opacity: reason ? 0.55 : 1 }}>
-                              <span style={{ color: '#a59fbb', fontSize: 11.5 }}>{i + 1}. </span>
+                              <span style={{ color: C.textFaint, fontSize: 11.5 }}>{i + 1}. </span>
                               {m?.modelCode ?? r.fallbacks?.[i]?.modelCode ?? id}
-                              <span style={{ fontSize: 11.5, color: '#a59fbb' }}> · {m?.providerCode ?? r.fallbacks?.[i]?.providerCode}</span>
+                              <span style={{ fontSize: 11.5, color: C.textFaint }}> · {m?.providerCode ?? r.fallbacks?.[i]?.providerCode}</span>
                               <ModelBlockHint reason={reason} />
                             </li>
                           );
                         })}
                       </ol>
                     )
-                    : <span style={{ color: '#a59fbb' }}>{t.aiNoFallback}</span>}
+                    : <span style={{ color: C.textFaint }}>{t.aiNoFallback}</span>}
                 </td>
                 <td style={tdStyle}>{r.temperature ?? '—'}</td>
                 <td style={tdStyle}>{r.maxTokens ?? '—'}</td>
@@ -594,8 +595,8 @@ export default function AiModels() {
 
         {/* Thanh bulk-apply (chỉ khi đang chỉnh nhanh & có hàng được chọn) */}
         {routeEdit && selected.size > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, padding: '12px 16px', borderTop: '1px solid #f1eef8', background: '#faf9fe' }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#5b5670' }}>{t.aiSelectedN.replace('{n}', String(selected.size))}</span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, padding: '12px 16px', borderTop: `1px solid ${C.surfaceMuted}`, background: C.surfaceSubtle }}>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: C.ink550 }}>{t.aiSelectedN.replace('{n}', String(selected.size))}</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <select value={bulkPrimary} onChange={(e) => setBulkPrimary(e.target.value)} style={{ ...miniSelect, minWidth: 170 }}>
                 <option value="">{t.aiBulkChoose}</option>
@@ -615,12 +616,12 @@ export default function AiModels() {
 
         {/* Lưu tất cả / Huỷ (cuối bảng) */}
         {routeEdit && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, padding: '12px 16px', borderTop: '1px solid #f1eef8' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, padding: '12px 16px', borderTop: `1px solid ${C.surfaceMuted}` }}>
             <button onClick={cancelRouteEdit} disabled={savingRoutes} style={{ ...btnOutline, padding: '8px 16px' }}>{t.cancel}</button>
             <button
               onClick={saveAllRoutes}
               disabled={savingRoutes || dirtyCount === 0}
-              style={{ border: 'none', background: brandGradient, borderRadius: 9, padding: '8px 18px', fontSize: 12.5, fontWeight: 700, color: '#fff', cursor: savingRoutes ? 'wait' : 'pointer', opacity: savingRoutes || dirtyCount === 0 ? 0.6 : 1 }}
+              style={{ border: 'none', background: brandGradient, borderRadius: 9, padding: '8px 18px', fontSize: 12.5, fontWeight: 700, color: C.onBrand, cursor: savingRoutes ? 'wait' : 'pointer', opacity: savingRoutes || dirtyCount === 0 ? 0.6 : 1 }}
             >
               {savingRoutes ? t.processing : `${t.aiSaveAll}${dirtyCount > 0 ? ` (${dirtyCount})` : ''}`}
             </button>
@@ -633,7 +634,7 @@ export default function AiModels() {
         <Modal title={editingModel ? `${t.aiEdit} · ${editingModel.modelCode}` : t.aiAddModel} maxWidth={460} onClose={() => setShowModelModal(false)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {modalError && (
-              <div style={{ padding: '10px 14px', borderRadius: 8, background: '#fee2e2', color: '#dc2626', fontSize: 13, fontWeight: 600 }}>{modalError}</div>
+              <div style={{ padding: '10px 14px', borderRadius: 8, background: C.dangerSoft2, color: C.danger, fontSize: 13, fontWeight: 600 }}>{modalError}</div>
             )}
             {!editingModel && (
               <>
@@ -659,7 +660,7 @@ export default function AiModels() {
                         </option>
                       ))}
                     </select>
-                    <div style={{ fontSize: 12, color: '#8a85a0', marginTop: 6 }}>
+                    <div style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>
                       {t.aiSyncedAt}: {createProvider?.modelCatalogSyncedAt ? fmtAiDateTime(createProvider.modelCatalogSyncedAt) : t.aiNeverSynced}
                     </div>
                   </div>
@@ -693,7 +694,7 @@ export default function AiModels() {
               <button
                 onClick={saveModel}
                 disabled={busy || (!editingModel && (!mCode.trim() || !mProviderId))}
-                style={{ border: 'none', background: brandGradient, borderRadius: 10, padding: '9px 20px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: busy ? 'wait' : 'pointer', opacity: busy || (!editingModel && !mCode.trim()) ? 0.6 : 1 }}
+                style={{ border: 'none', background: brandGradient, borderRadius: 10, padding: '9px 20px', fontSize: 13, fontWeight: 700, color: C.onBrand, cursor: busy ? 'wait' : 'pointer', opacity: busy || (!editingModel && !mCode.trim()) ? 0.6 : 1 }}
               >
                 {busy ? t.processing : t.aiSave}
               </button>
@@ -707,7 +708,7 @@ export default function AiModels() {
         <Modal title={`${t.aiRoutingTitle} · ${aiTaskLabel(lang, editingRoute.taskCode)}`} maxWidth={520} onClose={() => setEditingRoute(null)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {modalError && (
-              <div style={{ padding: '10px 14px', borderRadius: 8, background: '#fee2e2', color: '#dc2626', fontSize: 13, fontWeight: 600 }}>{modalError}</div>
+              <div style={{ padding: '10px 14px', borderRadius: 8, background: C.dangerSoft2, color: C.danger, fontSize: 13, fontWeight: 600 }}>{modalError}</div>
             )}
             <div>
               <label style={labelStyle}>{t.aiColPrimary}</label>
@@ -729,13 +730,13 @@ export default function AiModels() {
                 <input type="number" min={1} step="1" value={rMaxTokens} onChange={(e) => setRMaxTokens(e.target.value)} placeholder={t.aiProviderDefault} style={inputStyle} />
                 {/* Gợi ý trần model (min giữa chính & dự phòng) + cảnh báo mềm khi vượt — không chặn lưu */}
                 {rCap != null && (
-                  <div style={{ fontSize: 12, marginTop: 6, color: rCapExceeded ? '#d97706' : '#8a85a0', fontWeight: rCapExceeded ? 700 : 400 }}>
+                  <div style={{ fontSize: 12, marginTop: 6, color: rCapExceeded ? C.warning : C.textMuted, fontWeight: rCapExceeded ? 700 : 400 }}>
                     {rCapExceeded ? t.aiMaxTokensWarn : `${t.aiMaxTokensCap}: ≤ ${rCap.toLocaleString('en-US')}`}
                   </div>
                 )}
               </div>
             </div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 600, color: '#3f3a55', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 600, color: C.text, cursor: 'pointer' }}>
               <input type="checkbox" checked={rEnabled} onChange={(e) => setREnabled(e.target.checked)} />
               {t.aiRoutingEnabled}
             </label>
@@ -744,7 +745,7 @@ export default function AiModels() {
               <button
                 onClick={saveRoute}
                 disabled={busy || !rPrimary}
-                style={{ border: 'none', background: brandGradient, borderRadius: 10, padding: '9px 20px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1 }}
+                style={{ border: 'none', background: brandGradient, borderRadius: 10, padding: '9px 20px', fontSize: 13, fontWeight: 700, color: C.onBrand, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1 }}
               >
                 {busy ? t.processing : t.aiSave}
               </button>
@@ -792,7 +793,7 @@ function InUseNote({ taskCodes }: { taskCodes: string[] }) {
   const { t, lang } = useApp();
   if (taskCodes.length === 0) return null;
   return (
-    <div style={{ padding: '10px 14px', borderRadius: 8, background: '#fdf0dc', color: '#b45309', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
+    <div style={{ padding: '10px 14px', borderRadius: 8, background: C.warningSoft, color: C.amberText, fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
       {t.aiModelInUse.replace('{n}', String(taskCodes.length))}
       {': '}
       {taskCodes.map((c) => aiTaskLabel(lang, c as Parameters<typeof aiTaskLabel>[1])).join(', ')}

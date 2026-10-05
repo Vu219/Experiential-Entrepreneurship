@@ -28,9 +28,11 @@ import { PlatformTag } from '../ui.tsx';
 import { PLATFORM_BG } from '../../theme.ts';
 import { PLATFORM_TO_TAG } from '../../api/connections.ts';
 import { TONE_COLORS } from '../../statusTokens.ts';
+import { alpha } from '../../styles/colors.ts';
 import type { PostSchedule } from '../../api/schedules.ts';
 import { STATUS_TONE } from './statusMeta.ts';
 import { fmtDate, fmtTime, WEEKDAYS_FULL } from './dateUtils.ts';
+import { C } from '../../styles/colors';
 
 interface ScheduleDetailModalProps {
   schedule: PostSchedule | null;
@@ -55,7 +57,7 @@ function renderFormattedCaption(text: string, hashtags: string[] = []) {
       {parts.map((part, i) => {
         if (part.startsWith('#')) {
           return (
-            <span key={i} style={{ color: '#7c3aed', fontWeight: 600 }}>
+            <span key={i} style={{ color: C.primary, fontWeight: 600 }}>
               {part}
             </span>
           );
@@ -70,8 +72,8 @@ function renderFormattedCaption(text: string, hashtags: string[] = []) {
               style={{
                 fontSize: 12,
                 fontWeight: 600,
-                color: '#7c3aed',
-                background: '#f3effc',
+                color: C.primary,
+                background: C.surfaceMuted,
                 padding: '2px 8px',
                 borderRadius: 6,
               }}
@@ -174,7 +176,7 @@ export default function ScheduleDetailModal({
         position: 'fixed',
         inset: 0,
         zIndex: 1000,
-        background: 'rgba(20, 14, 38, 0.55)',
+        background: C.legacyBgrgba201438055_,
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
@@ -194,9 +196,9 @@ export default function ScheduleDetailModal({
           width: '100%',
           maxWidth: isMobile ? '100%' : 940,
           maxHeight: isMobile ? '92vh' : '88vh',
-          background: '#ffffff',
+          background: C.surface,
           borderRadius: isMobile ? 20 : 24,
-          boxShadow: '0 32px 80px -20px rgba(40, 20, 90, 0.45), 0 0 1px 1px rgba(124, 58, 237, 0.08)',
+          boxShadow: `0 32px 80px -20px ${C.legacyShadowrgba402090045_}, 0 0 1px 1px ${C.legacyShadowrgba12458237008_}`,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -210,8 +212,8 @@ export default function ScheduleDetailModal({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '18px 24px',
-            borderBottom: '1px solid #efeaf8',
-            background: '#ffffff',
+            borderBottom: `1px solid ${C.border}`,
+            background: C.surface,
             flex: 'none',
           }}
         >
@@ -221,20 +223,20 @@ export default function ScheduleDetailModal({
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                background: '#f4f0fd',
+                background: C.surfaceMuted,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#7c3aed',
+                color: C.primary,
               }}
             >
               <Calendar size={18} strokeWidth={2.2} />
             </div>
             <div>
-              <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 17, color: '#211c38' }}>
+              <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 17, color: C.textStrong }}>
                 {lang === 'en' ? 'Schedule Details' : 'Chi tiết lịch đăng'}
               </div>
-              <div style={{ fontSize: 11.5, color: '#8a85a0', marginTop: 1 }}>
+              <div style={{ fontSize: 11.5, color: C.textMuted, marginTop: 1 }}>
                 ID: <code style={{ fontFamily: 'monospace' }}>{schedule.id.slice(0, 8)}</code>
                 {schedule.contentVersion?.id && (
                   <span> · Version: <code style={{ fontFamily: 'monospace' }}>{schedule.contentVersion.id.slice(0, 8)}</code></span>
@@ -251,22 +253,17 @@ export default function ScheduleDetailModal({
               height: 32,
               border: 'none',
               borderRadius: 9,
-              background: '#f4f1fb',
-              color: '#6b6680',
+              background: C.surfaceMuted,
+              color: C.textSecondary,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#ebe5f8';
-              e.currentTarget.style.color = '#211c38';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#f4f1fb';
-              e.currentTarget.style.color = '#6b6680';
-            }}
+            className={"dm-hover-b61817e"}
+
+
           >
             <X size={16} strokeWidth={2.2} />
           </button>
@@ -291,8 +288,8 @@ export default function ScheduleDetailModal({
             {/* Card Kênh & Trạng thái */}
             <div
               style={{
-                background: '#faf9fe',
-                border: '1px solid #f1eef8',
+                background: C.surfaceSubtle,
+                border: `1px solid ${C.surfaceMuted}`,
                 borderRadius: 16,
                 padding: '14px 16px',
                 display: 'flex',
@@ -311,8 +308,8 @@ export default function ScheduleDetailModal({
                       height: 42,
                       borderRadius: '50%',
                       objectFit: 'cover',
-                      border: '2px solid #fff',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                      border: `2px solid ${C.shell}`,
+                      boxShadow: `0 2px 8px ${C.legacyShadowrgba000008_}`,
                     }}
                   />
                 ) : (
@@ -324,7 +321,7 @@ export default function ScheduleDetailModal({
                       style={{
                         fontWeight: 800,
                         fontSize: 14.5,
-                        color: '#211c38',
+                        color: C.textStrong,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -334,7 +331,7 @@ export default function ScheduleDetailModal({
                     </span>
                     <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={18} radius={5} fontSize={9} />
                   </div>
-                  <div style={{ fontSize: 11.5, color: '#8a85a0', marginTop: 2 }}>
+                  <div style={{ fontSize: 11.5, color: C.textMuted, marginTop: 2 }}>
                     {schedule.platformName === 'FACEBOOK'
                       ? 'Facebook Fanpage'
                       : schedule.platformName === 'INSTAGRAM'
@@ -353,7 +350,7 @@ export default function ScheduleDetailModal({
                   borderRadius: 999,
                   color: tone.color,
                   background: tone.bg,
-                  border: `1px solid ${tone.color}35`,
+                  border: `1px solid ${alpha(tone.color, 0x35 / 255)}`,
                 }}
               >
                 {t[`schSt${schedule.status}` as keyof typeof t] as string}
@@ -364,17 +361,17 @@ export default function ScheduleDetailModal({
             {isFailed && (
               <div
                 style={{
-                  background: '#fdf1f1',
-                  border: '1px solid #f9d2d8',
+                  background: C.legacyBgfdf1f1,
+                  border: `1px solid ${C.legacyBorderf9d2d8}`,
                   borderRadius: 14,
                   padding: '12px 16px',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#b91c1c', fontWeight: 800, fontSize: 13 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.legacyTextb91c1c, fontWeight: 800, fontSize: 13 }}>
                   <AlertTriangle size={16} />
                   {lang === 'en' ? 'Publishing Failed' : 'Đăng bài không thành công'}
                 </div>
-                <div style={{ fontSize: 12, color: '#991b1b', marginTop: 6, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 12, color: C.legacyText991b1b, marginTop: 6, lineHeight: 1.5 }}>
                   {t.schFailedHint}
                 </div>
                 <button
@@ -386,7 +383,7 @@ export default function ScheduleDetailModal({
                     marginTop: 8,
                     background: 'none',
                     border: 'none',
-                    color: '#b91c1c',
+                    color: C.legacyTextb91c1c,
                     fontSize: 12,
                     fontWeight: 700,
                     textDecoration: 'underline',
@@ -406,17 +403,17 @@ export default function ScheduleDetailModal({
             {isOnHold && (
               <div
                 style={{
-                  background: '#fdf6e7',
-                  border: '1px solid #f6e2b3',
+                  background: C.legacyBgfdf6e7,
+                  border: `1px solid ${C.legacyBorderf6e2b3}`,
                   borderRadius: 14,
                   padding: '12px 16px',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#b45309', fontWeight: 800, fontSize: 13 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.amberText, fontWeight: 800, fontSize: 13 }}>
                   <AlertTriangle size={16} />
                   {lang === 'en' ? 'Post On Hold' : 'Lịch đăng đang tạm giữ'}
                 </div>
-                <div style={{ fontSize: 12, color: '#92400e', marginTop: 6, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 12, color: C.legacyText92400e, marginTop: 6, lineHeight: 1.5 }}>
                   {t.schOnHoldHint}
                 </div>
               </div>
@@ -424,28 +421,28 @@ export default function ScheduleDetailModal({
 
             {/* Khối Thời gian đăng */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-              <div style={{ background: '#fbfaff', border: '1px solid #efeaf8', borderRadius: 12, padding: '10px 14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: '#8a85a0', textTransform: 'uppercase' }}>
+              <div style={{ background: C.surfaceSubtle, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase' }}>
                   <Clock size={13} />
                   {lang === 'en' ? 'Time (GMT+7)' : 'Khung giờ đăng'}
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#211c38', marginTop: 4 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: C.textStrong, marginTop: 4 }}>
                   {timeFormatted}
                 </div>
-                <div style={{ fontSize: 11, color: isPast ? '#e23d6e' : '#16a34a', fontWeight: 600, marginTop: 2 }}>
+                <div style={{ fontSize: 11, color: isPast ? C.rose : C.success, fontWeight: 600, marginTop: 2 }}>
                   {isPast ? (lang === 'en' ? 'Past time' : 'Đã qua giờ') : (lang === 'en' ? 'Upcoming' : 'Sắp đến')}
                 </div>
               </div>
 
-              <div style={{ background: '#fbfaff', border: '1px solid #efeaf8', borderRadius: 12, padding: '10px 14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: '#8a85a0', textTransform: 'uppercase' }}>
+              <div style={{ background: C.surfaceSubtle, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase' }}>
                   <Calendar size={13} />
                   {lang === 'en' ? 'Scheduled Date' : 'Ngày đăng'}
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: '#211c38', marginTop: 4 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: C.textStrong, marginTop: 4 }}>
                   {dateFormatted}
                 </div>
-                <div style={{ fontSize: 11, color: '#8a85a0', marginTop: 2 }}>
+                <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>
                   {weekdayName}
                 </div>
               </div>
@@ -454,14 +451,14 @@ export default function ScheduleDetailModal({
             {/* Khối Caption & Hashtags có nút Sao chép */}
             <div
               style={{
-                background: '#ffffff',
-                border: '1px solid #ece8f6',
+                background: C.surface,
+                border: `1px solid ${C.border}`,
                 borderRadius: 16,
                 padding: '14px 16px',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 800, color: '#3f3a55', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 800, color: C.text, textTransform: 'uppercase', letterSpacing: 0.4 }}>
                   {lang === 'en' ? 'Post Content' : 'Nội dung bài viết'}
                 </span>
                 <button
@@ -471,9 +468,9 @@ export default function ScheduleDetailModal({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 5,
-                    border: '1px solid #e5e0f2',
-                    background: copied ? '#e8f8ee' : '#faf9fe',
-                    color: copied ? '#16a34a' : '#7c3aed',
+                    border: `1px solid ${C.legacyBordere5e0f2}`,
+                    background: copied ? C.successSoft : C.surfaceSubtle,
+                    color: copied ? C.success : C.primary,
                     borderRadius: 8,
                     padding: '4px 10px',
                     fontSize: 11.5,
@@ -491,7 +488,7 @@ export default function ScheduleDetailModal({
                 style={{
                   fontSize: 13.5,
                   lineHeight: 1.65,
-                  color: '#2d2745',
+                  color: C.ink750,
                   whiteSpace: 'pre-wrap',
                   wordBreak: 'break-word',
                   maxHeight: 160,
@@ -503,7 +500,7 @@ export default function ScheduleDetailModal({
                 {caption ? (
                   renderFormattedCaption(caption, hashtags)
                 ) : (
-                  <span style={{ fontStyle: 'italic', color: '#a59fbb' }}>{t.schNoCaption}</span>
+                  <span style={{ fontStyle: 'italic', color: C.textFaint }}>{t.schNoCaption}</span>
                 )}
               </div>
 
@@ -512,14 +509,14 @@ export default function ScheduleDetailModal({
                   style={{
                     marginTop: 12,
                     paddingTop: 10,
-                    borderTop: '1px solid #f4f1fb',
+                    borderTop: `1px solid ${C.surfaceMuted}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                   }}
                 >
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#6b6680' }}>Call to action:</span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: '#7c3aed', background: '#efe9fb', padding: '3px 10px', borderRadius: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: C.textSecondary }}>Call to action:</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: C.primary, background: C.legacyBgefe9fb, padding: '3px 10px', borderRadius: 6 }}>
                     {version.cta}
                   </span>
                 </div>
@@ -528,7 +525,7 @@ export default function ScheduleDetailModal({
 
             {/* Video Script / Phân cảnh (nếu có) */}
             {hasScript && (
-              <div style={{ border: '1px solid #efeaf8', borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden' }}>
                 <button
                   onClick={() => setShowScript(!showScript)}
                   style={{
@@ -537,31 +534,31 @@ export default function ScheduleDetailModal({
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '12px 14px',
-                    background: '#fbfaff',
+                    background: C.surfaceSubtle,
                     border: 'none',
                     cursor: 'pointer',
                     font: 'inherit',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#2b2543' }}>
-                    <Film size={15} color="#7c3aed" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: C.ink750 }}>
+                    <Film size={15} color={C.primary} />
                     <span>{lang === 'en' ? 'Video Script & Scene Details' : 'Kịch bản Video & Phân cảnh'}</span>
                   </div>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: C.primary }}>
                     {showScript ? (lang === 'en' ? 'Hide' : 'Thu gọn') : (lang === 'en' ? 'View' : 'Xem chi tiết')}
                   </span>
                 </button>
 
                 {showScript && (
-                  <div style={{ padding: 14, background: '#fff', display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid #efeaf8' }}>
+                  <div style={{ padding: 14, background: C.surface, display: 'flex', flexDirection: 'column', gap: 12, borderTop: `1px solid ${C.border}` }}>
                     {script?.hook?.content && (
-                      <div style={{ background: '#f9f8fc', padding: 10, borderRadius: 8 }}>
-                        <div style={{ fontSize: 11, fontWeight: 800, color: '#7c3aed', marginBottom: 4 }}>
+                      <div style={{ background: C.surfaceSubtle, padding: 10, borderRadius: 8 }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: C.primary, marginBottom: 4 }}>
                           HOOK ({script.hook.timing ?? '0-3s'})
                         </div>
-                        <div style={{ fontSize: 12.5, color: '#2b2543', lineHeight: 1.5 }}>{script.hook.content}</div>
+                        <div style={{ fontSize: 12.5, color: C.ink750, lineHeight: 1.5 }}>{script.hook.content}</div>
                         {script.hook.sceneSuggestion && (
-                          <div style={{ fontSize: 11, color: '#8a85a0', marginTop: 4, fontStyle: 'italic' }}>
+                          <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4, fontStyle: 'italic' }}>
                             Gợi ý cảnh: {script.hook.sceneSuggestion}
                           </div>
                         )}
@@ -571,13 +568,13 @@ export default function ScheduleDetailModal({
                     {script?.steps && script.steps.length > 0 && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {script.steps.map((st, idx) => (
-                          <div key={idx} style={{ background: '#fdfcfe', border: '1px solid #f1eef8', padding: 10, borderRadius: 8 }}>
-                            <div style={{ fontSize: 11, fontWeight: 800, color: '#4b4660', marginBottom: 2 }}>
+                          <div key={idx} style={{ background: C.surface, border: `1px solid ${C.surfaceMuted}`, padding: 10, borderRadius: 8 }}>
+                            <div style={{ fontSize: 11, fontWeight: 800, color: C.ink650, marginBottom: 2 }}>
                               {lang === 'en' ? `Step ${st.index ?? idx + 1}` : `Phần ${st.index ?? idx + 1}`}
                             </div>
-                            <div style={{ fontSize: 12.5, color: '#2b2543', lineHeight: 1.5 }}>{st.content}</div>
+                            <div style={{ fontSize: 12.5, color: C.ink750, lineHeight: 1.5 }}>{st.content}</div>
                             {st.sceneSuggestion && (
-                              <div style={{ fontSize: 11, color: '#8a85a0', marginTop: 4, fontStyle: 'italic' }}>
+                              <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4, fontStyle: 'italic' }}>
                                 Gợi ý cảnh: {st.sceneSuggestion}
                               </div>
                             )}
@@ -587,11 +584,11 @@ export default function ScheduleDetailModal({
                     )}
 
                     {script?.cta?.content && (
-                      <div style={{ background: '#f9f8fc', padding: 10, borderRadius: 8 }}>
-                        <div style={{ fontSize: 11, fontWeight: 800, color: '#7c3aed', marginBottom: 4 }}>
+                      <div style={{ background: C.surfaceSubtle, padding: 10, borderRadius: 8 }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: C.primary, marginBottom: 4 }}>
                           CTA KẾT THÚC ({script.cta.timing ?? 'Cuối'})
                         </div>
-                        <div style={{ fontSize: 12.5, color: '#2b2543', lineHeight: 1.5 }}>{script.cta.content}</div>
+                        <div style={{ fontSize: 12.5, color: C.ink750, lineHeight: 1.5 }}>{script.cta.content}</div>
                       </div>
                     )}
                   </div>
@@ -603,10 +600,10 @@ export default function ScheduleDetailModal({
           {/* CỘT BÊN PHẢI (~40% - 45%): Mockup bài đăng trực quan */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2px' }}>
-              <span style={{ fontSize: 12.5, fontWeight: 800, color: '#3f3a55', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 800, color: C.text, textTransform: 'uppercase', letterSpacing: 0.4 }}>
                 {lang === 'en' ? 'Social Post Mockup' : 'Bản xem trước mạng xã hội'}
               </span>
-              <span style={{ fontSize: 11, color: '#8a85a0', background: '#f4f1fb', padding: '2px 8px', borderRadius: 999 }}>
+              <span style={{ fontSize: 11, color: C.textMuted, background: C.surfaceMuted, padding: '2px 8px', borderRadius: 999 }}>
                 {version?.mediaFormat ?? (schedule.platformName === 'INSTAGRAM' ? 'Post (1:1)' : 'Standard Post')}
               </span>
             </div>
@@ -614,21 +611,21 @@ export default function ScheduleDetailModal({
             {/* Khung bài đăng mạng xã hội chân thực */}
             <div
               style={{
-                background: '#ffffff',
-                border: '1px solid #e5e0f2',
+                background: C.surface,
+                border: `1px solid ${C.legacyBordere5e0f2}`,
                 borderRadius: 18,
                 overflow: 'hidden',
-                boxShadow: '0 10px 25px -10px rgba(70,40,120,0.12)',
+                boxShadow: `0 10px 25px -10px ${C.legacyShadowrgba7040120012_}`,
               }}
             >
               {/* Header bài đăng */}
-              <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid #f6f4fa' }}>
+              <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `1px solid ${C.bg}` }}>
                 <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={32} radius={8} fontSize={11} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#1f1b33', lineHeight: 1.3 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.textStrong, lineHeight: 1.3 }}>
                     {schedule.platformAccountName}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#8a85a0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: C.textMuted }}>
                     <span>{timeFormatted} · {dateFormatted}</span>
                     <span>•</span>
                     <Globe size={11} />
@@ -642,7 +639,7 @@ export default function ScheduleDetailModal({
                   padding: '12px 14px',
                   fontSize: 13,
                   lineHeight: 1.55,
-                  color: '#2d2745',
+                  color: C.ink750,
                   maxHeight: 90,
                   overflowY: 'auto',
                   whiteSpace: 'pre-wrap',
@@ -650,7 +647,7 @@ export default function ScheduleDetailModal({
                 className="custom-scrollbar"
               >
                 {caption ? renderFormattedCaption(caption, hashtags) : (
-                  <span style={{ fontStyle: 'italic', color: '#a59fbb' }}>{t.schNoCaption}</span>
+                  <span style={{ fontStyle: 'italic', color: C.textFaint }}>{t.schNoCaption}</span>
                 )}
               </div>
 
@@ -679,13 +676,13 @@ export default function ScheduleDetailModal({
                     width: 44,
                     height: 44,
                     borderRadius: '50%',
-                    background: 'rgba(255,255,255,0.18)',
+                    background: C.legacyBgrgba255255255018_,
                     backdropFilter: 'blur(8px)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginBottom: 8,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                    boxShadow: `0 4px 12px ${C.legacyShadowrgba00002_}`,
                   }}
                 >
                   {version?.mediaFormat === 'REELS' ? (
@@ -695,7 +692,7 @@ export default function ScheduleDetailModal({
                   )}
                 </div>
 
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#f3efff' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.legacyTextf3efff }}>
                   {version?.mediaFormat ?? (schedule.platformName === 'INSTAGRAM' ? 'Instagram Photo' : 'Featured Image')}
                 </div>
 
@@ -703,7 +700,7 @@ export default function ScheduleDetailModal({
                   <div
                     style={{
                       fontSize: 10.5,
-                      color: '#c9bce8',
+                      color: C.legacyTextc9bce8,
                       maxWidth: '85%',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -721,7 +718,7 @@ export default function ScheduleDetailModal({
                     position: 'absolute',
                     bottom: 8,
                     right: 8,
-                    background: 'rgba(0,0,0,0.5)',
+                    background: C.legacyBgrgba00005_,
                     backdropFilter: 'blur(4px)',
                     padding: '2px 7px',
                     borderRadius: 5,
@@ -738,11 +735,11 @@ export default function ScheduleDetailModal({
               <div
                 style={{
                   padding: '10px 14px',
-                  borderTop: '1px solid #f6f4fa',
+                  borderTop: `1px solid ${C.bg}`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-around',
-                  color: '#8a85a0',
+                  color: C.textMuted,
                   fontSize: 12,
                 }}
               >
@@ -771,8 +768,8 @@ export default function ScheduleDetailModal({
             justifyContent: 'space-between',
             gap: 12,
             padding: '14px 24px',
-            borderTop: '1px solid #efeaf8',
-            background: '#ffffff',
+            borderTop: `1px solid ${C.border}`,
+            background: C.surface,
             flex: 'none',
             flexWrap: 'wrap',
           }}
@@ -784,13 +781,13 @@ export default function ScheduleDetailModal({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                border: '1px solid #ece8f6',
+                border: `1px solid ${C.border}`,
                 borderRadius: 10,
                 padding: '8px 16px',
                 fontSize: 13,
                 fontWeight: 700,
-                background: '#fff',
-                color: '#5b5670',
+                background: C.surface,
+                color: C.ink550,
                 cursor: 'pointer',
               }}
             >
@@ -805,13 +802,13 @@ export default function ScheduleDetailModal({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  border: `1px solid ${confirmingCancel ? '#e23d6e' : '#f2c9d4'}`,
+                  border: `1px solid ${confirmingCancel ? C.rose : C.legacyBorderf2c9d4}`,
                   borderRadius: 10,
                   padding: '8px 14px',
                   fontSize: 12.5,
                   fontWeight: 700,
-                  background: confirmingCancel ? '#e23d6e' : '#fff',
-                  color: confirmingCancel ? '#fff' : '#e23d6e',
+                  background: confirmingCancel ? '#e23d6e' : C.surface,
+                  color: confirmingCancel ? '#fff' : C.rose,
                   cursor: busy ? 'not-allowed' : 'pointer',
                   transition: 'all 0.15s ease',
                 }}
@@ -831,13 +828,13 @@ export default function ScheduleDetailModal({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  border: '1px solid #ece8f6',
+                  border: `1px solid ${C.border}`,
                   borderRadius: 10,
                   padding: '8px 14px',
                   fontSize: 12.5,
                   fontWeight: 700,
-                  background: '#fff',
-                  color: '#4b4660',
+                  background: C.surface,
+                  color: C.ink650,
                   cursor: busy ? 'not-allowed' : 'pointer',
                 }}
               >
@@ -854,13 +851,13 @@ export default function ScheduleDetailModal({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  border: '1px solid #d4cbf2',
+                  border: `1px solid ${C.legacyBorderd4cbf2}`,
                   borderRadius: 10,
                   padding: '8px 14px',
                   fontSize: 12.5,
                   fontWeight: 700,
-                  background: '#f8f6fc',
-                  color: '#7c3aed',
+                  background: C.bg,
+                  color: C.primary,
                   cursor: busy ? 'not-allowed' : 'pointer',
                 }}
               >
@@ -884,7 +881,7 @@ export default function ScheduleDetailModal({
                   fontSize: 12.5,
                   fontWeight: 700,
                   background: brandGradient,
-                  color: '#fff',
+                  color: C.onBrand,
                   cursor: busy ? 'not-allowed' : 'pointer',
                 }}
               >
@@ -908,7 +905,7 @@ export default function ScheduleDetailModal({
                   fontSize: 12.5,
                   fontWeight: 700,
                   background: brandGradient,
-                  color: '#fff',
+                  color: C.onBrand,
                   cursor: busy ? 'not-allowed' : 'pointer',
                 }}
               >
@@ -934,7 +931,7 @@ export default function ScheduleDetailModal({
                   fontSize: 12.5,
                   fontWeight: 700,
                   background: brandGradient,
-                  color: '#fff',
+                  color: C.onBrand,
                   cursor: 'pointer',
                 }}
               >

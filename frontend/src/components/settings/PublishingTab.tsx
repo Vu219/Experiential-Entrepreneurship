@@ -6,15 +6,16 @@ import { useToast } from '../toast/ToastProvider';
 import type { ApiError } from '../../api/apiClient';
 import { getPublishingSettings, updatePublishingSettings, type PublishingSettings } from '../../api/schedules';
 import { validatePublishingSettings } from '../../validations/publishingSettingsValidation';
+import { C } from '../../styles/colors';
 
 // Tab "Đăng bài" trong Cài đặt (Phase 2): múi giờ đăng, bắt buộc duyệt (bật/tắt áp lại cho mọi lịch
 // chưa đăng — BE xử lý), cửa sổ cảnh báo trùng lịch, chặn brand voice dưới ngưỡng.
 
 const inputStyle: CSSProperties = {
-  width: '100%', border: '1.5px solid #e7e2f2', borderRadius: 11, padding: '9px 12px',
-  fontSize: 13.5, color: '#241f3a', background: '#fbfaff', outline: 'none',
+  width: '100%', border: `1.5px solid ${C.border}`, borderRadius: 11, padding: '9px 12px',
+  fontSize: 13.5, color: C.textStrong, background: C.surfaceSubtle, outline: 'none',
 };
-const errStyle: CSSProperties = { fontSize: 12, color: '#e23d6e', marginTop: 6 };
+const errStyle: CSSProperties = { fontSize: 12, color: C.rose, marginTop: 6 };
 
 // Danh sách IANA của trình duyệt (lib TS của dự án chưa khai báo Intl.supportedValuesOf — ES2022);
 // bảo đảm múi giờ đang lưu luôn có trong select.
@@ -26,11 +27,11 @@ const zoneList = (current: string): string[] => {
 
 function Row({ title, sub, control, children }: { title: string; sub: string; control?: ReactNode; children?: ReactNode }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 18, borderTop: '1px solid #f1eef8' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 18, borderTop: `1px solid ${C.surfaceMuted}` }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13.5, color: '#3f3a55', fontWeight: 600 }}>{title}</div>
-          <div style={{ fontSize: 12, color: '#8a85a0', marginTop: 2, lineHeight: 1.45 }}>{sub}</div>
+          <div style={{ fontSize: 13.5, color: C.text, fontWeight: 600 }}>{title}</div>
+          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2, lineHeight: 1.45 }}>{sub}</div>
         </div>
         {control}
       </div>
@@ -57,7 +58,7 @@ export default function PublishingTab() {
   const zones = useMemo(() => zoneList(form?.timezone ?? 'Asia/Ho_Chi_Minh'), [form?.timezone]);
 
   if (load === 'loading') return <Card><Loader label={t.listLoading} /></Card>;
-  if (load === 'error' || !form) return <Card style={{ padding: 26, color: '#e23d6e', fontSize: 13.5 }}>{t.psLoadError}</Card>;
+  if (load === 'error' || !form) return <Card style={{ padding: 26, color: C.rose, fontSize: 13.5 }}>{t.psLoadError}</Card>;
 
   const set = (patch: Partial<PublishingSettings>) => { setForm({ ...form, ...patch }); setTouched(true); };
   const toInt = (v: string): number | null => (v.trim() === '' ? null : Number(v));
@@ -80,8 +81,8 @@ export default function PublishingTab() {
   return (
     <Card style={{ padding: 26, display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div>
-        <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.psTitle}</div>
-        <div style={{ fontSize: 12, color: '#8a85a0', marginTop: 4 }}>{t.psSub}</div>
+        <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.psTitle}</div>
+        <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>{t.psSub}</div>
       </div>
 
       <Row title={t.psTimezone} sub={t.psTimezoneSub}>
@@ -113,7 +114,7 @@ export default function PublishingTab() {
       >
         {form.brandVoiceBlockingEnabled && (
           <div>
-            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#574f6e', marginBottom: 6 }}>{t.psVoiceThreshold}</label>
+            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: C.ink600, marginBottom: 6 }}>{t.psVoiceThreshold}</label>
             <input
               type="number" min={0} max={100} aria-label={t.psVoiceThreshold}
               value={form.brandVoiceThreshold ?? ''}
@@ -131,7 +132,7 @@ export default function PublishingTab() {
           disabled={saving || !touched || Object.keys(errors).length > 0}
           className="btn-grad"
           style={{
-            border: 'none', borderRadius: 11, padding: '10px 22px', fontSize: 13.5, fontWeight: 700, color: '#fff',
+            border: 'none', borderRadius: 11, padding: '10px 22px', fontSize: 13.5, fontWeight: 700, color: C.onBrand,
             background: 'var(--brand)', cursor: saving || !touched ? 'not-allowed' : 'pointer', opacity: saving || !touched ? 0.6 : 1,
           }}
         >

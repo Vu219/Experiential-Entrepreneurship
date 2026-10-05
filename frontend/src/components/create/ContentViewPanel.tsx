@@ -29,6 +29,7 @@ import { CONTENT_STATUS_META, REVIEW_STATUS_META, aiLabelKey } from './statusMet
 import StatusBadge from '../admin/StatusBadge';
 import { TONE_COLORS } from '../../statusTokens';
 import { useToast } from '../toast/ToastProvider';
+import { C } from '../../styles/colors';
 
 // FR-33: chỉ lúc ĐANG đăng mới khóa sửa (khớp backend) — bài đã lên lịch/tạm giữ vẫn sửa được,
 // bài đang/đã đăng dùng snapshot chụp lúc dispatch.
@@ -50,10 +51,10 @@ const statusActions = (r: ReviewStatus): { target: ReviewStatus; labelKey: keyof
   return [];
 };
 
-const label = { display: 'block', fontSize: 12, fontWeight: 700, letterSpacing: '.04em', color: '#a59fbb', marginBottom: 8 } as const;
+const label = { display: 'block', fontSize: 12, fontWeight: 700, letterSpacing: '.04em', color: C.textFaint, marginBottom: 8 } as const;
 const inputBase = {
-  width: '100%', border: '1.5px solid #e7e2f2', borderRadius: 12, padding: '11px 14px',
-  fontSize: 13.5, lineHeight: 1.55, color: '#241f3a', background: '#fbfaff', outline: 'none',
+  width: '100%', border: `1.5px solid ${C.border}`, borderRadius: 12, padding: '11px 14px',
+  fontSize: 13.5, lineHeight: 1.55, color: C.textStrong, background: C.surfaceSubtle, outline: 'none',
 } as const;
 
 // Bản sao sâu một version để sửa cục bộ (draft) — không đụng bản đang hiển thị.
@@ -256,26 +257,26 @@ export default function ContentViewPanel({
               disabled={savingEdit}
               onClick={cancelEdit}
               className="btn-soft"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, color: '#574f6e', cursor: savingEdit ? 'not-allowed' : 'pointer', opacity: savingEdit ? 0.6 : 1 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, color: C.ink600, cursor: savingEdit ? 'not-allowed' : 'pointer', opacity: savingEdit ? 0.6 : 1 }}
             >
-              <Icon icon={X} size={13} stroke="#574f6e" />{t.cvEditCancel}
+              <Icon icon={X} size={13} stroke={C.ink600} />{t.cvEditCancel}
             </button>
             <button
               disabled={savingEdit}
               onClick={saveEdit}
               className="btn-grad"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 12.5, fontWeight: 700, color: '#fff', background: brandGradient, cursor: savingEdit ? 'not-allowed' : 'pointer', opacity: savingEdit ? 0.6 : 1 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 12.5, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: savingEdit ? 'not-allowed' : 'pointer', opacity: savingEdit ? 0.6 : 1 }}
             >
-              <Icon icon={Save} size={13} stroke="#fff" />{savingEdit ? t.cvEditSaving : t.cvEditSave}
+              <Icon icon={Save} size={13} stroke={C.onBrand} />{savingEdit ? t.cvEditSaving : t.cvEditSave}
             </button>
           </>
         ) : (
           <button
             onClick={startEdit}
             className="btn-soft"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, color: '#7c3aed', cursor: 'pointer' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, color: C.primary, cursor: 'pointer' }}
           >
-            <Icon icon={Pencil} size={13} stroke="#7c3aed" />{t.cvEdit}
+            <Icon icon={Pencil} size={13} stroke={C.primary} />{t.cvEdit}
           </button>
         )
       )}
@@ -287,10 +288,10 @@ export default function ContentViewPanel({
           onClick={() => applyStatus(target)}
           className={primary ? 'btn-grad' : 'btn-soft'}
           style={primary
-            ? { display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, color: '#fff', background: brandGradient, cursor: statusBusy ? 'not-allowed' : 'pointer', opacity: statusBusy ? 0.6 : 1 }
-            : { display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: '#574f6e', cursor: statusBusy ? 'not-allowed' : 'pointer', opacity: statusBusy ? 0.6 : 1 }}
+            ? { display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: statusBusy ? 'not-allowed' : 'pointer', opacity: statusBusy ? 0.6 : 1 }
+            : { display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: C.ink600, cursor: statusBusy ? 'not-allowed' : 'pointer', opacity: statusBusy ? 0.6 : 1 }}
         >
-          <Icon icon={icon} size={14} stroke={primary ? '#fff' : '#574f6e'} />{t[labelKey]}
+          <Icon icon={icon} size={14} stroke={primary ? C.onBrand : C.ink600} />{t[labelKey]}
         </button>
       ))}
     </div>
@@ -305,20 +306,20 @@ export default function ContentViewPanel({
           cộng chiều cao Topbar, để top nhỏ hơn là header chui vào sau Topbar. */}
       <div ref={headerRef} style={{ ...cardStyle, position: 'sticky', top: HEADER_TOP, zIndex: 20, padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <button onClick={onClose} className="btn-soft" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flex: 'none', border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '6px 11px', fontSize: 12.5, fontWeight: 700, color: '#574f6e', cursor: 'pointer' }}>
-            <Icon icon={ArrowLeft} size={14} stroke="#574f6e" />{t.bpBack}
+          <button onClick={onClose} className="btn-soft" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flex: 'none', border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '6px 11px', fontSize: 12.5, fontWeight: 700, color: C.ink600, cursor: 'pointer' }}>
+            <Icon icon={ArrowLeft} size={14} stroke={C.ink600} />{t.bpBack}
           </button>
           <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, minWidth: 0, whiteSpace: 'nowrap' }}>
-            <button onClick={onClose} className="link-underline" style={{ border: 'none', background: 'transparent', padding: 0, fontSize: 12, fontWeight: 600, color: '#8a85a0', cursor: 'pointer' }}>
+            <button onClick={onClose} className="link-underline" style={{ border: 'none', background: 'transparent', padding: 0, fontSize: 12, fontWeight: 600, color: C.textMuted, cursor: 'pointer' }}>
               {t.navCreate}
             </button>
-            <span aria-hidden style={{ color: '#c4bdd6' }}>/</span>
-            <span style={{ fontWeight: 700, color: '#574f6e' }}>{t.cvBreadcrumbDetail}</span>
+            <span aria-hidden style={{ color: C.ink200 }}>/</span>
+            <span style={{ fontWeight: 700, color: C.ink600 }}>{t.cvBreadcrumbDetail}</span>
           </nav>
         </div>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 260px', minWidth: 0 }}>
-            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 18, color: '#211c38', lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.title}</div>
+            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 18, color: C.textStrong, lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{item.title}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginTop: 6 }}>
               <StatusBadge tone={st.tone} label={t[st.labelKey]} />
               {review !== 'NONE' && <StatusBadge tone={rv.tone} label={t[rv.labelKey]} />}
@@ -331,7 +332,7 @@ export default function ContentViewPanel({
       {load === 'loading' ? (
         <ContentViewSkeleton />
       ) : load === 'error' ? (
-        <div style={{ textAlign: 'center', padding: '40px 16px', color: '#8a85a0', fontSize: 14 }}>{t.listError}</div>
+        <div style={{ textAlign: 'center', padding: '40px 16px', color: C.textMuted, fontSize: 14 }}>{t.listError}</div>
       ) : shown ? (
         <div style={{ display: 'grid', gridTemplateColumns: stacked ? '1fr' : '1.2fr .9fr', gap: 16, alignItems: stacked ? 'start' : 'stretch' }}>
           <Card>

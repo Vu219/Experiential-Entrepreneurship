@@ -4,6 +4,7 @@ import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Card } from '../ui';
 import PageContainer from '../PageContainer';
 import type { TrendsTab } from '../../trendsData';
+import { C } from '../../styles/colors';
 
 const srOnly: CSSProperties = {
   position: 'absolute',
@@ -115,7 +116,7 @@ export default function TrendsSkeleton({ tab }: { tab: TrendsTab }) {
       <div aria-hidden="true" style={{ display: 'grid', gridTemplateColumns: sideBySide ? `minmax(0,1fr) ${sidebarW}px` : '1fr', gap: 20, alignItems: 'start' }}>
         <div ref={mainRef} style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
           {/* Thanh sub-tab: 3 pill — wrap được như bản thật khi cột hẹp */}
-          <div style={{ display: 'inline-flex', alignSelf: 'flex-start', gap: 4, background: '#f4f2fb', border: '1px solid #ece8f6', borderRadius: 12, padding: 4, flexWrap: 'wrap', maxWidth: '100%' }}>
+          <div style={{ display: 'inline-flex', alignSelf: 'flex-start', gap: 4, background: C.surfaceMuted, border: `1px solid ${C.border}`, borderRadius: 12, padding: 4, flexWrap: 'wrap', maxWidth: '100%' }}>
             {[122, 128, 145].map((w, i) => (
               <Sk key={i} w={w} h={36} r={9} />
             ))}
@@ -201,7 +202,7 @@ function HotSkeleton({ isMobile, asCards, rows }: { isMobile: boolean; asCards: 
                 <Sk w={96} h={22} />
                 <Sk w={70} h={13} />
               </div>
-              <div style={{ ...rowBetween, borderTop: '1px solid #f4f1fa', paddingTop: 9, minHeight: isMobile ? 38 : 35 }}>
+              <div style={{ ...rowBetween, borderTop: `1px solid ${C.surfaceMuted}`, paddingTop: 9, minHeight: isMobile ? 38 : 35 }}>
                 <Sk w={68} h={14} />
                 <Sk w={90} h={14} />
               </div>
@@ -217,7 +218,7 @@ function HotSkeleton({ isMobile, asCards, rows }: { isMobile: boolean; asCards: 
     <>
       <FilterRowSkeleton isMobile={isMobile} blocks={HOT_FILTERS} />
       <Card style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ display: 'flex', gap: 8, padding: '15px 8px 15px 16px', borderBottom: '1px solid #f1eef8' }}>
+        <div style={{ display: 'flex', gap: 8, padding: '15px 8px 15px 16px', borderBottom: `1px solid ${C.surfaceMuted}` }}>
           {['32%', '10%', '11%', '17%', '14%', '16%'].map((w, i) => (
             <div key={i} style={{ flexBasis: w, minWidth: 0 }}>
               <Sk w="60%" h={11} />
@@ -225,7 +226,7 @@ function HotSkeleton({ isMobile, asCards, rows }: { isMobile: boolean; asCards: 
           ))}
         </div>
         {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 8px 12px 16px', borderTop: i > 0 ? '1px solid #f1eef8' : 'none' }}>
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 8px 12px 16px', borderTop: i > 0 ? `1px solid ${C.surfaceMuted}` : 'none' }}>
             <div style={{ flexBasis: '32%', minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
               <Sk w={40} h={40} r={11} style={{ flex: 'none' }} />
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -342,7 +343,7 @@ function HistorySkeleton({ mainW }: { mainW: number }) {
   return (
     <Card style={{ paddingTop: 12, paddingBottom: 14 }}>
       {Array.from({ length: 7 }).map((_, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', flexWrap: 'wrap', borderTop: i > 0 ? '1px solid #f4f1fa' : 'none' }}>
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', flexWrap: 'wrap', borderTop: i > 0 ? `1px solid ${C.surfaceMuted}` : 'none' }}>
           <Sk w={22} h={22} r="50%" style={{ flex: 'none' }} />
           <div style={{ flex: row.linkBelow ? '1 1 calc(100% - 36px)' : 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 24 }}>
@@ -360,7 +361,7 @@ function HistorySkeleton({ mainW }: { mainW: number }) {
           <Sk w={95} h={row.linkBelow ? 26 : 14} style={{ flex: 'none', ...(row.linkBelow ? { marginLeft: 36 } : null) }} />
         </div>
       ))}
-      <div style={{ borderTop: '1px solid #f4f1fa' }}>
+      <div style={{ borderTop: `1px solid ${C.surfaceMuted}` }}>
         <ListFooterSkeleton pagerW={280} />
       </div>
     </Card>
@@ -422,7 +423,7 @@ function SidebarSkeleton({ tab, historyBrief, narrow, stacked }: {
               <Sk w={62} h={12} />
             </div>
             {Array.from({ length: historyBrief }).map((_, i) => (
-              <div key={i} style={{ padding: '10px 0', borderTop: i > 0 ? '1px solid #f4f1fa' : 'none' }}>
+              <div key={i} style={{ padding: '10px 0', borderTop: i > 0 ? `1px solid ${C.surfaceMuted}` : 'none' }}>
                 <div style={rowBetween}>
                   <Sk w={82} h={12} />
                   <Sk w={68} h={20} r={99} />
@@ -455,7 +456,7 @@ function SidebarSkeleton({ tab, historyBrief, narrow, stacked }: {
             </div>
             <div style={{ height: 14, display: 'flex', alignItems: 'center', marginBottom: 8 }}><Sk w={170} h={11} /></div>
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} style={{ ...rowBetween, padding: '8px 0', borderTop: i > 0 ? '1px solid #f4f1fa' : 'none' }}>
+              <div key={i} style={{ ...rowBetween, padding: '8px 0', borderTop: i > 0 ? `1px solid ${C.surfaceMuted}` : 'none' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
                   <Sk w={26} h={26} r={8} style={{ flex: 'none' }} />
                   <Sk w="70%" h={12} />

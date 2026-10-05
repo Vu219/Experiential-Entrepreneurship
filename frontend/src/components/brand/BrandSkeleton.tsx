@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Card } from '../ui';
+import { C } from '../../styles/colors';
 
 const srOnly: CSSProperties = {
   position: 'absolute',
@@ -85,7 +86,7 @@ export function BrandListSkeleton() {
 /** Skeleton 1 card chiến lược trong list trái — khớp StrategyCard (tên + badge + meta). */
 function StrategyCardSkeleton() {
   return (
-    <div style={{ border: '1px solid #e2e8f0', borderRadius: 14, padding: 15, display: 'flex', flexDirection: 'column', gap: 9, background: '#fff' }}>
+    <div style={{ border: `1px solid ${C.legacyBordere2e8f0}`, borderRadius: 14, padding: 15, display: 'flex', flexDirection: 'column', gap: 9, background: C.surface }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
         <Sk w="55%" h={14} style={{ flex: 1 }} />
         <Sk w={78} h={22} r={99} />

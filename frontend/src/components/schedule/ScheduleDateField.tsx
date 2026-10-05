@@ -5,6 +5,7 @@ import { useApp } from '../../context/AppContext.tsx';
 import MonthGrid, { buildMonth } from '../calendar/MonthGrid.tsx';
 import { MONTHS_EN } from '../calendar/dateUtils.ts';
 import type { PostSchedule } from '../../api/schedules.ts';
+import { C } from '../../styles/colors';
 
 // Ô chọn ngày của SchedulePlanner: lịch tháng mở dạng POPOVER khi bấm (thay lưới tháng cố định chiếm nửa màn),
 // vẫn giữ chấm màu các ngày đã có lịch của tài khoản đang chọn. Ngày trước hôm nay không chọn được.
@@ -78,29 +79,29 @@ export default function ScheduleDateField({ value, min, onChange, schedules, ari
         aria-label={ariaLabel}
         aria-haspopup="dialog"
         aria-expanded={open}
-        style={{ ...field, borderColor: invalid ? '#f3aabf' : open ? '#c4b5fd' : '#ece8f6', color: display ? '#241f3a' : '#a59fbb' }}
+        style={{ ...field, borderColor: invalid ? C.inputErrorBorder : open ? C.legacyBorderc4b5fd : C.border, color: display ? C.textStrong : C.textFaint }}
       >
         <span style={{ flex: 1, textAlign: 'left', fontVariantNumeric: 'tabular-nums' }}>{display || t.planPickDate}</span>
-        <CalendarIcon size={16} color="#a39bbf" strokeWidth={1.8} aria-hidden="true" />
+        <CalendarIcon size={16} color={C.ink350} strokeWidth={1.8} aria-hidden="true" />
       </button>
       {open && createPortal(
         <div ref={panelRef} role="dialog" aria-label={ariaLabel} className="menu-pop menu-pop--left"
-          style={{ position: 'fixed', top: pos.top, left: pos.left, width: POPOVER_W, zIndex: 9999, background: '#fff', border: '1px solid #efeaf8', borderRadius: 16, boxShadow: '0 18px 38px -12px rgba(80,40,140,.35)', padding: 12 }}>
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: POPOVER_W, zIndex: 9999, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, boxShadow: `0 18px 38px -12px ${C.legacyShadowrgba8040140_35_}`, padding: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <button type="button" onClick={() => shift(-1)} aria-label={t.planPrevMonth} style={navBtn}><ChevronLeft size={15} aria-hidden="true" /></button>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#3f3a55' }}>{monthLabel}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{monthLabel}</span>
             <button type="button" onClick={() => shift(1)} aria-label={t.planNextMonth} style={navBtn}><ChevronRight size={15} aria-hidden="true" /></button>
           </div>
           <MonthGrid cells={cells} selectedDay={value || null} onSelectDay={pick} compact minDay={min} disabledLabel={t.planDayPast} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 10 }}>
             {/* Chú thích: ngày đã qua (mờ, không chọn được) · hôm nay · chấm = ngày đã có lịch */}
-            <span style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 11, color: '#8a85a0' }}>
-              <span style={legendItem}><span aria-hidden="true" style={{ ...swatch, background: '#f4f3f8', opacity: 0.8 }} />{t.planLegendPast}</span>
-              <span style={legendItem}><span aria-hidden="true" style={{ ...swatch, background: '#f6f1ff', border: '1px solid #c4b5fd' }} />{t.planToday}</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 11, color: C.textMuted }}>
+              <span style={legendItem}><span aria-hidden="true" style={{ ...swatch, background: C.bg, opacity: 0.8 }} />{t.planLegendPast}</span>
+              <span style={legendItem}><span aria-hidden="true" style={{ ...swatch, background: C.border, border: `1px solid ${C.legacyBorderc4b5fd}` }} />{t.planToday}</span>
               <span style={legendItem}><span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: '50%', background: '#1877f2' }} />{t.planLegendBooked}</span>
             </span>
             <button type="button" onClick={() => pick(min)} className="link-underline"
-              style={{ flex: 'none', background: 'none', border: 'none', padding: 0, fontSize: 12, fontWeight: 700, color: '#7c3aed', cursor: 'pointer' }}>
+              style={{ flex: 'none', background: 'none', border: 'none', padding: 0, fontSize: 12, fontWeight: 700, color: C.primary, cursor: 'pointer' }}>
               {t.planToday}
             </button>
           </div>
@@ -114,9 +115,9 @@ export default function ScheduleDateField({ value, min, onChange, schedules, ari
 const monthOf = (iso: string) => new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, 1, 12);
 
 const field: CSSProperties = {
-  font: 'inherit', display: 'flex', alignItems: 'center', gap: 8, width: '100%', minWidth: 0, height: 42, border: '1px solid #ece8f6',
-  borderRadius: 10, padding: '0 12px', background: '#fff', fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
+  font: 'inherit', display: 'flex', alignItems: 'center', gap: 8, width: '100%', minWidth: 0, height: 42, border: `1px solid ${C.border}`,
+  borderRadius: 10, padding: '0 12px', background: C.surface, fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
 };
 const legendItem: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 5 };
 const swatch: CSSProperties = { width: 11, height: 11, borderRadius: 3, flex: 'none' };
-const navBtn: CSSProperties = { width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ece8f6', borderRadius: 8, background: '#fff', cursor: 'pointer' };
+const navBtn: CSSProperties = { width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface, cursor: 'pointer' };

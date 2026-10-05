@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Icon } from '../ui';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import type { Dict } from '../../i18n';
+import { C } from '../../styles/colors';
 
 export type WizardStep = 1 | 2 | 3 | 4;
 
@@ -41,18 +42,18 @@ export default function WizardStepper({
             onClick={() => canBack && onGo((current - 1) as WizardStep)}
             disabled={!canBack}
             aria-label={t.cwBack}
-            style={{ width: 34, height: 34, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, cursor: canBack ? 'pointer' : 'not-allowed', opacity: canBack ? 1 : 0.4 }}
+            style={{ width: 34, height: 34, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, cursor: canBack ? 'pointer' : 'not-allowed', opacity: canBack ? 1 : 0.4 }}
           >
-            <Icon icon={ChevronLeft} size={17} stroke="#574f6e" />
+            <Icon icon={ChevronLeft} size={17} stroke={C.ink600} />
           </button>
-          <span style={{ flex: 'none', background: brandGradient, color: '#fff', borderRadius: 9, padding: '4px 10px', fontSize: 12, fontWeight: 800 }}>
+          <span style={{ flex: 'none', background: brandGradient, color: C.onBrand, borderRadius: 9, padding: '4px 10px', fontSize: 12, fontWeight: 800 }}>
             {t.cwStepWord} {current}/{LAST_STEP}
           </span>
-          <span style={{ fontSize: 14, fontWeight: 800, color: '#211c38', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: C.textStrong, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {t[STEP_KEYS[current - 1]]}
           </span>
         </div>
-        <div style={{ height: 4, borderRadius: 99, background: '#e7e2f2', overflow: 'hidden' }} aria-hidden>
+        <div style={{ height: 4, borderRadius: 99, background: C.border, overflow: 'hidden' }} aria-hidden>
           <div style={{ width: `${(current / LAST_STEP) * 100}%`, height: '100%', borderRadius: 99, background: brandGradient, transition: 'width .2s' }} />
         </div>
       </div>
@@ -79,20 +80,20 @@ export default function WizardStepper({
                 style={{
                   width: 34, height: 34, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 13.5, fontWeight: 800, flex: 'none',
-                  background: done || active ? brandGradient : '#fff',
-                  color: done || active ? '#fff' : '#a59fbb',
-                  border: done || active ? 'none' : '1.5px solid #e7e2f2',
-                  boxShadow: active ? '0 10px 20px -10px rgba(139,92,246,.7)' : 'none',
+                  background: done || active ? brandGradient : C.surface,
+                  color: done || active ? C.onBrand : C.textFaint,
+                  border: done || active ? 'none' : `1.5px solid ${C.border}`,
+                  boxShadow: active ? `0 10px 20px -10px ${C.legacyShadowrgba13992246_7_}` : 'none',
                 }}
               >
-                {done ? <Icon icon={Check} size={16} stroke="#fff" /> : n}
+                {done ? <Icon icon={Check} size={16} stroke={C.onBrand} /> : n}
               </span>
-              <span style={{ fontSize: 12, fontWeight: active ? 800 : 600, color: active ? '#211c38' : done ? '#574f6e' : '#a59fbb', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 12, fontWeight: active ? 800 : 600, color: active ? C.textStrong : done ? C.ink600 : C.textFaint, whiteSpace: 'nowrap' }}>
                 {t[key]}
               </span>
             </button>
             {i < LAST_STEP - 1 && (
-              <div style={{ flex: 1, height: 2, borderRadius: 2, background: n < current ? 'var(--brand)' : '#e7e2f2', margin: '16px 8px 0', minWidth: 12 }} />
+              <div style={{ flex: 1, height: 2, borderRadius: 2, background: n < current ? 'var(--brand)' : C.border, margin: '16px 8px 0', minWidth: 12 }} />
             )}
           </div>
         );

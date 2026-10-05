@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Card } from '../ui';
+import { C } from '../../styles/colors';
 
 const srOnly: CSSProperties = {
   position: 'absolute',
@@ -61,7 +62,7 @@ export default function ProfileSkeleton({ contentMax }: { contentMax: number }) 
               <Sk w={96} h={26} r={999} style={{ marginTop: 12 }} />
               <div style={{ display: 'flex', gap: 10, marginTop: 20, width: '100%' }}>
                 {[0, 1].map((i) => (
-                  <div key={i} style={{ flex: 1, border: '1px solid #efeaf8', borderRadius: 13, padding: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  <div key={i} style={{ flex: 1, border: `1px solid ${C.border}`, borderRadius: 13, padding: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                     <Sk w={52} h={24} r={6} />
                     <Sk w={70} h={12} />
                   </div>

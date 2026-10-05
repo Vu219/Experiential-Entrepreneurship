@@ -1,3 +1,4 @@
+import { C } from '../../styles/colors';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Download } from 'lucide-react';
@@ -183,7 +184,7 @@ export default function FailedPosts() {
       <TabBar tab={tab} counts={counts} onChange={changeTab} />
       <FilterBar filters={filters} onChange={changeFilters} />
       {demo && !loading && (
-        <div style={{ fontSize: 12, color: '#7c6f4f', background: '#fdf6e7', border: '1px solid #f3e6c4', borderRadius: 9, padding: '8px 11px' }}>
+        <div style={{ fontSize: 12, color: C.legacyText7c6f4f, background: C.legacyBgfdf6e7, border: `1px solid ${C.legacyBorderf3e6c4}`, borderRadius: 9, padding: '8px 11px' }}>
           {t.fpDemo}
         </div>
       )}
@@ -210,7 +211,7 @@ export default function FailedPosts() {
         <button
           onClick={exportReport}
           className="btn-grad"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: 'pointer', whiteSpace: 'nowrap' }}
         >
           <Download size={14} strokeWidth={2} />
           {t.fpExport}

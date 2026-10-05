@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { AlertTriangle, List, Search } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Card, Loader, Icon } from '../ui';
+import { C } from '../../styles/colors';
 
 export type ListState = 'loading' | 'error' | 'empty' | 'ready';
 
@@ -32,7 +33,7 @@ export default function AdminListPage({
   return (
     <Card style={{ padding: 0, overflow: 'hidden' }}>
       {toolbar && (
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1eef8', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.surfaceMuted}`, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
           {toolbar}
         </div>
       )}
@@ -41,13 +42,13 @@ export default function AdminListPage({
         {state === 'loading' && <Loader label={t.listLoading} />}
 
         {state === 'error' && (
-          <div style={{ textAlign: 'center', padding: '54px 16px', color: '#8a85a0' }}>
-            <div style={{ width: 48, height: 48, borderRadius: 14, background: '#fde8e8', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-              <Icon icon={AlertTriangle} stroke="#dc2626" />
+          <div style={{ textAlign: 'center', padding: '54px 16px', color: C.textMuted }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: C.dangerSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+              <Icon icon={AlertTriangle} stroke={C.danger} />
             </div>
-            <div style={{ fontSize: 14.5, fontWeight: 600, color: '#5b5670', marginBottom: 14 }}>{t.listError}</div>
+            <div style={{ fontSize: 14.5, fontWeight: 600, color: C.ink550, marginBottom: 14 }}>{t.listError}</div>
             {onRetry && (
-              <button onClick={onRetry} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>
+              <button onClick={onRetry} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>
                 {t.retry}
               </button>
             )}
@@ -55,9 +56,9 @@ export default function AdminListPage({
         )}
 
         {state === 'empty' && (
-          <div style={{ textAlign: 'center', padding: '54px 16px', color: '#8a85a0' }}>
-            <div style={{ width: 48, height: 48, borderRadius: 14, background: '#f4f1fb', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-              <Icon icon={List} stroke="#a39bbf" />
+          <div style={{ textAlign: 'center', padding: '54px 16px', color: C.textMuted }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: C.surfaceMuted, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+              <Icon icon={List} stroke={C.ink350} />
             </div>
             <div style={{ fontSize: 14.5, fontWeight: 600 }}>{emptyLabel ?? t.listEmpty}</div>
           </div>
@@ -73,13 +74,13 @@ export default function AdminListPage({
 export function SearchInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   const { t } = useApp();
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#f4f2fb', border: '1px solid #ece8f6', borderRadius: 10, padding: '8px 12px', flex: '1 1 220px', minWidth: 180, maxWidth: 340 }}>
-      <Search size={16} color="#a39bbf" strokeWidth={1.8} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: C.surfaceMuted, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 12px', flex: '1 1 220px', minWidth: 180, maxWidth: 340 }}>
+      <Search size={16} color={C.ink350} strokeWidth={1.8} />
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder ?? t.admSearchPh}
-        style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 13.5, color: '#241f3a' }}
+        style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 13.5, color: C.textStrong }}
       />
     </div>
   );
@@ -91,7 +92,7 @@ export function FilterSelect({ value, onChange, options }: { value: string; onCh
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      style={{ height: 38, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '0 12px', fontSize: 13.5, fontWeight: 600, color: '#4b4660', cursor: 'pointer' }}
+      style={{ height: 38, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '0 12px', fontSize: 13.5, fontWeight: 600, color: C.ink650, cursor: 'pointer' }}
     >
       {options.map(([v, l]) => (
         <option key={v} value={v}>{l}</option>
@@ -103,9 +104,9 @@ export function FilterSelect({ value, onChange, options }: { value: string; onCh
 /** Hàng nhãn–giá trị dùng trong các modal chi tiết (người dùng / log / bài đăng). */
 export function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '10px 0', borderTop: '1px solid #f1eef8' }}>
-      <span style={{ fontSize: 13, color: '#8a85a0', flex: 'none' }}>{label}</span>
-      <span style={{ fontSize: 13.5, fontWeight: 600, color: '#2b2543', textAlign: 'right' }}>{value}</span>
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '10px 0', borderTop: `1px solid ${C.surfaceMuted}` }}>
+      <span style={{ fontSize: 13, color: C.textMuted, flex: 'none' }}>{label}</span>
+      <span style={{ fontSize: 13.5, fontWeight: 600, color: C.ink750, textAlign: 'right' }}>{value}</span>
     </div>
   );
 }
@@ -117,9 +118,9 @@ export function DataTable({ head, children, minWidth = 640 }: { head: ReactNode[
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth }}>
         <thead>
-          <tr style={{ textAlign: 'left', background: '#faf9fe' }}>
+          <tr style={{ textAlign: 'left', background: C.surfaceSubtle }}>
             {head.map((h, i) => (
-              <th key={i} style={{ fontSize: 12, fontWeight: 600, color: '#a59fbb', padding: '12px 16px', whiteSpace: 'nowrap' }}>{h}</th>
+              <th key={i} style={{ fontSize: 12, fontWeight: 600, color: C.textFaint, padding: '12px 16px', whiteSpace: 'nowrap' }}>{h}</th>
             ))}
           </tr>
         </thead>

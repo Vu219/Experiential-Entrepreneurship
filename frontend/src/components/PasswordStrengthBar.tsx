@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Check, KeyRound } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { strengthLevel, passwordChecks, generateStrongPassword } from '../validations/password';
+import { C } from '../styles/colors';
 
 const LABEL_KEY = { weak: 'pwWeak', fair: 'pwFair', strong: 'pwStrong' } as const;
 
@@ -26,7 +27,8 @@ export default function PasswordStrengthBar({
   style?: CSSProperties;
 }) {
   const { t } = useApp();
-  const { level, color, pct } = strengthLevel(password);
+  const { level, pct } = strengthLevel(password);
+  const color = level === 'weak' ? C.rose : level === 'fair' ? C.strengthFair : C.success;
   const checks = passwordChecks(password);
   const [copied, setCopied] = useState(false);
 
@@ -68,7 +70,7 @@ export default function PasswordStrengthBar({
   return (
     <div style={{ margin: '9px 0 2px', ...style }}>
       {/* Progress bar */}
-      <div style={{ height: 5, borderRadius: 4, background: '#eceaf4', overflow: 'hidden' }}>
+      <div style={{ height: 5, borderRadius: 4, background: C.surfaceMuted, overflow: 'hidden' }}>
         <div
           style={{
             height: '100%',
@@ -90,6 +92,7 @@ export default function PasswordStrengthBar({
       {showSuggestion && (
         <button
           type="button"
+          className="password-suggest"
           onMouseDown={(e) => { e.preventDefault(); handleSuggest(); }}
           style={{
             display: 'flex',
@@ -98,20 +101,12 @@ export default function PasswordStrengthBar({
             width: '100%',
             marginTop: 8,
             padding: '10px 12px',
-            background: '#f6f3fc',
-            border: '1.5px dashed #d8cdf2',
+            background: C.surfaceMuted,
+            border: `1.5px dashed ${C.violetLine}`,
             borderRadius: 10,
             cursor: 'pointer',
             transition: 'background .15s, border-color .15s',
             animation: 'pw-suggest-enter .2s ease-out',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#ede8f9';
-            e.currentTarget.style.borderColor = '#b79df0';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#f6f3fc';
-            e.currentTarget.style.borderColor = '#d8cdf2';
           }}
         >
           <span
@@ -129,14 +124,14 @@ export default function PasswordStrengthBar({
             <KeyRound size={13} color="#fff" strokeWidth={2.2} />
           </span>
           <span style={{ flex: 1, textAlign: 'left' }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: '#3f3a55', display: 'block', lineHeight: 1.3 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: C.text, display: 'block', lineHeight: 1.3 }}>
               {copied ? t.pwCopied : t.pwSuggest}
             </span>
             <span
               style={{
                 fontSize: 12,
                 fontFamily: "'Roboto Mono', 'Consolas', monospace",
-                color: '#8b5cf6',
+                color: C.violetLight,
                 letterSpacing: '.03em',
                 fontWeight: 600,
               }}
@@ -145,17 +140,16 @@ export default function PasswordStrengthBar({
             </span>
           </span>
           <div
+            className="password-regenerate"
             onMouseDown={(e) => {
               e.preventDefault();
               e.stopPropagation();
               setSuggestedPw(generateStrongPassword());
             }}
             style={{
-              background: '#ede8f9', border: 'none', borderRadius: 8, padding: 6,
-              color: '#8b5cf6', cursor: 'pointer', display: 'flex', transition: 'background .15s'
+              background: C.violetHover, border: 'none', borderRadius: 8, padding: 6,
+              color: C.violetLight, cursor: 'pointer', display: 'flex', transition: 'background .15s'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#e3dcf6'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#ede8f9'}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
           </div>
@@ -183,7 +177,7 @@ export default function PasswordStrengthBar({
                   gap: 6,
                   fontSize: 12,
                   fontWeight: 600,
-                  color: met ? '#16a34a' : '#a39bbf',
+                  color: met ? C.success : C.ink350,
                   transition: 'color .2s',
                   animation: `pw-check-enter .25s ease-out ${idx * 0.06}s both`,
                 }}
@@ -196,14 +190,14 @@ export default function PasswordStrengthBar({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: met ? '#16a34a' : '#eceaf4',
+                    background: met ? '#16a34a' : C.surfaceMuted,
                     transition: 'background .2s',
                     flex: 'none',
                   }}
                 >
                   <Check
                     size={11}
-                    color={met ? '#fff' : '#c5c0d4'}
+                    color={met ? '#fff' : C.ink200}
                     strokeWidth={2.8}
                   />
                 </span>

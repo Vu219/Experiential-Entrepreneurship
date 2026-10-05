@@ -5,10 +5,13 @@ import { RefreshCw, ShieldCheck, ShieldUser, Link, PlugZap, Activity, ShieldAler
 import { useApp } from '../context/AppContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useUiStore } from '../store/useUiStore';
+import { useAppStore } from '../store/useAppStore';
+import { DARK_MODE_ENABLED, type ColorMode } from '../store/colorMode';
 import { Card, PlatformTag, Loader } from '../components/ui';
 import { notifLabels, themeOptions } from '../data';
 import { PLATFORMS, PLATFORM_BG, PLATFORM_ACCENT } from '../theme';
 import { STATUS_COLORS, STATUS_NEUTRAL, STATUS_PENDING } from '../statusTokens';
+import { C, alpha } from '../styles/colors';
 import {
   listConnections,
   getConnectionStats,
@@ -59,6 +62,8 @@ const toFilterBucket = (s: ConnectionStatus): StatusFilter => {
 export default function Settings() {
   const { t, lang, setLang, theme, setTheme, notif, toggleNotif, brandGradient } = useApp();
   const { isMobile } = useBreakpoint();
+  const colorMode = useAppStore((s) => s.colorMode);
+  const setColorMode = useAppStore((s) => s.setColorMode);
   const { autoCollapse, toggleAutoCollapse } = useUiStore();
   const notifs = notifLabels(lang);
   const themes = themeOptions(lang);
@@ -87,14 +92,14 @@ export default function Settings() {
 
   const langBtn = (active: boolean): CSSProperties => ({
     flex: 1,
-    border: `1.5px solid ${active ? '#8b5cf6' : '#ece8f6'}`,
+    border: `1.5px solid ${active ? C.violetLight : C.border}`,
     borderRadius: 11,
     padding: 11,
     fontSize: 13.5,
     fontWeight: 700,
     cursor: 'pointer',
-    background: active ? '#faf6ff' : '#fff',
-    color: active ? '#7c3aed' : '#3f3a55',
+    background: active ? C.violetSelected : C.surface,
+    color: active ? C.primary : C.text,
   });
 
   const toggleStyle = (on: boolean): CSSProperties => ({
@@ -107,18 +112,18 @@ export default function Settings() {
     padding: '0 3px',
     cursor: 'pointer',
     transition: 'background .15s',
-    background: on ? brandGradient : '#dcd7ea',
+    background: on ? brandGradient : C.borderStrong,
     justifyContent: on ? 'flex-end' : 'flex-start',
   });
 
-  const dot: CSSProperties = { width: 18, height: 18, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.25)' };
+  const dot: CSSProperties = { width: 18, height: 18, borderRadius: '50%', background: C.shell, boxShadow: `0 1px 3px ${C.legacyShadowrgba000_25_}` };
 
   // ——————————————————————————————————————————————
   return (
     <PageContainer>
 
       {/* ——— Tab bar ——— */}
-      <div style={{ display: 'flex', gap: 0, borderBottom: '1.5px solid #efeaf8' }}>
+      <div style={{ display: 'flex', gap: 0, overflowX: isMobile ? 'auto' : undefined, borderBottom: `1.5px solid ${C.border}` }}>
         {tabs.map((tb) => {
           const active = tab === tb.key;
           return (
@@ -129,9 +134,10 @@ export default function Settings() {
                 border: 'none',
                 background: 'none',
                 padding: '12px 24px',
+                flexShrink: isMobile ? 0 : undefined, whiteSpace: isMobile ? 'nowrap' : undefined,
                 fontSize: 14.5,
                 fontWeight: active ? 700 : 500,
-                color: active ? '#7c3aed' : '#8a85a0',
+                color: active ? C.primary : C.textMuted,
                 cursor: 'pointer',
                 position: 'relative',
                 transition: 'color .15s',
@@ -140,7 +146,7 @@ export default function Settings() {
               {tb.label}
               {active && (
                 <span style={{
-                  position: 'absolute', bottom: -1.5, left: 0, right: 0, height: 3,
+                  position: 'absolute', bottom: isMobile ? 0 : -1.5, left: 0, right: 0, height: 3,
                   borderRadius: 3, background: brandGradient,
                 }} />
               )}
@@ -156,7 +162,7 @@ export default function Settings() {
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16, alignItems: 'stretch' }}>
             {/* Language */}
             <Card style={{ flex: 1, padding: 26, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-              <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38', marginBottom: 16 }}>{t.seLang}</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong, marginBottom: 16 }}>{t.seLang}</div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => setLang('vi')} style={langBtn(lang === 'vi')}>🇻🇳 Tiếng Việt</button>
                 <button onClick={() => setLang('en')} style={langBtn(lang === 'en')}>🇬🇧 English</button>
@@ -165,16 +171,16 @@ export default function Settings() {
 
             {/* Theme */}
             <Card style={{ flex: 1.5, padding: 26 }}>
-              <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38', marginBottom: 4 }}>{t.seTheme}</div>
-              <div style={{ fontSize: 12, color: '#8a85a0', marginBottom: 14 }}>{t.seThemeSub}</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong, marginBottom: 4 }}>{t.seTheme}</div>
+              <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 14 }}>{t.seThemeSub}</div>
               <div style={{ display: 'flex', gap: 12 }}>
                 {themes.map((th) => {
                   const active = theme === th.key;
                   // Viền card đang chọn lấy màu theo theme hiện tại (var(--brand-to)) → khớp tông vừa chọn.
                   return (
-                    <div key={th.key} onClick={() => setTheme(th.key)} style={{ flex: 1, border: `2px solid ${active ? 'var(--brand-to)' : '#ece8f6'}`, borderRadius: 13, padding: 10, cursor: 'pointer', background: active ? '#faf6ff' : '#fff' }}>
+                    <div key={th.key} onClick={() => setTheme(th.key)} style={{ flex: 1, border: `2px solid ${active ? 'var(--brand-to)' : C.border}`, borderRadius: 13, padding: 10, cursor: 'pointer', background: active ? C.violetSelected : C.surface }}>
                       <span style={{ display: 'block', height: 38, borderRadius: 9, background: th.grad }} />
-                      <span style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#3f3a55', marginTop: 8 }}>{th.label}</span>
+                      <span style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 700, color: C.text, marginTop: 8 }}>{th.label}</span>
                     </div>
                   );
                 })}
@@ -182,13 +188,30 @@ export default function Settings() {
             </Card>
           </div>
 
+          {DARK_MODE_ENABLED && (
+            <Card style={{ padding: 26 }}>
+              <fieldset className="color-mode-settings" style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}>
+                <legend style={{ fontWeight: 700, fontSize: 16, color: C.textStrong, marginBottom: 6 }}>{t.cmLabel}</legend>
+                <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 16 }}>{t.cmSettingsSub}</div>
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 10 }}>
+                  {(['light', 'dark', 'system'] as ColorMode[]).map((mode) => (
+                    <label key={mode} style={{ ...langBtn(colorMode === mode), display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <input type="radio" name="color-mode" value={mode} checked={colorMode === mode} onChange={() => setColorMode(mode)} style={{ accentColor: C.primary, margin: 0 }} />
+                      {t[mode === 'light' ? 'cmLight' : mode === 'dark' ? 'cmDark' : 'cmSystem']}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </Card>
+          )}
+
           {/* Sidebar */}
           <Card style={{ padding: 26 }}>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38', marginBottom: 16 }}>{t.seSidebar}</div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong, marginBottom: 16 }}>{t.seSidebar}</div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13.5, color: '#3f3a55', fontWeight: 600 }}>{t.seSidebarAuto}</div>
-                <div style={{ fontSize: 12, color: '#8a85a0', marginTop: 2, lineHeight: 1.45 }}>{t.seSidebarAutoSub}</div>
+                <div style={{ fontSize: 13.5, color: C.text, fontWeight: 600 }}>{t.seSidebarAuto}</div>
+                <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2, lineHeight: 1.45 }}>{t.seSidebarAutoSub}</div>
               </div>
               <span onClick={toggleAutoCollapse} role="switch" aria-checked={autoCollapse} style={toggleStyle(autoCollapse)}>
                 <span style={dot} />
@@ -207,13 +230,13 @@ export default function Settings() {
       {/* ——— Tab: Notifications ——— */}
       {tab === 'notifications' && (
         <Card style={{ padding: 26 }}>
-          <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38', marginBottom: 16 }}>{t.seNotif}</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong, marginBottom: 16 }}>{t.seNotif}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {notifs.map((label, i) => {
               const on = notif[i];
               return (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                  <span style={{ fontSize: 13.5, color: '#3f3a55', flex: 1 }}>{label}</span>
+                  <span style={{ fontSize: 13.5, color: C.text, flex: 1 }}>{label}</span>
                   <span onClick={() => toggleNotif(i)} style={toggleStyle(on)}>
                     <span style={dot} />
                   </span>
@@ -469,8 +492,8 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
         <Card style={{ flex: 1, padding: '20px 22px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.seConnectTitle}</div>
-              <div style={{ fontSize: 12.5, color: '#8a85a0', marginTop: 3 }}>{t.seConnectSub}</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.seConnectTitle}</div>
+              <div style={{ fontSize: 12.5, color: C.textMuted, marginTop: 3 }}>{t.seConnectSub}</div>
             </div>
             {/* Icon button góc phải trên — kiểm tra tất cả kết nối. */}
             <button
@@ -484,8 +507,9 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                 cursor: loading || connections.length === 0 ? 'not-allowed' : 'pointer', opacity: loading || connections.length === 0 ? 0.6 : 1,
                 transition: 'filter .15s',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(0.95)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; }}
+              className={"dm-hover-47995b3"}
+
+
             >
               <PlugZap size={17} color={STATUS_COLORS.info.color} strokeWidth={2.2} />
             </button>
@@ -513,7 +537,7 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
 
         {/* Right card: Tổng quan kết nối */}
         <Card style={{ minWidth: isMobile ? 'auto' : 280, padding: '18px 20px' }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#211c38', marginBottom: 14 }}>{t.seOverview}</div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: C.textStrong, marginBottom: 14 }}>{t.seOverview}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <StatMini icon={Users} label={t.seTotalAccounts} value={stats.total} color={STATUS_COLORS.info.color} bg={STATUS_COLORS.info.bg} />
             <StatMini icon={Activity} label={t.seActiveAccounts} value={stats.active} color={STATUS_COLORS.active.color} bg={STATUS_COLORS.active.bg} />
@@ -527,7 +551,7 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
       <Card style={{ padding: 26 }}>
         {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
-          <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>
+          <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>
             {t.seListTitle} ({filtered.length})
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -535,21 +559,21 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
               onClick={handleCheckAll}
               disabled={loading || connections.length === 0}
               style={{
-                border: '1.5px solid #ece8f6', background: '#fff', borderRadius: 10,
-                padding: '7px 14px', fontSize: 12, fontWeight: 600, color: '#3f3a55',
+                border: `1.5px solid ${C.border}`, background: C.surface, borderRadius: 10,
+                padding: '7px 14px', fontSize: 12, fontWeight: 600, color: C.text,
                 cursor: loading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: 5,
                 opacity: loading ? 0.6 : 1,
               }}
             >
-              <RefreshCw size={14} color="#7c3aed" strokeWidth={2} />
+              <RefreshCw size={14} color={C.primary} strokeWidth={2} />
               {t.seCheckStatus}
             </button>
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value as StatusFilter); setPage(1); }}
               style={{
-                border: '1.5px solid #ece8f6', background: '#fff', borderRadius: 10,
-                padding: '7px 14px', fontSize: 12, fontWeight: 600, color: '#3f3a55', cursor: 'pointer',
+                border: `1.5px solid ${C.border}`, background: C.surface, borderRadius: 10,
+                padding: '7px 14px', fontSize: 12, fontWeight: 600, color: C.text, cursor: 'pointer',
               }}
             >
               <option value="ALL">{t.seAllStatus}</option>
@@ -565,7 +589,7 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
         {loading && connections.length === 0 ? (
           <Loader label={t.listLoading} />
         ) : connections.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: '#8a85a0', fontSize: 14 }}>
+          <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted, fontSize: 14 }}>
             {t.listEmpty}
           </div>
         ) : (
@@ -574,9 +598,9 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
-                  <tr style={{ borderBottom: '1.5px solid #efeaf8' }}>
+                  <tr style={{ borderBottom: `1.5px solid ${C.border}` }}>
                     {[t.seColPlatform, t.seColAccount, t.seColStatus, t.seColDate, t.seColToken, t.seColActions].map((h) => (
-                      <th key={h} style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 600, color: '#8a85a0', fontSize: 12, whiteSpace: 'nowrap' }}>{h}</th>
+                      <th key={h} style={{ textAlign: 'left', padding: '10px 8px', fontWeight: 600, color: C.textMuted, fontSize: 12, whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -590,14 +614,14 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                     const isLoading = actionLoading[c.id] ?? false;
 
                     return (
-                      <tr key={c.id} style={{ borderBottom: '1px solid #f5f2fa' }}>
+                      <tr key={c.id} style={{ borderBottom: `1px solid ${C.surfaceMuted}` }}>
                         {/* Platform */}
                         <td style={{ padding: '12px 8px', whiteSpace: 'nowrap' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <PlatformTag tag={tag} bg={bg} size={30} radius={99} />
                             <div>
-                              <div style={{ fontWeight: 600, color: '#2b2543' }}>{platformName(c.platform)}</div>
-                              <div style={{ fontSize: 11, color: '#8a85a0' }}>{accountSubLabel(c)}</div>
+                              <div style={{ fontWeight: 600, color: C.ink750 }}>{platformName(c.platform)}</div>
+                              <div style={{ fontSize: 11, color: C.textMuted }}>{accountSubLabel(c)}</div>
                             </div>
                           </div>
                         </td>
@@ -614,14 +638,14 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                             ) : (
                               <span style={{
                                 width: 28, height: 28, borderRadius: '50%', flex: 'none',
-                                background: 'linear-gradient(135deg,#e9f0ff,#f1e9ff)',
+                                background: `linear-gradient(135deg,${C.legacyBge9f0ff},${C.purpleSoft})`,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 11, fontWeight: 700, color: '#7c3aed',
+                                fontSize: 11, fontWeight: 700, color: C.primary,
                               }}>{(c.accountName || '?').charAt(0)}</span>
                             )}
                             <div>
-                              <div style={{ fontWeight: 600, color: '#2b2543' }}>{c.accountName || '—'}</div>
-                              <div style={{ fontSize: 11, color: '#8a85a0' }}>
+                              <div style={{ fontWeight: 600, color: C.ink750 }}>{c.accountName || '—'}</div>
+                              <div style={{ fontSize: 11, color: C.textMuted }}>
                                 {c.platformUsername ? `@${c.platformUsername}` : (c.platformAccountId || '')}
                               </div>
                             </div>
@@ -637,7 +661,7 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                         </td>
 
                         {/* Date */}
-                        <td style={{ padding: '12px 8px', whiteSpace: 'nowrap', color: '#3f3a55', fontSize: 12.5 }}>
+                        <td style={{ padding: '12px 8px', whiteSpace: 'nowrap', color: C.text, fontSize: 12.5 }}>
                           {fmtDate(c.createdAt)}
                         </td>
 
@@ -645,14 +669,14 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                         <td style={{ padding: '12px 8px', whiteSpace: 'nowrap' }}>
                           {tk.valid !== null ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <ShieldCheck size={15} color={tk.valid ? '#16a34a' : '#dc2626'} strokeWidth={2} />
+                              <ShieldCheck size={15} color={tk.valid ? C.success : C.danger} strokeWidth={2} />
                               <div>
-                                <div style={{ fontWeight: 600, color: tk.valid ? '#16a34a' : '#dc2626', fontSize: 12 }}>{tk.label}</div>
-                                <div style={{ fontSize: 11, color: tk.valid ? '#8a85a0' : '#c2410c' }}>{tk.sub}</div>
+                                <div style={{ fontWeight: 600, color: tk.valid ? C.success : C.danger, fontSize: 12 }}>{tk.label}</div>
+                                <div style={{ fontSize: 11, color: tk.valid ? C.textMuted : C.orange }}>{tk.sub}</div>
                               </div>
                             </div>
                           ) : (
-                            <span style={{ color: '#8a85a0' }}>—</span>
+                            <span style={{ color: C.textMuted }}>—</span>
                           )}
                         </td>
 
@@ -667,16 +691,17 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                                   title={lang === 'en' ? 'Refresh token' : 'Làm mới token'}
                                   style={{ border: 'none', background: 'none', cursor: isLoading ? 'wait' : 'pointer', padding: 4, display: 'flex', opacity: isLoading ? 0.5 : 1 }}
                                 >
-                                  <RefreshCw size={15} color="#7c3aed" strokeWidth={2} />
+                                  <RefreshCw size={15} color={C.primary} strokeWidth={2} />
                                 </button>
                                 <button
                                   onClick={(e) => {
                                     const rect = e.currentTarget.getBoundingClientRect();
                                     setOpenMenu(openMenu?.id === c.id ? null : { id: c.id, rect, act: 'refresh' });
                                   }}
-                                  style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px 8px', fontSize: 16, color: '#8a85a0', fontWeight: 700, borderRadius: 6 }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.background = '#f4f1fb'; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+                                  style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px 8px', fontSize: 16, color: C.textMuted, fontWeight: 700, borderRadius: 6 }}
+                                  className={"dm-hover-c3ef885"}
+
+
                                 >⋯</button>
                               </>
                             )}
@@ -686,8 +711,8 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                                   onClick={() => handleConnect(c.platform)}
                                   disabled={isLoading}
                                   style={{
-                                    border: '1.5px solid #ece8f6', background: '#fff', borderRadius: 8,
-                                    padding: '5px 12px', fontSize: 11.5, fontWeight: 700, color: '#c2410c',
+                                    border: `1.5px solid ${C.border}`, background: C.surface, borderRadius: 8,
+                                    padding: '5px 12px', fontSize: 11.5, fontWeight: 700, color: C.orange,
                                     cursor: isLoading ? 'wait' : 'pointer', opacity: isLoading ? 0.5 : 1,
                                   }}
                                 >{t.seReconnect}</button>
@@ -696,9 +721,10 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                                     const rect = e.currentTarget.getBoundingClientRect();
                                     setOpenMenu(openMenu?.id === c.id ? null : { id: c.id, rect, act: 'reconnect' });
                                   }}
-                                  style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px 8px', fontSize: 16, color: '#8a85a0', fontWeight: 700, borderRadius: 6 }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.background = '#f4f1fb'; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+                                  style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px 8px', fontSize: 16, color: C.textMuted, fontWeight: 700, borderRadius: 6 }}
+                                  className={"dm-hover-0319902"}
+
+
                                 >⋯</button>
                               </>
                             )}
@@ -708,7 +734,7 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                                 disabled={isLoading}
                                 style={{
                                   border: 'none', borderRadius: 8,
-                                  padding: '6px 14px', fontSize: 11.5, fontWeight: 700, color: '#fff',
+                                  padding: '6px 14px', fontSize: 11.5, fontWeight: 700, color: C.onBrand,
                                   background: brandGradient, cursor: isLoading ? 'wait' : 'pointer',
                                   opacity: isLoading ? 0.5 : 1,
                                 }}
@@ -725,12 +751,12 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
 
             {/* Pagination */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, flexWrap: 'wrap', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#3f3a55' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: C.text }}>
                 {t.seShowPerPage}
                 <select
                   value={perPage}
                   onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-                  style={{ border: '1.5px solid #ece8f6', borderRadius: 8, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                  style={{ border: `1.5px solid ${C.border}`, borderRadius: 8, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -744,9 +770,9 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                     key={p}
                     onClick={() => setPage(p)}
                     style={{
-                      width: 30, height: 30, borderRadius: 8, border: p === page ? 'none' : '1.5px solid #ece8f6',
-                      background: p === page ? brandGradient : '#fff',
-                      color: p === page ? '#fff' : '#3f3a55',
+                      width: 30, height: 30, borderRadius: 8, border: p === page ? 'none' : `1.5px solid ${C.border}`,
+                      background: p === page ? brandGradient : C.surface,
+                      color: p === page ? C.onBrand : C.text,
                       fontWeight: 700, fontSize: 12.5, cursor: 'pointer',
                     }}
                   >{p}</button>
@@ -759,7 +785,7 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
 
       {/* ——— Status legend section ——— */}
       <Card style={{ padding: 26 }}>
-        <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38', marginBottom: 16 }}>{t.seInfoTitle}</div>
+        <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong, marginBottom: 16 }}>{t.seInfoTitle}</div>
         {/* Stack dọc ở mobile/tablet: divider dọc tự đổi thành divider ngang. align flex-start để nhãn các khối ngang hàng nhau. */}
         <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'stretch', gap: isMobile ? 24 : 0 }}>
           {/* Khối TRÁI — 3 trạng thái thật (~60%), phân bố đều bằng grid 3 cột bằng nhau, ngăn cách bằng divider dọc mờ. */}
@@ -789,9 +815,9 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <ShieldUser size={18} color={STATUS_COLORS.info.color} strokeWidth={2.2} style={{ flex: 'none' }} />
-                  <span style={{ fontWeight: 700, fontSize: 14, color: '#211c38' }}>{t.seInfoCheckLabel}</span>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: C.textStrong }}>{t.seInfoCheckLabel}</span>
                 </div>
-                <div style={{ fontSize: 12, color: '#8a85a0', lineHeight: 1.5 }}>{t.seInfoCheck}</div>
+                <div style={{ fontSize: 12, color: C.textMuted, lineHeight: 1.5 }}>{t.seInfoCheck}</div>
               </div>
               <img
                 src="/shield.png"
@@ -816,10 +842,10 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
               top: openMenu.rect.bottom + 6,
               left: Math.max(10, openMenu.rect.right - 160),
               zIndex: 9999,
-              background: '#fff',
-              border: '1px solid #efeaf8',
+              background: C.surface,
+              border: `1px solid ${C.border}`,
               borderRadius: 12,
-              boxShadow: '0 10px 30px rgba(0,0,0,.15)',
+              boxShadow: `0 10px 30px ${C.legacyShadowrgba000_15_}`,
               minWidth: 160,
               overflow: 'hidden',
             }}
@@ -827,18 +853,20 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
             {openMenu.act === 'refresh' && (
               <button
                 onClick={() => { handleValidate(openMenu.id); setOpenMenu(null); }}
-                style={{ display: 'block', width: '100%', textAlign: 'left', border: 'none', background: 'none', padding: '11px 16px', fontSize: 12.5, fontWeight: 600, color: '#3f3a55', cursor: 'pointer' }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#faf6ff'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+                style={{ display: 'block', width: '100%', textAlign: 'left', border: 'none', background: 'none', padding: '11px 16px', fontSize: 12.5, fontWeight: 600, color: C.text, cursor: 'pointer' }}
+                className={"dm-hover-ec0fddb"}
+
+
               >
                 {t.seCheckStatus}
               </button>
             )}
             <button
               onClick={() => { handleDisconnect(openMenu.id); setOpenMenu(null); }}
-              style={{ display: 'block', width: '100%', textAlign: 'left', border: 'none', background: 'none', padding: '11px 16px', fontSize: 12.5, fontWeight: 600, color: '#dc2626', cursor: 'pointer' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#fff5f5'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', border: 'none', background: 'none', padding: '11px 16px', fontSize: 12.5, fontWeight: 600, color: C.danger, cursor: 'pointer' }}
+              className={"dm-hover-23b7439"}
+
+
             >
               {lang === 'en' ? 'Disconnect' : 'Ngắt kết nối'}
             </button>
@@ -859,7 +887,7 @@ function StatMini({ icon: IconCmp, label, value, color, bg }: { icon: LucideIcon
       <IconCmp size={24} color={color} strokeWidth={2.2} style={{ flex: 'none' }} />
       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2, minWidth: 0 }}>
         <span style={{ fontSize: 24, fontWeight: 800, color }}>{value}</span>
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: '#3f3a55', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+        <span style={{ fontSize: 12.5, fontWeight: 600, color: C.text, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
       </div>
     </div>
   );
@@ -878,8 +906,8 @@ function PlatformConnectCard({ tag, name, bg, accent, desc, linkedCount, linkedL
       onMouseLeave={() => setHover(false)}
       style={{
         position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 12,
-        border: '1px solid #efeaf8', borderRadius: 16, padding: '18px 16px 16px', background: '#fff',
-        boxShadow: hover ? '0 12px 28px -12px rgba(40,20,90,.22)' : '0 2px 8px rgba(40,20,90,.05)',
+        border: `1px solid ${C.border}`, borderRadius: 16, padding: '18px 16px 16px', background: C.surface,
+        boxShadow: hover ? `0 12px 28px -12px ${C.legacyShadowrgba402090_22_}` : `0 2px 8px ${C.legacyShadowrgba402090_05_}`,
         transition: 'box-shadow .18s',
       }}
     >
@@ -896,8 +924,8 @@ function PlatformConnectCard({ tag, name, bg, accent, desc, linkedCount, linkedL
 
       {/* Tên + mô tả phụ. */}
       <div>
-        <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{name}</div>
-        <div style={{ fontSize: 12, color: '#8a85a0', marginTop: 2 }}>{desc}</div>
+        <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{name}</div>
+        <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{desc}</div>
       </div>
 
       {/* Nút "+ Kết nối" full width — outline primary, hover thành filled nhạt. */}
@@ -908,7 +936,7 @@ function PlatformConnectCard({ tag, name, bg, accent, desc, linkedCount, linkedL
           width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           border: `1.5px solid ${STATUS_COLORS.info.color}`, borderRadius: 11, padding: '9px 14px',
           fontSize: 13.5, fontWeight: 700, color: STATUS_COLORS.info.color,
-          background: hover && !connecting ? STATUS_COLORS.info.bg : '#fff',
+          background: hover && !connecting ? STATUS_COLORS.info.bg : C.surface,
           cursor: connecting ? 'wait' : 'pointer', opacity: connecting ? 0.6 : 1, transition: 'background .15s',
         }}
       >
@@ -925,16 +953,16 @@ function StatusLegendItem({ token, label, desc }: { token: 'active' | 'expired' 
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, padding: '0 18px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ width: 12, height: 12, borderRadius: '50%', background: STATUS_COLORS[token].color, flex: 'none' }} />
-        <span style={{ fontWeight: 700, fontSize: 14, color: '#211c38' }}>{label}</span>
+        <span style={{ fontWeight: 700, fontSize: 14, color: C.textStrong }}>{label}</span>
       </div>
-      <div style={{ fontSize: 12, color: '#8a85a0', lineHeight: 1.5 }}>{desc}</div>
+      <div style={{ fontSize: 12, color: C.textMuted, lineHeight: 1.5 }}>{desc}</div>
     </div>
   );
 }
 
 // Divider mờ: dọc trên desktop, ngang khi stack ở mobile/tablet.
 // Màu lấy từ token primary (STATUS_COLORS.info) phủ opacity thấp → đồng bộ theme, không hardcode màu xám.
-const DIVIDER_BG = `${STATUS_COLORS.info.color}1f`; // #7c3aed @ ~12% alpha
+const DIVIDER_BG = alpha(STATUS_COLORS.info.color, 0x1f / 255); // #7c3aed @ ~12% alpha
 function Divider({ isMobile }: { isMobile: boolean }) {
   return isMobile
     ? <div style={{ height: 1, background: DIVIDER_BG, alignSelf: 'stretch' }} />

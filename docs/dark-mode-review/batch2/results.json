@@ -1,0 +1,139 @@
+{
+  "errors": [],
+  "apiWrites": [
+    "/api/aima/users/me/change-password/init",
+    "/api/aima/users/verify-otp",
+    "/api/aima/users/me/change-password/confirm",
+    "/api/aima/users/me/change-password/init",
+    "/api/aima/users/verify-otp",
+    "/api/aima/users/me/change-password/confirm"
+  ],
+  "comparisons": [
+    {
+      "kind": "modal",
+      "width": 1440,
+      "changed": 4548,
+      "over3": 0,
+      "max": 2.3431401084085004
+    },
+    {
+      "kind": "drawer",
+      "width": 1440,
+      "changed": 4860,
+      "over3": 0,
+      "max": 2.3431401084085004
+    },
+    {
+      "kind": "docked",
+      "width": 1440,
+      "changed": 4557,
+      "over3": 0,
+      "max": 2.3431401084085004
+    },
+    {
+      "kind": "confirm",
+      "width": 1440,
+      "changed": 2149,
+      "over3": 0,
+      "max": 0.6999631576603031
+    },
+    {
+      "kind": "onboarding",
+      "width": 1440,
+      "changed": 136065,
+      "over3": 0,
+      "max": 1.8008416216332235
+    },
+    {
+      "kind": "date",
+      "width": 1440,
+      "changed": 5760,
+      "over3": 0,
+      "max": 2.2392636596850153
+    },
+    {
+      "kind": "toast",
+      "width": 1440,
+      "changed": 327,
+      "over3": 0,
+      "max": 2.2392636596850153
+    },
+    {
+      "kind": "password",
+      "width": 1440,
+      "changed": 5357,
+      "over3": 0,
+      "max": 1.640271897298979
+    },
+    {
+      "kind": "settings",
+      "width": 1440,
+      "changed": 7133,
+      "over3": 0,
+      "max": 2.2392636596850153
+    },
+    {
+      "kind": "modal",
+      "width": 390,
+      "changed": 4512,
+      "over3": 0,
+      "max": 2.3431401084085004
+    },
+    {
+      "kind": "drawer",
+      "width": 390,
+      "changed": 4859,
+      "over3": 0,
+      "max": 2.3431401084085004
+    },
+    {
+      "kind": "docked",
+      "width": 390,
+      "changed": 4557,
+      "over3": 0,
+      "max": 2.3431401084085004
+    },
+    {
+      "kind": "confirm",
+      "width": 390,
+      "changed": 2115,
+      "over3": 0,
+      "max": 0.7007399736674077
+    },
+    {
+      "kind": "onboarding",
+      "width": 390,
+      "changed": 105953,
+      "over3": 0,
+      "max": 1.8008416216332235
+    },
+    {
+      "kind": "date",
+      "width": 390,
+      "changed": 5760,
+      "over3": 0,
+      "max": 2.2392636596850153
+    },
+    {
+      "kind": "toast",
+      "width": 390,
+      "changed": 83,
+      "over3": 0,
+      "max": 0.8367671945482836
+    },
+    {
+      "kind": "password",
+      "width": 390,
+      "changed": 4964,
+      "over3": 0,
+      "max": 1.6341165357268135
+    },
+    {
+      "kind": "settings",
+      "width": 390,
+      "changed": 4320,
+      "over3": 0,
+      "max": 2.2392636596850153
+    }
+  ]
+}

@@ -9,9 +9,10 @@ import RowActionsMenu from '../RowActionsMenu';
 import { formatVND } from '../../../api/admin';
 import { formatDateTimeVN, formatDateVN } from '../../../utils/format';
 import { paymentStatusMeta, type RevenueTransaction } from '../../../api/revenue';
+import { C } from '../../../styles/colors';
 
-const td: CSSProperties = { padding: '12px 16px', fontSize: 13.5, color: '#2b2543' };
-const tdMuted: CSSProperties = { ...td, color: '#8a85a0', fontSize: 13 };
+const td: CSSProperties = { padding: '12px 16px', fontSize: 13.5, color: C.ink750 };
+const tdMuted: CSSProperties = { ...td, color: C.textMuted, fontSize: 13 };
 
 const initialsOf = (name: string) =>
   name.trim().split(/\s+/).map((w) => w[0]).slice(-2).join('').toUpperCase();
@@ -44,7 +45,7 @@ export default function TransactionsTable({
       onClick={() => toggleSort(field)}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 4, border: 'none', background: 'none',
-        padding: 0, cursor: 'pointer', font: 'inherit', color: sort.field === field ? '#7c3aed' : 'inherit',
+        padding: 0, cursor: 'pointer', font: 'inherit', color: sort.field === field ? C.primary : 'inherit',
       }}
     >
       {label}
@@ -76,14 +77,14 @@ export default function TransactionsTable({
         const open = expanded === r.id;
         return (
           <Fragment key={r.id}>
-            <tr style={{ borderTop: '1px solid #f1eef8', background: open ? '#faf8ff' : undefined }}>
-              <td style={{ ...td, fontWeight: 700, color: '#6b5ca8', fontSize: 12.5 }}>{r.code}</td>
+            <tr style={{ borderTop: `1px solid ${C.surfaceMuted}`, background: open ? C.bg : undefined }}>
+              <td style={{ ...td, fontWeight: 700, color: C.legacyText6b5ca8, fontSize: 12.5 }}>{r.code}</td>
               <td style={td}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <Avatar url={r.userAvatarUrl} initials={initialsOf(r.userName ?? '?')} gradient={brandGradient} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, color: r.userName ? undefined : '#8a85a0' }}>{r.userName ?? t.payDeletedAccount}</div>
-                    {r.userEmail && <div style={{ fontSize: 12, color: '#a59fbb' }}>{r.userEmail}</div>}
+                    <div style={{ fontWeight: 600, color: r.userName ? undefined : C.textMuted }}>{r.userName ?? t.payDeletedAccount}</div>
+                    {r.userEmail && <div style={{ fontSize: 12, color: C.textFaint }}>{r.userEmail}</div>}
                   </div>
                 </div>
               </td>
@@ -91,7 +92,7 @@ export default function TransactionsTable({
               <td style={{ ...td, fontWeight: 600 }}>
                 {formatVND(r.amount)}
                 {r.refundedAmount > 0 && (
-                  <div style={{ fontSize: 11.5, color: '#dc2626' }}>
+                  <div style={{ fontSize: 11.5, color: C.danger }}>
                     − {formatVND(r.refundedAmount)}
                   </div>
                 )}
@@ -120,11 +121,11 @@ export default function TransactionsTable({
             </tr>
 
             {open && (
-              <tr style={{ background: '#faf8ff' }}>
+              <tr style={{ background: C.bg }}>
                 <td colSpan={7} style={{ padding: '4px 16px 16px' }}>
                   <div style={{
                     display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12,
-                    background: '#fff', border: '1px solid #f1eef8', borderRadius: 12, padding: '14px 16px',
+                    background: C.surface, border: `1px solid ${C.surfaceMuted}`, borderRadius: 12, padding: '14px 16px',
                   }}>
                     <DetailField label={t.revDetailOrderedAt} value={formatDateTimeVN(r.orderedAt)} />
                     <DetailField label={t.revDetailPaidAt} value={r.paidAt ? formatDateTimeVN(r.paidAt) : '—'} />
@@ -146,8 +147,8 @@ export default function TransactionsTable({
 function DetailField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div style={{ fontSize: 11.5, color: '#a59fbb', marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: '#2b2543', wordBreak: 'break-all' }}>{value}</div>
+      <div style={{ fontSize: 11.5, color: C.textFaint, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: C.ink750, wordBreak: 'break-all' }}>{value}</div>
     </div>
   );
 }

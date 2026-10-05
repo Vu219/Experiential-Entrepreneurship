@@ -6,6 +6,7 @@ import Sparkline from '../Sparkline';
 import { formatCompactNumber, formatDeltaPct, formatGroupedNumber } from '../../utils/format';
 import { STAT_TONES, type StatTone } from '../dashboard/dashboardTokens';
 import type { DashboardStat } from '../../api/dashboard';
+import { C } from '../../styles/colors';
 
 /**
  * Thẻ KPI trang Phân tích — bố cục NGANG: icon | (nhãn → số → delta) | sparkline.
@@ -34,10 +35,10 @@ function KpiCard({
   const flat = stat.deltaPct === null || stat.deltaPct === 0;
   // Badge đổi màu theo CHIỀU thay đổi, không theo tone của thẻ — tăng là xanh, giảm là đỏ.
   const badge = flat
-    ? { color: '#64748b', bg: '#f1f5f9' }
+    ? { color: C.slate, bg: C.slateTint }
     : up
-      ? { color: '#16a34a', bg: '#eafbf1' }
-      : { color: '#e23d6e', bg: '#fdecf1' };
+      ? { color: C.success, bg: C.successTint }
+      : { color: C.rose, bg: C.roseSoft };
 
   return (
     <div style={{ ...cardStyle, padding: 16, borderRadius: 18, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -50,7 +51,7 @@ function KpiCard({
 
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{
-          fontSize: 12, fontWeight: 600, color: '#8a85a0', lineHeight: 1.3,
+          fontSize: 12, fontWeight: 600, color: C.textMuted, lineHeight: 1.3,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {label}
@@ -61,7 +62,7 @@ function KpiCard({
         <div
           title={formatGroupedNumber(stat.total, lang)}
           style={{
-            fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 23, color: '#211c38',
+            fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 23, color: C.textStrong,
             lineHeight: 1.15, marginTop: 2,
           }}
         >
@@ -79,7 +80,7 @@ function KpiCard({
             {formatDeltaPct(stat.deltaPct)}
           </span>
           <span title={comparisonLabel} style={{
-            fontSize: 11, color: '#a39bbf', minWidth: 0,
+            fontSize: 11, color: C.ink350, minWidth: 0,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {comparisonLabel}

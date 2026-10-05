@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { C } from '../../styles/colors';
 
 /**
  * Toggle bật/tắt dùng chung cho các trang Quản trị (thay checkbox mặc định).
@@ -17,15 +18,15 @@ export default function Switch({
 }) {
   const track: CSSProperties = {
     width: 38, height: 22, borderRadius: 999, padding: 2, border: 'none', flex: 'none',
-    background: checked ? '#7c3aed' : '#d9d3ea',
+    background: checked ? '#7c3aed' : C.borderStrong,
     display: 'inline-flex', alignItems: 'center',
     cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.55 : 1,
     transition: 'background .15s',
   };
   const knob: CSSProperties = {
-    width: 18, height: 18, borderRadius: '50%', background: '#fff',
+    width: 18, height: 18, borderRadius: '50%', background: C.surface,
     transform: checked ? 'translateX(16px)' : 'translateX(0)', transition: 'transform .15s',
-    boxShadow: '0 1px 2px rgba(0,0,0,.25)',
+    boxShadow: `0 1px 2px ${C.legacyShadowrgba000_25_}`,
   };
   return (
     <button

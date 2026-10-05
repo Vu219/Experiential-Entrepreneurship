@@ -4,6 +4,7 @@ import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import DatePicker from '../../DatePicker';
 import type { UsageDateRange } from '../../../api/adminUsage';
+import { C } from '../../../styles/colors';
 
 export type UsageRangePreset = '7d' | '30d' | 'month' | 'prevMonth' | 'custom';
 
@@ -138,7 +139,7 @@ export default function UsageRangeBar({ value, onChange }: { value: UsageRange; 
   };
 
   const label = (text: string) => (
-    <div style={{ fontSize: 12, fontWeight: 700, color: '#8a85a0', margin: '12px 0 7px' }}>{text}</div>
+    <div style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, margin: '12px 0 7px' }}>{text}</div>
   );
 
   return (
@@ -150,14 +151,14 @@ export default function UsageRangeBar({ value, onChange }: { value: UsageRange; 
         aria-expanded={open}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 8, height: 38, padding: '0 14px',
-          border: `1px solid ${open ? '#c4b5fd' : '#ece8f6'}`, borderRadius: 10, background: open ? '#f7f4ff' : '#fff',
-          fontSize: 13, fontWeight: 700, color: '#4b4660', cursor: 'pointer', whiteSpace: 'nowrap',
+          border: `1px solid ${open ? C.legacyBorderc4b5fd : C.border}`, borderRadius: 10, background: open ? C.surfaceMuted : C.surface,
+          fontSize: 13, fontWeight: 700, color: C.ink650, cursor: 'pointer', whiteSpace: 'nowrap',
         }}
       >
-        <SlidersHorizontal size={15} strokeWidth={1.9} color="#8b5cf6" />
+        <SlidersHorizontal size={15} strokeWidth={1.9} color={C.violetLight} />
         {presetLabel[value.preset]}
-        {summary && <span style={{ color: '#a59fbb', fontWeight: 600 }}>· {summary}</span>}
-        <ChevronDown size={14} strokeWidth={2} color="#a39bbf" />
+        {summary && <span style={{ color: C.textFaint, fontWeight: 600 }}>· {summary}</span>}
+        <ChevronDown size={14} strokeWidth={2} color={C.ink350} />
       </button>
 
       {open && createPortal(
@@ -168,18 +169,18 @@ export default function UsageRangeBar({ value, onChange }: { value: UsageRange; 
           className="menu-pop menu-pop--left"
           style={{
             position: 'fixed', top: coords.top, left: coords.left, width: PANEL_WIDTH, zIndex: 1000,
-            background: '#fff', border: '1px solid #ece8f6', borderRadius: 14, padding: 14,
-            boxShadow: '0 24px 50px -22px rgba(80,40,140,.5)',
+            background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: 14,
+            boxShadow: `0 24px 50px -22px ${C.legacyShadowrgba8040140_5_}`,
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#8a85a0', marginBottom: 7 }}>{t.revFilterPeriod}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, marginBottom: 7 }}>{t.revFilterPeriod}</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {presets.map(([key, text]) => {
               const active = draft.preset === key;
               return (
                 <button key={key} onClick={() => pickPreset(key)} style={{
-                  border: '1px solid', borderColor: active ? 'transparent' : '#ece8f6',
-                  background: active ? brandGradient : '#fff', color: active ? '#fff' : '#5b5670',
+                  border: '1px solid', borderColor: active ? 'transparent' : C.border,
+                  background: active ? brandGradient : C.surface, color: active ? C.onBrand : C.ink550,
                   borderRadius: 999, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
                 }}>
                   {text}
@@ -197,19 +198,19 @@ export default function UsageRangeBar({ value, onChange }: { value: UsageRange; 
               <DatePicker value={draft.to ?? ''} min={draft.from} max={today} ariaLabel={t.aueTo}
                 onChange={(v) => setDraft({ ...draft, to: v })} />
               {!draftResolved && (
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#dc2626', marginTop: 10 }}>{t.auRangeInvalid}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: C.danger, marginTop: 10 }}>{t.auRangeInvalid}</div>
               )}
             </>
           ) : draftResolved && (
-            <div style={{ fontSize: 12.5, color: '#5b5670', fontWeight: 600, marginTop: 12 }}>
+            <div style={{ fontSize: 12.5, color: C.ink550, fontWeight: 600, marginTop: 12 }}>
               {ddmm(draftResolved.range.from)} – {ddmmyyyy(draftResolved.range.to)}
             </div>
           )}
 
           <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
             <button onClick={() => setOpen(false)} style={{
-              flex: 1, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '9px 0',
-              fontSize: 13, fontWeight: 700, color: '#5b5670', cursor: 'pointer',
+              flex: 1, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '9px 0',
+              fontSize: 13, fontWeight: 700, color: C.ink550, cursor: 'pointer',
             }}>
               {t.close}
             </button>
@@ -218,7 +219,7 @@ export default function UsageRangeBar({ value, onChange }: { value: UsageRange; 
               disabled={!draftResolved}
               style={{
                 flex: 1, border: 'none', borderRadius: 10, padding: '9px 0', fontSize: 13, fontWeight: 700,
-                color: '#fff', background: brandGradient, cursor: draftResolved ? 'pointer' : 'default',
+                color: C.onBrand, background: brandGradient, cursor: draftResolved ? 'pointer' : 'default',
                 opacity: draftResolved ? 1 : 0.55,
               }}
             >

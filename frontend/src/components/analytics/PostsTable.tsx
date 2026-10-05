@@ -6,6 +6,7 @@ import { formatGroupedNumber, formatDateTimeVN } from '../../utils/format';
 import { PLATFORM_BG } from '../../theme';
 import { PLATFORM_TO_TAG } from '../../api/connections';
 import type { AnalyticsTopPost, TopPostSort, TopPostSortField } from '../../api/analytics';
+import { C } from '../../styles/colors';
 
 /**
  * Bảng bài viết SẮP XẾP THEO CỘT (thuần trình bày) — dùng trong `TopPostsTable` và `AllPostsModal`.
@@ -57,7 +58,7 @@ function PostsTable({
       style={{
         background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', padding: 0,
         display: 'inline-flex', alignItems: 'center', gap: 3,
-        color: sort.field === field ? '#7c3aed' : '#8a85a0', fontWeight: sort.field === field ? 800 : 600,
+        color: sort.field === field ? C.primary : C.textMuted, fontWeight: sort.field === field ? 800 : 600,
       }}>
       {label}<SortArrow field={field} />
     </button>
@@ -89,23 +90,24 @@ function PostsTable({
             return (
               <tr key={r.postId} onClick={() => onRowClick(r)}
                 style={{
-                  borderTop: '1px solid #f1eef8',
+                  borderTop: `1px solid ${C.surfaceMuted}`,
                   cursor: 'pointer',
                   transition: 'background-color 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#faf8fe'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}>
-                <td style={{ ...cell, fontSize: 13, fontWeight: 700, color: '#a59fbb', textAlign: 'right' }}>
+                className={"dm-hover-c8e5e64"}
+
+                >
+                <td style={{ ...cell, fontSize: 13, fontWeight: 700, color: C.textFaint, textAlign: 'right' }}>
                   {startIndex + i + 1}
                 </td>
                 <td style={{ ...cell, maxWidth: 320 }}>
                   <span title={r.caption ?? undefined} style={{
                     display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    fontSize: 13.5, fontWeight: 600, color: '#1e1b2e', lineHeight: 1.4,
+                    fontSize: 13.5, fontWeight: 600, color: C.ink900, lineHeight: 1.4,
                   }}>
                     {r.caption || t.schNoCaption}
                   </span>
-                  <span style={{ display: 'block', fontSize: 12, color: '#8a85a0', marginTop: 4, fontWeight: 500 }}>
+                  <span style={{ display: 'block', fontSize: 12, color: C.textMuted, marginTop: 4, fontWeight: 500 }}>
                     {formatDateTimeVN(r.publishedAt)}
                     {r.accountName && ` · ${r.accountName}`}
                   </span>
@@ -130,7 +132,7 @@ function PostsTable({
 const headCell = {
   fontSize: 12,
   fontWeight: 600,
-  color: '#8a85a0',
+  color: C.textMuted,
   padding: '12px 10px',
   whiteSpace: 'nowrap',
 } as const;
@@ -144,7 +146,7 @@ const numCell = {
   padding: '14px 10px',
   fontSize: 13.5,
   fontWeight: 700,
-  color: '#1e1b2e',
+  color: C.ink900,
   textAlign: 'right',
   verticalAlign: 'middle',
   whiteSpace: 'nowrap',

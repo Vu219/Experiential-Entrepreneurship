@@ -6,6 +6,7 @@ import { formatDateTimeVN, formatGroupedNumber } from '../../utils/format';
 import { PLATFORM_BG } from '../../theme';
 import { PLATFORM_TO_TAG } from '../../api/connections';
 import type { AnalyticsTopPost, TopPostSort, TopPostSortField } from '../../api/analytics';
+import { C } from '../../styles/colors';
 
 /**
  * Bản MOBILE của bảng bài viết: mỗi bài một card (tiêu đề + nền tảng + ngày, 4 chỉ số xếp lưới 2×2)
@@ -46,9 +47,9 @@ function PostsCardList({
             <button key={m.key} type="button" onClick={() => clickSort(m.key)} aria-pressed={active}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4, minHeight: 44, padding: '0 12px',
-                border: '1px solid', borderColor: active ? 'transparent' : '#ece8f6',
-                background: active ? 'linear-gradient(135deg,#8b5cf6,#d946ef)' : '#fff',
-                color: active ? '#fff' : '#5b5670',
+                border: '1px solid', borderColor: active ? 'transparent' : C.border,
+                background: active ? 'linear-gradient(135deg,#8b5cf6,#d946ef)' : C.surface,
+                color: active ? '#fff' : C.ink550,
                 borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
               }}>
               {m.label}
@@ -68,19 +69,19 @@ function PostsCardList({
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{
                     display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                    fontSize: 13.5, fontWeight: 700, color: '#2b2543', lineHeight: 1.4,
+                    fontSize: 13.5, fontWeight: 700, color: C.ink750, lineHeight: 1.4,
                   }}>
                     {r.caption || t.schNoCaption}
                   </div>
-                  <div style={{ fontSize: 11.5, color: '#a59fbb', marginTop: 3 }}>{formatDateTimeVN(r.publishedAt)}</div>
+                  <div style={{ fontSize: 11.5, color: C.textFaint, marginTop: 3 }}>{formatDateTimeVN(r.publishedAt)}</div>
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 12 }}>
                 {metrics.map((m) => (
-                  <div key={m.key} style={{ background: '#faf9fe', borderRadius: 10, padding: '8px 10px' }}>
-                    <div style={{ fontSize: 11, color: '#8a85a0' }}>{m.label}</div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#211c38' }}>
+                  <div key={m.key} style={{ background: C.surfaceSubtle, borderRadius: 10, padding: '8px 10px' }}>
+                    <div style={{ fontSize: 11, color: C.textMuted }}>{m.label}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: C.textStrong }}>
                       {formatGroupedNumber(r[m.key], lang)}
                     </div>
                   </div>
@@ -96,7 +97,7 @@ function PostsCardList({
 
 const cardBtn: CSSProperties = {
   width: '100%', textAlign: 'left', font: 'inherit', cursor: 'pointer',
-  border: '1px solid #f1eef8', borderRadius: 14, background: '#fff', padding: 14,
+  border: `1px solid ${C.surfaceMuted}`, borderRadius: 14, background: C.surface, padding: 14,
 };
 
 export default memo(PostsCardList);

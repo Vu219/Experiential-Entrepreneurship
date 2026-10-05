@@ -7,6 +7,7 @@ import { formatVND } from '../../api/admin';
 import { paymentStatusMeta } from '../../api/revenue';
 import { formatDateTimeVN } from '../../utils/format';
 import type { AdminPayment } from '../../api/adminPayments';
+import { C } from '../../styles/colors';
 
 /**
  * Chi tiết một đơn + hai thao tác tay (huỷ · đánh dấu đã trả tiền) — hiển thị dạng POPUP
@@ -46,17 +47,17 @@ export default function PaymentDetailModal({
         <div
           style={{
             display: 'flex', gap: 9, alignItems: 'flex-start', marginBottom: 14,
-            padding: '11px 13px', borderRadius: 12, background: '#fdf0dc', border: '1px solid #f6dfae',
+            padding: '11px 13px', borderRadius: 12, background: C.warningSoft, border: `1px solid ${C.legacyBorderf6dfae}`,
           }}
         >
-          <CircleAlert size={16} strokeWidth={1.9} color="#b45309" style={{ flex: 'none', marginTop: 1 }} />
-          <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: '#7c4a08' }}>{t.aoReconcileHint}</p>
+          <CircleAlert size={16} strokeWidth={1.9} color={C.amberText} style={{ flex: 'none', marginTop: 1 }} />
+          <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: C.legacyText7c4a08 }}>{t.aoReconcileHint}</p>
         </div>
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
         <StatusBadge tone={meta.tone} label={meta.label} />
-        <span style={{ fontSize: 17, fontWeight: 800, color: '#1b1730' }}>{formatVND(payment.amount)}</span>
+        <span style={{ fontSize: 17, fontWeight: 800, color: C.textStrong }}>{formatVND(payment.amount)}</span>
       </div>
 
       <Row label={t.aoBuyer} value={payment.userEmail ? `${payment.userFullName ?? '—'} · ${payment.userEmail}` : t.payDeletedAccount} />
@@ -83,14 +84,14 @@ export default function PaymentDetailModal({
 
       <div style={{ marginTop: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
-          <FileText size={15} strokeWidth={1.9} color="#a39bbf" />
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: '#6b6680' }}>{t.aoRawPayload}</span>
+          <FileText size={15} strokeWidth={1.9} color={C.ink350} />
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: C.textSecondary }}>{t.aoRawPayload}</span>
         </div>
         <pre
           style={{
             margin: 0, maxHeight: 220, overflow: 'auto', padding: '11px 12px', borderRadius: 10,
-            background: '#f7f6fd', border: '1px solid #ece8f6', fontSize: 11.5, lineHeight: 1.6,
-            color: '#4b4660', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+            background: C.bg, border: `1px solid ${C.border}`, fontSize: 11.5, lineHeight: 1.6,
+            color: C.ink650, whiteSpace: 'pre-wrap', wordBreak: 'break-all',
           }}
         >
           {payment.rawPayload ?? t.aoNoPayload}
@@ -101,10 +102,10 @@ export default function PaymentDetailModal({
         <div
           style={{
             display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20,
-            paddingTop: 16, borderTop: '1px solid #f0edf7',
+            paddingTop: 16, borderTop: `1px solid ${C.surfaceMuted}`,
           }}
         >
-          <label style={{ fontSize: 12.5, fontWeight: 700, color: '#6b6680' }}>
+          <label style={{ fontSize: 12.5, fontWeight: 700, color: C.textSecondary }}>
             {t.aoReasonLabel}
             <textarea
               value={reason}
@@ -114,8 +115,8 @@ export default function PaymentDetailModal({
               placeholder={t.aoReasonPh}
               style={{
                 width: '100%', marginTop: 6, borderRadius: 10, padding: '9px 11px',
-                border: '1px solid #ece8f6', background: '#faf9fd', fontSize: 13,
-                fontFamily: 'inherit', color: '#241f3a', resize: 'vertical', outline: 'none',
+                border: `1px solid ${C.border}`, background: C.surfaceSubtle, fontSize: 13,
+                fontFamily: 'inherit', color: C.textStrong, resize: 'vertical', outline: 'none',
               }}
             />
           </label>
@@ -140,7 +141,7 @@ export default function PaymentDetailModal({
             )}
           </div>
           {!canAct && !busy && (
-            <p style={{ margin: 0, fontSize: 12, color: '#a39bbf' }}>{t.aoReasonRequired}</p>
+            <p style={{ margin: 0, fontSize: 12, color: C.ink350 }}>{t.aoReasonRequired}</p>
           )}
         </div>
       )}
@@ -152,18 +153,18 @@ function actionStyle(enabled: boolean, color: string) {
   return {
     flex: 1, borderRadius: 11, padding: '10px 0', fontSize: 13.5, fontWeight: 700,
     border: 'none', cursor: enabled ? 'pointer' : 'not-allowed',
-    color: enabled ? '#fff' : '#a39bbf',
-    background: enabled ? color : '#f2f0f8',
+    color: enabled ? '#fff' : C.ink350,
+    background: enabled ? color : C.surfaceMuted,
   } as const;
 }
 
 function Row({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div style={{ display: 'flex', gap: 12, padding: '7px 0', borderBottom: '1px solid #f6f3fb' }}>
-      <span style={{ flex: '0 0 40%', fontSize: 12.5, color: '#8a85a0' }}>{label}</span>
+    <div style={{ display: 'flex', gap: 12, padding: '7px 0', borderBottom: `1px solid ${C.bg}` }}>
+      <span style={{ flex: '0 0 40%', fontSize: 12.5, color: C.textMuted }}>{label}</span>
       <span
         style={{
-          flex: 1, fontSize: 13, fontWeight: 600, color: '#1b1730', wordBreak: 'break-word',
+          flex: 1, fontSize: 13, fontWeight: 600, color: C.textStrong, wordBreak: 'break-word',
           fontFamily: mono ? 'ui-monospace, SFMono-Regular, Menlo, monospace' : undefined,
         }}
       >

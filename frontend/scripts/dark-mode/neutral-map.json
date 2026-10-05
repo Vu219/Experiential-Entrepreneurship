@@ -1,0 +1,2352 @@
+{
+ "ANCHORS": [
+  [
+   "surface",
+   "#ffffff",
+   "#121829",
+   "nền card/modal/menu"
+  ],
+  [
+   "surface-subtle",
+   "#fbfaff",
+   "#151c2f",
+   "vùng nhấn rất nhẹ trong card"
+  ],
+  [
+   "bg",
+   "#f7f6fd",
+   "#0b0f1e",
+   "nền trang"
+  ],
+  [
+   "surface-muted",
+   "#f1eef8",
+   "#182036",
+   "input, ô tìm kiếm, nút phụ, hover, lưới chart"
+  ],
+  [
+   "border",
+   "#ece8f6",
+   "#232b42",
+   "viền card/input, đường phân tách"
+  ],
+  [
+   "border-strong",
+   "#d9d3ea",
+   "#2e3752",
+   "viền đậm, thumb scrollbar"
+  ],
+  [
+   "ink-200",
+   "#c4bdd6",
+   "#3d4762",
+   "icon/viền disabled"
+  ],
+  [
+   "ink-250",
+   "#b3acc6",
+   "#4f5975",
+   "chữ rất mờ"
+  ],
+  [
+   "text-faint",
+   "#a59fbb",
+   "#6b7590",
+   "placeholder, nhãn trục"
+  ],
+  [
+   "ink-350",
+   "#9b94b5",
+   "#747e99",
+   "chữ mờ phụ"
+  ],
+  [
+   "text-muted",
+   "#8a85a0",
+   "#8690aa",
+   "chữ mờ"
+  ],
+  [
+   "text-secondary",
+   "#6b6680",
+   "#a3abc4",
+   "phụ đề"
+  ],
+  [
+   "ink-550",
+   "#5b5670",
+   "#b0b8cf",
+   "chữ thân nhạt"
+  ],
+  [
+   "ink-600",
+   "#574f6e",
+   "#b7bed3",
+   "chữ thân nhạt (tím)"
+  ],
+  [
+   "ink-650",
+   "#4b4660",
+   "#c3c9db",
+   "chữ thân / icon nút"
+  ],
+  [
+   "text",
+   "#3f3a55",
+   "#d5d9e8",
+   "chữ thân"
+  ],
+  [
+   "ink-750",
+   "#2b2543",
+   "#e2e6f1",
+   "chữ đậm"
+  ],
+  [
+   "text-strong",
+   "#211c38",
+   "#f1f3fb",
+   "tiêu đề"
+  ],
+  [
+   "ink-900",
+   "#171327",
+   "#f7f8fc",
+   "chữ đậm nhất"
+  ]
+ ],
+ "merged": [
+  {
+   "h": "#efeaf8",
+   "n": 78,
+   "token": "border",
+   "de": 0.6380690599826101
+  },
+  {
+   "h": "#a39bbf",
+   "n": 75,
+   "token": "ink-350",
+   "de": 2.5039041734236442
+  },
+  {
+   "h": "#241f3a",
+   "n": 44,
+   "token": "text-strong",
+   "de": 1.0253818333136675
+  },
+  {
+   "h": "#f4f1fb",
+   "n": 38,
+   "token": "surface-muted",
+   "de": 0.6252276478244231
+  },
+  {
+   "h": "#faf9fe",
+   "n": 28,
+   "token": "surface-subtle",
+   "de": 0.20113613359874744
+  },
+  {
+   "h": "#1b1730",
+   "n": 25,
+   "token": "text-strong",
+   "de": 1.9953372746988502
+  },
+  {
+   "h": "#f4f2fb",
+   "n": 24,
+   "token": "surface-muted",
+   "de": 1.045426573197482
+  },
+  {
+   "h": "#e7e2f2",
+   "n": 23,
+   "token": "border",
+   "de": 1.568005600076706
+  },
+  {
+   "h": "#f0ecf8",
+   "n": 21,
+   "token": "surface-muted",
+   "de": 1.0905522061897743
+  },
+  {
+   "h": "#f6f3fc",
+   "n": 18,
+   "token": "surface-muted",
+   "de": 1.1204941820105039
+  },
+  {
+   "h": "#f4f1fa",
+   "n": 17,
+   "token": "surface-muted",
+   "de": 0.7588809040575311
+  },
+  {
+   "h": "#faf8ff",
+   "n": 16,
+   "token": "bg",
+   "de": 0.6511185442632519
+  },
+  {
+   "h": "#eee9f6",
+   "n": 14,
+   "token": "border",
+   "de": 0.6105795099003378
+  },
+  {
+   "h": "#f8f6fd",
+   "n": 11,
+   "token": "bg",
+   "de": 0.47603192467763844
+  },
+  {
+   "h": "#f6f2ff",
+   "n": 11,
+   "token": "surface-muted",
+   "de": 1.6721119505644013
+  },
+  {
+   "h": "#ece7f6",
+   "n": 10,
+   "token": "border",
+   "de": 0.6486814372397364
+  },
+  {
+   "h": "#fcfbfe",
+   "n": 10,
+   "token": "surface-subtle",
+   "de": 1.0062441176751697
+  },
+  {
+   "h": "#e0ddee",
+   "n": 10,
+   "token": "border",
+   "de": 2.717324773193831
+  },
+  {
+   "h": "#faf8fe",
+   "n": 9,
+   "token": "bg",
+   "de": 0.7378004060954895
+  },
+  {
+   "h": "#f6f1ff",
+   "n": 9,
+   "token": "border",
+   "de": 1.9819743701842358
+  },
+  {
+   "h": "#2d2745",
+   "n": 9,
+   "token": "ink-750",
+   "de": 0.6303008306662706
+  },
+  {
+   "h": "#f1edfa",
+   "n": 9,
+   "token": "border",
+   "de": 1.1304700729343016
+  },
+  {
+   "h": "#f1eef9",
+   "n": 8,
+   "token": "surface-muted",
+   "de": 0.43401217604691844
+  },
+  {
+   "h": "#f3f0fa",
+   "n": 6,
+   "token": "surface-muted",
+   "de": 0.41763705379450644
+  },
+  {
+   "h": "#1e1b2e",
+   "n": 6,
+   "token": "ink-900",
+   "de": 2.559825723617793
+  },
+  {
+   "h": "#ece8f5",
+   "n": 6,
+   "token": "border",
+   "de": 0.41080532703612294
+  },
+  {
+   "h": "#f6f3fb",
+   "n": 5,
+   "token": "bg",
+   "de": 1.2379533426087945
+  },
+  {
+   "h": "#f7f4ff",
+   "n": 5,
+   "token": "surface-muted",
+   "de": 1.323799288079722
+  },
+  {
+   "h": "#9a93b3",
+   "n": 5,
+   "token": "ink-350",
+   "de": 0.46600248534991107
+  },
+  {
+   "h": "#eae6f4",
+   "n": 5,
+   "token": "border",
+   "de": 0.43030957123810337
+  },
+  {
+   "h": "#1f1b2e",
+   "n": 4,
+   "token": "ink-900",
+   "de": 2.54338313678723
+  },
+  {
+   "h": "#f2f0f8",
+   "n": 4,
+   "token": "surface-muted",
+   "de": 1.1358250520458806
+  },
+  {
+   "h": "#f8f5ff",
+   "n": 4,
+   "token": "surface-muted",
+   "de": 1.4475290613399792
+  },
+  {
+   "h": "#f1f5f9",
+   "n": 4,
+   "token": "surface-subtle",
+   "de": 2.9442435907735214
+  },
+  {
+   "h": "#f6f4fa",
+   "n": 4,
+   "token": "bg",
+   "de": 0.7047544369772861
+  },
+  {
+   "h": "#efecf7",
+   "n": 4,
+   "token": "surface-muted",
+   "de": 0.5990509994190482
+  },
+  {
+   "h": "#e8e4f1",
+   "n": 4,
+   "token": "border",
+   "de": 0.9640813735187485
+  },
+  {
+   "h": "#fdfcff",
+   "n": 4,
+   "token": "surface-subtle",
+   "de": 1.0597490844178343
+  },
+  {
+   "h": "#f6effc",
+   "n": 4,
+   "token": "border",
+   "de": 2.05253974135276
+  },
+  {
+   "h": "#eceaf4",
+   "n": 4,
+   "token": "surface-muted",
+   "de": 0.999573672654673
+  },
+  {
+   "h": "#c9c2dd",
+   "n": 4,
+   "token": "ink-200",
+   "de": 1.4600362947754484
+  },
+  {
+   "h": "#f1f2fc",
+   "n": 4,
+   "token": "bg",
+   "de": 1.7104674162455296
+  },
+  {
+   "h": "#f5f1fb",
+   "n": 4,
+   "token": "surface-muted",
+   "de": 0.8034576269278895
+  },
+  {
+   "h": "#f9f1fc",
+   "n": 4,
+   "token": "surface-muted",
+   "de": 2.403617171876722
+  },
+  {
+   "h": "#948eae",
+   "n": 3,
+   "token": "ink-350",
+   "de": 2.102170170501161
+  },
+  {
+   "h": "#f5f0ff",
+   "n": 3,
+   "token": "border",
+   "de": 1.8434057515941922
+  },
+  {
+   "h": "#faf9fd",
+   "n": 3,
+   "token": "surface-subtle",
+   "de": 0.5339136955706808
+  },
+  {
+   "h": "#f6f4fb",
+   "n": 3,
+   "token": "bg",
+   "de": 0.6004311098861568
+  },
+  {
+   "h": "#f8f6fc",
+   "n": 3,
+   "token": "bg",
+   "de": 0.595622356449459
+  },
+  {
+   "h": "#f7f3ff",
+   "n": 3,
+   "token": "surface-muted",
+   "de": 1.499421234560323
+  },
+  {
+   "h": "#6f6a86",
+   "n": 3,
+   "token": "text-secondary",
+   "de": 1.7354500520381733
+  },
+  {
+   "h": "#f4f3f8",
+   "n": 3,
+   "token": "bg",
+   "de": 1.1447852877224947
+  },
+  {
+   "h": "#f3effc",
+   "n": 3,
+   "token": "surface-muted",
+   "de": 1.4398717368241367
+  },
+  {
+   "h": "#f1edf8",
+   "n": 3,
+   "token": "surface-muted",
+   "de": 0.6901321689776101
+  },
+  {
+   "h": "#faf7ff",
+   "n": 3,
+   "token": "bg",
+   "de": 1.1581208613548062
+  },
+  {
+   "h": "#e6e2f2",
+   "n": 3,
+   "token": "border",
+   "de": 1.515347508831189
+  },
+  {
+   "h": "#ede8f9",
+   "n": 3,
+   "token": "border",
+   "de": 1.3127743773270544
+  },
+  {
+   "h": "#6b6580",
+   "n": 3,
+   "token": "text-secondary",
+   "de": 0.6278395513449241
+  },
+  {
+   "h": "#faf6ff",
+   "n": 3,
+   "token": "surface-muted",
+   "de": 1.7789614419366533
+  },
+  {
+   "h": "#514b66",
+   "n": 2,
+   "token": "ink-650",
+   "de": 1.8646775094295602
+  },
+  {
+   "h": "#b3aacb",
+   "n": 2,
+   "token": "ink-250",
+   "de": 2.4341576156733598
+  },
+  {
+   "h": "#b3acc7",
+   "n": 2,
+   "token": "ink-250",
+   "de": 0.3430966655397923
+  },
+  {
+   "h": "#f5f4f8",
+   "n": 2,
+   "token": "surface-subtle",
+   "de": 1.323716050377148
+  },
+  {
+   "h": "#f4f0fd",
+   "n": 2,
+   "token": "surface-muted",
+   "de": 1.4929880972085738
+  },
+  {
+   "h": "#f9f8fc",
+   "n": 2,
+   "token": "surface-subtle",
+   "de": 0.6415302983672663
+  },
+  {
+   "h": "#1f1b33",
+   "n": 2,
+   "token": "text-strong",
+   "de": 1.6889845334855202
+  },
+  {
+   "h": "#f3efff",
+   "n": 2,
+   "token": "border",
+   "de": 1.692791883507673
+  },
+  {
+   "h": "#ede8f8",
+   "n": 2,
+   "token": "border",
+   "de": 0.9550002878072682
+  },
+  {
+   "h": "#f5f2fa",
+   "n": 2,
+   "token": "surface-muted",
+   "de": 1.2085237591269622
+  },
+  {
+   "h": "#b7b2c8",
+   "n": 2,
+   "token": "ink-250",
+   "de": 2.2545161421967785
+  },
+  {
+   "h": "#ece8f7",
+   "n": 2,
+   "token": "border",
+   "de": 0.40351434376124423
+  },
+  {
+   "h": "#f0edf9",
+   "n": 2,
+   "token": "surface-muted",
+   "de": 0.8815422554393054
+  },
+  {
+   "h": "#f5f3fc",
+   "n": 1,
+   "token": "surface-muted",
+   "de": 1.2074829519307557
+  },
+  {
+   "h": "#fcfbff",
+   "n": 1,
+   "token": "surface-subtle",
+   "de": 0.5252692458862352
+  },
+  {
+   "h": "#f0edf7",
+   "n": 1,
+   "token": "surface-muted",
+   "de": 0.2100574051683494
+  },
+  {
+   "h": "#e5e0f0",
+   "n": 1,
+   "token": "border",
+   "de": 1.9361800521119044
+  },
+  {
+   "h": "#ede9f8",
+   "n": 1,
+   "token": "border",
+   "de": 0.4599798822884069
+  },
+  {
+   "h": "#c3bcd8",
+   "n": 1,
+   "token": "ink-200",
+   "de": 1.043397874269264
+  },
+  {
+   "h": "#fdf7f9",
+   "n": 1,
+   "token": "surface-subtle",
+   "de": 2.50501658752147
+  },
+  {
+   "h": "#f3f0f9",
+   "n": 1,
+   "token": "surface-muted",
+   "de": 0.6024489097895928
+  },
+  {
+   "h": "#f7f2ff",
+   "n": 1,
+   "token": "surface-muted",
+   "de": 1.896777663906031
+  },
+  {
+   "h": "#fdfbff",
+   "n": 1,
+   "token": "surface-subtle",
+   "de": 0.6477877615878321
+  },
+  {
+   "h": "#2d264b",
+   "n": 1,
+   "token": "ink-750",
+   "de": 2.412009162033678
+  },
+  {
+   "h": "#fdfcfe",
+   "n": 1,
+   "token": "surface",
+   "de": 1.385022942337876
+  },
+  {
+   "h": "#1f1838",
+   "n": 1,
+   "token": "text-strong",
+   "de": 2.0051326849307203
+  },
+  {
+   "h": "#ede8f6",
+   "n": 1,
+   "token": "border",
+   "de": 0.4359742492859535
+  },
+  {
+   "h": "#f7f5fd",
+   "n": 1,
+   "token": "bg",
+   "de": 0.7409573846550638
+  },
+  {
+   "h": "#f4effe",
+   "n": 1,
+   "token": "border",
+   "de": 1.6495796484732572
+  },
+  {
+   "h": "#fbfafe",
+   "n": 1,
+   "token": "surface-subtle",
+   "de": 0.4900539266759645
+  },
+  {
+   "h": "#2b2740",
+   "n": 1,
+   "token": "ink-750",
+   "de": 2.16359036775864
+  },
+  {
+   "h": "#f4eefe",
+   "n": 1,
+   "token": "border",
+   "de": 1.8391074092242334
+  },
+  {
+   "h": "#f5f2fb",
+   "n": 1,
+   "token": "surface-muted",
+   "de": 0.9347476788290738
+  },
+  {
+   "h": "#fbf9ff",
+   "n": 1,
+   "token": "surface-subtle",
+   "de": 0.7591612797652993
+  },
+  {
+   "h": "#c5c0d4",
+   "n": 1,
+   "token": "ink-200",
+   "de": 2.1201640899313365
+  },
+  {
+   "h": "#ece9f3",
+   "n": 1,
+   "token": "surface-muted",
+   "de": 1.0586764283879606
+  },
+  {
+   "h": "#aaa5bb",
+   "n": 1,
+   "token": "text-faint",
+   "de": 2.732783304608371
+  },
+  {
+   "h": "#f4f0ff",
+   "n": 1,
+   "token": "border",
+   "de": 1.741138502204897
+  },
+  {
+   "h": "#b3adc8",
+   "n": 1,
+   "token": "ink-250",
+   "de": 0.5673444633171114
+  },
+  {
+   "h": "#f9f8fd",
+   "n": 1,
+   "token": "surface-subtle",
+   "de": 0.4030359054244944
+  },
+  {
+   "h": "#f7f6fb",
+   "n": 1,
+   "token": "surface-subtle",
+   "de": 0.8091460594308891
+  },
+  {
+   "h": "#f1eefb",
+   "n": 1,
+   "token": "surface-muted",
+   "de": 1.2776199480750001
+  },
+  {
+   "h": "#f8fafc",
+   "n": 1,
+   "token": "surface",
+   "de": 1.623689414349262
+  },
+  {
+   "h": "#f1ecfc",
+   "n": 1,
+   "token": "border",
+   "de": 1.3137434499405642
+  }
+ ],
+ "exact": [
+  {
+   "h": "#ffffff",
+   "n": 615,
+   "token": "surface"
+  },
+  {
+   "h": "#8a85a0",
+   "n": 343,
+   "token": "text-muted"
+  },
+  {
+   "h": "#ece8f6",
+   "n": 252,
+   "token": "border"
+  },
+  {
+   "h": "#a59fbb",
+   "n": 168,
+   "token": "text-faint"
+  },
+  {
+   "h": "#211c38",
+   "n": 157,
+   "token": "text-strong"
+  },
+  {
+   "h": "#5b5670",
+   "n": 136,
+   "token": "ink-550"
+  },
+  {
+   "h": "#6b6680",
+   "n": 124,
+   "token": "text-secondary"
+  },
+  {
+   "h": "#3f3a55",
+   "n": 96,
+   "token": "text"
+  },
+  {
+   "h": "#f1eef8",
+   "n": 89,
+   "token": "surface-muted"
+  },
+  {
+   "h": "#4b4660",
+   "n": 88,
+   "token": "ink-650"
+  },
+  {
+   "h": "#574f6e",
+   "n": 84,
+   "token": "ink-600"
+  },
+  {
+   "h": "#2b2543",
+   "n": 76,
+   "token": "ink-750"
+  },
+  {
+   "h": "#fbfaff",
+   "n": 29,
+   "token": "surface-subtle"
+  },
+  {
+   "h": "#171327",
+   "n": 18,
+   "token": "ink-900"
+  },
+  {
+   "h": "#c4bdd6",
+   "n": 12,
+   "token": "ink-200"
+  },
+  {
+   "h": "#f7f6fd",
+   "n": 9,
+   "token": "bg"
+  },
+  {
+   "h": "#9b94b5",
+   "n": 6,
+   "token": "ink-350"
+  },
+  {
+   "h": "#b3acc6",
+   "n": 4,
+   "token": "ink-250"
+  },
+  {
+   "h": "#d9d3ea",
+   "n": 3,
+   "token": "border-strong"
+  }
+ ],
+ "manual": [
+  {
+   "h": "#7c3aed",
+   "n": 228,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#8b5cf6",
+   "n": 90,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#16a34a",
+   "n": 68,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#6d28d9",
+   "n": 67,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#dc2626",
+   "n": 60,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#e23d6e",
+   "n": 51,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#b45309",
+   "n": 36,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f1e9ff",
+   "n": 36,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#f3edff",
+   "n": 32,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#d97706",
+   "n": 27,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#c4b5fd",
+   "n": 22,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e8f8ee",
+   "n": 21,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#6b7280",
+   "n": 21,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#fdf0dc",
+   "n": 20,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#d6336c",
+   "n": 19,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f59e0b",
+   "n": 19,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#0e7490",
+   "n": 16,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#ec4899",
+   "n": 15,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#7d6aa3",
+   "n": 13,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#10b981",
+   "n": 13,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#22d3ee",
+   "n": 13,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#fde8e8",
+   "n": 12,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#6366f1",
+   "n": 11,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#fdecf1",
+   "n": 11,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#1877f2",
+   "n": 11,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#7c5cff",
+   "n": 11,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e9f0ff",
+   "n": 11,
+   "why": "trung tính lẻ (gần bg Δ4.6)"
+  },
+  {
+   "h": "#6b5ca8",
+   "n": 10,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#ef4444",
+   "n": 10,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#d9cef5",
+   "n": 9,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#a78bfa",
+   "n": 9,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#b91c1c",
+   "n": 9,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e7d9fb",
+   "n": 9,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#e7fff4",
+   "n": 9,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e9f7ff",
+   "n": 9,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#92400e",
+   "n": 8,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e0f7fb",
+   "n": 8,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#d946ef",
+   "n": 8,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#5b4b86",
+   "n": 8,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e3d9fb",
+   "n": 8,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#f3aabf",
+   "n": 8,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#ece6f8",
+   "n": 8,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#000000",
+   "n": 8,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#eafbf1",
+   "n": 7,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#5b2b9e",
+   "n": 7,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f3c9d6",
+   "n": 7,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fdf6e7",
+   "n": 7,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fae9ff",
+   "n": 7,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#3b82f6",
+   "n": 7,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#ffe9f3",
+   "n": 7,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e25c84",
+   "n": 6,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fcf1fc",
+   "n": 6,
+   "why": "trung tính lẻ (gần surface-muted Δ3.6)"
+  },
+  {
+   "h": "#efe6fb",
+   "n": 6,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#d6cdf0",
+   "n": 6,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#fdeef2",
+   "n": 6,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f4ecff",
+   "n": 6,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#1f2937",
+   "n": 6,
+   "why": "trung tính lẻ (gần ink-900 Δ11.1)"
+  },
+  {
+   "h": "#eef2ff",
+   "n": 6,
+   "why": "trung tính lẻ (gần bg Δ3.2)"
+  },
+  {
+   "h": "#46d6ec",
+   "n": 5,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#a855f7",
+   "n": 5,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#64748b",
+   "n": 5,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#fdf1f1",
+   "n": 5,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#15803d",
+   "n": 5,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#6e8efb",
+   "n": 5,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e7f6ff",
+   "n": 5,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fff3e0",
+   "n": 5,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#a777e3",
+   "n": 5,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fee2e2",
+   "n": 5,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#c2410c",
+   "n": 5,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#fff7ed",
+   "n": 4,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fed7aa",
+   "n": 4,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fbdce7",
+   "n": 4,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f7f5fc",
+   "n": 4,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#f083c0",
+   "n": 4,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#fecaca",
+   "n": 4,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f3f4f6",
+   "n": 4,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#e2e8f0",
+   "n": 4,
+   "why": "trung tính lẻ (gần bg Δ4.6)"
+  },
+  {
+   "h": "#fdf4e5",
+   "n": 4,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#d8cdf2",
+   "n": 4,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#edf9ff",
+   "n": 4,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f6e2c2",
+   "n": 3,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#a16207",
+   "n": 3,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f6dfae",
+   "n": 3,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f43f5e",
+   "n": 3,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#ddd6fe",
+   "n": 3,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#be185d",
+   "n": 3,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f9a8d4",
+   "n": 3,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#ee2a7b",
+   "n": 3,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#d0cce0",
+   "n": 3,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#e0d5fb",
+   "n": 3,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#e5e0f2",
+   "n": 3,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#92600a",
+   "n": 3,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#1e1b4b",
+   "n": 3,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#22c55e",
+   "n": 3,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#5bd8ec",
+   "n": 3,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#6aa1f2",
+   "n": 3,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#7e86f1",
+   "n": 3,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#6fa8a3",
+   "n": 3,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#8098c4",
+   "n": 3,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#9e90c2",
+   "n": 3,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#e0a583",
+   "n": 3,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#cf8e93",
+   "n": 3,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#b983a6",
+   "n": 3,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#b3d4fc",
+   "n": 3,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#4285f4",
+   "n": 3,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#ffedd5",
+   "n": 3,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#fdf6ea",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fdf1dd",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#d9cef7",
+   "n": 2,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#c9c2e8",
+   "n": 2,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#7c4a08",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#ffe9ec",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fff1f3",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fff1dc",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fff8ec",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e0f2fe",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#eff8ff",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#94a3b8",
+   "n": 2,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#f7dca6",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#67e8f9",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#b9a7ea",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#111111",
+   "n": 2,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#fef2f2",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#9b7fd6",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#eef2f7",
+   "n": 2,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#ebe5f8",
+   "n": 2,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#f9d2d8",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#991b1b",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f6e2b3",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#c9bce8",
+   "n": 2,
+   "why": "trung tính lẻ (gần ink-200 Δ6.0)"
+  },
+  {
+   "h": "#f2c9d4",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fdf1f4",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#eaf8ef",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e0daee",
+   "n": 2,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#65676b",
+   "n": 2,
+   "why": "trung tính lẻ (gần text-secondary Δ11.2)"
+  },
+  {
+   "h": "#dcd4f0",
+   "n": 2,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#c0356a",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fbbf24",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e3dcf4",
+   "n": 2,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#d1435b",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fdf1f3",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#334155",
+   "n": 2,
+   "why": "trung tính lẻ (gần text Δ10.0)"
+  },
+  {
+   "h": "#2563eb",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#b79df0",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fdeaea",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#06b6d4",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#b9a8e6",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#897ce3",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#dcd7ed",
+   "n": 2,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#cbd5e1",
+   "n": 2,
+   "why": "trung tính lẻ (gần border Δ8.6)"
+  },
+  {
+   "h": "#e3d8f7",
+   "n": 2,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#d9d2ec",
+   "n": 2,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#f5f3ff",
+   "n": 2,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#dcfce7",
+   "n": 2,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#059669",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#cdeed8",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#c0285a",
+   "n": 2,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f9ce34",
+   "n": 2,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#6228d7",
+   "n": 2,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#f4cccc",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f3d9a8",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#ddd0fb",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#fff7fa",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#efeafc",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#e6e1ff",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#ffd9d9",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#faf0ff",
+   "n": 1,
+   "why": "trung tính lẻ (gần border Δ3.2)"
+  },
+  {
+   "h": "#14b8a6",
+   "n": 1,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#e9dcff",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#f5c2d3",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#d9c8fb",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#fdeef3",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#ff5f57",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#febc2e",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#28c840",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f0abfc",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#d8b4fe",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#38bdf8",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#3b1fa3",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#7c5cd6",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#c084fc",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#a5f3fc",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#db2777",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fffaf0",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fce7c3",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#d5cfe8",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#e4dbfa",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#5b21b6",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#dcd6ec",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#d8c9ff",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#cfc9e0",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#ecfdf5",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#047857",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#a7f3d0",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e5e7eb",
+   "n": 1,
+   "why": "trung tính lẻ (gần bg Δ4.1)"
+  },
+  {
+   "h": "#d6cfe8",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#fffdf7",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#ece2fb",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#c9bdf3",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#b08968",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fdf6ec",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#9b96ad",
+   "n": 1,
+   "why": "trung tính lẻ (gần text-faint Δ3.5)"
+  },
+  {
+   "h": "#e9defb",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#a39fb3",
+   "n": 1,
+   "why": "trung tính lẻ (gần text-faint Δ3.1)"
+  },
+  {
+   "h": "#ebe4f9",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#efe9fb",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#352668",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#4f2d7f",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#d4cbf2",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#6025d8",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#ddd7ed",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#e5ddf5",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#d2c8ea",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#18112d",
+   "n": 1,
+   "why": "trung tính lẻ (gần text-strong Δ3.4)"
+  },
+  {
+   "h": "#291b4f",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#43226a",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f2d9df",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fdf5f7",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f6cdd9",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e5ddf6",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#fdeef5",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#d9cdf7",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#effcf3",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f1fbf6",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#c9ecd6",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e9e4f9",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#475569",
+   "n": 1,
+   "why": "trung tính lẻ (gần ink-550 Δ10.0)"
+  },
+  {
+   "h": "#1e293b",
+   "n": 1,
+   "why": "trung tính lẻ (gần ink-750 Δ9.9)"
+  },
+  {
+   "h": "#ddd0f7",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#d9cbf8",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#bfe8cd",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#ea580c",
+   "n": 1,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#fdefe6",
+   "n": 1,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#f3edfd",
+   "n": 1,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#e3dcf6",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#4c1d95",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#bbf7d0",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#c9c4d8",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#7d7894",
+   "n": 1,
+   "why": "trung tính lẻ (gần text-muted Δ4.9)"
+  },
+  {
+   "h": "#efe4ff",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#a58fd0",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#4ade80",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f87171",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#0891b2",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#818cf8",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#4f46e5",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#9ca3af",
+   "n": 1,
+   "why": "trung tính lẻ (gần text-faint Δ9.7)"
+  },
+  {
+   "h": "#e3daf5",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#d9cef0",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#c3b9df",
+   "n": 1,
+   "why": "trung tính lẻ (gần ink-200 Δ4.3)"
+  },
+  {
+   "h": "#3b5998",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#405de6",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#5b51db",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#b33ab4",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#c135b4",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e1306c",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fd1f1f",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#0a66c2",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#ff0000",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#165ed0",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#333333",
+   "n": 1,
+   "why": "trung tính lẻ (gần text Δ14.4)"
+  },
+  {
+   "h": "#c4bbe0",
+   "n": 1,
+   "why": "trung tính lẻ (gần ink-200 Δ3.9)"
+  },
+  {
+   "h": "#6793fb",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fdecec",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f6c6c6",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#10a37f",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#ff6b5e",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f5a623",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#ded7ee",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#f1ecfe",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#e3f3f6",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e8f0fe",
+   "n": 1,
+   "why": "trung tính lẻ (gần bg Δ4.7)"
+  },
+  {
+   "h": "#c0740b",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#ddc9fb",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#ede9fe",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#e3ddf2",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#fef3e2",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fef8ee",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f6e2bf",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#e4d9fb",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#5b3fa8",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fff1e9",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#ffe9f1",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fff0f0",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#7c6f4f",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f3e6c4",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#f6d9d9",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#d7d2e3",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#ea4335",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fbbc05",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#34a853",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#9a95ad",
+   "n": 1,
+   "why": "trung tính lẻ (gần ink-350 Δ3.2)"
+  },
+  {
+   "h": "#e6dcfb",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#b42318",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#8a5566",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#dcd7ea",
+   "n": 1,
+   "why": "sắc tím/hồng nhấn"
+  },
+  {
+   "h": "#fff5f5",
+   "n": 1,
+   "why": "màu có sắc độ (thương hiệu/trạng thái)"
+  },
+  {
+   "h": "#fef3c7",
+   "n": 1,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#312e81",
+   "n": 1,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#dbeafe",
+   "n": 1,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#fce7f3",
+   "n": 1,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#3b9eff",
+   "n": 1,
+   "why": "token trạng thái/thương hiệu"
+  },
+  {
+   "h": "#404040",
+   "n": 1,
+   "why": "token trạng thái/thương hiệu"
+  }
+ ]
+}

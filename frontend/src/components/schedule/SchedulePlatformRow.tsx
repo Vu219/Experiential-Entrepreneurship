@@ -13,6 +13,7 @@ import {
   MIN_LEAD_MINUTES, addWallMinutes, earliestTimeOn, isSlotPast, wallDiffMinutes,
   type PlannerAccount, type PlannerRow, type RowError, type RowMode,
 } from './plannerLogic.ts';
+import { C } from '../../styles/colors';
 
 // Một card của SchedulePlanner = một bản nền tảng. Card bị khóa vẫn hiện (mờ) kèm lý do (IG cần ảnh/video, chưa
 // định dạng, đã có lịch, chưa kết nối) thay vì ẩn đi; card đủ điều kiện chọn Đăng ngay / Chọn giờ / Gợi ý / Không đăng.
@@ -85,13 +86,13 @@ export default function SchedulePlatformRow({
 
   // Tóm tắt bên phải header: nhìn là biết nền tảng này sẽ đăng lúc nào.
   const summary = (() => {
-    if (row.block) return { text: t.planWhenBlocked, color: '#a59fbb' };
+    if (row.block) return { text: t.planWhenBlocked, color: C.textFaint };
     if (done) return null;
-    if (row.mode === 'NONE') return { text: t.planModeNone, color: '#8a85a0' };
-    if (row.mode === 'NOW') return { text: t.planModeNow, color: '#6d28d9' };
-    if (!wall) return { text: t.planWhenUnset, color: '#b45309' };
+    if (row.mode === 'NONE') return { text: t.planModeNone, color: C.textMuted };
+    if (row.mode === 'NOW') return { text: t.planModeNow, color: C.primaryStrong };
+    if (!wall) return { text: t.planWhenUnset, color: C.amberText };
     const l = wallLabel(wall, lang);
-    return { text: t.planWhenAt.replace('{time}', l.time).replace('{date}', l.date), color: error ? '#e23d6e' : '#15803d' };
+    return { text: t.planWhenAt.replace('{time}', l.time).replace('{date}', l.date), color: error ? C.rose : C.legacyText15803d };
   })();
 
   // "còn X phút/giờ nữa" dưới ô giờ khi giờ hợp lệ.
@@ -100,12 +101,12 @@ export default function SchedulePlatformRow({
   const fixLabel = row.block === 'UNSUPPORTED_MEDIA' ? t.planFixMedia : row.block === 'NOT_FORMATTED' ? t.planFixFormat : null;
 
   return (
-    <div style={{ border: `1px solid ${done ? '#bbf7d0' : row.result && !done ? '#f3aabf' : '#ece8f6'}`, borderRadius: 16, padding: '14px 16px', background: row.block ? '#fbfaff' : '#fff', display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ border: `1px solid ${done ? C.legacyBorderbbf7d0 : row.result && !done ? C.inputErrorBorder : C.border}`, borderRadius: 16, padding: '14px 16px', background: row.block ? C.surfaceSubtle : C.surface, display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', opacity: row.block ? 0.6 : 1 }}>
         <span style={{ display: 'inline-flex', filter: row.block ? 'grayscale(.6)' : undefined }}>
           <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={28} radius={8} fontSize={11} />
         </span>
-        <span style={{ fontWeight: 700, fontSize: 14.5, color: '#211c38', flex: 1, minWidth: 100 }}>{name}</span>
+        <span style={{ fontWeight: 700, fontSize: 14.5, color: C.textStrong, flex: 1, minWidth: 100 }}>{name}</span>
         {summary && <span style={{ fontSize: 12.5, fontWeight: 700, color: summary.color, textAlign: 'right' }}>{summary.text}</span>}
       </div>
 
@@ -113,7 +114,7 @@ export default function SchedulePlatformRow({
         <div style={{ ...note, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ flex: 1, minWidth: 200 }}>{t[`planBlock${row.block}` as keyof typeof t] as string}</span>
           {row.block === 'NO_ACCOUNT' && (
-            <button type="button" onClick={onConnect} className="btn-soft" style={{ ...linkBtn, border: '1px solid #e3d9fb', background: '#fff', borderRadius: 999, padding: '5px 11px' }}>
+            <button type="button" onClick={onConnect} className="btn-soft" style={{ ...linkBtn, border: `1px solid ${C.legacyBordere3d9fb}`, background: C.surface, borderRadius: 999, padding: '5px 11px' }}>
               <Link2 size={13} aria-hidden="true" />{t.calConnectAccount}
             </button>
           )}
@@ -131,7 +132,7 @@ export default function SchedulePlatformRow({
             const on = row.mode === m;
             return (
               <button key={m} type="button" aria-pressed={on} onClick={() => setMode(m)}
-                style={{ ...segment, background: on ? '#fff' : 'transparent', color: on ? '#6d28d9' : '#6b6680', boxShadow: on ? '0 2px 8px -3px rgba(80,40,140,.35)' : 'none' }}>
+                style={{ ...segment, background: on ? C.surface : 'transparent', color: on ? C.primaryStrong : C.textSecondary, boxShadow: on ? `0 2px 8px -3px ${C.legacyShadowrgba8040140_35_}` : 'none' }}>
                 {modeLabel[m]}
               </button>
             );
@@ -177,7 +178,7 @@ export default function SchedulePlatformRow({
           {row.mode === 'SUGGEST' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {slotsLoading && <div style={{ ...note, display: 'flex', alignItems: 'center', gap: 6 }}><Loader2 size={13} className="icon-spin" aria-hidden="true" />{t.planSuggestLoading}</div>}
-              {slotsError && <div style={{ ...note, color: '#e23d6e' }}>{slotsError}</div>}
+              {slotsError && <div style={{ ...note, color: C.rose }}>{slotsError}</div>}
               {slots && slots.length === 0 && <div style={note}>{t.planSuggestEmpty}</div>}
               {slots && slots.length > 0 && (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -185,7 +186,7 @@ export default function SchedulePlatformRow({
                     const on = row.date === s.time.slice(0, 10) && row.time === s.time.slice(11, 16);
                     return (
                       <button key={s.time} type="button" aria-pressed={on} onClick={() => pickSlot(s)}
-                        style={{ ...chip, border: `1px solid ${on ? '#6d28d9' : '#e3d9fb'}`, background: on ? '#6d28d9' : '#f8f5ff', color: on ? '#fff' : '#6d28d9' }}>
+                        style={{ ...chip, border: `1px solid ${on ? C.primaryStrong : C.legacyBordere3d9fb}`, background: on ? '#6d28d9' : C.surfaceMuted, color: on ? '#fff' : C.primaryStrong }}>
                         {s.time.slice(8, 10)}/{s.time.slice(5, 7)} · {s.time.slice(11, 16)}
                       </button>
                     );
@@ -195,7 +196,7 @@ export default function SchedulePlatformRow({
               <TimeFeedback error={timeError} countdown={countdown} />
               {!slotsLoading && (
                 <button type="button" onClick={() => void loadSlots()} disabled={!row.accountId} className="link-underline"
-                  style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, fontSize: 12, fontWeight: 700, color: '#7c3aed', cursor: row.accountId ? 'pointer' : 'default' }}>
+                  style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, fontSize: 12, fontWeight: 700, color: C.primary, cursor: row.accountId ? 'pointer' : 'default' }}>
                   {t.planSuggestReload}
                 </button>
               )}
@@ -205,7 +206,7 @@ export default function SchedulePlatformRow({
           {row.mode === 'NOW' && <div style={note}>{t.planNowHint}</div>}
 
           {conflicts.length > 0 && (
-            <div style={{ ...note, display: 'flex', alignItems: 'center', gap: 6, color: '#b45309', background: '#fdf6e7' }}>
+            <div style={{ ...note, display: 'flex', alignItems: 'center', gap: 6, color: C.amberText, background: C.legacyBgfdf6e7 }}>
               <AlertTriangle size={13} aria-hidden="true" />
               {t.planConflict.replace('{time}', conflicts.map((c) => c.scheduledTime.slice(11, 16)).join(', '))}
             </div>
@@ -214,7 +215,7 @@ export default function SchedulePlatformRow({
       )}
 
       {row.result && (
-        <div role="status" style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 12.5, fontWeight: 600, color: done ? '#15803d' : '#e23d6e' }}>
+        <div role="status" style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 12.5, fontWeight: 600, color: done ? C.legacyText15803d : C.rose }}>
           {done ? <CheckCircle2 size={14} aria-hidden="true" /> : <XCircle size={14} aria-hidden="true" />}
           <span>
             {done
@@ -271,13 +272,13 @@ export function TimeExtras({ date, time, todayISO, nowWall, error, formatError, 
     <>
       {line && (
         <div role={line.tone === 'error' ? 'alert' : undefined}
-          style={line.tone === 'error' ? errText : { fontSize: 12, color: line.tone === 'warn' ? '#b45309' : '#8a85a0' }}>
+          style={line.tone === 'error' ? errText : { fontSize: 12, color: line.tone === 'warn' ? C.amberText : C.textMuted }}>
           {line.text}
         </div>
       )}
       {hours.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <Sparkles size={13} color="#7c3aed" aria-hidden="true" />
+          <Sparkles size={13} color={C.primary} aria-hidden="true" />
           {hours.map((h) => {
             const start = h.split('-')[0]?.trim() ?? '';
             const on = time === start;
@@ -289,9 +290,9 @@ export function TimeExtras({ date, time, todayISO, nowWall, error, formatError, 
                 onClick={() => { if (!past) onPick(start); }}
                 style={{
                   ...chip,
-                  border: `1px solid ${on ? '#6d28d9' : past ? '#ece9f3' : '#e3d9fb'}`,
-                  background: on ? '#6d28d9' : past ? '#f4f3f8' : '#f8f5ff',
-                  color: on ? '#fff' : past ? '#aaa5bb' : '#6d28d9',
+                  border: `1px solid ${on ? C.primaryStrong : past ? C.surfaceMuted : C.legacyBordere3d9fb}`,
+                  background: on ? '#6d28d9' : past ? C.bg : C.surfaceMuted,
+                  color: on ? '#fff' : past ? C.textFaint : C.primaryStrong,
                   cursor: past ? 'not-allowed' : 'pointer',
                   opacity: past ? 0.7 : 1,
                 }}>
@@ -308,7 +309,7 @@ export function TimeExtras({ date, time, todayISO, nowWall, error, formatError, 
 /** Lỗi giờ (đỏ, đọc ngay bởi screen reader) hoặc dòng phụ "còn X nữa". */
 export function TimeFeedback({ error, countdown }: { error: string | null; countdown: string | null }) {
   if (error) return <div role="alert" style={errText}>{error}</div>;
-  if (countdown) return <div style={{ fontSize: 12, color: '#8a85a0' }}>{countdown}</div>;
+  if (countdown) return <div style={{ fontSize: 12, color: C.textMuted }}>{countdown}</div>;
   return null;
 }
 
@@ -326,10 +327,10 @@ export function relIn(minutes: number, t: { planIn: string; planUnitMin: string;
 }
 
 const chip: CSSProperties = { borderRadius: 999, padding: '5px 11px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontVariantNumeric: 'tabular-nums' };
-const segmented: CSSProperties = { display: 'flex', gap: 3, padding: 3, background: '#f4f2fb', border: '1px solid #ece8f6', borderRadius: 12, flexWrap: 'wrap' };
+const segmented: CSSProperties = { display: 'flex', gap: 3, padding: 3, background: C.surfaceMuted, border: `1px solid ${C.border}`, borderRadius: 12, flexWrap: 'wrap' };
 const segment: CSSProperties = { flex: '1 1 0', minWidth: 88, border: 'none', borderRadius: 9, padding: '8px 10px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' };
-const lbl: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12.5, fontWeight: 700, color: '#4b4660' };
-const inp: CSSProperties = { width: '100%', height: 42, border: '1px solid #ece8f6', borderRadius: 10, padding: '0 12px', fontSize: 13.5, color: '#241f3a', background: '#fff', outline: 'none' };
-const note: CSSProperties = { fontSize: 12.5, color: '#8a85a0', background: '#f7f6fd', borderRadius: 9, padding: '8px 11px', lineHeight: 1.5 };
-const errText: CSSProperties = { fontSize: 12, fontWeight: 600, color: '#e23d6e' };
-const linkBtn: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none', background: 'none', border: 'none', padding: 0, fontSize: 12, fontWeight: 700, color: '#6d28d9', cursor: 'pointer' };
+const lbl: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12.5, fontWeight: 700, color: C.ink650 };
+const inp: CSSProperties = { width: '100%', height: 42, border: `1px solid ${C.border}`, borderRadius: 10, padding: '0 12px', fontSize: 13.5, color: C.textStrong, background: C.surface, outline: 'none' };
+const note: CSSProperties = { fontSize: 12.5, color: C.textMuted, background: C.bg, borderRadius: 9, padding: '8px 11px', lineHeight: 1.5 };
+const errText: CSSProperties = { fontSize: 12, fontWeight: 600, color: C.rose };
+const linkBtn: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none', background: 'none', border: 'none', padding: 0, fontSize: 12, fontWeight: 700, color: C.primaryStrong, cursor: 'pointer' };

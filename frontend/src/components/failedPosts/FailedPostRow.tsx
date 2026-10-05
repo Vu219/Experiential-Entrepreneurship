@@ -7,11 +7,12 @@ import { TONE_COLORS } from '../../statusTokens.ts';
 import { PLATFORM_TO_TAG } from '../../api/connections.ts';
 import type { FailedPost } from '../../api/failedPosts.ts';
 import { fmtDate, fmtTime, toneOf, typeLabel } from './shared.ts';
+import { C } from '../../styles/colors';
 
 // Một bài lỗi trong danh sách master: variant 'row' (hàng bảng desktop/tablet) hoặc
 // 'card' (thẻ dọc trên mobile).
 
-const tdStyle: CSSProperties = { padding: '12px 16px', fontSize: 13, color: '#4b4660', verticalAlign: 'middle' };
+const tdStyle: CSSProperties = { padding: '12px 16px', fontSize: 13, color: C.ink650, verticalAlign: 'middle' };
 
 /** Shadow mép trái cũ — đã bỏ để giao diện sạch sẽ, không có đường mờ phân cách. */
 export const STICKY_TH_SHADOW = undefined;
@@ -19,8 +20,8 @@ export const STICKY_TH_SHADOW = undefined;
 /** Thumbnail placeholder — MVP không sinh ảnh (FR-29) nên dùng ô icon trung tính. */
 function Thumb() {
   return (
-    <span style={{ width: 38, height: 38, flex: 'none', borderRadius: 9, background: '#f4f1fb', display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-hidden>
-      <FileText size={17} color="#a78bfa" strokeWidth={1.8} />
+    <span style={{ width: 38, height: 38, flex: 'none', borderRadius: 9, background: C.surfaceMuted, display: 'flex', alignItems: 'center', justifyContent: 'center' }} aria-hidden>
+      <FileText size={17} color={C.legacyTexta78bfa} strokeWidth={1.8} />
     </span>
   );
 }
@@ -42,9 +43,9 @@ function TypeBadges({ post }: { post: FailedPost }) {
 }
 
 function CodeBadge({ code }: { code: string | null }) {
-  if (!code) return <span style={{ color: '#a59fbb' }}>—</span>;
+  if (!code) return <span style={{ color: C.textFaint }}>—</span>;
   return (
-    <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: '#6b6680', background: '#f3f0fa', borderRadius: 6, padding: '3px 8px' }}>
+    <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: C.textSecondary, background: C.surfaceMuted, borderRadius: 6, padding: '3px 8px' }}>
       #{code}
     </span>
   );
@@ -75,10 +76,10 @@ export default function FailedPostRow({
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
         className="row-hover"
         style={{
-          border: `1px solid ${selected ? '#c4b5fd' : '#efeaf8'}`,
+          border: `1px solid ${selected ? C.legacyBorderc4b5fd : C.border}`,
           borderLeft: `4px solid ${tone.color}`,
           borderRadius: 14, padding: 13,
-          background: selected ? '#f7f3ff' : '#fff', cursor: 'pointer',
+          background: selected ? C.surfaceMuted : C.surface, cursor: 'pointer',
           display: 'flex', flexDirection: 'column', gap: 9,
           transition: 'background-color 0.15s ease',
         }}
@@ -86,25 +87,25 @@ export default function FailedPostRow({
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
           <Thumb />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#2b2543', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{caption}</div>
-            <div style={{ fontSize: 11, color: '#a59fbb', marginTop: 3 }}>{t.fpTypePost} · {post.accountName ?? '—'}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.ink750, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{caption}</div>
+            <div style={{ fontSize: 11, color: C.textFaint, marginTop: 3 }}>{t.fpTypePost} · {post.accountName ?? '—'}</div>
           </div>
           <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={26} radius={8} />
         </div>
-        <div style={{ fontSize: 12, color: '#6b6680', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+        <div style={{ fontSize: 12, color: C.textSecondary, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
           {post.errorMessage ?? '—'}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <TypeBadges post={post} />
           <CodeBadge code={post.errorCode} />
-          <span style={{ fontSize: 11, color: '#a59fbb', marginLeft: 'auto' }}>{fmtDate(post.failedAt)} {fmtTime(post.failedAt)}</span>
+          <span style={{ fontSize: 11, color: C.textFaint, marginLeft: 'auto' }}>{fmtDate(post.failedAt)} {fmtTime(post.failedAt)}</span>
         </div>
       </div>
     );
   }
 
   const rowBg = selected ? '#f7f3ff' : undefined;
-  const td: CSSProperties = { ...tdStyle, borderTop: '1px solid #f1eef8' };
+  const td: CSSProperties = { ...tdStyle, borderTop: `1px solid ${C.surfaceMuted}` };
   const firstTd: CSSProperties = {
     ...td,
     borderLeft: `4px solid ${tone.color}`,
@@ -126,8 +127,8 @@ export default function FailedPostRow({
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <Thumb />
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div title={caption} style={{ fontSize: 13, fontWeight: 700, color: '#2b2543', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{caption}</div>
-            <div style={{ fontSize: 11, color: '#a59fbb', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.fpTypePost} · {post.accountName ?? '—'}</div>
+            <div title={caption} style={{ fontSize: 13, fontWeight: 700, color: C.ink750, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{caption}</div>
+            <div style={{ fontSize: 11, color: C.textFaint, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.fpTypePost} · {post.accountName ?? '—'}</div>
           </div>
         </div>
       </td>
@@ -135,14 +136,14 @@ export default function FailedPostRow({
         <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={26} radius={8} />
       </td>
       <td style={td}>
-        <div title={post.errorMessage ?? undefined} style={{ fontSize: 12, lineHeight: 1.5, color: '#6b6680', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+        <div title={post.errorMessage ?? undefined} style={{ fontSize: 12, lineHeight: 1.5, color: C.textSecondary, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
           {post.errorMessage ?? '—'}
         </div>
       </td>
       <td style={td}><CodeBadge code={post.errorCode} /></td>
       <td style={{ ...td, whiteSpace: 'nowrap' }}>
-        <div style={{ fontSize: 12.5, fontWeight: 600, color: '#4b4660' }}>{fmtDate(post.failedAt)}</div>
-        <div style={{ fontSize: 11, color: '#a59fbb', marginTop: 2 }}>{fmtTime(post.failedAt)}</div>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: C.ink650 }}>{fmtDate(post.failedAt)}</div>
+        <div style={{ fontSize: 11, color: C.textFaint, marginTop: 2 }}>{fmtTime(post.failedAt)}</div>
       </td>
       <td style={td}>
         <TypeBadges post={post} />

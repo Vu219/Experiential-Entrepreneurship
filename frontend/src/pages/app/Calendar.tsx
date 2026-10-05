@@ -20,6 +20,7 @@ import StatCards from '../../components/calendar/StatCards.tsx';
 import CalendarSkeleton from '../../components/calendar/CalendarSkeleton.tsx';
 import DaySheet from '../../components/calendar/DaySheet.tsx';
 import ScheduleDetailView from '../../components/calendar/ScheduleDetailView.tsx';
+import { C } from '../../styles/colors';
 
 // UI-07 — Lịch đăng bài (FR-47..FR-51 + FR-58), redesign 2026-07:
 // hàng KPI (đếm client-side, thẻ Thất bại → trang Bài lỗi) + cột trái view Tháng (chip giờ +
@@ -277,7 +278,7 @@ export default function Calendar() {
           message={t.calErrMsg}
           action={
             <button onClick={retry} className="btn-grad" style={primaryBtn(brandGradient)}>
-              <Icon icon={RefreshCw} size={16} stroke="#fff" />
+              <Icon icon={RefreshCw} size={16} stroke={C.onBrand} />
               {t.ntfRetry}
             </button>
           }
@@ -329,7 +330,7 @@ export default function Calendar() {
           }
           action={
             <button onClick={() => navigate('/calendar')} className="btn-grad" style={primaryBtn(brandGradient)}>
-              <Icon icon={RefreshCw} size={16} stroke="#fff" />
+              <Icon icon={RefreshCw} size={16} stroke={C.onBrand} />
               {lang === 'en' ? 'Back to Calendar' : 'Quay lại Lịch đăng bài'}
             </button>
           }
@@ -361,7 +362,7 @@ export default function Calendar() {
           message={t.calEmptyMsg}
           action={
             <button onClick={() => setCreateOpen(true)} className="btn-grad" style={primaryBtn(brandGradient)}>
-              <Icon icon={CalendarClock} size={16} stroke="#fff" />
+              <Icon icon={CalendarClock} size={16} stroke={C.onBrand} />
               {t.schNew}
             </button>
           }
@@ -372,17 +373,17 @@ export default function Calendar() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
               {view === 'month' ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: '#211c38' }}>{monthLabel}</span>
+                  <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: C.textStrong }}>{monthLabel}</span>
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button style={navBtn} onClick={() => setMonthOffset((v) => v - 1)} aria-label={t.calPrevMonth}>‹</button>
                     <button style={navBtn} onClick={() => setMonthOffset((v) => v + 1)} aria-label={t.calNextMonth}>›</button>
                   </div>
                 </div>
               ) : (
-                <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: '#211c38' }}>{t.calViewAgenda}</span>
+                <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: C.textStrong }}>{t.calViewAgenda}</span>
               )}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', background: '#f6f4fb', borderRadius: 10, padding: 3, gap: 2 }}>
+                <div style={{ display: 'flex', background: C.bg, borderRadius: 10, padding: 3, gap: 2 }}>
                   {(['month', 'agenda'] as const).map((v) => (
                     <button
                       key={v}
@@ -390,16 +391,16 @@ export default function Calendar() {
                       aria-pressed={view === v}
                       style={{
                         border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
-                        background: view === v ? '#fff' : 'transparent',
-                        color: view === v ? '#7c3aed' : '#6b6680',
-                        boxShadow: view === v ? '0 2px 8px -3px rgba(80,60,140,.25)' : 'none',
+                        background: view === v ? C.surface : 'transparent',
+                        color: view === v ? C.primary : C.textSecondary,
+                        boxShadow: view === v ? `0 2px 8px -3px ${C.legacyShadowrgba8060140_25_}` : 'none',
                       }}
                     >
                       {v === 'month' ? t.calViewMonth : t.calViewAgenda}
                     </button>
                   ))}
                 </div>
-                <button onClick={() => setCreateOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 10, padding: '9px 16px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>
+                <button onClick={() => setCreateOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 10, padding: '9px 16px', fontWeight: 700, fontSize: 13, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>
                   <CalendarClock size={15} />
                   {t.schNew}
                 </button>
@@ -428,7 +429,7 @@ export default function Calendar() {
                   onSelectSchedule={handleOpenDetailById}
                 />
                 {selectedDay && !isMobile && (
-                  <button onClick={onClearDay} style={{ marginTop: 12, background: 'none', border: 'none', color: '#7c3aed', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
+                  <button onClick={onClearDay} style={{ marginTop: 12, background: 'none', border: 'none', color: C.primary, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
                     {t.schShowAll}
                   </button>
                 )}
@@ -487,7 +488,7 @@ export default function Calendar() {
       {isMobile && view === 'month' && selectedDay && (
         <DaySheet title={absDayLabel(selectedDay, lang)} onClose={onClearDay}>
           {sheetItems.length === 0 ? (
-            <div style={{ padding: '18px 0', textAlign: 'center', fontSize: 13, color: '#8a85a0' }}>{t.schEmptyDay}</div>
+            <div style={{ padding: '18px 0', textAlign: 'center', fontSize: 13, color: C.textMuted }}>{t.schEmptyDay}</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {sheetItems.map((s) => (
@@ -542,8 +543,8 @@ function StatePanel({ tone, icon, title, message, action, role }: {
         <div style={{ width: 56, height: 56, borderRadius: 16, background: tintBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Icon icon={icon} size={26} stroke={accent} />
         </div>
-        <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 19, color: '#211c38' }}>{title}</div>
-        <div style={{ fontSize: 14, lineHeight: 1.55, color: '#5b5670' }}>{message}</div>
+        <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 19, color: C.textStrong }}>{title}</div>
+        <div style={{ fontSize: 14, lineHeight: 1.55, color: C.ink550 }}>{message}</div>
         <div style={{ marginTop: 6 }}>{action}</div>
       </div>
     </Card>
@@ -552,16 +553,16 @@ function StatePanel({ tone, icon, title, message, action, role }: {
 
 const primaryBtn = (brandGradient: string): CSSProperties => ({
   display: 'inline-flex', alignItems: 'center', gap: 8, border: 'none', borderRadius: 12,
-  padding: '11px 20px', fontWeight: 700, fontSize: 14, color: '#fff',
+  padding: '11px 20px', fontWeight: 700, fontSize: 14, color: C.onBrand,
   background: brandGradient, cursor: 'pointer',
 });
 
 const platformChip = (active: boolean): CSSProperties => ({
   display: 'inline-flex', alignItems: 'center', gap: 6,
-  border: `1px solid ${active ? '#c4b5fd' : '#ece8f6'}`, borderRadius: 999, padding: '5px 11px',
+  border: `1px solid ${active ? C.legacyBorderc4b5fd : C.border}`, borderRadius: 999, padding: '5px 11px',
   fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-  background: active ? '#f1e9ff' : '#fff',
-  color: active ? '#7c3aed' : '#6b6680',
+  background: active ? C.purpleSoft : C.surface,
+  color: active ? C.primary : C.textSecondary,
 });
 
 const srOnly: CSSProperties = {
@@ -570,6 +571,6 @@ const srOnly: CSSProperties = {
 };
 
 const navBtn = {
-  width: 30, height: 30, borderRadius: 8, border: '1px solid #ece8f6', background: '#fff',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8a85a0', cursor: 'pointer',
+  width: 30, height: 30, borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface,
+  display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.textMuted, cursor: 'pointer',
 } as const;

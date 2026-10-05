@@ -1,3 +1,5 @@
+import ColorModeToggle from '../components/ColorModeToggle';
+import { useIsDark } from '../hooks/useIsDark';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -19,22 +21,24 @@ import { passwordValid, generateStrongPassword } from '../validations/password';
 import { validEmail, passwordsMatch, otpValid } from '../validations/authValidation';
 import { useToast } from '../components/toast/ToastProvider';
 import type { AuthForm, AuthErrors } from '../types';
+import { C } from '../styles/colors';
+import { DARK_MODE_ENABLED } from '../store/colorMode';
 
 const inputWrap = (error?: string): CSSProperties => ({
   display: 'flex',
   alignItems: 'center',
   gap: 10,
-  border: `1.5px solid ${error ? '#f3aabf' : '#e7e2f2'}`,
+  border: `1.5px solid ${error ? C.inputErrorBorder : C.border}`,
   borderRadius: 13,
   padding: '0 15px',
-  background: '#fbfaff',
+  background: C.surfaceSubtle,
   transition: 'border .2s',
 });
-const inputStyle: CSSProperties = { flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 15, padding: '14px 0', color: '#241f3a' };
-const labelStyle: CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', color: '#574f6e', marginBottom: 8 };
-const errStyle: CSSProperties = { minHeight: 18, fontSize: 12.5, color: '#e23d6e', marginTop: 5 };
-const noticeStyle: CSSProperties = { fontSize: 13, color: '#16a34a', background: '#e8f8ee', border: '1px solid #cdeed8', borderRadius: 10, padding: '10px 13px', marginBottom: 16 };
-const linkBtn: CSSProperties = { background: 'none', border: 'none', padding: 0, color: '#8b5cf6', fontWeight: 700, fontSize: 14, cursor: 'pointer' };
+const inputStyle: CSSProperties = { flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 15, padding: '14px 0', color: C.textStrong };
+const labelStyle: CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', color: C.ink600, marginBottom: 8 };
+const errStyle: CSSProperties = { minHeight: 18, fontSize: 12.5, color: C.rose, marginTop: 5 };
+const noticeStyle: CSSProperties = { fontSize: 13, color: C.success, background: C.successSoft, border: `1px solid ${C.legacyBordercdeed8}`, borderRadius: 10, padding: '10px 13px', marginBottom: 16 };
+const linkBtn: CSSProperties = { background: 'none', border: 'none', padding: 0, color: C.violetLight, fontWeight: 700, fontSize: 14, cursor: 'pointer' };
 
 // ErrorCode backend ở bước OTP đăng ký.
 const EMAIL_EXISTED = 1003;
@@ -45,20 +49,21 @@ const REGISTRATION_SESSION_EXPIRED = 1080;
 
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-const MailIcon = () => <Mail size={18} color="#a39bbf" strokeWidth={1.7} />;
-const LockIcon = () => <Lock size={18} color="#a39bbf" strokeWidth={1.7} />;
-const UserIcon = () => <UserGlyph size={17} color="#a39bbf" strokeWidth={1.7} />;
+const MailIcon = () => <Mail size={18} color={C.ink350} strokeWidth={1.7} />;
+const LockIcon = () => <Lock size={18} color={C.ink350} strokeWidth={1.7} />;
+const UserIcon = () => <UserGlyph size={17} color={C.ink350} strokeWidth={1.7} />;
 const EyeBtn = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
-  <button type="button" aria-label={on ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a39bbf', display: 'flex', position: 'relative' }}>
+  <button type="button" aria-label={on ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} onClick={onClick} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.ink350, display: 'flex', position: 'relative' }}>
     <Eye size={19} strokeWidth={1.7} aria-hidden="true" />
     <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
-      <line x1="3" y1="3" x2="21" y2="21" stroke="#fbfaff" strokeWidth="4" strokeLinecap="round" style={{ strokeDasharray: 26, strokeDashoffset: on ? 26 : 0, transition: 'stroke-dashoffset 0.2s ease-out' }} />
+      <line x1="3" y1="3" x2="21" y2="21" stroke={C.surfaceSubtle} strokeWidth="4" strokeLinecap="round" style={{ strokeDasharray: 26, strokeDashoffset: on ? 26 : 0, transition: 'stroke-dashoffset 0.2s ease-out' }} />
       <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ strokeDasharray: 26, strokeDashoffset: on ? 26 : 0, transition: 'stroke-dashoffset 0.2s ease-out' }} />
     </svg>
   </button>
 );
 
 export default function Auth() {
+  const isDark = useIsDark();
   const { t, lang, route, go, brandGradient, toggleLang } = useApp();
   const { login: authLogin, refreshUser } = useAuth();
   const { isMobile } = useBreakpoint();
@@ -281,18 +286,19 @@ export default function Auth() {
     }
   };
 
-  const btnPrimary: CSSProperties = { width: '100%', border: 'none', borderRadius: 13, padding: 16, fontWeight: 700, fontSize: 15, letterSpacing: '.05em', color: '#fff', background: brandGradient, boxShadow: '0 16px 30px -12px rgba(139,92,246,.6)', cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.75 : 1 };
+  const btnPrimary: CSSProperties = { width: '100%', border: 'none', borderRadius: 13, padding: 16, fontWeight: 700, fontSize: 15, letterSpacing: '.05em', color: C.onBrand, background: brandGradient, boxShadow: `0 16px 30px -12px ${C.legacyShadowrgba13992246_6_}`, cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.75 : 1 };
 
   return (
     <>
 
-      <div className="view-pop" style={{ minHeight: '100vh', display: 'flex', flexDirection: isMobile ? 'column' : 'row', background: '#fff' }}>
+      <div className="view-pop" style={{ minHeight: '100vh', display: 'flex', flexDirection: isMobile ? 'column' : 'row', background: C.surface }}>
         {/* Illustration panel — hidden on mobile */}
         {!isMobile && (
-          <div style={{ flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden', background: 'radial-gradient(900px 700px at 18% 8%,rgba(34,211,238,.13),transparent 55%),radial-gradient(900px 700px at 90% 90%,rgba(217,70,239,.11),transparent 55%),linear-gradient(160deg,#f1f2fc,#f5f1fb 55%,#f9f1fc)', padding: '48px 54px', display: 'flex', flexDirection: 'column' }}>
-            <img src="/aima-logo.png" alt="AIMA" style={{ height: 74, width: 'auto', alignSelf: 'flex-start' }} />
-            <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 44, letterSpacing: '-.02em', color: '#171327', margin: '8px 0 0' }}>AI - Marketing Assistant</h1>
-            <p style={{ fontSize: 16, lineHeight: 1.6, color: '#5b5670', maxWidth: 430, margin: '16px 0 0' }}>{t.authIntro}</p>
+          <div style={{ flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden', background: `radial-gradient(900px 700px at 18% 8%,rgba(34,211,238,.13),transparent 55%),radial-gradient(900px 700px at 90% 90%,rgba(217,70,239,.11),transparent 55%),linear-gradient(160deg,${C.bg},${C.surfaceMuted} 55%,${C.surfaceMuted})`, padding: '48px 54px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ position: "fixed", top: 16, right: 18, zIndex: 101 }}><ColorModeToggle /></div>
+          <img src={isDark ? "/aima-h-dark.png" : "/aima-logo.png"} alt="AIMA" style={{ height: 74, width: 'auto', alignSelf: 'flex-start' }} />
+            <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 44, letterSpacing: '-.02em', color: C.ink900, margin: '8px 0 0' }}>AI - Marketing Assistant</h1>
+            <p style={{ fontSize: 16, lineHeight: 1.6, color: C.ink550, maxWidth: 430, margin: '16px 0 0' }}>{t.authIntro}</p>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '6px 0' }}>
               <div style={{ width: 460, height: 420, maxWidth: '100%' }}>
                 <AimaScene />
@@ -301,11 +307,11 @@ export default function Auth() {
             <div style={{ display: 'flex', gap: 38 }}>
               {pillarsFor(lang).map((p, i) => (
                 <div key={i} style={{ textAlign: 'center', flex: 1 }}>
-                  <div style={{ width: 42, height: 42, margin: '0 auto 10px', borderRadius: 12, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 22px -14px rgba(120,60,180,.6)' }}>
+                  <div style={{ width: 42, height: 42, margin: '0 auto 10px', borderRadius: 12, background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 10px 22px -14px ${C.legacyShadowrgba12060180_6_}` }}>
                     <GradIcon icon={p.icon} />
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: '#211c38' }}>{p.title}</div>
-                  <div style={{ fontSize: 12, lineHeight: 1.45, color: '#6b6680', marginTop: 3 }}>{p.desc}</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: C.textStrong }}>{p.title}</div>
+                  <div style={{ fontSize: 12, lineHeight: 1.45, color: C.textSecondary, marginTop: 3 }}>{p.desc}</div>
                 </div>
               ))}
             </div>
@@ -313,16 +319,16 @@ export default function Auth() {
         )}
 
         {/* Form panel */}
-        <div style={{ width: isMobile ? '100%' : 'min(48%,640px)', background: '#fff', padding: isMobile ? '64px 20px 30px' : '56px 64px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
+        <div style={{ width: isMobile ? '100%' : 'min(48%,640px)', background: C.surface, padding: isMobile ? '64px 20px 30px' : '56px 64px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
           <div style={{ position: 'absolute', top: isMobile ? 18 : 32, left: isMobile ? 18 : 48 }}>
-            <button onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', fontSize: 15, fontWeight: 600, color: '#4b4660', cursor: 'pointer' }}>
-              <ChevronLeft size={19} color="#6b6680" strokeWidth={1.8} />
+            <button onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', fontSize: 15, fontWeight: 600, color: C.ink650, cursor: 'pointer' }}>
+              <ChevronLeft size={19} color={C.textSecondary} strokeWidth={1.8} />
               {t.backToHome}
             </button>
           </div>
-          <div style={{ position: 'absolute', top: isMobile ? 18 : 32, right: isMobile ? 18 : 48 }}>
-            <button onClick={toggleLang} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', fontSize: 15, fontWeight: 600, color: '#4b4660', cursor: 'pointer' }}>
-              <Globe size={18} color="#6b6680" strokeWidth={1.7} />
+          <div style={{ position: 'absolute', top: isMobile ? 18 : 32, right: isMobile ? 18 : DARK_MODE_ENABLED ? 84 : 48 }}>
+            <button onClick={toggleLang} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', fontSize: 15, fontWeight: 600, color: C.ink650, cursor: 'pointer' }}>
+              <Globe size={18} color={C.textSecondary} strokeWidth={1.7} />
               {t.langLabel}
             </button>
           </div>
@@ -330,7 +336,7 @@ export default function Auth() {
           {route === 'login' && (
             <div style={{ maxWidth: 400, width: '100%', margin: '0 auto', padding: isMobile ? 0 : '8px 0' }}>
               <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: lang === 'vi' ? (isMobile ? 25 : 32) : (isMobile ? 30 : 40), margin: 0, letterSpacing: '-.02em', whiteSpace: 'nowrap' }}>{t.loginTitle}</h2>
-              <p style={{ fontSize: 15, color: '#6b6680', margin: '8px 0 30px' }}>{t.loginSub}</p>
+              <p style={{ fontSize: 15, color: C.textSecondary, margin: '8px 0 30px' }}>{t.loginSub}</p>
               {notice && <div style={noticeStyle}>{notice}</div>}
               <form onSubmit={submitLogin}>
                 <label style={labelStyle}>EMAIL</label>
@@ -349,13 +355,13 @@ export default function Auth() {
                 <div style={errStyle}>{errors.password}</div>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '6px 0 20px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: '#574f6e', cursor: 'pointer' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: C.ink600, cursor: 'pointer' }}>
                     <input type="checkbox" checked={remember} onChange={() => setRemember((v) => !v)} style={{ width: 16, height: 16, accentColor: '#8b5cf6' }} />
                     {t.remember}
                   </label>
-                  <span onClick={() => navigate('/forgot-password')} style={{ fontSize: 13.5, color: '#8b5cf6', fontWeight: 600, cursor: 'pointer' }}>{t.forgot}</span>
+                  <span onClick={() => navigate('/forgot-password')} style={{ fontSize: 13.5, color: C.violetLight, fontWeight: 600, cursor: 'pointer' }}>{t.forgot}</span>
                 </div>
-                {errors.submit && <div style={{ fontSize: 13, color: '#e23d6e', textAlign: 'center', marginBottom: 16 }}>{errors.submit}</div>}
+                {errors.submit && <div style={{ fontSize: 13, color: C.rose, textAlign: 'center', marginBottom: 16 }}>{errors.submit}</div>}
                 <button type="submit" disabled={submitting} style={btnPrimary}>
                   {submitting ? (
                     <div className="dots-container">
@@ -367,13 +373,13 @@ export default function Auth() {
                 </button>
               </form>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '36px 0 24px' }}>
-                <div style={{ flex: 1, height: 1, background: '#ece8f5' }} />
-                <span style={{ fontSize: 13, color: '#8a85a0' }}>{t.orSignIn}</span>
-                <div style={{ flex: 1, height: 1, background: '#ece8f5' }} />
+                <div style={{ flex: 1, height: 1, background: C.border }} />
+                <span style={{ fontSize: 13, color: C.textMuted }}>{t.orSignIn}</span>
+                <div style={{ flex: 1, height: 1, background: C.border }} />
               </div>
               <SocialBtn onClick={() => startGoogleAuth('login')} label={t.googleSignIn} icon={<GoogleIcon />} />
-              <div style={{ textAlign: 'center', fontSize: 14, color: '#6b6680', marginTop: 26 }}>
-                {t.noAccount} <span onClick={() => switchRoute('register')} style={{ color: '#8b5cf6', fontWeight: 700, cursor: 'pointer' }}>{t.signUpNow}</span>
+              <div style={{ textAlign: 'center', fontSize: 14, color: C.textSecondary, marginTop: 26 }}>
+                {t.noAccount} <span onClick={() => switchRoute('register')} style={{ color: C.violetLight, fontWeight: 700, cursor: 'pointer' }}>{t.signUpNow}</span>
               </div>
               <LegalLinks t={t} />
             </div>
@@ -382,7 +388,7 @@ export default function Auth() {
           {route === 'register' && regStep === 'form' && (
             <div style={{ maxWidth: 400, width: '100%', margin: '0 auto' }}>
               <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 34, margin: 0, letterSpacing: '-.01em' }}>{t.regTitle}</h2>
-              <p style={{ fontSize: 14.5, color: '#6b6680', margin: '8px 0 22px' }}>{t.regSub}</p>
+              <p style={{ fontSize: 14.5, color: C.textSecondary, margin: '8px 0 22px' }}>{t.regSub}</p>
               {notice && <div style={noticeStyle}>{notice}</div>}
               <form onSubmit={submitRegister} noValidate>
                 <label style={labelStyle}>{t.lName}</label>
@@ -392,16 +398,16 @@ export default function Auth() {
                 </div>
                 <div style={errStyle}>{errors.name}</div>
 
-                <label htmlFor="reg-email" style={labelStyle}>EMAIL <span aria-hidden="true" style={{ color: '#e23d6e' }}>*</span></label>
+                <label htmlFor="reg-email" style={labelStyle}>EMAIL <span aria-hidden="true" style={{ color: C.rose }}>*</span></label>
                 <div style={inputWrap(errors.email)}>
                   <MailIcon />
                   <input id="reg-email" autoFocus name="email" value={f.email} onChange={onField} type="email" aria-required="true" aria-invalid={!!errors.email} placeholder={t.phEmail} style={inputStyle} />
                 </div>
                 <div style={errStyle}>
                   {errors.email === 'taken' ? (
-                    <span style={{ color: '#e23d6e' }}>
+                    <span style={{ color: C.rose }}>
                       {t.regEmailTaken} —{' '}
-                      <span onClick={() => switchRoute('login')} style={{ color: '#8b5cf6', textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }}>
+                      <span onClick={() => switchRoute('login')} style={{ color: C.violetLight, textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }}>
                         {t.regWantLogin}
                       </span>
                     </span>
@@ -413,7 +419,7 @@ export default function Auth() {
                   <LockIcon />
                   <input name="password" value={f.password} onChange={onField} onFocus={() => setPwFocused(true)} onBlur={() => setPwFocused(false)} type={showPw ? 'text' : 'password'} placeholder={t.phPassword} style={inputStyle} />
                   {f.password && (
-                    <button type="button" aria-label="Tạo mật khẩu ngẫu nhiên" onClick={() => { const pw = generateStrongPassword(); setF(s => ({ ...s, password: pw, confirm: pw })); setErrors(er => ({ ...er, password: undefined, confirm: undefined })); }} style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', display: 'flex', color: '#a39bbf' }}>
+                    <button type="button" aria-label="Tạo mật khẩu ngẫu nhiên" onClick={() => { const pw = generateStrongPassword(); setF(s => ({ ...s, password: pw, confirm: pw })); setErrors(er => ({ ...er, password: undefined, confirm: undefined })); }} style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', display: 'flex', color: C.ink350 }}>
                       <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                     </button>
                   )}
@@ -430,7 +436,7 @@ export default function Auth() {
                 </div>
                 <div style={errStyle}>{errors.confirm}</div>
 
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 13, color: '#574f6e', cursor: 'pointer', margin: '4px 0 16px', lineHeight: 1.4 }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 13, color: C.ink600, cursor: 'pointer', margin: '4px 0 16px', lineHeight: 1.4 }}>
                   <input type="checkbox" checked={agree} onChange={() => { setAgree((v) => !v); setErrors(er => ({ ...er, agree: agree ? t.errAgree : undefined })); }} style={{ width: 16, height: 16, marginTop: 1, accentColor: '#8b5cf6', flex: 'none' }} />
                   <span>
                     {t.agreePre} <a href="/terms" target="_blank" rel="noopener noreferrer" className="link-underline" style={legalInlineLink}>"{t.terms}"</a> {t.and} <a href="/privacy" target="_blank" rel="noopener noreferrer" className="link-underline" style={legalInlineLink}>"{t.privacy}"</a>
@@ -448,13 +454,13 @@ export default function Auth() {
                 </button>
               </form>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '26px 0 20px' }}>
-                <div style={{ flex: 1, height: 1, background: '#ece8f5' }} />
-                <span style={{ fontSize: 13, color: '#8a85a0' }}>{t.orSignUp}</span>
-                <div style={{ flex: 1, height: 1, background: '#ece8f5' }} />
+                <div style={{ flex: 1, height: 1, background: C.border }} />
+                <span style={{ fontSize: 13, color: C.textMuted }}>{t.orSignUp}</span>
+                <div style={{ flex: 1, height: 1, background: C.border }} />
               </div>
               <SocialBtn onClick={() => startGoogleAuth('register')} label={t.googleSignUp} icon={<GoogleIcon />} />
-              <div style={{ textAlign: 'center', fontSize: 14, color: '#6b6680', marginTop: 20 }}>
-                {t.haveAccount} <span onClick={() => switchRoute('login')} style={{ color: '#8b5cf6', fontWeight: 700, cursor: 'pointer' }}>{t.signInNow}</span>
+              <div style={{ textAlign: 'center', fontSize: 14, color: C.textSecondary, marginTop: 20 }}>
+                {t.haveAccount} <span onClick={() => switchRoute('login')} style={{ color: C.violetLight, fontWeight: 700, cursor: 'pointer' }}>{t.signInNow}</span>
               </div>
               <LegalLinks t={t} />
             </div>
@@ -463,12 +469,12 @@ export default function Auth() {
           {route === 'register' && regStep === 'otp' && (
             <div style={{ maxWidth: 400, width: '100%', margin: '0 auto' }}>
               <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 34, margin: 0, letterSpacing: '-.01em' }}>{t.regOtpTitle}</h2>
-              <p style={{ fontSize: 14.5, lineHeight: 1.55, color: '#6b6680', margin: '8px 0 22px' }}>
-                {t.regOtpSub} <b style={{ color: '#241f3a', wordBreak: 'break-all' }}>{f.email.trim().toLowerCase()}</b>
+              <p style={{ fontSize: 14.5, lineHeight: 1.55, color: C.textSecondary, margin: '8px 0 22px' }}>
+                {t.regOtpSub} <b style={{ color: C.textStrong, wordBreak: 'break-all' }}>{f.email.trim().toLowerCase()}</b>
               </p>
               {notice && <div style={noticeStyle} role="status">{notice}</div>}
               <form onSubmit={submitOtp} noValidate>
-                <label htmlFor="reg-otp" style={labelStyle}>{t.regOtpLabel} <span aria-hidden="true" style={{ color: '#e23d6e' }}>*</span></label>
+                <label htmlFor="reg-otp" style={labelStyle}>{t.regOtpLabel} <span aria-hidden="true" style={{ color: C.rose }}>*</span></label>
                 <div style={inputWrap(otpError)}>
                   <LockIcon />
                   <input
@@ -479,8 +485,8 @@ export default function Auth() {
                   />
                 </div>
                 <div style={errStyle} role="alert">{otpError}</div>
-                <div style={{ minHeight: 18, fontSize: 13, color: '#6b6680', margin: '2px 0 18px' }}>
-                  {otpLeft > 0 ? <>{t.regOtpExpiresIn} <b style={{ color: '#241f3a', fontVariantNumeric: 'tabular-nums' }}>{mmss(otpLeft)}</b></> : null}
+                <div style={{ minHeight: 18, fontSize: 13, color: C.textSecondary, margin: '2px 0 18px' }}>
+                  {otpLeft > 0 ? <>{t.regOtpExpiresIn} <b style={{ color: C.textStrong, fontVariantNumeric: 'tabular-nums' }}>{mmss(otpLeft)}</b></> : null}
                 </div>
                 <button type="submit" disabled={submitting} style={btnPrimary}>
                   {submitting ? (
@@ -492,16 +498,16 @@ export default function Auth() {
                   ) : t.regOtpVerify}
                 </button>
               </form>
-              <div style={{ textAlign: 'center', fontSize: 14, color: '#6b6680', marginTop: 22 }}>
+              <div style={{ textAlign: 'center', fontSize: 14, color: C.textSecondary, marginTop: 22 }}>
                 {t.regOtpNoCode}{' '}
                 {resendLeft > 0 ? (
-                  <span style={{ color: '#a39bbf', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{t.regOtpResendIn} {resendLeft}s</span>
+                  <span style={{ color: C.ink350, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{t.regOtpResendIn} {resendLeft}s</span>
                 ) : (
                   <button type="button" onClick={resendOtp} disabled={resending} style={{ ...linkBtn, opacity: resending ? 0.6 : 1 }}>{t.regOtpResend}</button>
                 )}
               </div>
               <div style={{ textAlign: 'center', marginTop: 14 }}>
-                <button type="button" onClick={() => backToRegisterForm()} style={{ ...linkBtn, display: 'inline-flex', alignItems: 'center', gap: 5, color: '#6b6680', fontWeight: 600 }}>
+                <button type="button" onClick={() => backToRegisterForm()} style={{ ...linkBtn, display: 'inline-flex', alignItems: 'center', gap: 5, color: C.textSecondary, fontWeight: 600 }}>
                   <ChevronLeft size={16} strokeWidth={1.8} />
                   {t.regOtpBack}
                 </button>
@@ -512,21 +518,21 @@ export default function Auth() {
           {route === 'logout' && (
             <div style={{ maxWidth: 380, width: '100%', margin: '0 auto', textAlign: 'center' }}>
               <div style={{ position: 'relative', width: 150, height: 150, margin: '0 auto 30px' }}>
-                <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px dashed #d8cdf2', animation: 'spinslow 16s linear infinite' }} />
-                <div style={{ position: 'absolute', inset: 18, borderRadius: '50%', background: brandGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 22px 44px -16px rgba(139,92,246,.7)' }}>
-                  <LogOut size={52} color="#fff" strokeWidth={1.9} />
+                <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `2px dashed ${C.violetLine}`, animation: 'spinslow 16s linear infinite' }} />
+                <div style={{ position: 'absolute', inset: 18, borderRadius: '50%', background: brandGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 22px 44px -16px ${C.legacyShadowrgba13992246_7_}` }}>
+                  <LogOut size={52} color={C.onBrand} strokeWidth={1.9} />
                 </div>
               </div>
               <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 38, margin: 0 }}>{t.logoutTitle}</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.6, color: '#6b6680', margin: '14px 0 32px' }}>{t.logoutMsg}</p>
+              <p style={{ fontSize: 15, lineHeight: 1.6, color: C.textSecondary, margin: '14px 0 32px' }}>{t.logoutMsg}</p>
               <button onClick={() => go('login')} style={btnPrimary}>{t.loginAgain}</button>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '22px 0' }}>
-                <div style={{ flex: 1, height: 1, background: '#ece8f5' }} />
-                <span style={{ fontSize: 13, color: '#8a85a0' }}>{t.or}</span>
-                <div style={{ flex: 1, height: 1, background: '#ece8f5' }} />
+                <div style={{ flex: 1, height: 1, background: C.border }} />
+                <span style={{ fontSize: 13, color: C.textMuted }}>{t.or}</span>
+                <div style={{ flex: 1, height: 1, background: C.border }} />
               </div>
-              <button onClick={() => go('landing')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, border: '1.5px solid #e8e4f1', borderRadius: 13, padding: 15, background: '#fff', fontWeight: 600, fontSize: 15, color: '#3f3a55', cursor: 'pointer' }}>
-                <Home size={19} color="#6b6680" strokeWidth={1.8} />
+              <button onClick={() => go('landing')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, border: `1.5px solid ${C.border}`, borderRadius: 13, padding: 15, background: C.surface, fontWeight: 600, fontSize: 15, color: C.text, cursor: 'pointer' }}>
+                <Home size={19} color={C.textSecondary} strokeWidth={1.8} />
                 {t.backHome}
               </button>
             </div>
@@ -538,10 +544,10 @@ export default function Auth() {
 }
 
 // Link trang pháp lý dưới form đăng nhập/đăng ký — mở tab mới để không mất dữ liệu đang nhập.
-const legalInlineLink: CSSProperties = { color: '#8b5cf6', fontWeight: 600, textDecoration: 'none' };
+const legalInlineLink: CSSProperties = { color: C.violetLight, fontWeight: 600, textDecoration: 'none' };
 
 function LegalLinks({ t }: { t: { terms: string; privacy: string; ftDataDeletion: string } }) {
-  const style: CSSProperties = { fontSize: 12.5, color: '#8a85a0', textDecoration: 'none' };
+  const style: CSSProperties = { fontSize: 12.5, color: C.textMuted, textDecoration: 'none' };
   return (
     <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 16, marginTop: 18 }}>
       <a href="/terms" target="_blank" rel="noopener noreferrer" className="link-underline" style={style}>{t.terms}</a>
@@ -557,7 +563,7 @@ function SocialBtn({ onClick, label, icon }: { onClick: () => void; label: strin
       type="button"
       onClick={onClick}
       className="google-btn"
-      style={{ width: '100%', height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, border: '1.5px solid #d7d2e3', borderRadius: 14, background: '#fff', fontWeight: 700, fontSize: 15, color: '#211c38', cursor: 'pointer', transition: 'background .15s, transform .1s' }}
+      style={{ width: '100%', height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, border: `1.5px solid ${C.legacyBorderd7d2e3}`, borderRadius: 14, background: C.surface, fontWeight: 700, fontSize: 15, color: C.textStrong, cursor: 'pointer', transition: 'background .15s, transform .1s' }}
     >
       {icon}
       {label}
@@ -569,10 +575,10 @@ function SocialBtn({ onClick, label, icon }: { onClick: () => void; label: strin
 function GoogleIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden>
-      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+      <path fill="#ea4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+      <path fill="#4285f4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+      <path fill="#fbbc05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+      <path fill="#34a853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
     </svg>
   );
 }

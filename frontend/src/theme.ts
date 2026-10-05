@@ -8,12 +8,6 @@ import type { Platform } from './types';
 export const BRAND_GRADIENT = 'var(--brand-gradient)';
 export const BRAND_GLOW = 'var(--brand-glow)';
 
-// Nền box CTA cuối trang: gradient SÁNG, desaturated theo màu thương hiệu
-// (xanh nhạt → lavender → hồng nhạt) để card hoà vào phần còn lại của trang.
-// Chữ navy đậm (#1E1B4B) trên nền này đạt tương phản thoải mái.
-export const CTA_BG =
-  'linear-gradient(135deg, #DBEAFE 0%, #F5F3FF 50%, #FCE7F3 100%)';
-
 // Platform brand colors — MVP scope: Facebook → Instagram → Threads (see CLAUDE.md).
 export const PLATFORM_BG: Record<string, string> = {
   FB: '#1877f2',

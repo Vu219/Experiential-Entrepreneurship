@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { formatRangeLabel, formatRangeShort } from './dateRange';
+import { C } from '../../styles/colors';
 
 /**
  * Badge khoảng ngày ở góc trên phải mỗi card lớn (chart, nền tảng, loại nội dung, heatmap).
@@ -14,8 +15,8 @@ function RangeBadge({ from, to }: { from: string; to: string }) {
       title={formatRangeLabel(from, to)}
       style={{
         flex: 'none', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap',
-        border: '1px solid #f1eef8', background: '#fbfaff', borderRadius: 999,
-        padding: '4px 10px', fontSize: 11.5, fontWeight: 700, color: '#a59fbb',
+        border: `1px solid ${C.surfaceMuted}`, background: C.surfaceSubtle, borderRadius: 999,
+        padding: '4px 10px', fontSize: 11.5, fontWeight: 700, color: C.textFaint,
       }}
     >
       {formatRangeShort(from, to)}

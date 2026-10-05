@@ -7,6 +7,7 @@ import { Icon } from '../../components/ui.tsx';
 import PageContainer from '../../components/PageContainer.tsx';
 import BrandProfileList from '../../components/brand/BrandProfileList.tsx';
 import StrategyManager from '../../components/brand/StrategyManager.tsx';
+import { C } from '../../styles/colors';
 
 type Tab = 'brand' | 'strategy';
 
@@ -43,7 +44,7 @@ export default function Brand() {
       <button
         key={key}
         onClick={() => setTab(key)}
-        style={{ border: 'none', background: active ? brandGradient : 'transparent', color: active ? '#fff' : '#5b5670', borderRadius: 11, padding: '9px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: active ? '0 12px 24px -14px rgba(139,92,246,.8)' : 'none', transition: 'background .15s' }}
+        style={{ border: 'none', background: active ? brandGradient : 'transparent', color: active ? C.onBrand : C.ink550, borderRadius: 11, padding: '9px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: active ? `0 12px 24px -14px ${C.legacyShadowrgba13992246_8_}` : 'none', transition: 'background .15s' }}
       >
         {label}
       </button>
@@ -53,18 +54,18 @@ export default function Brand() {
   return (
     <PageContainer>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: 6, background: '#fff', border: '1px solid #efeaf8', borderRadius: 14, padding: 5 }}>
+        <div style={{ display: 'flex', gap: 6, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: 5 }}>
           {tabBtn('brand', t.bpTabBrand)}
           {tabBtn('strategy', t.bpTabStrategy)}
         </div>
         {tab === 'strategy' && (
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <a href="#" onClick={(e) => e.preventDefault()} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: '#7c3aed', background: '#f4ecff', border: '1px solid #e7d9fb', borderRadius: 10, padding: '9px 14px', cursor: 'pointer' }}>
-              <Icon icon={HelpCircle} size={16} stroke="#7c3aed" />{t.csGuide}
+            <a href="#" onClick={(e) => e.preventDefault()} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: C.primary, background: C.accentSoft, border: `1px solid ${C.accentLine}`, borderRadius: 10, padding: '9px 14px', cursor: 'pointer' }}>
+              <Icon icon={HelpCircle} size={16} stroke={C.primary} />{t.csGuide}
             </a>
             {/* Nút tạo chiến lược chuyển lên header (cạnh Hướng dẫn); logic mở form vẫn ở StrategyManager qua store. */}
-            <button onClick={requestStrategyCreate} className="btn-grad" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer' }}>
-              <Icon icon={Plus} size={15} stroke="#fff" />{t.csCreate}
+            <button onClick={requestStrategyCreate} className="btn-grad" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>
+              <Icon icon={Plus} size={15} stroke={C.onBrand} />{t.csCreate}
             </button>
           </div>
         )}

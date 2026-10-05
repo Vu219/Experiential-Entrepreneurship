@@ -3,9 +3,12 @@ import { Globe, Search, Menu, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useUiStore } from '../store/useUiStore';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { useIsDark } from '../hooks/useIsDark';
 import Sidebar from './Sidebar';
 import NotificationBell from './NotificationBell';
 import UserMenu from './UserMenu';
+import ColorModeToggle from './ColorModeToggle';
+import { C } from '../styles/colors';
 
 /** Globe / language switch button (shared between landing, auth and topbar). */
 export function LangButton({ compact = false }: { compact?: boolean }) {
@@ -18,13 +21,13 @@ export function LangButton({ compact = false }: { compact?: boolean }) {
         display: 'flex',
         alignItems: 'center',
         gap: 6,
-        background: compact ? '#f4f2fb' : '#fff',
-        border: '1px solid #ece8f6',
+        background: compact ? C.surfaceMuted : C.surface,
+        border: `1px solid ${C.border}`,
         borderRadius: compact ? 10 : 999,
         padding: compact ? '9px 12px' : '8px 14px',
         fontSize: compact ? 13 : 14,
         fontWeight: 600,
-        color: '#4b4660',
+        color: C.ink650,
         cursor: 'pointer',
       }}
     >
@@ -37,6 +40,7 @@ export function LangButton({ compact = false }: { compact?: boolean }) {
 function Topbar({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen?: boolean, setMobileMenuOpen?: (v: boolean) => void }) {
   const { t, go } = useApp();
   const { isMobile } = useBreakpoint();
+  const isDark = useIsDark();
   // Ô tìm kiếm co giãn theo trạng thái sidebar: sidebar MỞ → gọn lại (440px) vì hàng
   // ngang còn ít chỗ; sidebar thu gọn (hoặc chế độ auto-collapse) → nở ra hấp thụ
   // phần chiều rộng dôi (600px). transition max-width lo phần chuyển mượt.
@@ -45,12 +49,13 @@ function Topbar({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen?: boolea
 
   return (
     <header
+      className="app-topbar"
       style={{
-        height: isMobile ? 62 : 70,
+        height: 'var(--app-header-height)',
         flex: 'none',
-        background: 'rgba(255,255,255,.86)',
+        background: C.topbar,
         backdropFilter: 'blur(8px)',
-        borderBottom: '1px solid #eee9f6',
+        borderBottom: `1px solid ${C.border}`,
         position: 'sticky',
         top: 0,
         zIndex: 40,
@@ -74,13 +79,13 @@ function Topbar({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen?: boolea
           onClick={() => setMobileMenuOpen?.(!mobileMenuOpen)}
           style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
         >
-          {mobileMenuOpen ? <X size={24} color="#4b4660" /> : <Menu size={24} color="#4b4660" />}
+          {mobileMenuOpen ? <X size={24} color={C.ink650} /> : <Menu size={24} color={C.ink650} />}
         </button>
       )}
 
       {isMobile && (
         <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => go('landing')}>
-          <img src="/aima-h.png" alt="AIMA" style={{ height: 24, width: 'auto' }} />
+          <img src={isDark ? '/aima-h-dark.png' : '/aima-h.png'} alt="AIMA" style={{ height: 24, width: 'auto' }} />
         </div>
       )}
 
@@ -92,8 +97,8 @@ function Topbar({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen?: boolea
               display: 'flex',
               alignItems: 'center',
               gap: 10,
-              background: '#f4f2fb',
-              border: '1px solid #ece8f6',
+              background: C.surfaceMuted,
+              border: `1px solid ${C.border}`,
               borderRadius: 12,
               padding: '9px 14px',
               flex: '1 1 auto',
@@ -104,7 +109,7 @@ function Topbar({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen?: boolea
               transition: 'max-width .2s ease',
             }}
           >
-            <Search size={17} color="#a39bbf" strokeWidth={1.8} style={{ flexShrink: 0 }} />
+            <Search size={17} color={C.ink350} strokeWidth={1.8} style={{ flexShrink: 0 }} />
             <input
               placeholder={t.searchPh}
               style={{
@@ -113,7 +118,7 @@ function Topbar({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen?: boolea
                 outline: 'none',
                 background: 'transparent',
                 fontSize: 14,
-                color: '#241f3a',
+                color: C.textStrong,
                 minWidth: 0,
               }}
             />
@@ -124,10 +129,12 @@ function Topbar({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen?: boolea
       {/* Cụm phải: flex none + bám mép phải — bất biến khi sidebar đổi trạng thái. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 18, flex: 'none', marginLeft: 'auto' }}>
         {!isMobile && <LangButton compact />}
+        {/* Sáng / Tối / Theo hệ thống — tự ẩn khi cờ VITE_ENABLE_DARK_MODE chưa bật. */}
+        <ColorModeToggle />
         <NotificationBell />
         {/* Dropdown avatar (tái dùng UserMenu của landing): Trang chủ / Hồ sơ / Cài đặt / Đăng xuất.
             Dòng phụ hiển thị GÓI THẬT của user (Free/Plus/Pro) — không hardcode. */}
-        <div style={{ paddingLeft: 6, borderLeft: '1px solid #eee9f6' }}>
+        <div style={{ paddingLeft: 6, borderLeft: `1px solid ${C.border}` }}>
           <UserMenu variant="app" />
         </div>
       </div>
@@ -181,8 +188,8 @@ function PageHeading() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: '0 1 auto', minWidth: 0 }}>
       <div style={{ flex: '0 1 auto', minWidth: 0, whiteSpace: 'nowrap', maxWidth: 380, overflow: 'hidden' }}>
-        <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 19, color: '#211c38', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
-        {sub && <div style={{ fontSize: 12.5, color: '#8a85a0', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
+        <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 19, color: C.textStrong, overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
+        {sub && <div style={{ fontSize: 12.5, color: C.textMuted, overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
       </div>
       {headerAction && (
         <div style={{ flex: 'none', display: 'flex', alignItems: 'center' }}>

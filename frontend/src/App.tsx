@@ -6,6 +6,7 @@ import AdminRoute from "./auth/AdminRoute";
 import GuestRoute from "./auth/GuestRoute";
 import AppShell from "./components/AppShell";
 import ShareButton from "./components/ShareButton";
+import { useColorModeSync } from "./hooks/useColorModeSync";
 
 // Code-splitting theo route (hiệu năng tải trang): mỗi trang một chunk, tải khi vào route —
 // landing không kéo theo app/admin và ngược lại. Chỉ shell/route-guard ở chunk chính.
@@ -144,6 +145,8 @@ export default function App() {
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
+  // Chế độ sáng/tối: class "dark" trên <html> (độc lập với data-theme ở trên).
+  useColorModeSync();
 
   return (
     <div>

@@ -10,6 +10,7 @@ import BarChart from '../admin/BarChart';
 import { formatVND } from '../../api/admin';
 import { aiTaskLabel } from '../../api/adminAi';
 import { getMyUsage, type UserUsage } from '../../api/usage';
+import { C } from '../../styles/colors';
 
 // Tab "Token & mức dùng" trong trang Cài đặt (UI refactor mục 7 — trước là trang /usage
 // riêng): tổng kỳ này so hạn mức + DỰ BÁO cạn hạn mức (tính client từ tốc độ 7 ngày),
@@ -51,8 +52,8 @@ export default function UsageTab() {
   if (load === 'error' || !data) {
     return (
       <Card style={{ textAlign: 'center', padding: '54px 16px' }}>
-        <div style={{ fontSize: 14.5, fontWeight: 600, color: '#5b5670', marginBottom: 14 }}>{t.listError}</div>
-        <button onClick={fetchUsage} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
+        <div style={{ fontSize: 14.5, fontWeight: 600, color: C.ink550, marginBottom: 14 }}>{t.listError}</div>
+        <button onClick={fetchUsage} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>{t.retry}</button>
       </Card>
     );
   }
@@ -115,7 +116,7 @@ export default function UsageTab() {
   const rangeBtn = (r: ChartRange, label: string) => {
     const active = range === r;
     return (
-      <button key={r} onClick={() => setRange(r)} style={{ border: '1px solid', borderColor: active ? 'transparent' : '#ece8f6', background: active ? brandGradient : '#fff', color: active ? '#fff' : '#5b5670', borderRadius: 9, padding: '6px 13px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{label}</button>
+      <button key={r} onClick={() => setRange(r)} style={{ border: '1px solid', borderColor: active ? 'transparent' : C.border, background: active ? brandGradient : C.surface, color: active ? C.onBrand : C.ink550, borderRadius: 9, padding: '6px 13px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{label}</button>
     );
   };
 
@@ -124,13 +125,13 @@ export default function UsageTab() {
       {/* Banner cảnh báo ngưỡng ≥80% (khi KHÔNG còn token mua thêm — còn credit thì
           các dòng credit bên dưới lo) + CTA nâng gói / mua thêm token. */}
       {pct !== null && pct >= 80 && noCredit && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '12px 16px', borderRadius: 12, background: pct >= 100 ? '#fdeaea' : '#fff7ed', border: `1px solid ${pct >= 100 ? '#fecaca' : '#fed7aa'}` }}>
-          <span style={{ flex: '1 1 260px', fontSize: 13, fontWeight: 600, color: pct >= 100 ? '#b91c1c' : '#b45309' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '12px 16px', borderRadius: 12, background: pct >= 100 ? C.legacyBgfdeaea : C.legacyBgfff7ed, border: `1px solid ${pct >= 100 ? C.legacyBorderfecaca : C.legacyBorderfed7aa}` }}>
+          <span style={{ flex: '1 1 260px', fontSize: 13, fontWeight: 600, color: pct >= 100 ? C.legacyTextb91c1c : C.amberText }}>
             {t.tuWarnBanner.replace('{p}', String(Math.round(pct)))}
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => go('pricing')} style={{ border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 12.5, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.tuWarnUpgrade}</button>
-            <button onClick={() => go('pricing')} style={{ border: '1px solid #ece8f6', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 12.5, color: '#5b5670', background: '#fff', cursor: 'pointer' }}>{t.tuWarnBuy}</button>
+            <button onClick={() => go('pricing')} style={{ border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 12.5, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>{t.tuWarnUpgrade}</button>
+            <button onClick={() => go('pricing')} style={{ border: `1px solid ${C.border}`, borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 12.5, color: C.ink550, background: C.surface, cursor: 'pointer' }}>{t.tuWarnBuy}</button>
           </div>
         </div>
       )}
@@ -138,38 +139,38 @@ export default function UsageTab() {
       {/* Hàng chỉ số: Đã dùng · Dự báo · Ngày reset. Card "Hạn mức kỳ này" cũ đã bỏ —
           hạn mức chỉ còn ở thanh tiến trình + card Gói (tránh lặp 3 lần trên 1 màn). */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: 18 }}>
-        <StatCard icon={Coins} iconBg="linear-gradient(135deg,#f1e9ff,#fae9ff)" iconColor="#8b5cf6"
+        <StatCard icon={Coins} iconBg={`linear-gradient(135deg,${C.purpleSoft},${C.legacyBgfae9ff})`} iconColor={C.violetLight}
           value={fmtTokens(data.used)} label={`${t.tuUsed} · ${data.billingPeriod}`}
           pill={pct === null ? null : `${Math.round(pct)}%`} pillTone={pctTone} />
-        <StatCard icon={TrendingUp} iconBg="linear-gradient(135deg,#e9f0ff,#f1e9ff)" iconColor="#6366f1"
+        <StatCard icon={TrendingUp} iconBg={`linear-gradient(135deg,${C.legacyBge9f0ff},${C.purpleSoft})`} iconColor={C.legacyText6366f1}
           value={forecastText} label={t.tuForecast} valueFontSize={15} />
-        <StatCard icon={CalendarClock} iconBg="linear-gradient(135deg,#e7fff4,#e9f7ff)" iconColor="#10b981"
+        <StatCard icon={CalendarClock} iconBg={`linear-gradient(135deg,${C.legacyBge7fff4},${C.legacyBge9f7ff})`} iconColor={C.legacyText10b981}
           value={fmtDate(data.periodEnd)} label={t.tuReset} valueFontSize={22} />
       </div>
 
       {/* Thanh tiến trình mức dùng (cùng ngôn ngữ hình ảnh thanh usage ở sidebar) */}
       <Card>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#7d6aa3' }}>{t.usageTitle}</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#5b5670' }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.accentTextMuted }}>{t.usageTitle}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.ink550 }}>
             {fmtTokens(data.used)} / {data.limit === null ? '∞' : fmtTokens(data.limit)}
           </span>
         </div>
         {data.limit !== null ? (
-          <div style={{ height: 8, borderRadius: 999, background: '#ece6f8', overflow: 'hidden' }}>
+          <div style={{ height: 8, borderRadius: 999, background: C.track, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: barFill, transition: 'width .4s ease' }} />
           </div>
         ) : (
-          <div style={{ fontSize: 12, color: '#a59fbb' }}>{t.usageUnlimited}</div>
+          <div style={{ fontSize: 12, color: C.textFaint }}>{t.usageUnlimited}</div>
         )}
         {/* Token mua thêm: ≥80% mà còn credit thì KHÔNG cảnh báo — báo sẽ chuyển sang dùng credit */}
         {(data.creditLeft ?? 0) > 0 && pct !== null && pct >= 80 && (
-          <div style={{ fontSize: 12.5, color: '#7d6aa3', fontWeight: 600, marginTop: 8 }}>
+          <div style={{ fontSize: 12.5, color: C.accentTextMuted, fontWeight: 600, marginTop: 8 }}>
             {(pct >= 100 ? t.tuCreditActive : t.tuCreditSoon).replace('{n}', fmtTokens(data.creditLeft ?? 0))}
           </div>
         )}
         {(data.creditUsed ?? 0) > 0 && (
-          <div style={{ fontSize: 12.5, color: '#8a85a0', marginTop: 4 }}>
+          <div style={{ fontSize: 12.5, color: C.textMuted, marginTop: 4 }}>
             {t.tuCreditUsedLine.replace('{n}', fmtTokens(data.creditUsed ?? 0))}
           </div>
         )}
@@ -181,7 +182,7 @@ export default function UsageTab() {
         action={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {rangeBtn('week', t.tuWeek)}{rangeBtn('month', t.tuMonth)}
-            <button onClick={exportCsv} title={t.tuExportCsv} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #ece8f6', background: '#fff', borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>
+            <button onClick={exportCsv} title={t.tuExportCsv} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '6px 12px', fontSize: 12.5, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>
               <Download size={13} strokeWidth={2.2} /> {t.tuExportCsv}
             </button>
           </div>
@@ -189,11 +190,11 @@ export default function UsageTab() {
       >
         {/* Accordion giải thích token thô vs token quy đổi (chuỗi "token thô — chưa quy
             đổi hạn mức" xuất hiện nhiều nơi mà chưa được giải thích). */}
-        <button onClick={() => setRawOpen((v) => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', background: 'none', padding: 0, marginBottom: rawOpen ? 8 : 14, fontSize: 12.5, fontWeight: 700, color: '#7c3aed', cursor: 'pointer' }}>
+        <button onClick={() => setRawOpen((v) => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', background: 'none', padding: 0, marginBottom: rawOpen ? 8 : 14, fontSize: 12.5, fontWeight: 700, color: C.primary, cursor: 'pointer' }}>
           <HelpCircle size={14} strokeWidth={2.2} /> {t.tuRawWhat}
         </button>
         {rawOpen && (
-          <div style={{ fontSize: 12.5, color: '#5b5670', lineHeight: 1.6, background: '#f8f6fd', border: '1px solid #eee9f6', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
+          <div style={{ fontSize: 12.5, color: C.ink550, lineHeight: 1.6, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
             {t.tuRawExplain}
           </div>
         )}
@@ -201,10 +202,10 @@ export default function UsageTab() {
           <BarChart series={series} background={brandGradient} />
         ) : (
           <div style={{ textAlign: 'center', padding: '36px 16px' }}>
-            <div style={{ fontSize: 13.5, color: '#8a85a0', marginBottom: planCode === 'FREE' ? 6 : 0 }}>{t.tuEmpty}</div>
-            {planCode === 'FREE' && <div style={{ fontSize: 12.5, color: '#a59fbb', marginBottom: 14 }}>{t.tuFreeHint}</div>}
+            <div style={{ fontSize: 13.5, color: C.textMuted, marginBottom: planCode === 'FREE' ? 6 : 0 }}>{t.tuEmpty}</div>
+            {planCode === 'FREE' && <div style={{ fontSize: 12.5, color: C.textFaint, marginBottom: 14 }}>{t.tuFreeHint}</div>}
             {planCode === 'FREE' && (
-              <button onClick={() => go('pricing')} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.tuViewPlans}</button>
+              <button onClick={() => go('pricing')} style={{ border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 13, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>{t.tuViewPlans}</button>
             )}
           </div>
         )}
@@ -219,36 +220,36 @@ export default function UsageTab() {
               {data.byFeature.map((f) => (
                 <div key={f.taskCode}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
-                    <span style={{ fontSize: 13.5, fontWeight: 600, color: '#3f3a55' }}>{aiTaskLabel(lang, f.taskCode)}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#5b5670' }}>{fmtTokens(f.totalTokens)}</span>
+                    <span style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>{aiTaskLabel(lang, f.taskCode)}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.ink550 }}>{fmtTokens(f.totalTokens)}</span>
                   </div>
-                  <div style={{ height: 6, borderRadius: 999, background: '#ece6f8', overflow: 'hidden' }}>
+                  <div style={{ height: 6, borderRadius: 999, background: C.track, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${(f.totalTokens / maxFeature) * 100}%`, borderRadius: 999, background: brandGradient }} />
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '28px 16px', color: '#8a85a0', fontSize: 13.5 }}>{t.tuEmpty}</div>
+            <div style={{ textAlign: 'center', padding: '28px 16px', color: C.textMuted, fontSize: 13.5 }}>{t.tuEmpty}</div>
           )}
         </SectionCard>
 
         {/* Card gói hiện tại + CTA nâng cấp (hạn mức sửa ở Quản lý gói, đây chỉ hiển thị) */}
         <SectionCard title={t.tuPlanCard}>
-          <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 24, color: '#211c38' }}>{planName}</div>
-          <div style={{ fontSize: 13, color: '#8a85a0', margin: '2px 0 12px' }}>
+          <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 24, color: C.textStrong }}>{planName}</div>
+          <div style={{ fontSize: 13, color: C.textMuted, margin: '2px 0 12px' }}>
             {data.planPrice === null || data.planPrice === 0 ? 'Free' : formatVND(data.planPrice)}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '10px 0', borderTop: '1px solid #f1eef8', fontSize: 13 }}>
-            <span style={{ color: '#8a85a0' }}>{t.tuLimit}</span>
-            <span style={{ fontWeight: 700, color: '#3f3a55' }}>{data.limit === null ? t.usageUnlimited : fmtTokens(data.limit)}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '10px 0', borderTop: `1px solid ${C.surfaceMuted}`, fontSize: 13 }}>
+            <span style={{ color: C.textMuted }}>{t.tuLimit}</span>
+            <span style={{ fontWeight: 700, color: C.text }}>{data.limit === null ? t.usageUnlimited : fmtTokens(data.limit)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '10px 0', borderTop: '1px solid #f1eef8', fontSize: 13, marginBottom: 12 }}>
-            <span style={{ color: '#8a85a0' }}>{t.tuReset}</span>
-            <span style={{ fontWeight: 700, color: '#3f3a55' }}>{fmtDate(data.periodEnd)}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '10px 0', borderTop: `1px solid ${C.surfaceMuted}`, fontSize: 13, marginBottom: 12 }}>
+            <span style={{ color: C.textMuted }}>{t.tuReset}</span>
+            <span style={{ fontWeight: 700, color: C.text }}>{fmtDate(data.periodEnd)}</span>
           </div>
           {planCode !== 'PRO' && (
-            <button onClick={() => go('pricing')} style={{ width: '100%', border: 'none', borderRadius: 10, padding: 10, fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.upgradeBtn}</button>
+            <button onClick={() => go('pricing')} style={{ width: '100%', border: 'none', borderRadius: 10, padding: 10, fontWeight: 700, fontSize: 13, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>{t.upgradeBtn}</button>
           )}
         </SectionCard>
       </div>

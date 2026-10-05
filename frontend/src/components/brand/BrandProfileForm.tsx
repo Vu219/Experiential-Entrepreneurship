@@ -11,6 +11,7 @@ import AiBrandPanel from './AiBrandPanel';
 import { brandHealth } from './brandHealth';
 import { Field, ChipMultiSelect, ComboInput, TagInput, PlatformSelect, LogoUploader, fieldInput } from './chips';
 import { useToast } from '../toast/ToastProvider';
+import { C } from '../../styles/colors';
 
 const splitTags = (s: string | null): string[] => (s ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 
@@ -100,8 +101,8 @@ export default function BrandProfileForm({ profile, onClose, onSaved }: { profil
   return (
     <div className="view-pop" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={onClose} className="btn-soft" style={backBtn}><Icon icon={ChevronLeft} size={18} stroke="#5b5670" />{t.bpBack}</button>
-        <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 20, color: '#211c38' }}>{profile ? t.bpfEdit : t.bpfNew}</div>
+        <button onClick={onClose} className="btn-soft" style={backBtn}><Icon icon={ChevronLeft} size={18} stroke={C.ink550} />{t.bpBack}</button>
+        <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 20, color: C.textStrong }}>{profile ? t.bpfEdit : t.bpfNew}</div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: stack ? '1fr' : 'minmax(0,1fr) 340px', gap: 18, alignItems: 'start' }}>
@@ -143,11 +144,11 @@ export default function BrandProfileForm({ profile, onClose, onSaved }: { profil
             <Field label={t.bpDoDont}>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', marginBottom: 7 }}>{t.bpDo}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.success, marginBottom: 7 }}>{t.bpDo}</div>
                   <TagInput value={dos} onChange={setDos} addLabel={t.bpDo} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#d6336c', marginBottom: 7 }}>{t.bpDont}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.legacyTextd6336c, marginBottom: 7 }}>{t.bpDont}</div>
                   <TagInput value={donts} onChange={setDonts} addLabel={t.bpDont} />
                 </div>
               </div>
@@ -163,9 +164,9 @@ export default function BrandProfileForm({ profile, onClose, onSaved }: { profil
 
           {/* Nút lưu — gọn trên 1 hàng, không full-width */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, paddingTop: 2 }}>
-            <button onClick={submit} disabled={busy} className="btn-grad" style={{ border: 'none', borderRadius: 12, padding: '12px 24px', fontSize: 14, fontWeight: 700, color: '#fff', background: brandGradient, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{saving === 'full' ? t.processing : t.bpfSave}</button>
-            <button onClick={saveDraft} disabled={busy} className="btn-outline" style={{ border: '1.5px solid #d6cdf0', background: '#faf8ff', borderRadius: 12, padding: '12px 22px', fontSize: 14, fontWeight: 700, color: '#7c5cff', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{saving === 'draft' ? t.processing : t.bpSaveDraft}</button>
-            <button onClick={onClose} disabled={busy} className="btn-soft" style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 12, padding: '12px 22px', fontSize: 14, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}>{t.cancel}</button>
+            <button onClick={submit} disabled={busy} className="btn-grad" style={{ border: 'none', borderRadius: 12, padding: '12px 24px', fontSize: 14, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{saving === 'full' ? t.processing : t.bpfSave}</button>
+            <button onClick={saveDraft} disabled={busy} className="btn-outline" style={{ border: `1.5px solid ${C.legacyBorderd6cdf0}`, background: C.bg, borderRadius: 12, padding: '12px 22px', fontSize: 14, fontWeight: 700, color: C.violet, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{saving === 'draft' ? t.processing : t.bpSaveDraft}</button>
+            <button onClick={onClose} disabled={busy} className="btn-soft" style={{ border: `1px solid ${C.border}`, background: C.surface, borderRadius: 12, padding: '12px 22px', fontSize: 14, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>{t.cancel}</button>
           </div>
         </div>
 
@@ -178,13 +179,13 @@ export default function BrandProfileForm({ profile, onClose, onSaved }: { profil
   );
 }
 
-const backBtn = { display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '8px 14px', fontSize: 13.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' } as const;
+const backBtn = { display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '8px 14px', fontSize: 13.5, fontWeight: 700, color: C.ink550, cursor: 'pointer' } as const;
 
 /** Một cụm form: card có tiêu đề rõ ràng. */
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <Card style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: '#211c38', borderBottom: '1px solid #f1eef8', paddingBottom: 12 }}>{title}</div>
+      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: C.textStrong, borderBottom: `1px solid ${C.surfaceMuted}`, paddingBottom: 12 }}>{title}</div>
       {children}
     </Card>
   );

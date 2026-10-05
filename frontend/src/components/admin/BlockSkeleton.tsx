@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { C } from '../../styles/colors';
 
 /**
  * Khung xương CẤP KHỐI cho trang Tổng quan quản trị — mỗi khối tự hiện skeleton của riêng nó
@@ -34,7 +35,7 @@ export function TableSkeleton({ rows = 8 }: { rows?: number }) {
   return (
     <div aria-hidden="true">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderTop: '1px solid #f1eef8' }}>
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderTop: `1px solid ${C.surfaceMuted}` }}>
           <div className="sk" style={{ width: 32, height: 32, borderRadius: '50%', flex: 'none' }} />
           <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div className="sk" style={{ width: '52%', height: 12 }} />
@@ -47,7 +48,7 @@ export function TableSkeleton({ rows = 8 }: { rows?: number }) {
         </div>
       ))}
       {/* Footer "Xem tất cả người dùng" */}
-      <div style={{ borderTop: '1px solid #f1eef8', padding: '13px 16px', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ borderTop: `1px solid ${C.surfaceMuted}`, padding: '13px 16px', display: 'flex', justifyContent: 'center' }}>
         <div className="sk" style={{ width: 140, height: 13, borderRadius: 6 }} />
       </div>
     </div>
@@ -90,9 +91,9 @@ export function ServiceListSkeleton({ rows = 4 }: { rows?: number }) {
 
 
 const skCard: CSSProperties = {
-  background: '#fff',
-  border: '1px solid #efeaf8',
+  background: C.surface,
+  border: `1px solid ${C.border}`,
   borderRadius: 20,
   padding: 24,
-  boxShadow: '0 18px 38px -34px rgba(80,40,140,.5)',
+  boxShadow: `0 18px 38px -34px ${C.legacyShadowrgba8040140_5_}`,
 };

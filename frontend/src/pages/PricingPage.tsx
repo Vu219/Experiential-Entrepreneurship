@@ -10,18 +10,19 @@ import CtaSection from '../components/landing/CtaSection';
 import LandingFooter from '../components/landing/LandingFooter';
 import { usePublicPlans } from '../hooks/usePublicPlans';
 import type { ComparisonValue } from '../config/plans';
+import { C } from '../styles/colors';
 
 // Ô giá trị của bảng so sánh: boolean → ✓ / —, string → hiển thị nguyên văn.
 function CompareCell({ value }: { value: ComparisonValue }) {
   if (value === true) {
     return (
-      <span style={{ display: 'inline-flex', width: 22, height: 22, borderRadius: '50%', background: '#f3edff', alignItems: 'center', justifyContent: 'center' }}>
-        <Check size={13} strokeWidth={3} color="#7c3aed" />
+      <span style={{ display: 'inline-flex', width: 22, height: 22, borderRadius: '50%', background: C.primarySoft, alignItems: 'center', justifyContent: 'center' }}>
+        <Check size={13} strokeWidth={3} color={C.primary} />
       </span>
     );
   }
-  if (value === false) return <span style={{ color: '#c9c2dd', fontWeight: 600 }}>—</span>;
-  return <span style={{ fontSize: 13.5, fontWeight: 600, color: '#4b4660' }}>{value}</span>;
+  if (value === false) return <span style={{ color: C.ink200, fontWeight: 600 }}>—</span>;
+  return <span style={{ fontSize: 13.5, fontWeight: 600, color: C.ink650 }}>{value}</span>;
 }
 
 export default function PricingPage() {
@@ -50,8 +51,8 @@ export default function PricingPage() {
         <section style={{ maxWidth: 1240, margin: '0 auto', padding: isMobile ? '110px 18px 36px' : '150px 28px 48px' }}>
           <Reveal>
             <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto' }}>
-              <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 32 : 46, letterSpacing: '-.02em', margin: 0, color: '#171327' }}>{t.prTitle}</h1>
-              <p style={{ fontSize: isMobile ? 15.5 : 17, color: '#5b5670', margin: '14px 0 0' }}>{t.prSub}</p>
+              <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 32 : 46, letterSpacing: '-.02em', margin: 0, color: C.ink900 }}>{t.prTitle}</h1>
+              <p style={{ fontSize: isMobile ? 15.5 : 17, color: C.ink550, margin: '14px 0 0' }}>{t.prSub}</p>
             </div>
           </Reveal>
         </section>
@@ -66,26 +67,26 @@ export default function PricingPage() {
             ))}
           </RevealGroup>
           <Reveal delay={0.1}>
-            <div style={{ textAlign: 'center', fontSize: 12.5, color: '#8a85a0', marginTop: 22 }}>{t.prNote}</div>
+            <div style={{ textAlign: 'center', fontSize: 12.5, color: C.textMuted, marginTop: 22 }}>{t.prNote}</div>
           </Reveal>
         </section>
 
         {/* Bảng so sánh chi tiết — cuộn ngang trong container trên màn hẹp */}
         <section style={{ maxWidth: 1080, margin: '0 auto', padding: isMobile ? '0 18px 56px' : '0 28px 80px' }}>
           <Reveal>
-            <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 26 : 34, letterSpacing: '-.02em', margin: '0 0 28px', textAlign: 'center', color: '#171327' }}>{t.ppCompareTitle}</h2>
+            <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 26 : 34, letterSpacing: '-.02em', margin: '0 0 28px', textAlign: 'center', color: C.ink900 }}>{t.ppCompareTitle}</h2>
           </Reveal>
           <Reveal delay={0.05}>
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', background: '#fff', border: '1px solid #efeaf8', borderRadius: 20, boxShadow: '0 22px 44px -34px rgba(80,40,140,.5)' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, boxShadow: `0 22px 44px -34px ${C.legacyShadowrgba8040140_5_}` }}>
               <table style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
-                    <th style={{ padding: cellPad, textAlign: 'left', fontSize: 13, fontWeight: 700, color: '#8a85a0', borderBottom: '1px solid #f0ecf8' }}>{t.ppColFeature}</th>
+                    <th style={{ padding: cellPad, textAlign: 'left', fontSize: 13, fontWeight: 700, color: C.textMuted, borderBottom: `1px solid ${C.surfaceMuted}` }}>{t.ppColFeature}</th>
                     {plans.map((p) => (
-                      <th key={p.id} style={{ padding: cellPad, textAlign: 'center', borderBottom: '1px solid #f0ecf8', minWidth: 130 }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: p.featured ? '#6d28d9' : '#211c38' }}>
+                      <th key={p.id} style={{ padding: cellPad, textAlign: 'center', borderBottom: `1px solid ${C.surfaceMuted}`, minWidth: 130 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: p.featured ? C.primaryStrong : C.textStrong }}>
                           {p.name}
-                          {p.featured && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#6d28d9', background: '#f3edff', border: '1px solid #e7d9fb', borderRadius: 999, padding: '2px 8px', whiteSpace: 'nowrap' }}>★ {t.prPopular}</span>}
+                          {p.featured && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.primaryStrong, background: C.primarySoft, border: `1px solid ${C.accentLine}`, borderRadius: 999, padding: '2px 8px', whiteSpace: 'nowrap' }}>★ {t.prPopular}</span>}
                         </span>
                       </th>
                     ))}
@@ -95,13 +96,13 @@ export default function PricingPage() {
                   {groups.map((g) => (
                     <Fragment key={g.title}>
                       <tr>
-                        <td colSpan={plans.length + 1} style={{ padding: `${isMobile ? 14 : 18}px ${isMobile ? 14 : 18}px 8px`, fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 13.5, color: '#7c3aed' }}>{g.title}</td>
+                        <td colSpan={plans.length + 1} style={{ padding: `${isMobile ? 14 : 18}px ${isMobile ? 14 : 18}px 8px`, fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 13.5, color: C.primary }}>{g.title}</td>
                       </tr>
                       {g.rows.map((row) => (
-                        <tr key={row.label} style={{ borderBottom: '1px solid #f6f3fb' }}>
-                          <td style={{ padding: cellPad, fontSize: 13.5, color: '#4b4660' }}>{row.label}</td>
+                        <tr key={row.label} style={{ borderBottom: `1px solid ${C.bg}` }}>
+                          <td style={{ padding: cellPad, fontSize: 13.5, color: C.ink650 }}>{row.label}</td>
                           {row.values.map((v, i) => (
-                            <td key={i} style={{ padding: cellPad, textAlign: 'center', background: plans[i].featured ? 'rgba(124,58,237,.035)' : undefined }}>
+                            <td key={i} style={{ padding: cellPad, textAlign: 'center', background: plans[i].featured ? C.legacyBgrgba12458237_035_ : undefined }}>
                               <CompareCell value={v} />
                             </td>
                           ))}

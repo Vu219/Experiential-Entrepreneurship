@@ -1,0 +1,310 @@
+{
+  "replacements": 119,
+  "files": [
+    {
+      "file": "pages/LandingPage.tsx",
+      "replacements": 8
+    },
+    {
+      "file": "pages/PricingPage.tsx",
+      "replacements": 9
+    },
+    {
+      "file": "pages/Auth.tsx",
+      "replacements": 25
+    },
+    {
+      "file": "pages/ForgotPasswordPage.tsx",
+      "replacements": 9
+    },
+    {
+      "file": "pages/GoogleCallbackPage.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "pages/CompleteProfilePage.tsx",
+      "replacements": 6
+    },
+    {
+      "file": "components/LandingHeader.tsx",
+      "replacements": 9
+    },
+    {
+      "file": "components/ShareButton.tsx",
+      "replacements": 4
+    },
+    {
+      "file": "pages/legal/DataDeletionPage.tsx",
+      "replacements": 2
+    },
+    {
+      "file": "pages/legal/LegalPage.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/landing/CtaSection.tsx",
+      "replacements": 10
+    },
+    {
+      "file": "components/landing/FaqSection.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/landing/HowItWorks.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/landing/IntegrationsLoop.tsx",
+      "replacements": 1
+    },
+    {
+      "file": "components/landing/LandingFooter.tsx",
+      "replacements": 8
+    },
+    {
+      "file": "components/landing/landingIcons.tsx",
+      "replacements": 3
+    },
+    {
+      "file": "components/landing/PlanCard.tsx",
+      "replacements": 6
+    },
+    {
+      "file": "components/landing/PricingTeaser.tsx",
+      "replacements": 8
+    }
+  ],
+  "tokens": [
+    {
+      "key": "--c-legacy-shadow-rgba_124_58_237__5_",
+      "field": "legacyShadowrgba12458237_5_",
+      "light": "rgba(124,58,237,.5)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_139_92_246__65_",
+      "field": "legacyShadowrgba13992246_65_",
+      "light": "rgba(139,92,246,.65)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-bg-edf9ff",
+      "field": "legacyBgedf9ff",
+      "light": "#edf9ff",
+      "dark": "color-mix(in srgb, #93c5fd 14%, #121829)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-f6effc",
+      "field": "legacyBgf6effc",
+      "light": "#f6effc",
+      "dark": "#182036",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-cdeed8",
+      "field": "legacyBordercdeed8",
+      "light": "#cdeed8",
+      "dark": "color-mix(in srgb, #4ade80 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_120_60_180__6_",
+      "field": "legacyShadowrgba12060180_6_",
+      "light": "rgba(120,60,180,.6)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-border-d7d2e3",
+      "field": "legacyBorderd7d2e3",
+      "light": "#d7d2e3",
+      "dark": "#2e3752",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-ea4335",
+      "field": "legacyTextea4335",
+      "light": "#EA4335",
+      "dark": "#f87171",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-4285f4",
+      "field": "legacyText4285f4",
+      "light": "#4285F4",
+      "dark": "#93c5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-fbbc05",
+      "field": "legacyTextfbbc05",
+      "light": "#FBBC05",
+      "dark": "#fb923c",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-34a853",
+      "field": "legacyText34a853",
+      "light": "#34A853",
+      "dark": "#4ade80",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-f9fafb",
+      "field": "legacyBgf9fafb",
+      "light": "#f9fafb",
+      "dark": "color-mix(in srgb, #93c5fd 14%, #121829)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_139_92_246__55_",
+      "field": "legacyShadowrgba13992246_55_",
+      "light": "rgba(139,92,246,.55)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_80_40_140__45_",
+      "field": "legacyShadowrgba8040140_45_",
+      "light": "rgba(80,40,140,.45)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-text-9a95ad",
+      "field": "legacyText9a95ad",
+      "light": "#9a95ad",
+      "dark": "#a3abc4",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_0_0_0__4_",
+      "field": "legacyBgrgba000_4_",
+      "light": "rgba(0,0,0,.4)",
+      "dark": "rgba(18, 24, 41, .4)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-text-1877f2",
+      "field": "legacyText1877f2",
+      "light": "#1877f2",
+      "dark": "#93c5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-000000",
+      "field": "legacyText000000",
+      "light": "#000",
+      "dark": "#f1f3fb",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-6e8efb",
+      "field": "legacyText6e8efb",
+      "light": "#6e8efb",
+      "dark": "#93c5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-border-e6dcfb",
+      "field": "legacyBordere6dcfb",
+      "light": "#e6dcfb",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-b42318",
+      "field": "legacyTextb42318",
+      "light": "#b42318",
+      "dark": "#f87171",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-334155",
+      "field": "legacyText334155",
+      "light": "#334155",
+      "dark": "#93c5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-shadow-rgba_15_23_42__15_",
+      "field": "legacyShadowrgba152342_15_",
+      "light": "rgba(15,23,42,.15)",
+      "dark": "rgba(0, 0, 0, 0.5)",
+      "role": "shadow"
+    },
+    {
+      "key": "--c-legacy-text-1e1b4b",
+      "field": "legacyText1e1b4b",
+      "light": "#1E1B4B",
+      "dark": "#93c5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-475569",
+      "field": "legacyText475569",
+      "light": "#475569",
+      "dark": "#93c5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-text-1e293b",
+      "field": "legacyText1e293b",
+      "light": "#1e293b",
+      "dark": "#93c5fd",
+      "role": "text"
+    },
+    {
+      "key": "--c-legacy-border-ddd0f7",
+      "field": "legacyBorderddd0f7",
+      "light": "#ddd0f7",
+      "dark": "color-mix(in srgb, #c4b5fd 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-bg-d9cbf8",
+      "field": "legacyBgd9cbf8",
+      "light": "#d9cbf8",
+      "dark": "color-mix(in srgb, #c4b5fd 14%, #121829)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-bg-rgba_231_222_250_0_",
+      "field": "legacyBgrgba2312222500_",
+      "light": "rgba(231,222,250,0)",
+      "dark": "rgba(231,222,250,0)",
+      "role": "bg"
+    },
+    {
+      "key": "--c-legacy-border-bfe8cd",
+      "field": "legacyBorderbfe8cd",
+      "light": "#bfe8cd",
+      "dark": "color-mix(in srgb, #4ade80 30%, transparent)",
+      "role": "border"
+    },
+    {
+      "key": "--c-legacy-text-2563eb",
+      "field": "legacyText2563eb",
+      "light": "#2563eb",
+      "dark": "#93c5fd",
+      "role": "text"
+    }
+  ],
+  "preserved": [
+    [
+      "#fff",
+      18
+    ],
+    [
+      "brand gradients",
+      6
+    ],
+    [
+      "#16a34a",
+      2
+    ]
+  ]
+}

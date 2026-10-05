@@ -15,10 +15,11 @@ import { withToast } from '../utils/toastFlow';
 import PageContainer from '../components/PageContainer';
 import RecentActivityCard from '../components/profile/RecentActivityCard';
 import ProfileSkeleton from '../components/profile/ProfileSkeleton';
+import { C } from '../styles/colors';
 
 
-const fieldLabel = { display: 'block', fontSize: 12, fontWeight: 700, color: '#574f6e', marginBottom: 7 } as const;
-const fieldInput = { width: '100%', border: '1.5px solid #e7e2f2', borderRadius: 11, padding: '12px 14px', fontSize: 14, color: '#241f3a', background: '#fbfaff', outline: 'none' } as const;
+const fieldLabel = { display: 'block', fontSize: 12, fontWeight: 700, color: C.ink600, marginBottom: 7 } as const;
+const fieldInput = { width: '100%', border: `1.5px solid ${C.border}`, borderRadius: 11, padding: '12px 14px', fontSize: 14, color: C.textStrong, background: C.surfaceSubtle, outline: 'none' } as const;
 
 /**
  * Bề ngang tối đa của nội dung trang Hồ sơ. `.page-shell` cho tới 1600px — ở màn rộng (nhất là
@@ -200,14 +201,14 @@ export default function Profile() {
       <div style={{ width: '100%', maxWidth: CONTENT_MAX, margin: '0 auto' }}>
       {/* Pending-deletion banner */}
       {pendingDelete && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, background: '#fdeef2', border: '1px solid #f3c9d6', borderRadius: 16, padding: '16px 20px', marginBottom: 16 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, background: C.roseTint, border: `1px solid ${C.legacyBorderf3c9d6}`, borderRadius: 16, padding: '16px 20px', marginBottom: 16 }}>
           <div style={{ flex: 1, minWidth: 220 }}>
-            <div style={{ fontWeight: 800, fontSize: 15, color: '#c0285a' }}>⚠ {t.pdTitle}</div>
-            <div style={{ fontSize: 13, color: '#8a5566', marginTop: 3 }}>
+            <div style={{ fontWeight: 800, fontSize: 15, color: C.legacyTextc0285a }}>⚠ {t.pdTitle}</div>
+            <div style={{ fontSize: 13, color: C.legacyText8a5566, marginTop: 3 }}>
               {t.pdMsg} {user?.deletionDate ? <strong>{fmtDate(user.deletionDate)}</strong> : null}.
             </div>
           </div>
-          <button onClick={doRestore} disabled={busy} style={{ border: 'none', borderRadius: 11, padding: '11px 20px', fontWeight: 700, fontSize: 13.5, color: '#fff', background: brandGradient, boxShadow: '0 12px 24px -12px rgba(139,92,246,.6)', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>
+          <button onClick={doRestore} disabled={busy} style={{ border: 'none', borderRadius: 11, padding: '11px 20px', fontWeight: 700, fontSize: 13.5, color: C.onBrand, background: brandGradient, boxShadow: `0 12px 24px -12px ${C.legacyShadowrgba13992246_6_}`, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>
             {busy ? t.processing : t.pdRestore}
           </button>
         </div>
@@ -224,11 +225,11 @@ export default function Profile() {
                 disabled={avatarUploading}
                 aria-haspopup="menu"
                 aria-expanded={avatarMenuOpen}
-                style={{ width: 90, height: 90, borderRadius: '50%', padding: 0, border: 'none', background: brandGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 32, boxShadow: '0 16px 30px -14px rgba(139,92,246,.7)', overflow: 'hidden', position: 'relative', cursor: avatarUploading ? 'wait' : 'pointer' }}
+                style={{ width: 90, height: 90, borderRadius: '50%', padding: 0, border: 'none', background: brandGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.onBrand, fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 32, boxShadow: `0 16px 30px -14px ${C.legacyShadowrgba13992246_7_}`, overflow: 'hidden', position: 'relative', cursor: avatarUploading ? 'wait' : 'pointer' }}
               >
                 {avatarUrl ? <img src={avatarUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
                 {avatarUploading && (
-                  <span style={{ position: 'absolute', inset: 0, background: 'rgba(20,12,40,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ position: 'absolute', inset: 0, background: C.legacyBgrgba201240_45_, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
                       <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,.35)" strokeWidth="3" />
                       <path d="M21 12a9 9 0 0 0-9-9" stroke="#fff" strokeWidth="3" strokeLinecap="round">
@@ -239,75 +240,75 @@ export default function Profile() {
                 )}
               </button>
               {/* Huy hiệu máy ảnh gợi ý avatar có thể đổi */}
-              <span style={{ position: 'absolute', right: 0, bottom: 0, width: 28, height: 28, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px -3px rgba(60,30,110,.4)', pointerEvents: 'none' }}>
-                <Camera size={15} color="#7c3aed" strokeWidth={1.9} />
+              <span style={{ position: 'absolute', right: 0, bottom: 0, width: 28, height: 28, borderRadius: '50%', background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 10px -3px ${C.legacyShadowrgba6030110_4_}`, pointerEvents: 'none' }}>
+                <Camera size={15} color={C.primary} strokeWidth={1.9} />
               </span>
 
               {avatarMenuOpen && (
-                <div role="menu" className="menu-pop menu-pop--center" style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 10, width: 186, background: '#fff', borderRadius: 12, border: '1px solid #ece8f6', boxShadow: '0 24px 48px -22px rgba(80,40,140,.5)', overflow: 'hidden', zIndex: 50 }}>
-                  <button role="menuitem" onClick={() => { setAvatarMenuOpen(false); setLightboxOpen(true); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 15px', border: 'none', background: 'transparent', fontSize: 13.5, fontWeight: 600, color: '#574f6e', cursor: 'pointer' }}>
-                    <Eye size={17} color="#a39bbf" strokeWidth={1.8} />
+                <div role="menu" className="menu-pop menu-pop--center" style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 10, width: 186, background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, boxShadow: `0 24px 48px -22px ${C.legacyShadowrgba8040140_5_}`, overflow: 'hidden', zIndex: 50 }}>
+                  <button role="menuitem" onClick={() => { setAvatarMenuOpen(false); setLightboxOpen(true); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 15px', border: 'none', background: 'transparent', fontSize: 13.5, fontWeight: 600, color: C.ink600, cursor: 'pointer' }}>
+                    <Eye size={17} color={C.ink350} strokeWidth={1.8} />
                     {t.avView}
                   </button>
-                  <button role="menuitem" onClick={() => { setAvatarMenuOpen(false); fileInputRef.current?.click(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 15px', border: 'none', borderTop: '1px solid #f0ecf8', background: 'transparent', fontSize: 13.5, fontWeight: 600, color: '#574f6e', cursor: 'pointer' }}>
-                    <Camera size={17} color="#a39bbf" strokeWidth={1.8} />
+                  <button role="menuitem" onClick={() => { setAvatarMenuOpen(false); fileInputRef.current?.click(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 15px', border: 'none', borderTop: `1px solid ${C.surfaceMuted}`, background: 'transparent', fontSize: 13.5, fontWeight: 600, color: C.ink600, cursor: 'pointer' }}>
+                    <Camera size={17} color={C.ink350} strokeWidth={1.8} />
                     {t.avChange}
                   </button>
                 </div>
               )}
             </div>
-            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 20, color: '#211c38' }}>{name}</div>
-            <div style={{ fontSize: 13, color: '#8a85a0', marginTop: 2 }}>{email}</div>
-            {avatarUploading && <div style={{ fontSize: 12, color: '#7c3aed', marginTop: 6 }}>{t.avUploading}</div>}
+            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 20, color: C.textStrong }}>{name}</div>
+            <div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>{email}</div>
+            {avatarUploading && <div style={{ fontSize: 12, color: C.primary, marginTop: 6 }}>{t.avUploading}</div>}
             {/* Gói thật của user (từ /users/me) — không hardcode "Gói Premium" */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, fontWeight: 700, color: '#7c3aed', background: '#f3edff', borderRadius: 999, padding: '5px 13px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, fontWeight: 700, color: C.primary, background: C.primarySoft, borderRadius: 999, padding: '5px 13px' }}>
               ★ {user?.plan === 'PRO' ? t.planPro : user?.plan === 'PLUS' ? t.planPlus : t.planFree}
             </div>
             {/* Số THẬT từ GET /users/me/stats — lúc tải cả trang hiện ProfileSkeleton, lỗi thì "—",
                 tuyệt đối không rơi về số mẫu (người dùng sẽ tưởng đó là số liệu của mình). */}
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
               {[[stats?.postsPublished, t.stPosts], [stats?.totalReach, t.stTotalReach]].map(([v, l], i) => (
-                <div key={i} style={{ flex: 1, border: '1px solid #efeaf8', borderRadius: 13, padding: 13 }}>
-                  <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: '#211c38' }}>
+                <div key={i} style={{ flex: 1, border: `1px solid ${C.border}`, borderRadius: 13, padding: 13 }}>
+                  <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: C.textStrong }}>
                     {typeof v === 'number' ? formatCompactNumber(v) : '—'}
                   </div>
-                  <div style={{ fontSize: 11, color: '#a59fbb' }}>{l}</div>
+                  <div style={{ fontSize: 11, color: C.textFaint }}>{l}</div>
                 </div>
               ))}
             </div>
             {/* Nút đăng xuất chỉ hiện trên mobile/tablet — trên laptop/PC đã có ở thanh bên/menu. */}
             {stacked && (
-              <button onClick={logout} style={{ width: '100%', marginTop: 18, border: '1.5px solid #f3c9d6', background: '#fff', borderRadius: 12, padding: 12, fontWeight: 700, fontSize: 13.5, color: '#e23d6e', cursor: 'pointer' }}>{t.signOut}</button>
+              <button onClick={logout} style={{ width: '100%', marginTop: 18, border: `1.5px solid ${C.legacyBorderf3c9d6}`, background: C.surface, borderRadius: 12, padding: 12, fontWeight: 700, fontSize: 13.5, color: C.rose, cursor: 'pointer' }}>{t.signOut}</button>
             )}
           </Card>
 
           {/* Change password */}
           <Card style={{ padding: 22, order: stacked ? 4 : undefined }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ width: 40, height: 40, flex: 'none', borderRadius: 11, background: '#f3edff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ width: 40, height: 40, flex: 'none', borderRadius: 11, background: C.primarySoft, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Lock size={20} strokeWidth={1.8} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14.5, color: '#211c38' }}>{t.prChangePw}</div>
-                <div style={{ fontSize: 12, color: '#8a85a0', marginTop: 2 }}>{t.prChangePwSub}</div>
+                <div style={{ fontWeight: 700, fontSize: 14.5, color: C.textStrong }}>{t.prChangePw}</div>
+                <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{t.prChangePwSub}</div>
               </div>
             </div>
-            <button onClick={() => setShowChangePw(true)} style={{ width: '100%', marginTop: 14, border: '1.5px solid #e7e2f2', background: '#fff', borderRadius: 11, padding: 11, fontWeight: 700, fontSize: 13.5, color: '#7c3aed', cursor: 'pointer' }}>{t.prChangePw}</button>
+            <button onClick={() => setShowChangePw(true)} style={{ width: '100%', marginTop: 14, border: `1.5px solid ${C.border}`, background: C.surface, borderRadius: 11, padding: 11, fontWeight: 700, fontSize: 13.5, color: C.primary, cursor: 'pointer' }}>{t.prChangePw}</button>
           </Card>
 
           {/* Delete account — ẩn khi đã ở trạng thái chờ xóa (đã có banner khôi phục) */}
           {!pendingDelete && (
-            <Card style={{ padding: 22, border: '1px solid #f3c9d6', order: stacked ? 5 : undefined }}>
+            <Card style={{ padding: 22, border: `1px solid ${C.legacyBorderf3c9d6}`, order: stacked ? 5 : undefined }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ width: 40, height: 40, flex: 'none', borderRadius: 11, background: '#fdeef2', color: '#e23d6e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ width: 40, height: 40, flex: 'none', borderRadius: 11, background: C.roseTint, color: C.rose, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Trash2 size={20} strokeWidth={1.8} />
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14.5, color: '#c0285a' }}>{t.prDeleteAcc}</div>
-                  <div style={{ fontSize: 12, color: '#8a85a0', marginTop: 2 }}>{t.prDeleteAccSub}</div>
+                  <div style={{ fontWeight: 700, fontSize: 14.5, color: C.legacyTextc0285a }}>{t.prDeleteAcc}</div>
+                  <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{t.prDeleteAccSub}</div>
                 </div>
               </div>
-              <button onClick={() => setShowDeleteConfirm(true)} style={{ width: '100%', marginTop: 14, border: '1.5px solid #f3c9d6', background: '#fff', borderRadius: 11, padding: 11, fontWeight: 700, fontSize: 13.5, color: '#e23d6e', cursor: 'pointer' }}>{t.prDeleteAcc}</button>
+              <button onClick={() => setShowDeleteConfirm(true)} style={{ width: '100%', marginTop: 14, border: `1.5px solid ${C.legacyBorderf3c9d6}`, background: C.surface, borderRadius: 11, padding: 11, fontWeight: 700, fontSize: 13.5, color: C.rose, cursor: 'pointer' }}>{t.prDeleteAcc}</button>
             </Card>
           )}
         </div>
@@ -315,7 +316,7 @@ export default function Profile() {
         {/* RIGHT column: edit + activity */}
         <div style={{ display: stacked ? 'contents' : 'flex', flexDirection: 'column', gap: 20 }}>
           <Card style={{ padding: 26, order: stacked ? 2 : undefined }}>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38', marginBottom: 18 }}>{t.prEdit}</div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong, marginBottom: 18 }}>{t.prEdit}</div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
               <div>
                 <label style={fieldLabel}>{t.lName}</label>
@@ -323,7 +324,7 @@ export default function Profile() {
               </div>
               <div>
                 <label style={fieldLabel}>EMAIL</label>
-                <input value={email} disabled style={{ ...fieldInput, color: '#8a85a0', cursor: 'not-allowed' }} />
+                <input value={email} disabled style={{ ...fieldInput, color: C.textMuted, cursor: 'not-allowed' }} />
               </div>
               <div>
                 <label style={fieldLabel}>{t.prPhone}</label>
@@ -335,12 +336,12 @@ export default function Profile() {
                   value={dateOfBirth}
                   onChange={(v) => setDateOfBirth(v)}
                   max={`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`}
-                  style={{ border: '1.5px solid #e7e2f2', borderRadius: 11, padding: '0 14px', background: '#fbfaff' }}
+                  style={{ border: `1.5px solid ${C.border}`, borderRadius: 11, padding: '0 14px', background: C.surfaceSubtle }}
                   inputStyle={{ fontSize: 14, padding: '12px 0' }}
                 />
               </div>
             </div>
-            <button onClick={save} disabled={saving} style={{ marginTop: 18, border: 'none', borderRadius: 12, padding: '12px 24px', fontWeight: 700, fontSize: 14, color: '#fff', background: brandGradient, boxShadow: '0 14px 28px -12px rgba(139,92,246,.6)', cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.75 : 1 }}>{saving ? t.processing : t.save}</button>
+            <button onClick={save} disabled={saving} style={{ marginTop: 18, border: 'none', borderRadius: 12, padding: '12px 24px', fontWeight: 700, fontSize: 14, color: C.onBrand, background: brandGradient, boxShadow: `0 14px 28px -12px ${C.legacyShadowrgba13992246_6_}`, cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.75 : 1 }}>{saving ? t.processing : t.save}</button>
           </Card>
 
           <div style={{ order: stacked ? 3 : undefined }}>
@@ -353,13 +354,13 @@ export default function Profile() {
       {lightboxOpen && createPortal(
         <div
           onMouseDown={() => setLightboxOpen(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(26,18,48,.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: C.legacyBgrgba261848_5_, backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
         >
           <div onMouseDown={(e) => e.stopPropagation()} style={{ display: 'flex' }}>
             {avatarUrl ? (
-              <img src={avatarUrl} alt={name} style={{ maxWidth: '92vw', maxHeight: '88vh', width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 16, boxShadow: '0 40px 80px -30px rgba(0,0,0,.6)' }} />
+              <img src={avatarUrl} alt={name} style={{ maxWidth: '92vw', maxHeight: '88vh', width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 16, boxShadow: `0 40px 80px -30px ${C.legacyShadowrgba000_6_}` }} />
             ) : (
-              <div style={{ width: 'min(70vw, 300px)', height: 'min(70vw, 300px)', maxWidth: 300, maxHeight: 300, borderRadius: '50%', background: brandGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 88, boxShadow: '0 40px 80px -30px rgba(0,0,0,.6)' }}>{initials}</div>
+              <div style={{ width: 'min(70vw, 300px)', height: 'min(70vw, 300px)', maxWidth: 300, maxHeight: 300, borderRadius: '50%', background: brandGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.onBrand, fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 88, boxShadow: `0 40px 80px -30px ${C.legacyShadowrgba000_6_}` }}>{initials}</div>
             )}
           </div>
         </div>,
@@ -375,10 +376,10 @@ export default function Profile() {
 
       {showDeleteConfirm && (
         <Modal title={t.delTitle} onClose={() => !busy && setShowDeleteConfirm(false)}>
-          <div style={{ fontSize: 14, lineHeight: 1.6, color: '#4b4660' }}>{t.delMsg}</div>
+          <div style={{ fontSize: 14, lineHeight: 1.6, color: C.ink650 }}>{t.delMsg}</div>
           <div style={{ display: 'flex', gap: 12, marginTop: 22 }}>
-            <button onClick={() => setShowDeleteConfirm(false)} disabled={busy} style={{ flex: 1, border: '1.5px solid #e7e2f2', background: '#fff', borderRadius: 12, padding: 13, fontWeight: 700, fontSize: 14, color: '#4b4660', cursor: 'pointer' }}>{t.cancel}</button>
-            <button onClick={doDelete} disabled={busy} style={{ flex: 1, border: 'none', borderRadius: 12, padding: 13, fontWeight: 700, fontSize: 14, color: '#fff', background: '#e23d6e', boxShadow: '0 12px 24px -12px rgba(226,61,110,.6)', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{busy ? t.processing : t.delConfirm}</button>
+            <button onClick={() => setShowDeleteConfirm(false)} disabled={busy} style={{ flex: 1, border: `1.5px solid ${C.border}`, background: C.surface, borderRadius: 12, padding: 13, fontWeight: 700, fontSize: 14, color: C.ink650, cursor: 'pointer' }}>{t.cancel}</button>
+            <button onClick={doDelete} disabled={busy} style={{ flex: 1, border: 'none', borderRadius: 12, padding: 13, fontWeight: 700, fontSize: 14, color: '#fff', background: '#e23d6e', boxShadow: `0 12px 24px -12px ${C.legacyShadowrgba22661110_6_}`, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{busy ? t.processing : t.delConfirm}</button>
           </div>
         </Modal>
       )}

@@ -9,6 +9,7 @@ import AiBrandPanel from './AiBrandPanel';
 import { brandHealth } from './brandHealth';
 import { LogoSquare, ReadChips } from './chips';
 import LogoLightbox from './LogoLightbox';
+import { C } from '../../styles/colors';
 
 const splitTags = (s: string | null): string[] => (s ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 const TAG_BY_ENUM: Record<Platform, string> = { FACEBOOK: 'FB', INSTAGRAM: 'IG', THREADS: 'TH' };
@@ -44,43 +45,43 @@ export default function BrandProfileView({ profile, onClose, onEdit }: { profile
   return (
     <div className="view-pop" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <button onClick={onClose} className="btn-soft" style={backBtn}><Icon icon={ChevronLeft} size={18} stroke="#5b5670" />{t.bpBack}</button>
+        <button onClick={onClose} className="btn-soft" style={backBtn}><Icon icon={ChevronLeft} size={18} stroke={C.ink550} />{t.bpBack}</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 13, flex: 1, minWidth: 0 }}>
           {zoomableLogo(46)}
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 20, color: '#211c38', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile.brandName}</div>
-            <div style={{ fontSize: 13, color: '#8a85a0' }}>{profile.industry}</div>
+            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 20, color: C.textStrong, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile.brandName}</div>
+            <div style={{ fontSize: 13, color: C.textMuted }}>{profile.industry}</div>
           </div>
         </div>
-        <button onClick={onEdit} className="btn-grad" style={{ border: 'none', borderRadius: 11, padding: '10px 20px', fontSize: 14, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer' }}>{t.bpEdit}</button>
+        <button onClick={onEdit} className="btn-grad" style={{ border: 'none', borderRadius: 11, padding: '10px 20px', fontSize: 14, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>{t.bpEdit}</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: stack ? '1fr' : 'minmax(0,1fr) 380px', gap: 18, alignItems: 'start' }}>
         {/* Cột chính — thông tin read-only theo 3 cụm */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Card style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: '#211c38', borderBottom: '1px solid #f1eef8', paddingBottom: 12 }}>{t.bpSecInfo}</div>
+            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: C.textStrong, borderBottom: `1px solid ${C.surfaceMuted}`, paddingBottom: 12 }}>{t.bpSecInfo}</div>
             <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 18, alignItems: isMobile ? 'center' : 'flex-start' }}>
               {zoomableLogo()}
               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16, width: isMobile ? '100%' : undefined }}>
                 <Row label={t.bpLabelIndustry} value={<span style={val}>{profile.industry}</span>} />
-                {profile.description && <Row label={t.bpfDesc} value={<span style={{ ...val, fontWeight: 500, color: '#4b4660' }}>{profile.description}</span>} />}
+                {profile.description && <Row label={t.bpfDesc} value={<span style={{ ...val, fontWeight: 500, color: C.ink650 }}>{profile.description}</span>} />}
               </div>
             </div>
           </Card>
 
           <Card style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: '#211c38', borderBottom: '1px solid #f1eef8', paddingBottom: 12 }}>{t.bpSecPosition}</div>
+            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: C.textStrong, borderBottom: `1px solid ${C.surfaceMuted}`, paddingBottom: 12 }}>{t.bpSecPosition}</div>
             <Row label={t.bpLabelTone} value={<ReadChips items={tones} />} />
             <Row label={t.bpfAudience} value={<ReadChips items={audiences} />} />
             <Row label={t.bpKeywords} value={<ReadChips items={profile.brandKeywords} />} />
           </Card>
 
           <Card style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: '#211c38', borderBottom: '1px solid #f1eef8', paddingBottom: 12 }}>{t.bpSecChannels}</div>
+            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: C.textStrong, borderBottom: `1px solid ${C.surfaceMuted}`, paddingBottom: 12 }}>{t.bpSecChannels}</div>
             <Row label={t.bpfPlatforms} value={
               <div style={{ display: 'flex', gap: 8 }}>
-                {profile.platforms.length === 0 ? <span style={{ fontSize: 13, color: '#b3acc6' }}>—</span> : profile.platforms.map((p) => { const pl = PLATFORMS.find((x) => x.tag === TAG_BY_ENUM[p]); return pl ? <PlatformTag key={p} tag={pl.tag} bg={pl.bg} size={30} radius={9} /> : null; })}
+                {profile.platforms.length === 0 ? <span style={{ fontSize: 13, color: C.ink250 }}>—</span> : profile.platforms.map((p) => { const pl = PLATFORMS.find((x) => x.tag === TAG_BY_ENUM[p]); return pl ? <PlatformTag key={p} tag={pl.tag} bg={pl.bg} size={30} radius={9} /> : null; })}
               </div>
             } />
           </Card>
@@ -97,13 +98,13 @@ export default function BrandProfileView({ profile, onClose, onEdit }: { profile
   );
 }
 
-const val = { fontSize: 14, fontWeight: 700, color: '#211c38' } as const;
-const backBtn = { display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '8px 14px', fontSize: 13.5, fontWeight: 700, color: '#5b5670', cursor: 'pointer' } as const;
+const val = { fontSize: 14, fontWeight: 700, color: C.textStrong } as const;
+const backBtn = { display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '8px 14px', fontSize: 13.5, fontWeight: 700, color: C.ink550, cursor: 'pointer' } as const;
 
 function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 12, fontWeight: 700, color: '#9b94b5' }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color: C.ink350 }}>{label}</span>
       {value}
     </div>
   );

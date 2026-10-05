@@ -16,6 +16,8 @@ import ConfirmDialog from '../../brand/ConfirmDialog';
 import { tagOfPlatform } from '../PlatformTabs';
 import StepLayout from '../StepLayout';
 import { WizardStepSkeleton } from '../CreateSkeleton';
+import { C } from '../../../styles/colors';
+import { assistCardStyle } from '../assistCardStyle';
 
 export interface SourceSelection {
   brand: BrandProfile;
@@ -38,14 +40,14 @@ export interface WizardLiveSelection {
 }
 
 const selectStyle = {
-  width: '100%', border: '1.5px solid #e7e2f2', borderRadius: 12, padding: '10px 14px',
-  fontSize: 14, color: '#241f3a', background: '#fbfaff', outline: 'none', cursor: 'pointer',
+  width: '100%', border: `1.5px solid ${C.border}`, borderRadius: 12, padding: '10px 14px',
+  fontSize: 14, color: C.textStrong, background: C.surfaceSubtle, outline: 'none', cursor: 'pointer',
 } as const;
-const labelStyle = { display: 'block', fontSize: 12.5, fontWeight: 700, color: '#574f6e', marginBottom: 8 } as const;
-const hintStyle = { fontSize: 11.5, color: '#a59fbb', marginTop: 6 } as const;
+const labelStyle = { display: 'block', fontSize: 12.5, fontWeight: 700, color: C.ink600, marginBottom: 8 } as const;
+const hintStyle = { fontSize: 11.5, color: C.textFaint, marginTop: 6 } as const;
 const softBtn = {
-  display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid #ece8f6', background: '#fff',
-  borderRadius: 10, padding: '9px 14px', fontSize: 12.5, fontWeight: 700, color: '#574f6e', cursor: 'pointer',
+  display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${C.border}`, background: C.surface,
+  borderRadius: 10, padding: '9px 14px', fontSize: 12.5, fontWeight: 700, color: C.ink600, cursor: 'pointer',
 } as const;
 
 /**
@@ -220,13 +222,13 @@ export default function SourceStep({
 
   if (loading) return <WizardStepSkeleton />;
   if (error)
-    return <div style={{ fontSize: 13.5, color: '#d1435b', background: '#fdf1f3', borderRadius: 12, padding: '14px 16px' }}>{error}</div>;
+    return <div style={{ fontSize: 13.5, color: C.legacyTextd1435b, background: C.legacyBgfdf1f3, borderRadius: 12, padding: '14px 16px' }}>{error}</div>;
 
   if (brands.length === 0)
     return (
       <Card style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
-        <div style={{ fontSize: 13.5, color: '#4b4660', lineHeight: 1.6 }}>{t.cwSrcNoBrand}</div>
-        <button onClick={() => leaveToBrand('brand')} className="btn-grad" style={{ marginTop: 16, border: 'none', borderRadius: 12, padding: '11px 22px', fontWeight: 700, fontSize: 13.5, color: '#fff', background: brandGradient, cursor: 'pointer' }}>
+        <div style={{ fontSize: 13.5, color: C.ink650, lineHeight: 1.6 }}>{t.cwSrcNoBrand}</div>
+        <button onClick={() => leaveToBrand('brand')} className="btn-grad" style={{ marginTop: 16, border: 'none', borderRadius: 12, padding: '11px 22px', fontWeight: 700, fontSize: 13.5, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>
           {t.cwSrcGoBrand}
         </button>
       </Card>
@@ -235,16 +237,16 @@ export default function SourceStep({
   // Một dòng thông tin trong panel tổng quan (read-only).
   const row = (label: string, content: ReactNode) => (
     <div style={{ minWidth: 0 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.04em', color: '#a59fbb', textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 13, color: '#3f3a55', lineHeight: 1.55 }}>{content}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.04em', color: C.textSecondary, textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55 }}>{content}</div>
     </div>
   );
 
   // Cột trái — chọn nguồn + nền tảng cho bài + ghi chú thêm cho AI.
   const selectionCard = (
     <Card>
-      <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.cwSrcTitle}</div>
-      <div style={{ fontSize: 12.5, color: '#8a85a0', marginBottom: 20 }}>{t.cwSrcSub}</div>
+      <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.cwSrcTitle}</div>
+      <div style={{ fontSize: 12.5, color: C.textMuted, marginBottom: 20 }}>{t.cwSrcSub}</div>
 
       <label style={labelStyle}>{t.cwSrcBrand}</label>
       <select value={brandId} onChange={(e) => changeBrand(e.target.value)} style={selectStyle}>
@@ -258,13 +260,13 @@ export default function SourceStep({
       <label style={{ ...labelStyle, marginTop: 18 }}>{t.cwSrcStrategy}</label>
       {activeStrategies.length === 0 ? (
         // Empty state: chưa có chiến lược ACTIVE → chặn sang bước 2, mời tạo chiến lược.
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: '#fdf0dc', borderRadius: 12, padding: '12px 14px' }}>
-          <Icon icon={AlertTriangle} size={16} stroke="#d97706" />
-          <div style={{ flex: 1, fontSize: 12.5, color: '#92600a', lineHeight: 1.55 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: C.warningSoft, borderRadius: 12, padding: '12px 14px' }}>
+          <Icon icon={AlertTriangle} size={16} stroke={C.warning} />
+          <div style={{ flex: 1, fontSize: 12.5, color: C.legacyText92600a, lineHeight: 1.55 }}>
             {t.cwSrcNoStrategy}
             <div style={{ marginTop: 10 }}>
-              <button onClick={() => leaveToBrand('strategy')} className="btn-grad" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: '#fff', background: brandGradient, cursor: 'pointer' }}>
-                <Icon icon={Plus} size={14} stroke="#fff" />{t.cwSrcCreateStrategy}
+              <button onClick={() => leaveToBrand('strategy')} className="btn-grad" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>
+                <Icon icon={Plus} size={14} stroke={C.onBrand} />{t.cwSrcCreateStrategy}
               </button>
             </div>
           </div>
@@ -308,15 +310,15 @@ export default function SourceStep({
                   aria-pressed={on}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 13px',
-                    border: on ? '1.5px solid #8b5cf6' : '1px solid #ece8f6', borderRadius: 11,
-                    background: on ? '#f6f1ff' : '#fff', cursor: 'pointer',
-                    fontSize: 13, fontWeight: 700, color: on ? '#6d28d9' : '#a59fbb',
+                    border: on ? `1.5px solid ${C.violetLight}` : `1px solid ${C.border}`, borderRadius: 11,
+                    background: on ? C.border : C.surface, cursor: 'pointer',
+                    fontSize: 13, fontWeight: 700, color: on ? C.primaryStrong : C.textFaint,
                     opacity: on ? 1 : 0.75,
                   }}
                 >
-                  <PlatformTag tag={tag} bg={on ? PLATFORM_BG[tag] : '#c4bdd6'} size={20} radius={6} fontSize={10} />
+                  <PlatformTag tag={tag} bg={on ? PLATFORM_BG[tag] : C.ink200} size={20} radius={6} fontSize={10} />
                   {PLATFORMS.find((pl) => pl.tag === tag)?.name ?? p}
-                  {on && <Icon icon={Check} size={13} stroke="#6d28d9" />}
+                  {on && <Icon icon={Check} size={13} stroke={C.primaryStrong} />}
                 </button>
               );
             })}
@@ -339,24 +341,24 @@ export default function SourceStep({
   // Cột phải — panel TỔNG QUAN read-only, cập nhật ngay khi đổi lựa chọn; chỉ hiển thị,
   // không sửa tại đây. Thiếu chiến lược thì các mục liên quan hiện "—".
   const overviewCard = brand && (
-    <Card>
+    <Card style={assistCardStyle}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
         <div style={{ flex: 1, minWidth: 170 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#211c38' }}>{t.cwSrcOverview}</div>
-          <div style={{ fontSize: 12, color: '#8a85a0' }}>{t.cwSrcOverviewSub}</div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: C.accentText }}>{t.cwSrcOverview}</div>
+          <div style={{ fontSize: 12, color: C.textMuted }}>{t.cwSrcOverviewSub}</div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button onClick={() => leaveToBrand('brand')} className="btn-soft" style={softBtn}>
-            <Icon icon={PenLine} size={13} stroke="#574f6e" />{t.cwSrcEditBrand}
+            <Icon icon={PenLine} size={13} stroke={C.ink600} />{t.cwSrcEditBrand}
           </button>
           <button onClick={() => leaveToBrand('strategy')} className="btn-soft" style={softBtn}>
-            <Icon icon={PenLine} size={13} stroke="#574f6e" />{t.cwSrcEditStrategy}
+            <Icon icon={PenLine} size={13} stroke={C.ink600} />{t.cwSrcEditStrategy}
           </button>
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        {row(t.cwSrcBrand, <span style={{ fontWeight: 700, color: '#211c38' }}>{brand.brandName}</span>)}
+        {row(t.cwSrcBrand, <span style={{ fontWeight: 700, color: C.textStrong }}>{brand.brandName}</span>)}
         {row(t.cwSrcIndustry, brand.industry)}
         {row(t.cwSrcTone, brand.brandVoice || '—')}
         {row(t.cwSrcAudience, brand.targetAudience || '—')}
@@ -367,7 +369,7 @@ export default function SourceStep({
               {picked.map((p) => {
                 const tag = tagOfPlatform(p);
                 return (
-                  <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #ece8f6', borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 600, background: '#fcfbfe' }}>
+                  <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, borderRadius: 8, padding: '3px 9px', fontSize: 12, fontWeight: 600, background: C.surfaceSubtle }}>
                     <PlatformTag tag={tag} bg={PLATFORM_BG[tag]} size={17} radius={5} fontSize={9} />
                     {PLATFORMS.find((pl) => pl.tag === tag)?.name ?? p}
                   </span>
@@ -383,8 +385,8 @@ export default function SourceStep({
         {aiNote.trim() && row(t.cwSrcNoteLabel, aiNote)}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 18, borderTop: '1px solid #f1edfa', paddingTop: 14 }}>
-        <div style={{ flex: 1, minWidth: 160, fontSize: 11.5, color: '#a59fbb', lineHeight: 1.5 }}>{t.cwSrcEditHint}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 18, borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
+        <div style={{ flex: 1, minWidth: 160, fontSize: 11.5, color: C.textSecondary, lineHeight: 1.5 }}>{t.cwSrcEditHint}</div>
         <button
           onClick={() => setConfirmed(true)}
           disabled={confirmed || !ready}
@@ -393,13 +395,13 @@ export default function SourceStep({
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 11,
             padding: '10px 20px', fontSize: 13.5, fontWeight: 700,
-            color: confirmed ? '#16a34a' : '#fff',
-            background: confirmed ? '#e8f8ee' : brandGradient,
+            color: confirmed ? C.success : C.onBrand,
+            background: confirmed ? C.successSoft : brandGradient,
             cursor: confirmed ? 'default' : ready ? 'pointer' : 'not-allowed',
             opacity: confirmed || ready ? 1 : 0.55,
           }}
         >
-          {confirmed ? t.cwSrcConfirmed : (<><Icon icon={Check} size={15} stroke="#fff" />{t.cwSrcConfirm}</>)}
+          {confirmed ? t.cwSrcConfirmed : (<><Icon icon={Check} size={15} stroke={C.onBrand} />{t.cwSrcConfirm}</>)}
         </button>
       </div>
     </Card>
@@ -412,11 +414,11 @@ export default function SourceStep({
         disabled={!ready || !confirmed}
         onClick={() => ready && confirmed && onNext({ brand: brand!, strategy: strategy!, trend, platforms: picked, aiNote: aiNote.trim() })}
         className="btn-grad"
-        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', border: 'none', borderRadius: 12, padding: 13, fontWeight: 700, fontSize: 14, color: '#fff', background: brandGradient, cursor: ready && confirmed ? 'pointer' : 'not-allowed', opacity: ready && confirmed ? 1 : 0.55 }}
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', border: 'none', borderRadius: 12, padding: 13, fontWeight: 700, fontSize: 14, color: C.onBrand, background: brandGradient, cursor: ready && confirmed ? 'pointer' : 'not-allowed', opacity: ready && confirmed ? 1 : 0.55 }}
       >
-        {t.cwNext}<Icon icon={ArrowRight} size={16} stroke="#fff" />
+        {t.cwNext}<Icon icon={ArrowRight} size={16} stroke={C.onBrand} />
       </button>
-      {ready && !confirmed && <div style={{ fontSize: 11.5, color: '#a59fbb', textAlign: 'center' }}>{t.cwSrcConfirmHint}</div>}
+      {ready && !confirmed && <div style={{ fontSize: 11.5, color: C.textFaint, textAlign: 'center' }}>{t.cwSrcConfirmHint}</div>}
     </div>
   );
 

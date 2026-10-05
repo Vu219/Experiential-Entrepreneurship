@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { Card } from '../ui';
+import { C } from '../../styles/colors';
 
 /**
  * Card có header chuẩn (tiêu đề trái + action phải) cho các khối nội dung trang Quản trị —
@@ -19,12 +20,12 @@ export default function SectionCard({
   children: ReactNode;
   style?: CSSProperties;
 }) {
-  const heading = <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{title}</div>;
+  const heading = <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{title}</div>;
 
   if (flush) {
     return (
       <Card style={{ padding: 0, overflow: 'hidden', ...style }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1eef8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.surfaceMuted}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           {heading}
           {action}
         </div>

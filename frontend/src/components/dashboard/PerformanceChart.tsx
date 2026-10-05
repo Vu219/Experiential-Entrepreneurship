@@ -9,6 +9,7 @@ import { formatCompactNumber, formatGroupedNumber } from '../../utils/format';
 import { AXIS_TEXT, ENGAGEMENT_LINE, GRID_LINE, REACH_LINE } from './dashboardTokens';
 import DemoBadge from './DemoBadge';
 import type { DashboardPoint, DashboardRange } from '../../api/dashboard';
+import { C } from '../../styles/colors';
 
 /**
  * Biểu đồ "Hiệu suất nội dung": 2 đường (lượt tiếp cận + lượt tương tác) theo ngày đăng, kèm bộ
@@ -52,7 +53,7 @@ function PerformanceChart({
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.perfTitle}</span>
+            <span style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.perfTitle}</span>
             {demo && <DemoBadge label={t.dbDemoData} />}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 6, flexWrap: 'wrap' }}>
@@ -72,7 +73,7 @@ function PerformanceChart({
                 style={{
                   fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 8, padding: '6px 12px',
                   cursor: 'pointer', transition: 'background .15s, color .15s',
-                  color: on ? '#7c3aed' : '#6b6680', background: on ? '#f3edff' : '#f6f4fb',
+                  color: on ? C.primary : C.textSecondary, background: on ? C.primarySoft : C.surfaceAlt,
                 }}
               >
                 {r === 7 ? t.dbRange7 : t.dbRange30}
@@ -125,7 +126,7 @@ function PerformanceChart({
       ) : (
         <div style={{
           height: 260, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          textAlign: 'center', padding: '0 24px', fontSize: 13.5, lineHeight: 1.6, color: '#8a85a0',
+          textAlign: 'center', padding: '0 24px', fontSize: 13.5, lineHeight: 1.6, color: C.textMuted,
         }}>
           {t.dbPerfEmpty}
         </div>
@@ -136,7 +137,7 @@ function PerformanceChart({
 
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: '#6b6680' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: C.textSecondary }}>
       <span aria-hidden style={{ width: 9, height: 9, borderRadius: 3, background: color }} />
       {label}
     </span>
@@ -157,10 +158,10 @@ function ChartTooltip({
   const engagement = valueOf('engagement');
   return (
     <div style={{
-      background: '#fff', border: '1px solid #efeaf8', borderRadius: 12, padding: '10px 12px',
-      boxShadow: '0 12px 28px -18px rgba(80,40,140,.6)', fontSize: 12.5,
+      background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 12px',
+      boxShadow: `0 12px 28px -18px ${C.legacyShadowrgba8040140_6_}`, fontSize: 12.5,
     }}>
-      <div style={{ fontWeight: 700, color: '#211c38', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontWeight: 700, color: C.textStrong, marginBottom: 6 }}>{label}</div>
       <TooltipRow color={REACH_LINE} label={reachLabel} value={reach} lang={lang} />
       <TooltipRow color={ENGAGEMENT_LINE} label={engagementLabel} value={engagement} lang={lang} />
     </div>
@@ -169,10 +170,10 @@ function ChartTooltip({
 
 function TooltipRow({ color, label, value, lang }: { color: string; label: string; value: number; lang: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#5b5670' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: C.ink550 }}>
       <span aria-hidden style={{ width: 8, height: 8, borderRadius: 2, background: color }} />
       <span style={{ flex: 1 }}>{label}</span>
-      <strong style={{ color: '#211c38' }}>{formatGroupedNumber(value, lang)}</strong>
+      <strong style={{ color: C.textStrong }}>{formatGroupedNumber(value, lang)}</strong>
     </div>
   );
 }

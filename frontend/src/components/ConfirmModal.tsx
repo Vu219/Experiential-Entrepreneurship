@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import Modal from './Modal';
 import { useApp } from '../context/AppContext';
+import { C } from '../styles/colors';
 
 /**
  * Dialog xác nhận hành động nhạy cảm (xóa hồ sơ / xóa chiến lược / khoá-xoá user...).
@@ -37,7 +38,7 @@ export default function ConfirmModal({
         <button
           onClick={onClose}
           className="btn-soft"
-          style={{ flex: 1, border: '1px solid #ece8f6', background: '#fff', borderRadius: 11, padding: '11px 0', fontSize: 14, fontWeight: 700, color: '#5b5670', cursor: 'pointer' }}
+          style={{ flex: 1, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 11, padding: '11px 0', fontSize: 14, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}
         >
           {t.cancel}
         </button>

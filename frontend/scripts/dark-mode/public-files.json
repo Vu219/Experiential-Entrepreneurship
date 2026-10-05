@@ -1,0 +1,23 @@
+[
+  "pages/LandingPage.tsx",
+  "pages/PricingPage.tsx",
+  "pages/Auth.tsx",
+  "pages/ForgotPasswordPage.tsx",
+  "pages/GoogleCallbackPage.tsx",
+  "pages/CompleteProfilePage.tsx",
+  "components/LandingHeader.tsx",
+  "components/ShareButton.tsx",
+  "pages/legal/DataDeletionPage.tsx",
+  "pages/legal/LegalPage.tsx",
+  "pages/legal/PrivacyPage.tsx",
+  "pages/legal/TermsPage.tsx",
+  "components/landing/CtaSection.tsx",
+  "components/landing/FaqSection.tsx",
+  "components/landing/HowItWorks.tsx",
+  "components/landing/IntegrationsLoop.tsx",
+  "components/landing/LandingFooter.tsx",
+  "components/landing/landingIcons.tsx",
+  "components/landing/LandingLink.tsx",
+  "components/landing/PlanCard.tsx",
+  "components/landing/PricingTeaser.tsx"
+]

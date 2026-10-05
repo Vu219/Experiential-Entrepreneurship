@@ -1,3 +1,4 @@
+import { C } from '../../../styles/colors';
 /**
  * Màu cho chart doanh thu. Phải khai báo dạng mã màu rời (không dùng `brandGradient` của
  * theme) vì gradient SVG cần từng stop tường minh, còn brandGradient là chuỗi CSS. Giữ tất cả
@@ -5,19 +6,19 @@
  */
 
 /** Đường + vùng tô chart doanh thu (tím brand). */
-export const AREA_STROKE = '#8b5cf6';
+export const AREA_STROKE = C.violetLight;
 
 /** Đường dự kiến nét đứt cho các ngày chưa tới của tháng hiện tại. */
 export const PROJECTION_STROKE = '#a78bfa';
 
 /** Nền vùng "ngày chưa tới" — đủ nhạt để không lấn đường thực thu. */
-export const FUTURE_FILL = '#f7f5fc';
+export const FUTURE_FILL = C.legacyBgf7f5fc;
 
 /** Màu doanh thu ÂM (hoàn tiền lớn hơn doanh số trong bucket). */
 export const REVENUE_NEGATIVE = '#ef4444';
 
-export const GRID_LINE = '#f1eef8';
-export const AXIS_TEXT = '#a59fbb';
+export const GRID_LINE = C.chartGrid;
+export const AXIS_TEXT = C.chartAxis;
 
 /**
  * Bảng màu donut "Cơ cấu gói dịch vụ" — gán theo THỨ TỰ gói (`displayOrder`), không gán theo
@@ -32,10 +33,10 @@ export const planColor = (index: number) => PLAN_PALETTE[index % PLAN_PALETTE.le
  * không bị lệch màu (vd đường xanh nhưng badge đỏ). `slate` dùng khi không có % thay đổi.
  */
 export const SPARK_TONES = {
-  emerald: { stroke: '#10b981', badge: 'bg-emerald-50 text-emerald-600' },
-  rose: { stroke: '#f43f5e', badge: 'bg-rose-50 text-rose-600' },
-  violet: { stroke: '#8b5cf6', badge: 'bg-violet-50 text-violet-600' },
-  slate: { stroke: '#94a3b8', badge: 'bg-slate-100 text-slate-500' },
+  emerald: { stroke: C.legacyText10b981, badge: "bg-[var(--c-legacy-bg-ecfdf5)] text-[var(--c-legacy-text-059669)]" },
+  rose: { stroke: C.legacyTextf43f5e, badge: "bg-[var(--c-legacy-bg-fff1f2)] text-[var(--c-legacy-text-e11d48)]" },
+  violet: { stroke: C.violetLight, badge: "bg-[var(--c-legacy-bg-f5f3ff)] text-[var(--c-primary)]" },
+  slate: { stroke: C.legacyText94a3b8, badge: "bg-[var(--c-slate-tint)] text-[var(--c-slate)]" },
 } as const;
 
 export type SparkTone = keyof typeof SPARK_TONES;

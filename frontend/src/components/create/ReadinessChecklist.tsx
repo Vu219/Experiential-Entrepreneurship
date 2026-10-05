@@ -7,6 +7,8 @@ import { PLATFORM_BG } from '../../theme';
 import { PLATFORM_TO_TAG } from '../../api/connections';
 import type { Platform } from '../../api/brandProfile';
 import type { Readiness } from './useReadiness';
+import { C } from '../../styles/colors';
+import { assistCardStyle } from './assistCardStyle';
 
 // Mốc 3 — "sẵn sàng lên lịch" theo từng nền tảng (Phase 5): đã định dạng, có tài khoản đích, IG cần ảnh/video,
 // brand voice dưới ngưỡng, bắt buộc duyệt. Mỗi mục thiếu có hành động sửa tại chỗ. Dữ liệu lấy từ useReadiness
@@ -27,8 +29,8 @@ export default function ReadinessChecklist({ platforms, readiness, busy, onForma
   const { settings } = readiness;
 
   return (
-    <div style={{ background: '#faf8fe', border: '1px solid #f1edfa', borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.04em', color: '#a59fbb' }}>{t.rdTitle}</div>
+    <div style={{ ...assistCardStyle, borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.04em', color: C.accentText }}>{t.rdTitle}</div>
       {platforms.map((p) => {
         const r = readiness.byPlatform[p];
         const tag = PLATFORM_TO_TAG[p] ?? p.slice(0, 2);
@@ -36,7 +38,7 @@ export default function ReadinessChecklist({ platforms, readiness, busy, onForma
           <div key={p} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={20} radius={6} fontSize={9} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#211c38' }}>{PLATFORM_NAME[p]}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: C.textStrong }}>{PLATFORM_NAME[p]}</span>
             </div>
             {p === 'INSTAGRAM' ? (
               <Line tone="warn" text={t.rdIg} />
@@ -65,7 +67,7 @@ export default function ReadinessChecklist({ platforms, readiness, busy, onForma
 }
 
 function Line({ tone, text, action }: { tone: 'ok' | 'bad' | 'warn'; text: string; action?: ReactNode }) {
-  const color = tone === 'ok' ? '#15803d' : tone === 'bad' ? '#e23d6e' : '#b45309';
+  const color = tone === 'ok' ? C.legacyText15803d : tone === 'bad' ? C.danger : C.amberText;
   const IconCmp = tone === 'ok' ? CheckCircle2 : tone === 'bad' ? XCircle : AlertTriangle;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color, paddingLeft: 28 }}>
@@ -77,6 +79,6 @@ function Line({ tone, text, action }: { tone: 'ok' | 'bad' | 'warn'; text: strin
 }
 
 const actionBtn: CSSProperties = {
-  border: '1px solid #e3d9fb', background: '#fff', color: '#6d28d9', borderRadius: 999, padding: '4px 10px',
+  border: `1px solid ${C.legacyBordere3d9fb}`, background: C.surface, color: C.primaryStrong, borderRadius: 999, padding: '4px 10px',
   fontSize: 11.5, fontWeight: 700, cursor: 'pointer', flex: 'none',
 };

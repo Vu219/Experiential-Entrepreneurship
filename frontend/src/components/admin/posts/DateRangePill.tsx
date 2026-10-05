@@ -4,6 +4,7 @@ import { Calendar, ChevronDown } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import DatePicker from '../../DatePicker';
 import { formatDateVN } from '../../../utils/format';
+import { C } from '../../../styles/colors';
 
 // MỘT nút pill "13/07/2026 - 19/07/2026" mở popover chọn khoảng, thay cho hai ô <input type="date">
 // đặt cạnh nhau. Popover render qua portal + toạ độ fixed (giống RowActionsMenu) để không bị cắt
@@ -88,8 +89,8 @@ export default function DateRangePill({
       onClick={() => apply(range)}
       className="btn-soft"
       style={{
-        border: '1px solid #ece8f6', background: '#fff', borderRadius: 999, padding: '6px 12px',
-        fontSize: 12, fontWeight: 700, color: '#5b5670', cursor: 'pointer',
+        border: `1px solid ${C.border}`, background: C.surface, borderRadius: 999, padding: '6px 12px',
+        fontSize: 12, fontWeight: 700, color: C.ink550, cursor: 'pointer',
       }}
     >
       {label}
@@ -106,14 +107,14 @@ export default function DateRangePill({
         className="btn-soft"
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 8, height: 38, padding: '0 14px',
-          border: `1px solid ${open ? '#c4b5fd' : '#ece8f6'}`, borderRadius: 10,
-          background: open ? '#f7f4ff' : '#fff',
-          fontSize: 13, fontWeight: 700, color: '#4b4660', cursor: 'pointer', whiteSpace: 'nowrap',
+          border: `1px solid ${open ? C.legacyBorderc4b5fd : C.border}`, borderRadius: 10,
+          background: open ? C.surfaceMuted : C.surface,
+          fontSize: 13, fontWeight: 700, color: C.ink650, cursor: 'pointer', whiteSpace: 'nowrap',
         }}
       >
-        <Calendar size={15} strokeWidth={1.8} color="#8b5cf6" />
+        <Calendar size={15} strokeWidth={1.8} color={C.violetLight} />
         {formatDateVN(value.from)} - {formatDateVN(value.to)}
-        <ChevronDown size={14} strokeWidth={2} color="#a39bbf" />
+        <ChevronDown size={14} strokeWidth={2} color={C.ink350} />
       </button>
 
       {open && createPortal(
@@ -124,8 +125,8 @@ export default function DateRangePill({
           className="menu-pop"
           style={{
             position: 'fixed', top: coords.top, left: coords.left, width: PANEL_WIDTH, zIndex: 1000,
-            background: '#fff', border: '1px solid #ece8f6', borderRadius: 14, padding: 14,
-            boxShadow: '0 24px 50px -22px rgba(80,40,140,.5)',
+            background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: 14,
+            boxShadow: `0 24px 50px -22px ${C.legacyShadowrgba8040140_5_}`,
           }}
         >
           <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -135,12 +136,12 @@ export default function DateRangePill({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#8a85a0' }}>{t.apRangeFrom}</label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: C.textMuted }}>{t.apRangeFrom}</label>
             <DatePicker
               value={draft.from} max={draft.to} ariaLabel={t.apRangeFrom}
               onChange={(from) => setDraft((d) => ({ ...d, from }))}
             />
-            <label style={{ fontSize: 12, fontWeight: 700, color: '#8a85a0', marginTop: 4 }}>{t.apRangeTo}</label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, marginTop: 4 }}>{t.apRangeTo}</label>
             <DatePicker
               value={draft.to} min={draft.from} ariaLabel={t.apRangeTo}
               onChange={(to) => setDraft((d) => ({ ...d, to }))}
@@ -152,8 +153,8 @@ export default function DateRangePill({
               onClick={() => setOpen(false)}
               className="btn-soft"
               style={{
-                flex: 1, border: '1px solid #ece8f6', background: '#fff', borderRadius: 10,
-                padding: '9px 0', fontSize: 13, fontWeight: 700, color: '#5b5670', cursor: 'pointer',
+                flex: 1, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10,
+                padding: '9px 0', fontSize: 13, fontWeight: 700, color: C.ink550, cursor: 'pointer',
               }}
             >
               {t.close}
@@ -163,7 +164,7 @@ export default function DateRangePill({
               disabled={!draft.from || !draft.to || draft.from > draft.to}
               style={{
                 flex: 1, border: 'none', borderRadius: 10, padding: '9px 0', fontSize: 13, fontWeight: 700,
-                color: '#fff', background: brandGradient,
+                color: C.onBrand, background: brandGradient,
                 cursor: !draft.from || !draft.to || draft.from > draft.to ? 'default' : 'pointer',
                 opacity: !draft.from || !draft.to || draft.from > draft.to ? 0.55 : 1,
               }}

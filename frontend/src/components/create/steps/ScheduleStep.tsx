@@ -8,6 +8,7 @@ import type { ScheduleBatchResult } from '../../../api/schedules';
 import StepLayout from '../StepLayout';
 import PostImagePreview from '../PostImagePreview';
 import SchedulePlanner, { type PlannerAction } from '../../schedule/SchedulePlanner';
+import { C } from '../../../styles/colors';
 
 /**
  * Mốc 4 — Lên lịch đăng bài ngay trong wizard (Phase 5): SchedulePlanner dùng chung, mỗi nền tảng một card theo
@@ -46,32 +47,32 @@ export default function ScheduleStep({
 
   const mainCard = done ? (
     <Card style={{ textAlign: 'center', padding: 36 }}>
-      <div style={{ width: 64, height: 64, borderRadius: 18, background: 'linear-gradient(150deg,#effcf3,#f1fbf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-        <Icon icon={CalendarCheck2} size={28} stroke="#16a34a" />
+      <div style={{ width: 64, height: 64, borderRadius: 18, background: `linear-gradient(150deg,${C.legacyBgeffcf3},${C.legacyBgf1fbf6})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+        <Icon icon={CalendarCheck2} size={28} stroke={C.success} />
       </div>
-      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: '#211c38' }}>{t.cwScheduledTitle}</div>
-      <div style={{ fontSize: 13, color: '#8a85a0', margin: '8px auto 20px', maxWidth: 400, lineHeight: 1.55 }}>
+      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: C.textStrong }}>{t.cwScheduledTitle}</div>
+      <div style={{ fontSize: 13, color: C.textMuted, margin: '8px auto 20px', maxWidth: 400, lineHeight: 1.55 }}>
         {t.cwScheduledSub.replace('{n}', String(done.succeeded))}
       </div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
         <button onClick={() => navigate(firstDay ? `/calendar?day=${firstDay}` : '/calendar')} className="btn-grad"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 12, padding: '12px 22px', fontWeight: 700, fontSize: 14, color: '#fff', background: brandGradient, cursor: 'pointer' }}>
-          <Icon icon={CalendarCheck2} size={15} stroke="#fff" />{t.cwViewCalendar}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 12, padding: '12px 22px', fontWeight: 700, fontSize: 14, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>
+          <Icon icon={CalendarCheck2} size={15} stroke={C.onBrand} />{t.cwViewCalendar}
         </button>
         <button onClick={() => navigate('/create/new')} className="btn-soft"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid #ece8f6', background: '#fff', borderRadius: 12, padding: '12px 18px', fontWeight: 700, fontSize: 14, color: '#574f6e', cursor: 'pointer' }}>
-          <Icon icon={PlusCircle} size={15} stroke="#574f6e" />{t.cwNewPost}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 12, padding: '12px 18px', fontWeight: 700, fontSize: 14, color: C.ink600, cursor: 'pointer' }}>
+          <Icon icon={PlusCircle} size={15} stroke={C.ink600} />{t.cwNewPost}
         </button>
         <button onClick={() => navigate('/create')} className="btn-soft"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid #ece8f6', background: '#fff', borderRadius: 12, padding: '12px 18px', fontWeight: 700, fontSize: 14, color: '#574f6e', cursor: 'pointer' }}>
-          <Icon icon={List} size={15} stroke="#574f6e" />{t.cwBackToList}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 12, padding: '12px 18px', fontWeight: 700, fontSize: 14, color: C.ink600, cursor: 'pointer' }}>
+          <Icon icon={List} size={15} stroke={C.ink600} />{t.cwBackToList}
         </button>
       </div>
     </Card>
   ) : (
     <Card style={{ padding: 22 }}>
-      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: '#211c38', marginBottom: 4 }}>{t.cwScheduleTitle}</div>
-      <div style={{ fontSize: 12.5, color: '#8a85a0', marginBottom: 14, lineHeight: 1.5 }}>{t.cwScheduleSub}</div>
+      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: C.textStrong, marginBottom: 4 }}>{t.cwScheduleTitle}</div>
+      <div style={{ fontSize: 12.5, color: C.textMuted, marginBottom: 14, lineHeight: 1.5 }}>{t.cwScheduleSub}</div>
       <SchedulePlanner
         itemId={itemId}
         onSubmitted={handleSubmitted}
@@ -90,20 +91,20 @@ export default function ScheduleStep({
         onClick={onBack}
         disabled={busy}
         className="btn-soft"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flex: 'none', border: '1px solid #ece8f6', background: '#fff', borderRadius: 12, padding: '12px 18px', fontWeight: 700, fontSize: 14, color: '#574f6e', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.55 : 1 }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flex: 'none', border: `1px solid ${C.border}`, background: C.surface, borderRadius: 12, padding: '12px 18px', fontWeight: 700, fontSize: 14, color: C.ink600, cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.55 : 1 }}
       >
-        <Icon icon={ArrowLeft} size={15} stroke="#574f6e" />{t.cwBack}
+        <Icon icon={ArrowLeft} size={15} stroke={C.ink600} />{t.cwBack}
       </button>
       <div style={{ flex: 1, minWidth: 0 }} />
       {action?.reason && !busy && (
-        <span style={{ fontSize: 12.5, color: '#8a85a0', lineHeight: 1.45, maxWidth: 360, textAlign: 'right' }}>{action.reason}</span>
+        <span style={{ fontSize: 12.5, color: C.textMuted, lineHeight: 1.45, maxWidth: 360, textAlign: 'right' }}>{action.reason}</span>
       )}
       <button
         type="button"
         onClick={action?.submit}
         disabled={!action || action.disabled}
         className="btn-grad"
-        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, flex: 'none', minWidth: 220, border: 'none', borderRadius: 12, padding: '12px 22px', fontWeight: 800, fontSize: 14, color: '#fff', background: brandGradient, boxShadow: '0 14px 28px -12px rgba(139,92,246,.6)', cursor: !action || action.disabled ? 'not-allowed' : 'pointer', opacity: !action || action.disabled ? 0.55 : 1 }}
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, flex: 'none', minWidth: 220, border: 'none', borderRadius: 12, padding: '12px 22px', fontWeight: 800, fontSize: 14, color: C.onBrand, background: brandGradient, boxShadow: `0 14px 28px -12px ${C.legacyShadowrgba13992246_6_}`, cursor: !action || action.disabled ? 'not-allowed' : 'pointer', opacity: !action || action.disabled ? 0.55 : 1 }}
       >
         {busy ? <Loader2 size={15} className="icon-spin" aria-hidden="true" /> : action?.retry ? <RotateCcw size={15} aria-hidden="true" /> : null}
         {action?.label ?? t.cwScheduleTitle}

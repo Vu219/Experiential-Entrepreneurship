@@ -1,0 +1,26 @@
+[
+  {
+    "width": 1440,
+    "mode": "light",
+    "theme": "ocean",
+    "headerSrc": "/aima-logo.png",
+    "footerSrc": "/aima-logo.png",
+    "backgrounds": [
+      "",
+      ""
+    ],
+    "errors": []
+  },
+  {
+    "width": 390,
+    "mode": "light",
+    "theme": "ocean",
+    "headerSrc": "/aima-logo.png",
+    "footerSrc": "/aima-logo.png",
+    "backgrounds": [
+      "",
+      ""
+    ],
+    "errors": []
+  }
+]

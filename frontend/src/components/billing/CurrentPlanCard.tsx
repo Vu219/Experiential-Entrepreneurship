@@ -7,6 +7,7 @@ import StatusBadge from '../admin/StatusBadge';
 import { formatVND } from '../../api/admin';
 import { formatDateVN } from '../../utils/format';
 import type { BillingOverview } from '../../api/payments';
+import { C } from '../../styles/colors';
 
 /**
  * Gói đang dùng — đọc từ `subscriptions` (nguồn sự thật), KHÔNG từ nhãn `user.plan`.
@@ -73,13 +74,13 @@ export default function CurrentPlanCard({ billing }: { billing: BillingOverview 
           display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none',
         }}
       >
-        <Coins size={21} color="#fff" strokeWidth={1.8} />
+        <Coins size={21} color={C.onBrand} strokeWidth={1.8} />
       </span>
       <div style={{ minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: 12.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8a85a0' }}>
+        <p style={{ margin: 0, fontSize: 12.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: C.textMuted }}>
           {t.blCurrentPlan}
         </p>
-        <p style={{ margin: '2px 0 0', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 24, color: '#1b1730' }}>
+        <p style={{ margin: '2px 0 0', fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 24, color: C.textStrong }}>
           {planName}
         </p>
       </div>
@@ -90,8 +91,8 @@ export default function CurrentPlanCard({ billing }: { billing: BillingOverview 
   const badge = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 'none' }}>
       {billing.price > 0 && (
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#4b4660' }}>
-          {formatVND(billing.price)} <span style={{ fontWeight: 500, color: '#8a85a0' }}>/ {cycleLabel}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: C.ink650 }}>
+          {formatVND(billing.price)} <span style={{ fontWeight: 500, color: C.textMuted }}>/ {cycleLabel}</span>
         </span>
       )}
       <StatusBadge tone={sourceMeta.tone} label={sourceMeta.label} />
@@ -106,7 +107,7 @@ export default function CurrentPlanCard({ billing }: { billing: BillingOverview 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px 24px' }}>
           {columns.map((col, i) => (
             <Fragment key={i}>
-              {i > 0 && <span aria-hidden style={{ width: 1, alignSelf: 'stretch', background: '#ece8f6' }} />}
+              {i > 0 && <span aria-hidden style={{ width: 1, alignSelf: 'stretch', background: C.border }} />}
               {col}
             </Fragment>
           ))}
@@ -123,7 +124,7 @@ export default function CurrentPlanCard({ billing }: { billing: BillingOverview 
         {badge}
       </div>
 
-      <div style={{ height: 1, background: '#f0ecf8', margin: '18px 0' }} />
+      <div style={{ height: 1, background: C.surfaceMuted, margin: '18px 0' }} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
         {facts}
@@ -135,10 +136,10 @@ export default function CurrentPlanCard({ billing }: { billing: BillingOverview 
 function Fact({ icon, label, value, muted = false }: { icon: ReactNode; label: string; value: string; muted?: boolean }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-      <span aria-hidden style={{ color: '#a39bbf', display: 'flex', marginTop: 2 }}>{icon}</span>
+      <span aria-hidden style={{ color: C.ink350, display: 'flex', marginTop: 2 }}>{icon}</span>
       <div style={{ minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: 12.5, color: '#8a85a0' }}>{label}</p>
-        <p style={{ margin: '1px 0 0', fontSize: 14.5, fontWeight: 700, color: muted ? '#6b6680' : '#1b1730' }}>{value}</p>
+        <p style={{ margin: 0, fontSize: 12.5, color: C.textMuted }}>{label}</p>
+        <p style={{ margin: '1px 0 0', fontSize: 14.5, fontWeight: 700, color: muted ? C.textSecondary : C.textStrong }}>{value}</p>
       </div>
     </div>
   );

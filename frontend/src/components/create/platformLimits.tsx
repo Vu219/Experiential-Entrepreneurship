@@ -1,5 +1,6 @@
 import { useApp } from '../../context/AppContext';
 import type { Platform } from '../../api/brandProfile';
+import { C } from '../../styles/colors';
 
 /**
  * Giới hạn nội dung theo từng nền tảng (FB/IG/Threads — scope MVP) cho bộ đếm
@@ -16,7 +17,7 @@ export const parseHashtags = (text: string): string[] =>
   text.split(/[\s,]+/).map((h) => h.replace(/^#/, '').trim()).filter(Boolean).map((h) => `#${h}`);
 
 const counterStyle = (over: boolean) =>
-  ({ fontSize: 11, fontWeight: 600, color: over ? '#dc2626' : '#a59fbb', marginTop: 5, textAlign: 'right' }) as const;
+  ({ fontSize: 11, fontWeight: 600, color: over ? C.danger : C.textFaint, marginTop: 5, textAlign: 'right' }) as const;
 
 /** Bộ đếm ký tự caption theo giới hạn nền tảng — đặt ngay dưới ô/khối caption. */
 export function CaptionCounter({ platform, text }: { platform: Platform; text: string }) {

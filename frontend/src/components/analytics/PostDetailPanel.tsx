@@ -7,6 +7,7 @@ import { PLATFORM_BG } from '../../theme';
 import { PLATFORM_TO_TAG } from '../../api/connections';
 import { METRIC_COLOR } from './analyticsTokens';
 import type { AnalyticsTopPost } from '../../api/analytics';
+import { C, alpha } from '../../styles/colors';
 
 /**
  * Component hiển thị chi tiết bài viết (dùng trong modal hoặc widget tương lai).
@@ -42,11 +43,11 @@ export default function PostDetailPanel({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={26} radius={7} fontSize={11} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#3f3a55' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
             {post.accountName || tag}
           </span>
         </div>
-        <span style={{ fontSize: 11.5, color: '#a59fbb', fontWeight: 500 }}>
+        <span style={{ fontSize: 11.5, color: C.textFaint, fontWeight: 500 }}>
           {formatDateTimeVN(post.publishedAt)}
         </span>
       </div>
@@ -54,7 +55,7 @@ export default function PostDetailPanel({
       {/* 2. Main Title */}
       <div>
         <h4 style={{
-          margin: 0, fontSize: compact ? 14.5 : 16, fontWeight: 700, color: '#1e1b2e', lineHeight: 1.45,
+          margin: 0, fontSize: compact ? 14.5 : 16, fontWeight: 700, color: C.ink900, lineHeight: 1.45,
           whiteSpace: 'pre-wrap',
         }}>
           {post.caption || t.schNoCaption}
@@ -72,13 +73,13 @@ export default function PostDetailPanel({
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <div style={{
                   width: 26, height: 26, borderRadius: 7,
-                  background: `${s.color}14`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: alpha(s.color, 20 / 255), display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   <s.icon size={13} color={s.color} />
                 </div>
-                <span style={{ fontSize: 11.5, color: '#6b6680', fontWeight: 600 }}>{s.label}</span>
+                <span style={{ fontSize: 11.5, color: C.textSecondary, fontWeight: 600 }}>{s.label}</span>
               </div>
-              <div style={{ fontSize: 17, fontWeight: 800, color: '#1e1b2e', marginTop: 4 }}>
+              <div style={{ fontSize: 17, fontWeight: 800, color: C.ink900, marginTop: 4 }}>
                 {formatGroupedNumber(s.value, lang)}
               </div>
             </div>
@@ -94,15 +95,15 @@ export default function PostDetailPanel({
         <div style={{ display: 'flex', gap: 10 }}>
           {engagementRate !== null && (
             <div style={perfRow}>
-              <span style={{ fontSize: 11.5, color: '#8a85a0', fontWeight: 500 }}>{t.anaAvgEngRate}</span>
-              <span style={{ fontSize: 14, fontWeight: 800, color: '#7c3aed' }}>
+              <span style={{ fontSize: 11.5, color: C.textMuted, fontWeight: 500 }}>{t.anaAvgEngRate}</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: C.primary }}>
                 {engagementRate.toFixed(2)}%
               </span>
             </div>
           )}
           <div style={perfRow}>
-            <span style={{ fontSize: 11.5, color: '#8a85a0', fontWeight: 500 }}>{t.pdpTotalInteractions ?? 'Tổng tương tác'}</span>
-            <span style={{ fontSize: 14, fontWeight: 800, color: '#1e1b2e' }}>
+            <span style={{ fontSize: 11.5, color: C.textMuted, fontWeight: 500 }}>{t.pdpTotalInteractions ?? 'Tổng tương tác'}</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: C.ink900 }}>
               {formatGroupedNumber(totalInteractions, lang)}
             </span>
           </div>
@@ -116,7 +117,7 @@ export default function PostDetailPanel({
             {t.pdpSummary ?? 'Tóm tắt nội dung'}
           </div>
           <p style={{
-            margin: 0, fontSize: 12.5, color: '#5b5670', lineHeight: 1.55,
+            margin: 0, fontSize: 12.5, color: C.ink550, lineHeight: 1.55,
             display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden',
           }}>
             {post.caption}
@@ -133,13 +134,14 @@ export default function PostDetailPanel({
             style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               border: 'none', borderRadius: 12, padding: '12px 18px',
-              background: brandGradient, color: '#fff',
+              background: brandGradient, color: C.onBrand,
               fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
-              boxShadow: '0 4px 14px -3px rgba(124, 58, 237, 0.4)',
+              boxShadow: `0 4px 14px -3px ${C.legacyShadowrgba1245823704_}`,
               transition: 'transform 0.15s, opacity 0.15s',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.92'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            className={"dm-hover-a29de51"}
+
+
           >
             {actionLabel || t.anaPostDetail}
             <ExternalLink size={15} />
@@ -153,17 +155,17 @@ export default function PostDetailPanel({
 const sectionHeading: CSSProperties = {
   fontSize: 11,
   fontWeight: 700,
-  color: '#8a85a0',
+  color: C.textMuted,
   textTransform: 'uppercase',
   letterSpacing: 0.6,
   marginBottom: 8,
 };
 
 const metricCard: CSSProperties = {
-  background: '#f8f6fc',
+  background: C.bg,
   borderRadius: 12,
   padding: '11px 13px',
-  border: '1px solid #efeaf8',
+  border: `1px solid ${C.border}`,
 };
 
 const perfRow: CSSProperties = {
@@ -172,7 +174,7 @@ const perfRow: CSSProperties = {
   flexDirection: 'column',
   gap: 2,
   padding: '10px 14px',
-  background: '#f8f6fc',
+  background: C.bg,
   borderRadius: 10,
-  border: '1px solid #efeaf8',
+  border: `1px solid ${C.border}`,
 };

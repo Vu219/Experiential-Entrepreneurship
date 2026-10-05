@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
+import { C } from '../../styles/colors';
 
 /** Mốc top của khối dính cột phải (ngay dưới topbar 70px + khoảng thở). */
 const STICKY_TOP = 88;
@@ -81,7 +82,7 @@ export default function StepLayout({
       {sideSticky}
       {!stacked && sideAction && (
         // Khối dính cao hơn màn hình (cuộn bên trong) thì cụm nút vẫn bám đáy vùng nhìn thấy, không bị đẩy khuất.
-        <div style={{ position: 'sticky', bottom: 0, zIndex: 2, background: '#fff', border: '1px solid #efeaf8', borderRadius: 16, padding: 12, boxShadow: '0 -8px 24px -14px rgba(80,40,140,.35)' }}>
+        <div style={{ position: 'sticky', bottom: 0, zIndex: 2, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 12, boxShadow: `0 -8px 24px -14px ${C.legacyShadowrgba8040140_35_}` }}>
           {sideAction}
         </div>
       )}
@@ -116,7 +117,7 @@ export default function StepLayout({
         </div>
       </div>
       {bottomAction && (
-        <div style={{ position: 'sticky', bottom: 8, zIndex: 20, background: '#fff', border: '1px solid #efeaf8', borderRadius: 14, padding: 10, boxShadow: '0 10px 30px -12px rgba(80,40,140,.35)' }}>
+        <div style={{ position: 'sticky', bottom: 8, zIndex: 20, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: 10, boxShadow: `0 10px 30px -12px ${C.legacyShadowrgba8040140_35_}` }}>
           {/* Desktop: cụm nút neo phải với bề rộng vừa tay — không kéo nút Tiếp tục dài hết trang */}
           <div style={{ maxWidth: isMobile || actionWide ? '100%' : 460, marginLeft: 'auto' }}>{bottomAction}</div>
         </div>

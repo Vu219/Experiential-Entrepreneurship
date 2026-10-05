@@ -8,6 +8,7 @@ import { PLATFORM_BG } from '../../theme.ts';
 import { PLATFORM_TO_TAG } from '../../api/connections.ts';
 import type { FailedPost } from '../../api/failedPosts.ts';
 import { fmtDate, fmtTime, httpDetailOf, isPolicy, toneOf, typeLabel } from './shared.ts';
+import { C } from '../../styles/colors';
 
 // Modal "Chi tiết lỗi" căn giữa màn hình (bottom sheet ở mobile) của layout master–detail:
 // header (tiêu đề bài + badge loại lỗi + X), lưới meta 4 ô có icon, thông điệp nền tảng,
@@ -20,12 +21,12 @@ const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:n
 
 function MetaCell({ icon: IconCmp, label, children }: { icon: LucideIcon; label: string; children: ReactNode }) {
   return (
-    <div style={{ background: '#faf9fe', border: '1px solid #f1eef8', borderRadius: 12, padding: '10px 13px', minWidth: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 700, color: '#a59fbb', letterSpacing: 0.3, textTransform: 'uppercase' }}>
+    <div style={{ background: C.surfaceSubtle, border: `1px solid ${C.surfaceMuted}`, borderRadius: 12, padding: '10px 13px', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 700, color: C.textFaint, letterSpacing: 0.3, textTransform: 'uppercase' }}>
         <IconCmp size={12} strokeWidth={1.8} aria-hidden />
         {label}
       </div>
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#2b2543', marginTop: 4, overflowWrap: 'anywhere' }}>{children}</div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: C.ink750, marginTop: 4, overflowWrap: 'anywhere' }}>{children}</div>
     </div>
   );
 }
@@ -42,9 +43,9 @@ function ActionBtn({ icon, label, onClick, disabled, primary = false, danger = f
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 10, padding: '8px 13px',
         fontSize: 12.5, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer',
-        border: primary ? 'none' : `1px solid ${danger ? '#f2c9d4' : '#ece8f6'}`,
-        background: primary ? brandGradient : '#fff',
-        color: primary ? '#fff' : danger ? '#e23d6e' : '#574f6e',
+        border: primary ? 'none' : `1px solid ${danger ? C.legacyBorderf2c9d4 : C.border}`,
+        background: primary ? brandGradient : C.surface,
+        color: primary ? C.onBrand : danger ? C.rose : C.ink600,
         opacity: disabled ? 0.6 : 1,
       }}
     >
@@ -140,8 +141,8 @@ export default function ErrorDetailModal({
         onClick={() => setTab(key)}
         style={{
           border: 'none', background: 'transparent', padding: '9px 2px', marginRight: 18, cursor: 'pointer',
-          fontSize: 12.5, fontWeight: 700, color: active ? '#7c3aed' : '#8a85a0',
-          borderBottom: `2px solid ${active ? '#7c3aed' : 'transparent'}`,
+          fontSize: 12.5, fontWeight: 700, color: active ? C.primary : C.textMuted,
+          borderBottom: `2px solid ${active ? C.primary : 'transparent'}`,
         }}
       >
         {label}
@@ -157,9 +158,9 @@ export default function ErrorDetailModal({
         disabled={disabled}
         className="btn-soft"
         style={{
-          display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px solid #ece8f6', borderRadius: 10,
-          padding: '7px 12px', background: '#fff', fontSize: 12.5, fontWeight: 700,
-          color: disabled ? '#c4bdd6' : '#574f6e', cursor: disabled ? 'default' : 'pointer',
+          display: 'inline-flex', alignItems: 'center', gap: 5, border: `1px solid ${C.border}`, borderRadius: 10,
+          padding: '7px 12px', background: C.surface, fontSize: 12.5, fontWeight: 700,
+          color: disabled ? C.ink200 : C.ink600, cursor: disabled ? 'default' : 'pointer',
         }}
       >
         {dir === -1 && icon}
@@ -176,7 +177,7 @@ export default function ErrorDetailModal({
       className="modal-fade-in"
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+        background: C.legacyBgrgba000_45_, backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
         display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
         padding: isMobile ? 0 : 18,
       }}
@@ -189,16 +190,16 @@ export default function ErrorDetailModal({
         onMouseDown={(e) => e.stopPropagation()}
         className={isMobile ? 'view-pop' : 'modal-scale-in'}
         style={{
-          width: '100%', maxWidth: isMobile ? '100%' : 680, background: '#fff',
+          width: '100%', maxWidth: isMobile ? '100%' : 680, background: C.surface,
           borderRadius: isMobile ? '20px 20px 0 0' : 20,
-          boxShadow: '0 40px 80px -30px rgba(60,30,110,.55)', padding: 22, position: 'relative',
+          boxShadow: `0 40px 80px -30px ${C.legacyShadowrgba6030110_55_}`, padding: 22, position: 'relative',
           maxHeight: isMobile ? '92vh' : 'calc(100vh - 36px)', overflowY: 'auto',
           display: 'flex', flexDirection: 'column', gap: 14, opacity: busy ? 0.7 : 1,
         }}
       >
         {/* Header: tiêu đề bài + badge loại lỗi + nút đóng */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, paddingRight: 36 }}>
-          <div style={{ flex: 1, minWidth: 0, fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15.5, color: '#211c38', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <div style={{ flex: 1, minWidth: 0, fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15.5, color: C.textStrong, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {post.caption || t.fpNoCaption}
           </div>
           <span style={{ flex: 'none', fontSize: 10.5, fontWeight: 800, padding: '3px 10px', borderRadius: 999, color: tone.color, background: tone.bg, marginTop: 2 }}>
@@ -208,7 +209,7 @@ export default function ErrorDetailModal({
         <button
           onClick={onClose}
           aria-label="Close"
-          style={{ position: 'absolute', top: 16, right: 16, width: 32, height: 32, border: 'none', borderRadius: 9, background: '#f4f1fb', color: '#6b6680', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ position: 'absolute', top: 16, right: 16, width: 32, height: 32, border: 'none', borderRadius: 9, background: C.surfaceMuted, color: C.textSecondary, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           <X size={16} strokeWidth={2} />
         </button>
@@ -227,15 +228,15 @@ export default function ErrorDetailModal({
 
         {/* Thông điệp từ nền tảng */}
         <div>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: '#8a85a0', marginBottom: 6 }}>{t.fpPlatformMsg}</div>
-          <div style={{ fontSize: 12.5, color: policy ? '#b91c1c' : '#b45309', background: policy ? '#fdf1f1' : '#fdf6e7', borderRadius: 10, padding: '10px 13px', lineHeight: 1.55 }}>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: C.textMuted, marginBottom: 6 }}>{t.fpPlatformMsg}</div>
+          <div style={{ fontSize: 12.5, color: policy ? C.legacyTextb91c1c : C.amberText, background: policy ? C.legacyBgfdf1f1 : C.legacyBgfdf6e7, borderRadius: 10, padding: '10px 13px', lineHeight: 1.55 }}>
             {post.errorMessage || (policy ? t.fpPolicyExplain : t.fpTechExplain)}
           </div>
         </div>
 
         {/* 2 tab: Nội dung gốc / Phản hồi từ nền tảng */}
         <div>
-          <div style={{ borderBottom: '1px solid #f1eef8' }}>
+          <div style={{ borderBottom: `1px solid ${C.surfaceMuted}` }}>
             {tabBtn('original', t.fpTabOriginal)}
             {tabBtn('response', t.fpTabResponse)}
           </div>
@@ -243,14 +244,14 @@ export default function ErrorDetailModal({
             <div style={{ padding: '12px 2px 0', display: 'flex', gap: 11, alignItems: 'flex-start' }}>
               <PlatformTag tag={platformTag} bg={PLATFORM_BG[platformTag] ?? '#6b7280'} size={30} radius={9} />
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#8a85a0' }}>{post.accountName ?? '—'}</div>
-                <div style={{ fontSize: 13, color: '#2b2543', lineHeight: 1.6, marginTop: 4, whiteSpace: 'pre-wrap' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.textMuted }}>{post.accountName ?? '—'}</div>
+                <div style={{ fontSize: 13, color: C.ink750, lineHeight: 1.6, marginTop: 4, whiteSpace: 'pre-wrap' }}>
                   {post.caption || t.fpNoCaption}
                 </div>
               </div>
             </div>
           ) : (
-            <pre style={{ margin: '12px 0 0', background: '#241f3a', color: '#e9e4f9', borderRadius: 12, padding: 14, fontSize: 11.5, lineHeight: 1.6, overflowX: 'auto', fontFamily: 'ui-monospace, monospace' }}>
+            <pre style={{ margin: '12px 0 0', background: '#241f3a', color: C.legacyTexte9e4f9, borderRadius: 12, padding: 14, fontSize: 11.5, lineHeight: 1.6, overflowX: 'auto', fontFamily: 'ui-monospace, monospace' }}>
               {rawResponse}
             </pre>
           )}
@@ -258,19 +259,19 @@ export default function ErrorDetailModal({
 
         {/* Bạn muốn làm gì tiếp theo? */}
         <div>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: '#3f3a55', marginBottom: 8 }}>{t.fpNext}</div>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: C.text, marginBottom: 8 }}>{t.fpNext}</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <ActionBtn icon={<PencilLine size={13} />} label={t.fpActEdit} primary onClick={() => onEdit(post)} disabled={busy} />
             <ActionBtn icon={<Sparkles size={13} />} label={t.fpActRegen} onClick={() => onRegen(post)} disabled={busy} />
             <ActionBtn icon={<Trash2 size={13} />} label={t.fpActDelete} danger onClick={() => onDelete(post)} disabled={busy} />
           </div>
-          {policy && <div style={{ fontSize: 11.5, color: '#a59fbb', marginTop: 8, lineHeight: 1.5 }}>{t.fpPolicyExplain}</div>}
+          {policy && <div style={{ fontSize: 11.5, color: C.textFaint, marginTop: 8, lineHeight: 1.5 }}>{t.fpPolicyExplain}</div>}
         </div>
 
         {/* Trước / Sau — lướt qua các bài lỗi ngay trong modal */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderTop: '1px solid #f1eef8', paddingTop: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderTop: `1px solid ${C.surfaceMuted}`, paddingTop: 12 }}>
           {navBtn(-1, t.pgPrev, <ChevronLeft size={14} strokeWidth={2} />)}
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#a59fbb' }}>{index + 1}/{total}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.textFaint }}>{index + 1}/{total}</span>
           {navBtn(1, t.pgNext, <ChevronRight size={14} strokeWidth={2} />)}
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Lang, ThemeKey, ProfileState, BrandState } from "../types";
 import { brandDefaults, bioDefault } from "../data";
+import { colorModeStorage, type ColorMode } from "./colorMode";
 
 // State thuần của app (trước đây nằm trong AppContext) → chuyển sang Zustand.
 // KHÔNG đụng tới điều hướng (React Router) và auth: phần đó vẫn nằm trong hook
@@ -45,6 +46,8 @@ const applyTheme = (k: ThemeKey): void => {
 interface AppStoreState {
   lang: Lang;
   theme: ThemeKey;
+  /** Sáng / Tối / Theo hệ thống — áp lên <html> bởi hooks/useColorModeSync. */
+  colorMode: ColorMode;
   profile: ProfileState;
   brand: BrandState;
   notif: boolean[];
@@ -53,6 +56,7 @@ interface AppStoreState {
   setLang: (l: Lang) => void;
   toggleLang: () => void;
   setTheme: (k: ThemeKey) => void;
+  setColorMode: (m: ColorMode) => void;
   setProfile: (patch: Partial<ProfileState>) => void;
   setBrand: (patch: Partial<BrandState>) => void;
   toggleBrandTone: (i: number) => void;
@@ -65,6 +69,7 @@ interface AppStoreState {
 export const useAppStore = create<AppStoreState>((set) => ({
   lang: "vi",
   theme: readTheme(),
+  colorMode: colorModeStorage.load(),
   profile: { name: "AIMA User", email: "contact@aima.studio", bio: bioDefault("vi") },
   brand: { ...brandDefaults("vi"), toneIdx: [0, 1, 3] },
   notif: [true, true, true, false],
@@ -75,6 +80,10 @@ export const useAppStore = create<AppStoreState>((set) => ({
   setTheme: (k) => {
     applyTheme(k); // đổi ngay (đồng bộ, trước re-render) + lưu localStorage → không nhấp nháy
     set({ theme: k });
+  },
+  setColorMode: (m) => {
+    colorModeStorage.save(m);
+    set({ colorMode: m });
   },
   setProfile: (patch) => set((s) => ({ profile: { ...s.profile, ...patch } })),
   setBrand: (patch) => set((s) => ({ brand: { ...s.brand, ...patch } })),

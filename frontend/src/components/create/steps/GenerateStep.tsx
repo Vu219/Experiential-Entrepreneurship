@@ -19,6 +19,7 @@ import BrandVoicePanel from '../BrandVoicePanel';
 import PostImagePreview from '../PostImagePreview';
 import { useBrandVoiceCheck } from '../useBrandVoiceCheck';
 import { useToast } from '../../toast/ToastProvider';
+import { C } from '../../../styles/colors';
 
 /** Trạng thái job của MỘT nền tảng trong một lượt tạo (PA1 — job độc lập). */
 export interface PlatformRun {
@@ -104,12 +105,12 @@ export default function GenerateStep({
           <Loader label={t.cwGenerating} />
         ) : (
           <div style={{ textAlign: 'center', padding: '28px 8px' }}>
-            <div style={{ width: 64, height: 64, borderRadius: 18, background: 'linear-gradient(150deg,#f6f2ff,#fcf1fc)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <Icon icon={Sparkles} size={28} stroke="#a78bfa" />
+            <div style={{ width: 64, height: 64, borderRadius: 18, background: `linear-gradient(150deg,${C.legacyBgf6f2ff},${C.legacyBgfcf1fc})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <Icon icon={Sparkles} size={28} stroke={C.legacyTexta78bfa} />
             </div>
-            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: '#211c38' }}>{t.cwStep2}</div>
-            <div style={{ fontSize: 13, color: '#8a85a0', margin: '8px auto 20px', maxWidth: 380, lineHeight: 1.55 }}>{t.cwGenIntro}</div>
-            <button onClick={onGenerate} disabled={starting} className="btn-grad" style={{ border: 'none', borderRadius: 12, padding: '13px 26px', fontWeight: 700, fontSize: 14, color: '#fff', background: brandGradient, boxShadow: '0 14px 28px -12px rgba(139,92,246,.6)', cursor: starting ? 'not-allowed' : 'pointer', opacity: starting ? 0.6 : 1 }}>
+            <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: C.textStrong }}>{t.cwStep2}</div>
+            <div style={{ fontSize: 13, color: C.textMuted, margin: '8px auto 20px', maxWidth: 380, lineHeight: 1.55 }}>{t.cwGenIntro}</div>
+            <button onClick={onGenerate} disabled={starting} className="btn-grad" style={{ border: 'none', borderRadius: 12, padding: '13px 26px', fontWeight: 700, fontSize: 14, color: C.onBrand, background: brandGradient, boxShadow: `0 14px 28px -12px ${C.legacyShadowrgba13992246_6_}`, cursor: starting ? 'not-allowed' : 'pointer', opacity: starting ? 0.6 : 1 }}>
               {t.cwGenBtn}
             </button>
           </div>
@@ -131,7 +132,7 @@ export default function GenerateStep({
                   key={g.id}
                   onClick={() => setGenIndex(i)}
                   title={g.note}
-                  style={{ border: i === genIndex ? '1.5px solid #8b5cf6' : '1px solid #ece8f6', background: i === genIndex ? '#f6f1ff' : '#fff', color: i === genIndex ? '#6d28d9' : '#574f6e', borderRadius: 9, padding: '6px 11px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                  style={{ border: i === genIndex ? `1.5px solid ${C.violetLight}` : `1px solid ${C.border}`, background: i === genIndex ? C.border : C.surface, color: i === genIndex ? C.primaryStrong : C.ink600, borderRadius: 9, padding: '6px 11px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                 >
                   {t.cwVersion} {i + 1}
                 </button>
@@ -142,13 +143,13 @@ export default function GenerateStep({
           {/* NFR-14: nhãn minh bạch AI + nhãn tối ưu theo nền tảng */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 14 }}>
             <span style={{ background: TONE_COLORS.ai.bg, color: TONE_COLORS.ai.color, borderRadius: 7, padding: '2px 9px', fontSize: 10.5, fontWeight: 700 }}>✨ {t.cwAiLabel} · {t.cwVersion} {genIndex + 1}/{gens.length}</span>
-            <span style={{ background: '#e0f7fb', color: '#0e7490', borderRadius: 7, padding: '2px 9px', fontSize: 10.5, fontWeight: 700 }}>{t.cwOptimizedPer}</span>
+            <span style={{ background: C.infoSoft, color: C.info, borderRadius: 7, padding: '2px 9px', fontSize: 10.5, fontWeight: 700 }}>{t.cwOptimizedPer}</span>
           </div>
 
           {/* Ghi chú của bản hiện tại (nhập lúc "Tạo lại") */}
           {gen.note && (
-            <div style={{ marginBottom: 14, fontSize: 12, color: '#6b6680', background: '#faf8fe', borderRadius: 10, padding: '8px 12px', lineHeight: 1.5 }}>
-              <span style={{ fontWeight: 700, color: '#574f6e' }}>{t.cwVersionNote}:</span> {gen.note}
+            <div style={{ marginBottom: 14, fontSize: 12, color: C.textSecondary, background: C.bg, borderRadius: 10, padding: '8px 12px', lineHeight: 1.5 }}>
+              <span style={{ fontWeight: 700, color: C.ink600 }}>{t.cwVersionNote}:</span> {gen.note}
             </div>
           )}
 
@@ -157,16 +158,16 @@ export default function GenerateStep({
             <Loader label={t.cwGenerating} />
           ) : run?.status === 'error' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '18px 0' }}>
-              <div style={{ fontSize: 13, color: '#d1435b', background: '#fdf1f3', borderRadius: 12, padding: '12px 14px', lineHeight: 1.55 }}>
+              <div style={{ fontSize: 13, color: C.legacyTextd1435b, background: C.legacyBgfdf1f3, borderRadius: 12, padding: '12px 14px', lineHeight: 1.55 }}>
                 {t.cwGenPlatformError}{run.error ? `: ${run.error}` : ''}
               </div>
               <button
                 onClick={() => onRetryPlatform(platform)}
                 disabled={busy}
                 className="btn-grad"
-                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, alignSelf: 'flex-start', border: 'none', borderRadius: 11, padding: '10px 20px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1 }}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, alignSelf: 'flex-start', border: 'none', borderRadius: 11, padding: '10px 20px', fontWeight: 700, fontSize: 13, color: C.onBrand, background: brandGradient, cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1 }}
               >
-                <Icon icon={RefreshCw} size={14} stroke="#fff" />{t.cwRetry}
+                <Icon icon={RefreshCw} size={14} stroke={C.onBrand} />{t.cwRetry}
               </button>
             </div>
           ) : version ? (
@@ -174,27 +175,27 @@ export default function GenerateStep({
           ) : null}
 
           {/* Tạo lại: mở ô ghi chú → sinh BẢN MỚI cho mọi nền tảng */}
-          <div style={{ marginTop: 18, borderTop: '1px solid #f1edfa', paddingTop: 16 }}>
+          <div style={{ marginTop: 18, borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
             {regenOpen ? (
               <>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#574f6e', marginBottom: 8 }}>{t.cwRegenNote}</label>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: C.ink600, marginBottom: 8 }}>{t.cwRegenNote}</label>
                 <textarea
                   value={regenNote}
                   onChange={(e) => setRegenNote(e.target.value)}
                   placeholder={t.cwRegenNotePh}
-                  style={{ width: '100%', border: '1.5px solid #e7e2f2', borderRadius: 12, padding: '11px 14px', fontSize: 13.5, color: '#241f3a', background: '#fbfaff', outline: 'none', resize: 'vertical', minHeight: 70 }}
+                  style={{ width: '100%', border: `1.5px solid ${C.border}`, borderRadius: 12, padding: '11px 14px', fontSize: 13.5, color: C.textStrong, background: C.surfaceSubtle, outline: 'none', resize: 'vertical', minHeight: 70 }}
                 />
-                <div style={{ fontSize: 11.5, color: '#a59fbb', marginTop: 6 }}>{t.cwRegenHint}</div>
+                <div style={{ fontSize: 11.5, color: C.textFaint, marginTop: 6 }}>{t.cwRegenHint}</div>
                 <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
                   <button
                     disabled={anyRunning}
                     onClick={() => { onRegenerate(regenNote); setRegenOpen(false); setRegenNote(''); }}
                     className="btn-grad"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 11, padding: '10px 18px', fontWeight: 700, fontSize: 13, color: '#fff', background: brandGradient, cursor: anyRunning ? 'not-allowed' : 'pointer', opacity: anyRunning ? 0.6 : 1 }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 11, padding: '10px 18px', fontWeight: 700, fontSize: 13, color: C.onBrand, background: brandGradient, cursor: anyRunning ? 'not-allowed' : 'pointer', opacity: anyRunning ? 0.6 : 1 }}
                   >
-                    <Icon icon={RefreshCw} size={14} stroke="#fff" />{t.cwRegenRun}
+                    <Icon icon={RefreshCw} size={14} stroke={C.onBrand} />{t.cwRegenRun}
                   </button>
-                  <button onClick={() => setRegenOpen(false)} className="btn-soft" style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 11, padding: '10px 16px', fontWeight: 600, fontSize: 13, color: '#574f6e', cursor: 'pointer' }}>
+                  <button onClick={() => setRegenOpen(false)} className="btn-soft" style={{ border: `1px solid ${C.border}`, background: C.surface, borderRadius: 11, padding: '10px 16px', fontWeight: 600, fontSize: 13, color: C.ink600, cursor: 'pointer' }}>
                     {t.cancel}
                   </button>
                 </div>
@@ -204,9 +205,9 @@ export default function GenerateStep({
                 disabled={anyRunning}
                 onClick={() => setRegenOpen(true)}
                 className="btn-soft"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid #ece8f6', background: '#fff', borderRadius: 11, padding: '10px 16px', fontWeight: 700, fontSize: 13, color: '#7c3aed', cursor: anyRunning ? 'not-allowed' : 'pointer', opacity: anyRunning ? 0.5 : 1 }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 11, padding: '10px 16px', fontWeight: 700, fontSize: 13, color: C.primary, cursor: anyRunning ? 'not-allowed' : 'pointer', opacity: anyRunning ? 0.5 : 1 }}
               >
-                <Icon icon={RefreshCw} size={14} stroke="#7c3aed" />{t.cwRegen}
+                <Icon icon={RefreshCw} size={14} stroke={C.primary} />{t.cwRegen}
               </button>
             )}
           </div>
@@ -243,21 +244,21 @@ export default function GenerateStep({
         <button
           onClick={onBack}
           className="btn-soft"
-          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, flex: 'none', border: '1px solid #ece8f6', background: '#fff', borderRadius: 12, padding: '13px 18px', fontWeight: 700, fontSize: 14, color: '#574f6e', cursor: 'pointer' }}
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, flex: 'none', border: `1px solid ${C.border}`, background: C.surface, borderRadius: 12, padding: '13px 18px', fontWeight: 700, fontSize: 14, color: C.ink600, cursor: 'pointer' }}
         >
-          <Icon icon={ArrowLeft} size={15} stroke="#574f6e" />{t.cwBack}
+          <Icon icon={ArrowLeft} size={15} stroke={C.ink600} />{t.cwBack}
         </button>
         <button
           disabled={!allDone || anyRunning}
           onClick={onNext}
           className="btn-grad"
-          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, flex: 1, border: 'none', borderRadius: 12, padding: 13, fontWeight: 700, fontSize: 14, color: '#fff', background: brandGradient, cursor: !allDone || anyRunning ? 'not-allowed' : 'pointer', opacity: !allDone || anyRunning ? 0.55 : 1 }}
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, flex: 1, border: 'none', borderRadius: 12, padding: 13, fontWeight: 700, fontSize: 14, color: C.onBrand, background: brandGradient, cursor: !allDone || anyRunning ? 'not-allowed' : 'pointer', opacity: !allDone || anyRunning ? 0.55 : 1 }}
         >
-          {t.cwNext}<Icon icon={ArrowRight} size={16} stroke="#fff" />
+          {t.cwNext}<Icon icon={ArrowRight} size={16} stroke={C.onBrand} />
         </button>
       </div>
       {gen && (!allDone || anyRunning) && (
-        <div style={{ fontSize: 11.5, color: '#a59fbb', textAlign: 'center' }}>{t.cwGenAllDoneHint}</div>
+        <div style={{ fontSize: 11.5, color: C.textFaint, textAlign: 'center' }}>{t.cwGenAllDoneHint}</div>
       )}
     </div>
   );

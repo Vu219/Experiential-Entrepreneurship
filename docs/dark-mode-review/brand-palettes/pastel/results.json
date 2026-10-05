@@ -1,0 +1,324 @@
+{
+  "results": [
+    {
+      "width": 1440,
+      "mode": "light",
+      "palette": "Đại dương",
+      "key": "ocean",
+      "saved": "ocean",
+      "dark": false,
+      "stops": [
+        "#22d3ee",
+        "#3b82f6",
+        "#8b5cf6"
+      ],
+      "foregrounds": [
+        {
+          "text": "2",
+          "color": "rgb(255, 255, 255)"
+        },
+        {
+          "text": "Nâng cấp ngay",
+          "color": "rgb(255, 255, 255)"
+        },
+        {
+          "text": "N",
+          "color": "rgb(255, 255, 255)"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "mode": "light",
+      "palette": "Tím sương",
+      "key": "aurora",
+      "saved": "aurora",
+      "dark": false,
+      "stops": [
+        "#b7a6da",
+        "#c6b6e6",
+        "#d5c6ef"
+      ],
+      "foregrounds": [
+        {
+          "text": "2",
+          "color": "rgb(53, 39, 77)"
+        },
+        {
+          "text": "Nâng cấp ngay",
+          "color": "rgb(53, 39, 77)"
+        },
+        {
+          "text": "N",
+          "color": "rgb(53, 39, 77)"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "mode": "light",
+      "palette": "Hồng sương",
+      "key": "sunset",
+      "saved": "sunset",
+      "dark": false,
+      "stops": [
+        "#dfa9c0",
+        "#d6afd5",
+        "#c9b8e3"
+      ],
+      "foregrounds": [
+        {
+          "text": "2",
+          "color": "rgb(53, 39, 77)"
+        },
+        {
+          "text": "Nâng cấp ngay",
+          "color": "rgb(53, 39, 77)"
+        },
+        {
+          "text": "N",
+          "color": "rgb(53, 39, 77)"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "palette": "Đại dương",
+      "key": "ocean",
+      "saved": "ocean",
+      "dark": true,
+      "stops": [
+        "#22d3ee",
+        "#3b82f6",
+        "#8b5cf6"
+      ],
+      "foregrounds": [
+        {
+          "text": "2",
+          "color": "rgb(255, 255, 255)"
+        },
+        {
+          "text": "Nâng cấp ngay",
+          "color": "rgb(255, 255, 255)"
+        },
+        {
+          "text": "N",
+          "color": "rgb(255, 255, 255)"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "palette": "Tím sương",
+      "key": "aurora",
+      "saved": "aurora",
+      "dark": true,
+      "stops": [
+        "#b7a6da",
+        "#c6b6e6",
+        "#d5c6ef"
+      ],
+      "foregrounds": [
+        {
+          "text": "2",
+          "color": "rgb(53, 39, 77)"
+        },
+        {
+          "text": "Nâng cấp ngay",
+          "color": "rgb(53, 39, 77)"
+        },
+        {
+          "text": "N",
+          "color": "rgb(53, 39, 77)"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "palette": "Hồng sương",
+      "key": "sunset",
+      "saved": "sunset",
+      "dark": true,
+      "stops": [
+        "#dfa9c0",
+        "#d6afd5",
+        "#c9b8e3"
+      ],
+      "foregrounds": [
+        {
+          "text": "2",
+          "color": "rgb(53, 39, 77)"
+        },
+        {
+          "text": "Nâng cấp ngay",
+          "color": "rgb(53, 39, 77)"
+        },
+        {
+          "text": "N",
+          "color": "rgb(53, 39, 77)"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "palette": "Đại dương",
+      "key": "ocean",
+      "saved": "ocean",
+      "dark": false,
+      "stops": [
+        "#22d3ee",
+        "#3b82f6",
+        "#8b5cf6"
+      ],
+      "foregrounds": [
+        {
+          "text": "N",
+          "color": "rgb(255, 255, 255)"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "palette": "Tím sương",
+      "key": "aurora",
+      "saved": "aurora",
+      "dark": false,
+      "stops": [
+        "#b7a6da",
+        "#c6b6e6",
+        "#d5c6ef"
+      ],
+      "foregrounds": [
+        {
+          "text": "N",
+          "color": "rgb(53, 39, 77)"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "palette": "Hồng sương",
+      "key": "sunset",
+      "saved": "sunset",
+      "dark": false,
+      "stops": [
+        "#dfa9c0",
+        "#d6afd5",
+        "#c9b8e3"
+      ],
+      "foregrounds": [
+        {
+          "text": "N",
+          "color": "rgb(53, 39, 77)"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "palette": "Đại dương",
+      "key": "ocean",
+      "saved": "ocean",
+      "dark": true,
+      "stops": [
+        "#22d3ee",
+        "#3b82f6",
+        "#8b5cf6"
+      ],
+      "foregrounds": [
+        {
+          "text": "N",
+          "color": "rgb(255, 255, 255)"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "palette": "Tím sương",
+      "key": "aurora",
+      "saved": "aurora",
+      "dark": true,
+      "stops": [
+        "#b7a6da",
+        "#c6b6e6",
+        "#d5c6ef"
+      ],
+      "foregrounds": [
+        {
+          "text": "N",
+          "color": "rgb(53, 39, 77)"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "palette": "Hồng sương",
+      "key": "sunset",
+      "saved": "sunset",
+      "dark": true,
+      "stops": [
+        "#dfa9c0",
+        "#d6afd5",
+        "#c9b8e3"
+      ],
+      "foregrounds": [
+        {
+          "text": "N",
+          "color": "rgb(53, 39, 77)"
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "contrast": [
+    {
+      "palette": "Tím sương",
+      "hex": "#b7a6da",
+      "textRatio": 6.121286024602181
+    },
+    {
+      "palette": "Tím sương",
+      "hex": "#c6b6e6",
+      "textRatio": 7.254221629407549
+    },
+    {
+      "palette": "Tím sương",
+      "hex": "#d5c6ef",
+      "textRatio": 8.492829356743563
+    },
+    {
+      "palette": "Hồng sương",
+      "hex": "#dfa9c0",
+      "textRatio": 6.827405574909096
+    },
+    {
+      "palette": "Hồng sương",
+      "hex": "#d6afd5",
+      "textRatio": 7.0715383279414326
+    },
+    {
+      "palette": "Hồng sương",
+      "hex": "#c9b8e3",
+      "textRatio": 7.392359345691905
+    }
+  ]
+}

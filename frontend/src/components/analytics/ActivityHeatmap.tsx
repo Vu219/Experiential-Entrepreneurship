@@ -4,6 +4,7 @@ import { Card } from '../ui';
 import { formatGroupedNumber } from '../../utils/format';
 import RangeBadge from './RangeBadge';
 import type { AnalyticsHeatmap, AnalyticsHeatmapCell } from '../../api/analytics';
+import { C } from '../../styles/colors';
 
 /**
  * Khối G — "Thời điểm hoạt động nhiều nhất": lưới 7 thứ × 8 khung 3 giờ, tô màu theo **tương tác
@@ -53,8 +54,8 @@ function ActivityHeatmap({ data, from, to }: { data: AnalyticsHeatmap; from: str
     <Card>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 16, color: '#211c38' }}>{t.anaHeatmapTitle}</div>
-          <div style={{ fontSize: 12.5, color: '#6b6680', marginTop: 2 }}>{t.anaHeatmapSub}</div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.anaHeatmapTitle}</div>
+          <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 2 }}>{t.anaHeatmapSub}</div>
         </div>
         <RangeBadge from={from} to={to} />
       </div>
@@ -62,7 +63,7 @@ function ActivityHeatmap({ data, from, to }: { data: AnalyticsHeatmap; from: str
       {!hasAnyPost ? (
         <div style={{
           height: 150, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          textAlign: 'center', fontSize: 13.5, color: '#8a85a0', padding: '0 20px',
+          textAlign: 'center', fontSize: 13.5, color: C.textMuted, padding: '0 20px',
         }}>
           {t.anaHeatmapEmpty}
         </div>
@@ -75,17 +76,17 @@ function ActivityHeatmap({ data, from, to }: { data: AnalyticsHeatmap; from: str
               {/* gap 3 + cột nhãn 24px: đủ chỗ cho nhãn giờ "00–03" ở 10px ngay tại 1280 (ô ~27px),
                   nếu nới gap lên nữa thì nhãn chồng lên nhau. */}
               <div style={{ display: 'grid', gridTemplateColumns: '24px repeat(8, minmax(20px, 1fr))', gap: 3 }}>
-                <span style={{ ...cornerCell, position: 'sticky', left: 0, background: '#fff', zIndex: 1 }} />
+                <span style={{ ...cornerCell, position: 'sticky', left: 0, background: C.surface, zIndex: 1 }} />
                 {slotLabel.map((s) => (
-                  <div key={s} style={{ fontSize: 10, color: '#a59fbb', textAlign: 'center', fontWeight: 700 }}>{s}</div>
+                  <div key={s} style={{ fontSize: 10, color: C.textFaint, textAlign: 'center', fontWeight: 700 }}>{s}</div>
                 ))}
 
                 {dowLabel.map((label, i) => {
                   const dow = i + 1;
                   return [
                     <div key={`h${dow}`} style={{
-                      fontSize: 11, fontWeight: 700, color: '#8a85a0', display: 'flex', alignItems: 'center',
-                      position: 'sticky', left: 0, background: '#fff', zIndex: 1,
+                      fontSize: 11, fontWeight: 700, color: C.textMuted, display: 'flex', alignItems: 'center',
+                      position: 'sticky', left: 0, background: C.surface, zIndex: 1,
                     }}>
                       {label}
                     </div>,
@@ -112,8 +113,8 @@ function ActivityHeatmap({ data, from, to }: { data: AnalyticsHeatmap; from: str
                             // hàng chỉ còn ~133px — vừa nửa dưới của cột phải.
                             height: 16, borderRadius: 5,
                             // Ô chưa từng đăng: xám trung tính, KHÁC hẳn ô có bài nhưng tương tác thấp.
-                            background: cell ? colorOf(cell) : '#f5f4f8',
-                            border: cell?.lowSample ? '1.5px dashed #b9a7ea' : '1px solid transparent',
+                            background: cell ? colorOf(cell) : C.surfaceSubtle,
+                            border: cell?.lowSample ? `1.5px dashed ${C.legacyBorderb9a7ea}` : '1px solid transparent',
                             opacity: cell?.lowSample ? 0.7 : 1,
                             cursor: cell ? 'default' : 'default',
                           }}
@@ -130,25 +131,25 @@ function ActivityHeatmap({ data, from, to }: { data: AnalyticsHeatmap; from: str
               theo ô) — ô nhỏ đi nhưng chữ vẫn phải đọc được. */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ fontSize: 11.5, color: '#8a85a0' }}>{t.anaHeatLow}</span>
+              <span style={{ fontSize: 11.5, color: C.textMuted }}>{t.anaHeatLow}</span>
               <span aria-hidden style={{
                 width: 56, height: 8, borderRadius: 999,
                 background: 'linear-gradient(90deg, rgba(139,92,246,.14), rgba(139,92,246,.9))',
               }} />
-              <span style={{ fontSize: 11.5, color: '#8a85a0' }}>{t.anaHeatHigh}</span>
+              <span style={{ fontSize: 11.5, color: C.textMuted }}>{t.anaHeatHigh}</span>
             </div>
             <div style={legendItem}>
-              <span aria-hidden style={{ ...legendSwatch, background: '#f5f4f8' }} />
+              <span aria-hidden style={{ ...legendSwatch, background: C.surfaceSubtle }} />
               {t.anaHeatNoPost}
             </div>
             <div style={legendItem} title={t.anaHeatLowSample.replace('{n}', String(minPostsForScale))}>
-              <span aria-hidden style={{ ...legendSwatch, background: 'rgba(139,92,246,.45)', border: '1.5px dashed #b9a7ea', opacity: 0.7 }} />
+              <span aria-hidden style={{ ...legendSwatch, background: C.legacyBgrgba13992246_45_, border: `1.5px dashed ${C.legacyBorderb9a7ea}`, opacity: 0.7 }} />
               {t.anaHeatLowSample.replace('{n}', String(minPostsForScale))}
             </div>
           </div>
 
           {scaledCells === 0 && (
-            <div style={{ fontSize: 11.5, color: '#a16207', background: '#fffaf0', border: '1px solid #fce7c3', borderRadius: 10, padding: '8px 10px', marginTop: 10 }}>
+            <div style={{ fontSize: 11.5, color: C.legacyTexta16207, background: C.legacyBgfffaf0, border: `1px solid ${C.legacyBorderfce7c3}`, borderRadius: 10, padding: '8px 10px', marginTop: 10 }}>
               {t.anaHeatNoScale.replace('{n}', String(minPostsForScale))}
             </div>
           )}
@@ -159,16 +160,16 @@ function ActivityHeatmap({ data, from, to }: { data: AnalyticsHeatmap; from: str
       {hover && (
         <div style={{
           position: 'fixed', left: Math.min(hover.x + 12, window.innerWidth - 190), top: hover.y + 14,
-          background: '#fff', border: '1px solid #efeaf8', borderRadius: 12, padding: '9px 11px',
-          boxShadow: '0 12px 28px -18px rgba(80,40,140,.6)', fontSize: 12.5, zIndex: 60, pointerEvents: 'none',
+          background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '9px 11px',
+          boxShadow: `0 12px 28px -18px ${C.legacyShadowrgba8040140_6_}`, fontSize: 12.5, zIndex: 60, pointerEvents: 'none',
         }}>
-          <div style={{ fontWeight: 700, color: '#211c38' }}>
+          <div style={{ fontWeight: 700, color: C.textStrong }}>
             {dowLabel[hover.cell.dow - 1]} · {slotLabel[hover.cell.slot]}
           </div>
-          <div style={{ color: '#5b5670', marginTop: 3 }}>
+          <div style={{ color: C.ink550, marginTop: 3 }}>
             {t.anaHeatCellAvg.replace('{v}', formatGroupedNumber(Math.round(hover.cell.avgEngagement), lang))}
           </div>
-          <div style={{ color: '#8a85a0' }}>
+          <div style={{ color: C.textMuted }}>
             {t.anaHeatCellPosts.replace('{n}', String(hover.cell.posts))}
             {hover.cell.lowSample && ` · ${t.anaNotEnoughData}`}
           </div>
@@ -181,7 +182,7 @@ function ActivityHeatmap({ data, from, to }: { data: AnalyticsHeatmap; from: str
 const cornerCell: CSSProperties = { display: 'block' };
 
 const legendItem: CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: '#8a85a0',
+  display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: C.textMuted,
 };
 
 const legendSwatch: CSSProperties = { width: 14, height: 10, borderRadius: 4, flex: 'none' };

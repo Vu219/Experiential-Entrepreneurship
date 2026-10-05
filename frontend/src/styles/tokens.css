@@ -1,9 +1,17 @@
 :root {
+  /* Landing: preserve the incumbent light gradients, use subdued dark surfaces. */
+  --c-landing-footer: linear-gradient(180deg,rgba(247,246,253,0),rgba(244,243,251,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.12),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.10),transparent 60%),#fbfafe;
+  --c-landing-cta: linear-gradient(135deg, #DBEAFE 0%, #F5F3FF 50%, #FCE7F3 100%);
+  --c-landing-cta-title: #1e1b4b;
+  --c-landing-cta-text: #475569;
+  --c-landing-cta-small: #334155;
+  --c-landing-cta-button: #1e293b;
+  --c-landing-cta-glow-blue: radial-gradient(circle, rgba(147,197,253,.4) 0%, rgba(147,197,253,0) 62%);
+  --c-landing-cta-glow-pink: radial-gradient(circle, rgba(249,168,212,.45) 0%, rgba(249,168,212,0) 62%);
   /* ===== Đại dương (Ocean) — theme mặc định =====
      Mỗi theme override 2 dải:
-     - Brand TƯƠI (--brand-from/via/to + --brand-glow): logo · CTA · nút · badge ·
-       sidebar active · accent · glow. Đổi theo theme để CẢ APP đổi tông, nhưng luôn
-       giữ ở dải vivid để nổi bật.
+     - Brand (--brand-from/via/to + --brand-glow): logo · CTA · nút · badge ·
+       sidebar active · accent · glow. Đổi theo theme để CẢ APP đổi tông.
      - Ambient DỊU (--theme-surface-*): tint nền hero (.ambient-surface), tách khỏi
        dải brand nên nền vẫn sáng, chữ tối luôn đủ tương phản.
      Đổi data-theme trên <html> là mọi component đọc var(...) đổi theo — không sửa
@@ -12,6 +20,7 @@
   --brand-via: #3b82f6;
   --brand-to: #8b5cf6;
   --brand-glow: rgba(99, 102, 241, 0.45);
+  --c-on-brand: #ffffff;
 
   /* Dẫn xuất từ 3 chặng brand — tự đổi khi theme override --brand-from/via/to. */
   --brand-gradient: linear-gradient(135deg, var(--brand-from), var(--brand-via), var(--brand-to));
@@ -44,26 +53,837 @@
   --theme-surface-to: #7e86f1;
 }
 
-/* Aurora — teal → periwinkle → violet dịu.
+/* Tím sương (Lilac Mist) — violet pastel.
+   Giữ key aurora để lựa chọn đã lưu tiếp tục hoạt động.
    Brand = ĐÚNG bảng màu swatch ở Cài đặt > Giao diện (themeOptions trong data.ts). */
 :root[data-theme='aurora'] {
-  --brand-from: #6fa8a3;
-  --brand-via: #8098c4;
-  --brand-to: #9e90c2;
-  --brand-glow: rgba(128, 152, 196, 0.5);
-  --theme-surface-from: #6fa8a3;
-  --theme-surface-via: #8098c4;
-  --theme-surface-to: #9e90c2;
+  --brand-from: #b7a6da;
+  --brand-via: #c6b6e6;
+  --brand-to: #d5c6ef;
+  --brand-glow: rgba(183, 166, 218, 0.35);
+  --c-on-brand: #35274d;
+  --brand-text-gradient: linear-gradient(135deg, #705a95, #6c548e, #745899);
+  --theme-surface-from: #b7a6da;
+  --theme-surface-via: #c6b6e6;
+  --theme-surface-to: #d5c6ef;
 }
 
-/* Hoàng hôn (Sunset) — apricot → dusty rose → mauve dịu.
+/* Hồng sương (Rose Mist) — hồng/lavender pastel.
+   Giữ key sunset để lựa chọn đã lưu tiếp tục hoạt động.
    Brand = ĐÚNG bảng màu swatch ở Cài đặt > Giao diện (themeOptions trong data.ts). */
 :root[data-theme='sunset'] {
-  --brand-from: #e0a583;
-  --brand-via: #cf8e93;
-  --brand-to: #b983a6;
-  --brand-glow: rgba(207, 142, 147, 0.5);
-  --theme-surface-from: #e0a583;
-  --theme-surface-via: #cf8e93;
-  --theme-surface-to: #b983a6;
+  --brand-from: #dfa9c0;
+  --brand-via: #d6afd5;
+  --brand-to: #c9b8e3;
+  --brand-glow: rgba(223, 169, 192, 0.35);
+  --c-on-brand: #35274d;
+  --brand-text-gradient: linear-gradient(135deg, #93516f, #865086, #71528e);
+  --theme-surface-from: #dfa9c0;
+  --theme-surface-via: #d6afd5;
+  --theme-surface-to: #c9b8e3;
+}
+@media screen {
+  :root.dark[data-theme='aurora'],
+  :root.dark[data-theme='sunset'] {
+    --brand-text-gradient: var(--brand-gradient);
+  }
+}
+
+/* ===== Màu giao diện SÁNG/TỐI (dark mode) =====
+   Tách khỏi data-theme ở trên: data-theme = bảng màu THƯƠNG HIỆU (ocean/aurora/sunset),
+   class "dark" trên <html> = chế độ sáng/tối. Hai trục chồng được lên nhau (3 × 2).
+   Giá trị sáng = ĐÚNG mã hex đang dùng (bảng ánh xạ: docs/dark-mode-color-map.md).
+   Code dùng qua object `C` ở styles/colors.ts (inline style) hoặc var(--c-*) trong CSS.
+   Thêm token mới → khai báo CẢ hai khối (sáng ở :root, tối ở :root.dark) + thêm vào colors.ts. */
+:root {
+  /* — Trung tính: nền & viền — */
+  --c-surface: #ffffff;
+  --c-surface-subtle: #fbfaff;
+  --c-bg: #f7f6fd;
+  --c-surface-muted: #f1eef8;
+  --c-border: #ece8f6;
+  --c-border-strong: #d9d3ea;
+  /* — Trung tính: chữ (đậm dần) — */
+  --c-ink-200: #c4bdd6;
+  --c-ink-250: #b3acc6;
+  --c-text-faint: #a59fbb;
+  --c-ink-350: #9b94b5;
+  --c-text-muted: #8a85a0;
+  --c-text-secondary: #6b6680;
+  --c-ink-550: #5b5670;
+  --c-ink-600: #574f6e;
+  --c-ink-650: #4b4660;
+  --c-text: #3f3a55;
+  --c-ink-750: #2b2543;
+  --c-text-strong: #211c38;
+  --c-ink-900: #171327;
+
+  /* — Khung app — */
+  --c-shell: #ffffff;
+  --c-topbar: rgba(255, 255, 255, 0.86);
+
+  /* — Tone ngữ nghĩa (chữ/icon + nền nhạt) — */
+  --c-primary: #7c3aed;
+  --c-primary-strong: #6d28d9;
+  --c-primary-soft: #f3edff;
+  --c-purple-soft: #f1e9ff;
+  --c-success: #16a34a;
+  --c-success-soft: #e8f8ee;
+  --c-success-soft-2: #dcfce7;
+  --c-warning: #d97706;
+  --c-warning-soft: #fdf0dc;
+  --c-warning-soft-2: #fef3c7;
+  --c-amber-soft: #fdf4e5;
+  --c-orange: #c2410c;
+  --c-orange-soft: #ffedd5;
+  --c-danger: #dc2626;
+  --c-danger-soft: #fde8e8;
+  --c-danger-soft-2: #fee2e2;
+  --c-rose: #e23d6e;
+  --c-rose-soft: #fdecf1;
+  --c-info: #0e7490;
+  --c-info-soft: #e0f7fb;
+  --c-slate: #64748b;
+  --c-slate-soft: #eef2f7;
+  --c-gray: #6b7280;
+  --c-gray-soft: #f3f4f6;
+
+  /* — Chart — */
+  --c-chart-grid: #f1eef8;
+  --c-chart-axis: #a59fbb;
+  --c-chart-threads: #111111;
+
+  /* — Hiệu ứng — */
+  --c-shadow-card: 0 18px 38px -34px rgba(80, 40, 140, 0.5);
+  --c-focus: #7c3aed;
+  --c-scroll-thumb: #e0ddee;
+  --c-scroll-thumb-2: #dcd7ed;
+  --c-scroll-thumb-2-hover: #c3b9df;
+  --c-skeleton: #efeaf8;
+  --c-skeleton-shine: rgba(255, 255, 255, 0.65);
+  --c-scroll-thumb-sb: #d9d2ec;
+  --c-scroll-thumb-sb-hover: #c4bbe0;
+  --c-scroll-thumb-3: #cbd5e1;
+  --c-scroll-thumb-3-hover: #94a3b8;
+  --c-row-hover: #faf9fe;
+  --c-glass: rgba(255, 255, 255, 0.92);
+  --c-accent-border: #e3d8f7;
+  --c-btn-outline-hover-bg: #faf7ff;
+  --c-btn-outline-hover-border: #b79df0;
+
+  /* — Nhấn tím (accent) & tint trạng thái phụ — */
+  --c-accent-soft: #f4ecff;
+  --c-accent-soft-hover: #efe4ff;
+  --c-accent-line: #e7d9fb;
+  --c-accent-text: #5b2b9e;
+  --c-accent-text-muted: #7d6aa3;
+  --c-accent-icon-muted: #a58fd0;
+  --c-violet: #7c5cff;
+  --c-promo-bg: linear-gradient(150deg, #f6f2ff, #fcf1fc);
+  --c-promo-border: #efe6fb;
+  --c-track: #ece6f8;
+  --c-nav-nested: #7d7894;
+  --c-divider-soft: rgba(90, 80, 120, 0.18);
+  --c-menu-header: linear-gradient(135deg, #edf9ff, #f6effc);
+  --c-hover: #f7f6fd;
+  --c-success-tint: #eafbf1;
+  --c-success-line: #c9ecd6;
+  --c-rose-tint: #fdeef2;
+  --c-purple-tint: #f3edfd;
+  --c-orange-2: #ea580c;
+  --c-orange-tint: #fdefe6;
+  --c-amber-text: #b45309;
+  --c-slate-tint: #f1f5f9;
+  /* Nền phụ cho nút/khối con đặt TRÊN card hoặc sidebar (sáng = #f7f6fd như nền trang; tối = sáng hơn card). */
+  --c-surface-alt: #f7f6fd;
+  /* Viền mảnh quanh chip nền tảng (Threads nền đen) — chỉ hiện ở chế độ tối. */
+  --c-platform-ring: transparent;
+  --c-shadow-pop: 0 30px 60px -28px rgba(80, 40, 140, 0.5);
+  --c-shadow-flyout: 0 24px 50px -22px rgba(80, 40, 140, 0.5);
+  --c-modal-overlay: rgba(26, 18, 48, 0.5);
+  --c-drawer-overlay: rgba(26, 18, 48, 0.42);
+  --c-shadow-modal: 0 40px 80px -30px rgba(60, 30, 110, 0.55);
+  --c-shadow-datepicker: 0 18px 38px -12px rgba(80, 40, 140, 0.35);
+  --c-date-disabled: #d0cce0;
+  --c-violet-light: #8b5cf6;
+  --c-violet-line: #d8cdf2;
+  --c-violet-line-hover: #b79df0;
+  --c-violet-selected: #faf6ff;
+  --c-violet-hover: #ede8f9;
+  --c-violet-hover-strong: #e3dcf6;
+  --c-rose-border: #f6cdd9;
+  --c-input-error-border: #f3aabf;
+  --c-strength-fair: #f59e0b;
+  --c-toast-surface: rgba(255, 255, 255, 0.98);
+  --c-toast-border: rgba(15, 23, 42, 0.08);
+  --c-toast-title: #1f2937;
+  --c-toast-close: #9ca3af;
+  --c-shadow-toast: 0 12px 32px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+/* Chỉ áp trên màn hình: bản in / xuất PDF (window.print) luôn dùng màu sáng. */
+@media screen {
+  :root.dark {
+    --c-landing-footer: linear-gradient(180deg,rgba(11,15,30,0),rgba(13,18,36,.92)),radial-gradient(820px 340px at 82% 130%,rgba(124,92,255,.08),transparent 60%),radial-gradient(620px 300px at 12% 120%,rgba(34,211,238,.06),transparent 60%),#0b0f1e;
+    --c-landing-cta: linear-gradient(135deg, #111c31 0%, #191832 50%, #251a36 100%);
+    --c-landing-cta-title: #f1f3fb;
+    --c-landing-cta-text: #a3abc4;
+    --c-landing-cta-small: #c3c9db;
+    --c-landing-cta-button: #f1f3fb;
+    --c-landing-cta-glow-blue: radial-gradient(circle, rgba(59,130,246,.12) 0%, rgba(59,130,246,0) 62%);
+    --c-landing-cta-glow-pink: radial-gradient(circle, rgba(236,72,153,.12) 0%, rgba(236,72,153,0) 62%);
+    color-scheme: dark;
+
+    --c-surface: #121829;
+    --c-surface-subtle: #151c2f;
+    --c-bg: #0b0f1e;
+    --c-surface-muted: #182036;
+    --c-border: #232b42;
+    --c-border-strong: #2e3752;
+
+    --c-ink-200: #3d4762;
+    --c-ink-250: #4f5975;
+    --c-text-faint: #8690aa;
+    --c-ink-350: #8c96b0;
+    --c-text-muted: #939db6;
+    --c-text-secondary: #a3abc4;
+    --c-ink-550: #b0b8cf;
+    --c-ink-600: #b7bed3;
+    --c-ink-650: #c3c9db;
+    --c-text: #d5d9e8;
+    --c-ink-750: #e2e6f1;
+    --c-text-strong: #f1f3fb;
+    --c-ink-900: #f7f8fc;
+
+    --c-shell: #0b0f1e;
+    --c-topbar: rgba(11, 15, 30, 0.86);
+
+    --c-primary: #a78bfa;
+    --c-primary-strong: #c4b5fd;
+    --c-primary-soft: rgba(139, 92, 246, 0.18);
+    --c-purple-soft: rgba(139, 92, 246, 0.16);
+    --c-success: #4ade80;
+    --c-success-soft: rgba(34, 197, 94, 0.14);
+    --c-success-soft-2: rgba(34, 197, 94, 0.14);
+    --c-warning: #fbbf24;
+    --c-warning-soft: rgba(245, 158, 11, 0.15);
+    --c-warning-soft-2: rgba(245, 158, 11, 0.15);
+    --c-amber-soft: rgba(245, 158, 11, 0.15);
+    --c-orange: #fb923c;
+    --c-orange-soft: rgba(249, 115, 22, 0.15);
+    --c-danger: #f87171;
+    --c-danger-soft: rgba(239, 68, 68, 0.15);
+    --c-danger-soft-2: rgba(239, 68, 68, 0.15);
+    --c-rose: #fb7185;
+    --c-rose-soft: rgba(244, 63, 94, 0.15);
+    --c-info: #22d3ee;
+    --c-info-soft: rgba(34, 211, 238, 0.13);
+    --c-slate: #94a3b8;
+    --c-slate-soft: rgba(148, 163, 184, 0.12);
+    --c-gray: #9ca3af;
+    --c-gray-soft: rgba(156, 163, 175, 0.12);
+
+    --c-chart-grid: rgba(255, 255, 255, 0.06);
+    --c-chart-axis: #8c96b0;
+    --c-chart-threads: #94a3b8;
+
+    --c-shadow-card: none;
+    --c-focus: #a78bfa;
+    --c-scroll-thumb: #2a3350;
+    --c-scroll-thumb-2: #2a3350;
+    --c-scroll-thumb-2-hover: #3a4566;
+    --c-skeleton: #1a2236;
+    --c-skeleton-shine: rgba(255, 255, 255, 0.05);
+    --c-scroll-thumb-sb: #2a3350;
+    --c-scroll-thumb-sb-hover: #3a4566;
+    --c-scroll-thumb-3: #2a3350;
+    --c-scroll-thumb-3-hover: #3a4566;
+    --c-row-hover: #182036;
+    --c-glass: rgba(18, 24, 41, 0.92);
+    --c-accent-border: rgba(167, 139, 250, 0.35);
+    --c-btn-outline-hover-bg: rgba(139, 92, 246, 0.12);
+    --c-btn-outline-hover-border: rgba(167, 139, 250, 0.5);
+
+    --c-accent-soft: rgba(139, 92, 246, 0.14);
+    --c-accent-soft-hover: rgba(139, 92, 246, 0.22);
+    --c-accent-line: rgba(167, 139, 250, 0.3);
+    --c-accent-text: #d8c9ff;
+    --c-accent-text-muted: #a59bc7;
+    --c-accent-icon-muted: #8b7bb8;
+    --c-violet: #a592ff;
+    --c-promo-bg: linear-gradient(150deg, rgba(139, 92, 246, 0.16), rgba(236, 72, 153, 0.08));
+    --c-promo-border: rgba(167, 139, 250, 0.22);
+    --c-track: #232b42;
+    --c-nav-nested: #8f98b2;
+    --c-divider-soft: rgba(255, 255, 255, 0.1);
+    --c-menu-header: linear-gradient(135deg, rgba(34, 211, 238, 0.07), rgba(139, 92, 246, 0.1));
+    --c-hover: #1a2238;
+    --c-success-tint: rgba(34, 197, 94, 0.12);
+    --c-success-line: rgba(74, 222, 128, 0.3);
+    --c-rose-tint: rgba(244, 63, 94, 0.13);
+    --c-purple-tint: rgba(139, 92, 246, 0.16);
+    --c-orange-2: #fb923c;
+    --c-orange-tint: rgba(249, 115, 22, 0.15);
+    --c-amber-text: #fbbf24;
+    --c-slate-tint: rgba(148, 163, 184, 0.12);
+    --c-surface-alt: #19213a;
+    --c-platform-ring: rgba(255, 255, 255, 0.14);
+    --c-shadow-pop: 0 24px 48px -16px rgba(0, 0, 0, 0.65);
+    --c-shadow-flyout: 0 24px 48px -16px rgba(0, 0, 0, 0.65);
+    --c-modal-overlay: rgba(0, 0, 0, 0.65);
+    --c-drawer-overlay: rgba(0, 0, 0, 0.6);
+    --c-shadow-modal: 0 40px 80px -30px rgba(0, 0, 0, 0.65);
+    --c-shadow-datepicker: 0 18px 38px -12px rgba(0, 0, 0, 0.65);
+    --c-date-disabled: #4f5975;
+    --c-violet-light: #a78bfa;
+    --c-violet-line: rgba(167, 139, 250, 0.4);
+    --c-violet-line-hover: rgba(167, 139, 250, 0.65);
+    --c-violet-selected: rgba(139, 92, 246, 0.14);
+    --c-violet-hover: rgba(139, 92, 246, 0.18);
+    --c-violet-hover-strong: rgba(139, 92, 246, 0.28);
+    --c-rose-border: rgba(251, 113, 133, 0.3);
+    --c-input-error-border: rgba(251, 113, 133, 0.55);
+    --c-strength-fair: #fbbf24;
+    --c-toast-surface: rgba(18, 24, 41, 0.98);
+    --c-toast-border: #232b42;
+    --c-toast-title: #f1f3fb;
+    --c-toast-close: #939db6;
+    --c-shadow-toast: 0 12px 32px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Exact light aliases for legacy app/page colors outside the neutral merge table. */
+:root {
+  --c-legacy-border-f3c9d6: #f3c9d6;
+  --c-legacy-text-c0285a: #c0285a;
+  --c-legacy-text-8a5566: #8a5566;
+  --c-legacy-shadow-rgba_139_92_246__6_: rgba(139,92,246,.6);
+  --c-legacy-shadow-rgba_139_92_246__7_: rgba(139,92,246,.7);
+  --c-legacy-bg-rgba_20_12_40__45_: rgba(20,12,40,.45);
+  --c-legacy-shadow-rgba_60_30_110__4_: rgba(60,30,110,.4);
+  --c-legacy-shadow-rgba_80_40_140__5_: rgba(80,40,140,.5);
+  --c-legacy-bg-rgba_26_18_48__5_: rgba(26,18,48,.5);
+  --c-legacy-shadow-rgba_0_0_0__6_: rgba(0,0,0,.6);
+  --c-legacy-shadow-rgba_226_61_110__6_: rgba(226,61,110,.6);
+  --c-legacy-shadow-rgba_0_0_0__25_: rgba(0,0,0,.25);
+  --c-legacy-bg-e9f0ff: #e9f0ff;
+  --c-legacy-bg-f4f1fb: #f4f1fb;
+  --c-legacy-shadow-rgba_0_0_0__15_: rgba(0,0,0,.15);
+  --c-legacy-bg-fff5f5: #fff5f5;
+  --c-legacy-shadow-rgba_40_20_90__22_: rgba(40,20,90,.22);
+  --c-legacy-shadow-rgba_40_20_90__05_: rgba(40,20,90,.05);
+  --c-legacy-shadow-rgba_255_255_255__3_: rgba(255,255,255,.3);
+  --c-legacy-border-f4cccc: #f4cccc;
+  --c-legacy-bg-fdf6ea: #fdf6ea;
+  --c-legacy-border-f6e2c2: #f6e2c2;
+  --c-legacy-bg-fdf1dd: #fdf1dd;
+  --c-legacy-border-f3d9a8: #f3d9a8;
+  --c-legacy-text-92400e: #92400e;
+  --c-legacy-text-a16207: #a16207;
+  --c-legacy-border-d9cef7: #d9cef7;
+  --c-legacy-border-ddd0fb: #ddd0fb;
+  --c-legacy-bg-fff7ed: #fff7ed;
+  --c-legacy-border-fed7aa: #fed7aa;
+  --c-legacy-border-f6dfae: #f6dfae;
+  --c-legacy-text-7c4a08: #7c4a08;
+  --c-legacy-bg-rgba_26_18_48__42_: rgba(26,18,48,.42);
+  --c-legacy-shadow-rgba_60_30_110__5_: rgba(60,30,110,.5);
+  --c-legacy-border-b9a7ea: #b9a7ea;
+  --c-legacy-bg-rgba_139_92_246__45_: rgba(139,92,246,.45);
+  --c-legacy-bg-fffaf0: #fffaf0;
+  --c-legacy-border-fce7c3: #fce7c3;
+  --c-legacy-shadow-rgba_80_40_140__6_: rgba(80,40,140,.6);
+  --c-legacy-text-d5cfe8: #d5cfe8;
+  --c-legacy-border-e4dbfa: #e4dbfa;
+  --c-legacy-text-5b21b6: #5b21b6;
+  --c-legacy-border-dcd6ec: #dcd6ec;
+  --c-legacy-border-d8c9ff: #d8c9ff;
+  --c-legacy-bg-cfc9e0: #cfc9e0;
+  --c-legacy-bg-fdf7f9: #fdf7f9;
+  --c-legacy-bg-ecfdf5: #ecfdf5;
+  --c-legacy-text-047857: #047857;
+  --c-legacy-border-a7f3d0: #a7f3d0;
+  --c-legacy-bg-fef2f2: #fef2f2;
+  --c-legacy-text-b91c1c: #b91c1c;
+  --c-legacy-border-fecaca: #fecaca;
+  --c-legacy-border-e5e7eb: #e5e7eb;
+  --c-legacy-shadow-rgba_124_58_237_0_4_: rgba(124, 58, 237, 0.4);
+  --c-legacy-bg-faf8fe: #faf8fe;
+  --c-legacy-bg-f6f3fc: #f6f3fc;
+  --c-legacy-bg-fffdf7: #fffdf7;
+  --c-legacy-bg-f6f2ff: #f6f2ff;
+  --c-legacy-bg-fcf1fc: #fcf1fc;
+  --c-legacy-border-d6cdf0: #d6cdf0;
+  --c-legacy-text-9b7fd6: #9b7fd6;
+  --c-legacy-text-d6336c: #d6336c;
+  --c-legacy-border-ece2fb: #ece2fb;
+  --c-legacy-text-5b4b86: #5b4b86;
+  --c-legacy-text-a78bfa: #a78bfa;
+  --c-legacy-border-e0d5fb: #e0d5fb;
+  --c-legacy-border-e2e8f0: #e2e8f0;
+  --c-legacy-bg-rgba_255_255_255__25_: rgba(255,255,255,.25);
+  --c-legacy-shadow-rgba_40_20_90__28_: rgba(40,20,90,.28);
+  --c-legacy-border-c9bdf3: #c9bdf3;
+  --c-legacy-bg-rgba_16_10_32__78_: rgba(16,10,32,.78);
+  --c-legacy-border-rgba_255_255_255__25_: rgba(255,255,255,.25);
+  --c-legacy-bg-rgba_255_255_255__12_: rgba(255,255,255,.12);
+  --c-legacy-border-a855f7: #a855f7;
+  --c-legacy-bg-rgba_168_85_247_0_06_: rgba(168, 85, 247, 0.06);
+  --c-legacy-shadow-rgba_168_85_247_0_12_: rgba(168, 85, 247, 0.12);
+  --c-legacy-text-b08968: #b08968;
+  --c-legacy-bg-fdf6ec: #fdf6ec;
+  --c-legacy-shadow-rgba_0_0_0_0_03_: rgba(0,0,0,0.03);
+  --c-legacy-bg-fdfbff: #fdfbff;
+  --c-legacy-shadow-rgba_139_92_246_0_25_: rgba(139,92,246,0.25);
+  --c-legacy-bg-rgba_20_16_40__42_: rgba(20,16,40,.42);
+  --c-legacy-shadow-rgba_40_20_90__5_: rgba(40,20,90,.5);
+  --c-legacy-border-e9defb: #e9defb;
+  --c-legacy-border-e3d9fb: #e3d9fb;
+  --c-legacy-shadow-rgba_60_30_110__45_: rgba(60,30,110,.45);
+  --c-legacy-border-c4b5fd: #c4b5fd;
+  --c-legacy-text-a39fb3: #a39fb3;
+  --c-legacy-bg-ebe4f9: #ebe4f9;
+  --c-legacy-bg-rgba_20_14_38_0_55_: rgba(20, 14, 38, 0.55);
+  --c-legacy-shadow-rgba_40_20_90_0_45_: rgba(40, 20, 90, 0.45);
+  --c-legacy-shadow-rgba_124_58_237_0_08_: rgba(124,58,237,0.08);
+  --c-legacy-bg-ebe5f8: #ebe5f8;
+  --c-legacy-shadow-rgba_0_0_0_0_08_: rgba(0,0,0,0.08);
+  --c-legacy-bg-fdf1f1: #fdf1f1;
+  --c-legacy-border-f9d2d8: #f9d2d8;
+  --c-legacy-text-991b1b: #991b1b;
+  --c-legacy-bg-fdf6e7: #fdf6e7;
+  --c-legacy-border-f6e2b3: #f6e2b3;
+  --c-legacy-border-e5e0f2: #e5e0f2;
+  --c-legacy-bg-efe9fb: #efe9fb;
+  --c-legacy-shadow-rgba_70_40_120_0_12_: rgba(70,40,120,0.12);
+  --c-legacy-bg-rgba_255_255_255_0_18_: rgba(255,255,255,0.18);
+  --c-legacy-shadow-rgba_0_0_0_0_2_: rgba(0,0,0,0.2);
+  --c-legacy-text-f3efff: #f3efff;
+  --c-legacy-text-c9bce8: #c9bce8;
+  --c-legacy-bg-rgba_0_0_0_0_5_: rgba(0,0,0,0.5);
+  --c-legacy-border-f2c9d4: #f2c9d4;
+  --c-legacy-border-d4cbf2: #d4cbf2;
+  --c-legacy-text-6025d8: #6025d8;
+  --c-legacy-text-c4b5fd: #c4b5fd;
+  --c-legacy-shadow-rgba_33_28_56_0_05_: rgba(33, 28, 56, 0.05);
+  --c-legacy-shadow-rgba_0_0_0_0_02_: rgba(0, 0, 0, 0.02);
+  --c-legacy-border-ddd7ed: #ddd7ed;
+  --c-legacy-shadow-rgba_35_20_65_0_16_: rgba(35, 20, 65, 0.16);
+  --c-legacy-bg-f7f5fc: #f7f5fc;
+  --c-legacy-bg-fdf1f4: #fdf1f4;
+  --c-legacy-bg-eaf8ef: #eaf8ef;
+  --c-legacy-border-e5ddf5: #e5ddf5;
+  --c-legacy-border-e0daee: #e0daee;
+  --c-legacy-bg-f5f2fa: #f5f2fa;
+  --c-legacy-border-d2c8ea: #d2c8ea;
+  --c-legacy-shadow-rgba_70_40_120_0_08_: rgba(70,40,120,0.08);
+  --c-legacy-text-65676b: #65676b;
+  --c-legacy-bg-rgba_0_0_0_0_45_: rgba(0,0,0,0.45);
+  --c-legacy-bg-rgba_255_255_255_0_22_: rgba(255, 255, 255, 0.22);
+  --c-legacy-border-rgba_255_255_255_0_35_: rgba(255, 255, 255, 0.35);
+  --c-legacy-shadow-rgba_0_0_0_0_3_: rgba(0, 0, 0, 0.3);
+  --c-legacy-bg-rgba_0_0_0_0_6_: rgba(0,0,0,0.6);
+  --c-legacy-shadow-rgba_124_58_237_0_28_: rgba(124, 58, 237, 0.28);
+  --c-legacy-shadow-rgba_124_58_237_0_15_: rgba(124, 58, 237, 0.15);
+  --c-legacy-border-efeaf8: #efeaf8;
+  --c-legacy-bg-fcfbfe: #fcfbfe;
+  --c-legacy-border-dcd4f0: #dcd4f0;
+  --c-legacy-bg-f4effe: #f4effe;
+  --c-legacy-border-f2d9df: #f2d9df;
+  --c-legacy-bg-fdf5f7: #fdf5f7;
+  --c-legacy-text-c0356a: #c0356a;
+  --c-legacy-text-92600a: #92600a;
+  --c-legacy-border-d9cef5: #d9cef5;
+  --c-legacy-bg-e5ddf6: #e5ddf6;
+  --c-legacy-shadow-rgba_80_60_140__25_: rgba(80,60,140,.25);
+  --c-legacy-shadow-rgba_255_255_255__5_: rgba(255,255,255,.5);
+  --c-legacy-bg-fdeef5: #fdeef5;
+  --c-legacy-text-be185d: #be185d;
+  --c-legacy-border-e3dcf4: #e3dcf4;
+  --c-legacy-bg-d9cef5: #d9cef5;
+  --c-legacy-bg-e3dcf4: #e3dcf4;
+  --c-legacy-shadow-rgba_80_40_140__35_: rgba(80,40,140,.35);
+  --c-legacy-bg-rgba_0_0_0__45_: rgba(0,0,0,.45);
+  --c-legacy-shadow-rgba_60_30_110__55_: rgba(60,30,110,.55);
+  --c-legacy-text-e9e4f9: #e9e4f9;
+  --c-legacy-text-4c1d95: #4c1d95;
+  --c-legacy-text-15803d: #15803d;
+  --c-legacy-border-bbf7d0: #bbf7d0;
+  --c-legacy-text-c9c4d8: #c9c4d8;
+  --c-legacy-bg-fdeaea: #fdeaea;
+  --c-legacy-bg-fae9ff: #fae9ff;
+  --c-legacy-text-6366f1: #6366f1;
+  --c-legacy-bg-e7fff4: #e7fff4;
+  --c-legacy-bg-e9f7ff: #e9f7ff;
+  --c-legacy-text-10b981: #10b981;
+  --c-legacy-bg-e7f6ff: #e7f6ff;
+  --c-legacy-bg-eef2ff: #eef2ff;
+  --c-legacy-text-3b82f6: #3b82f6;
+  --c-legacy-bg-fff3e0: #fff3e0;
+  --c-legacy-bg-ffe9f3: #ffe9f3;
+  --c-legacy-text-d9cef0: #d9cef0;
+  --c-legacy-text-b9a8e6: #b9a8e6;
+  --c-legacy-shadow-rgba_80_40_140__4_: rgba(80,40,140,.4);
+  --c-legacy-bg-f1eef9: #f1eef9;
+  --c-legacy-bg-fdecec: #fdecec;
+  --c-legacy-border-f6c6c6: #f6c6c6;
+  --c-legacy-border-ded7ee: #ded7ee;
+  --c-legacy-bg-f1ecfe: #f1ecfe;
+  --c-legacy-bg-e3f3f6: #e3f3f6;
+  --c-legacy-bg-e8f0fe: #e8f0fe;
+  --c-legacy-border-ddc9fb: #ddc9fb;
+  --c-legacy-text-ec4899: #ec4899;
+  --c-legacy-border-f7dca6: #f7dca6;
+  --c-legacy-border-fbdce7: #fbdce7;
+  --c-legacy-shadow-rgba_255_255_255__8_: rgba(255,255,255,.8);
+  --c-legacy-shadow-rgba_139_92_246_0_15_: rgba(139,92,246,0.15);
+  --c-legacy-bg-f5f3ff: #f5f3ff;
+  --c-legacy-border-ddd6fe: #ddd6fe;
+  --c-legacy-bg-ede9fe: #ede9fe;
+  --c-legacy-text-e3ddf2: #e3ddf2;
+  --c-legacy-text-e25c84: #e25c84;
+  --c-legacy-bg-rgba_124_58_237__035_: rgba(124,58,237,.035);
+  --c-legacy-bg-fef3e2: #fef3e2;
+  --c-legacy-bg-fef8ee: #fef8ee;
+  --c-legacy-border-f6e2bf: #f6e2bf;
+  --c-legacy-text-6b5ca8: #6b5ca8;
+  --c-legacy-border-rgba_124_58_237__35_: rgba(124,58,237,.35);
+  --c-legacy-border-e4d9fb: #e4d9fb;
+  --c-legacy-text-5b3fa8: #5b3fa8;
+  --c-legacy-bg-fff1e9: #fff1e9;
+  --c-legacy-bg-ffe9f1: #ffe9f1;
+  --c-legacy-bg-fff0f0: #fff0f0;
+  --c-legacy-text-059669: #059669;
+  --c-legacy-shadow-rgba_139_92_246__8_: rgba(139,92,246,.8);
+  --c-legacy-text-7c6f4f: #7c6f4f;
+  --c-legacy-border-f3e6c4: #f3e6c4;
+  --c-legacy-border-f6d9d9: #f6d9d9;
+  --c-legacy-bg-fff7fa: #fff7fa;
+  --c-legacy-border-e25c84: #e25c84;
+  --c-legacy-text-c9c2e8: #c9c2e8;
+  --c-legacy-bg-efeafc: #efeafc;
+  --c-legacy-text-e6e1ff: #e6e1ff;
+  --c-legacy-text-ffd9d9: #ffd9d9;
+  --c-legacy-bg-ffe9ec: #ffe9ec;
+  --c-legacy-bg-fff1f3: #fff1f3;
+  --c-legacy-bg-faf0ff: #faf0ff;
+  --c-legacy-bg-fff1dc: #fff1dc;
+  --c-legacy-bg-fff8ec: #fff8ec;
+  --c-legacy-bg-e0f2fe: #e0f2fe;
+  --c-legacy-bg-eff8ff: #eff8ff;
+  --c-legacy-text-f43f5e: #f43f5e;
+  --c-legacy-bg-fff1f2: #fff1f2;
+  --c-legacy-text-e11d48: #e11d48;
+  --c-legacy-text-94a3b8: #94a3b8;
+  --c-legacy-text-ddd6fe: #ddd6fe;
+  --c-legacy-shadow-rgba_43_37_67__12_: rgba(43,37,67,.12);
+  --c-legacy-border-e9dcff: #e9dcff;
+  --c-legacy-border-f5c2d3: #f5c2d3;
+  --c-legacy-border-d9c8fb: #d9c8fb;
+  --c-legacy-bg-fdeef3: #fdeef3;
+  --c-legacy-border-d6cfe8: #d6cfe8;
+  --c-legacy-border-d9cdf7: #d9cdf7;
+  --c-legacy-text-d1435b: #d1435b;
+  --c-legacy-bg-fdf1f3: #fdf1f3;
+  --c-legacy-bg-effcf3: #effcf3;
+  --c-legacy-bg-f1fbf6: #f1fbf6;
+}
+@media screen {
+  :root.dark {
+    --c-legacy-border-f3c9d6: color-mix(in srgb, #f9a8d4 30%, transparent);
+    --c-legacy-text-c0285a: #f9a8d4;
+    --c-legacy-text-8a5566: #f9a8d4;
+    --c-legacy-shadow-rgba_139_92_246__6_: rgba(0, 0, 0, 0.5);
+    --c-legacy-shadow-rgba_139_92_246__7_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-rgba_20_12_40__45_: rgba(20,12,40,.45);
+    --c-legacy-shadow-rgba_60_30_110__4_: rgba(0, 0, 0, 0.5);
+    --c-legacy-shadow-rgba_80_40_140__5_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-rgba_26_18_48__5_: rgba(26,18,48,.5);
+    --c-legacy-shadow-rgba_0_0_0__6_: rgba(0, 0, 0, 0.5);
+    --c-legacy-shadow-rgba_226_61_110__6_: rgba(0, 0, 0, 0.5);
+    --c-legacy-shadow-rgba_0_0_0__25_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-e9f0ff: color-mix(in srgb, #93c5fd 14%, #121829);
+    --c-legacy-bg-f4f1fb: #182036;
+    --c-legacy-shadow-rgba_0_0_0__15_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-fff5f5: color-mix(in srgb, #f87171 14%, #121829);
+    --c-legacy-shadow-rgba_40_20_90__22_: rgba(0, 0, 0, 0.5);
+    --c-legacy-shadow-rgba_40_20_90__05_: rgba(0, 0, 0, 0.5);
+    --c-legacy-shadow-rgba_255_255_255__3_: rgba(0, 0, 0, 0.5);
+    --c-legacy-border-f4cccc: color-mix(in srgb, #f87171 30%, transparent);
+    --c-legacy-bg-fdf6ea: color-mix(in srgb, #fb923c 14%, #121829);
+    --c-legacy-border-f6e2c2: color-mix(in srgb, #fb923c 30%, transparent);
+    --c-legacy-bg-fdf1dd: color-mix(in srgb, #fb923c 14%, #121829);
+    --c-legacy-border-f3d9a8: color-mix(in srgb, #fb923c 30%, transparent);
+    --c-legacy-text-92400e: #fb923c;
+    --c-legacy-text-a16207: #fb923c;
+    --c-legacy-border-d9cef7: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-border-ddd0fb: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-bg-fff7ed: color-mix(in srgb, #fb923c 14%, #121829);
+    --c-legacy-border-fed7aa: color-mix(in srgb, #fb923c 30%, transparent);
+    --c-legacy-border-f6dfae: color-mix(in srgb, #fb923c 30%, transparent);
+    --c-legacy-text-7c4a08: #fb923c;
+    --c-legacy-bg-rgba_26_18_48__42_: rgba(26,18,48,.42);
+    --c-legacy-shadow-rgba_60_30_110__5_: rgba(0, 0, 0, 0.5);
+    --c-legacy-border-b9a7ea: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-bg-rgba_139_92_246__45_: rgba(139,92,246,.45);
+    --c-legacy-bg-fffaf0: color-mix(in srgb, #fb923c 14%, #121829);
+    --c-legacy-border-fce7c3: color-mix(in srgb, #fb923c 30%, transparent);
+    --c-legacy-shadow-rgba_80_40_140__6_: rgba(0, 0, 0, 0.5);
+    --c-legacy-text-d5cfe8: #a3abc4;
+    --c-legacy-border-e4dbfa: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-text-5b21b6: #c4b5fd;
+    --c-legacy-border-dcd6ec: #2e3752;
+    --c-legacy-border-d8c9ff: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-bg-cfc9e0: #182036;
+    --c-legacy-bg-fdf7f9: color-mix(in srgb, #f9a8d4 14%, #121829);
+    --c-legacy-bg-ecfdf5: color-mix(in srgb, #4ade80 14%, #121829);
+    --c-legacy-text-047857: #4ade80;
+    --c-legacy-border-a7f3d0: color-mix(in srgb, #4ade80 30%, transparent);
+    --c-legacy-bg-fef2f2: color-mix(in srgb, #f87171 14%, #121829);
+    --c-legacy-text-b91c1c: #f87171;
+    --c-legacy-border-fecaca: color-mix(in srgb, #f87171 30%, transparent);
+    --c-legacy-border-e5e7eb: #2e3752;
+    --c-legacy-shadow-rgba_124_58_237_0_4_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-faf8fe: #182036;
+    --c-legacy-bg-f6f3fc: #182036;
+    --c-legacy-bg-fffdf7: color-mix(in srgb, #fb923c 14%, #121829);
+    --c-legacy-bg-f6f2ff: #182036;
+    --c-legacy-bg-fcf1fc: color-mix(in srgb, #f9a8d4 14%, #121829);
+    --c-legacy-border-d6cdf0: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-text-9b7fd6: #c4b5fd;
+    --c-legacy-text-d6336c: #f9a8d4;
+    --c-legacy-border-ece2fb: #2e3752;
+    --c-legacy-text-5b4b86: #c3c9db;
+    --c-legacy-text-a78bfa: #c4b5fd;
+    --c-legacy-border-e0d5fb: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-border-e2e8f0: #2e3752;
+    --c-legacy-bg-rgba_255_255_255__25_: rgba(18, 24, 41, .25);
+    --c-legacy-shadow-rgba_40_20_90__28_: rgba(0, 0, 0, 0.5);
+    --c-legacy-border-c9bdf3: color-mix(in srgb, #93c5fd 30%, transparent);
+    --c-legacy-bg-rgba_16_10_32__78_: rgba(16,10,32,.78);
+    --c-legacy-border-rgba_255_255_255__25_: #2e3752;
+    --c-legacy-bg-rgba_255_255_255__12_: rgba(18, 24, 41, .12);
+    --c-legacy-border-a855f7: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-bg-rgba_168_85_247_0_06_: rgba(168, 85, 247, 0.06);
+    --c-legacy-shadow-rgba_168_85_247_0_12_: rgba(0, 0, 0, 0.5);
+    --c-legacy-text-b08968: #fb923c;
+    --c-legacy-bg-fdf6ec: color-mix(in srgb, #fb923c 14%, #121829);
+    --c-legacy-shadow-rgba_0_0_0_0_03_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-fdfbff: #182036;
+    --c-legacy-shadow-rgba_139_92_246_0_25_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-rgba_20_16_40__42_: rgba(20,16,40,.42);
+    --c-legacy-shadow-rgba_40_20_90__5_: rgba(0, 0, 0, 0.5);
+    --c-legacy-border-e9defb: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-border-e3d9fb: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-shadow-rgba_60_30_110__45_: rgba(0, 0, 0, 0.5);
+    --c-legacy-border-c4b5fd: color-mix(in srgb, #93c5fd 30%, transparent);
+    --c-legacy-text-a39fb3: #a3abc4;
+    --c-legacy-bg-ebe4f9: #182036;
+    --c-legacy-bg-rgba_20_14_38_0_55_: rgba(20, 14, 38, 0.55);
+    --c-legacy-shadow-rgba_40_20_90_0_45_: rgba(0, 0, 0, 0.5);
+    --c-legacy-shadow-rgba_124_58_237_0_08_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-ebe5f8: #182036;
+    --c-legacy-shadow-rgba_0_0_0_0_08_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-fdf1f1: color-mix(in srgb, #f87171 14%, #121829);
+    --c-legacy-border-f9d2d8: color-mix(in srgb, #f87171 30%, transparent);
+    --c-legacy-text-991b1b: #f87171;
+    --c-legacy-bg-fdf6e7: color-mix(in srgb, #fb923c 14%, #121829);
+    --c-legacy-border-f6e2b3: color-mix(in srgb, #fb923c 30%, transparent);
+    --c-legacy-border-e5e0f2: #2e3752;
+    --c-legacy-bg-efe9fb: #182036;
+    --c-legacy-shadow-rgba_70_40_120_0_12_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-rgba_255_255_255_0_18_: rgba(18, 24, 41, 0.18);
+    --c-legacy-shadow-rgba_0_0_0_0_2_: rgba(0, 0, 0, 0.5);
+    --c-legacy-text-f3efff: #a3abc4;
+    --c-legacy-text-c9bce8: #c4b5fd;
+    --c-legacy-bg-rgba_0_0_0_0_5_: rgba(18, 24, 41, 0.5);
+    --c-legacy-border-f2c9d4: color-mix(in srgb, #f9a8d4 30%, transparent);
+    --c-legacy-border-d4cbf2: color-mix(in srgb, #93c5fd 30%, transparent);
+    --c-legacy-text-6025d8: #c4b5fd;
+    --c-legacy-text-c4b5fd: #93c5fd;
+    --c-legacy-shadow-rgba_33_28_56_0_05_: rgba(0, 0, 0, 0.5);
+    --c-legacy-shadow-rgba_0_0_0_0_02_: rgba(0, 0, 0, 0.5);
+    --c-legacy-border-ddd7ed: #2e3752;
+    --c-legacy-shadow-rgba_35_20_65_0_16_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-f7f5fc: #182036;
+    --c-legacy-bg-fdf1f4: color-mix(in srgb, #f9a8d4 14%, #121829);
+    --c-legacy-bg-eaf8ef: color-mix(in srgb, #4ade80 14%, #121829);
+    --c-legacy-border-e5ddf5: #2e3752;
+    --c-legacy-border-e0daee: #2e3752;
+    --c-legacy-bg-f5f2fa: #182036;
+    --c-legacy-border-d2c8ea: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-shadow-rgba_70_40_120_0_08_: rgba(0, 0, 0, 0.5);
+    --c-legacy-text-65676b: #c3c9db;
+    --c-legacy-bg-rgba_0_0_0_0_45_: rgba(18, 24, 41, 0.45);
+    --c-legacy-bg-rgba_255_255_255_0_22_: rgba(18, 24, 41, 0.22);
+    --c-legacy-border-rgba_255_255_255_0_35_: #2e3752;
+    --c-legacy-shadow-rgba_0_0_0_0_3_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-rgba_0_0_0_0_6_: rgba(18, 24, 41, 0.6);
+    --c-legacy-shadow-rgba_124_58_237_0_28_: rgba(0, 0, 0, 0.5);
+    --c-legacy-shadow-rgba_124_58_237_0_15_: rgba(0, 0, 0, 0.5);
+    --c-legacy-border-efeaf8: #2e3752;
+    --c-legacy-bg-fcfbfe: #182036;
+    --c-legacy-border-dcd4f0: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-bg-f4effe: #182036;
+    --c-legacy-border-f2d9df: #2e3752;
+    --c-legacy-bg-fdf5f7: color-mix(in srgb, #f9a8d4 14%, #121829);
+    --c-legacy-text-c0356a: #f9a8d4;
+    --c-legacy-text-92600a: #fb923c;
+    --c-legacy-border-d9cef5: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-bg-e5ddf6: #182036;
+    --c-legacy-shadow-rgba_80_60_140__25_: rgba(0, 0, 0, 0.5);
+    --c-legacy-shadow-rgba_255_255_255__5_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-fdeef5: color-mix(in srgb, #f9a8d4 14%, #121829);
+    --c-legacy-text-be185d: #f9a8d4;
+    --c-legacy-border-e3dcf4: #2e3752;
+    --c-legacy-bg-d9cef5: color-mix(in srgb, #c4b5fd 14%, #121829);
+    --c-legacy-bg-e3dcf4: #182036;
+    --c-legacy-shadow-rgba_80_40_140__35_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-rgba_0_0_0__45_: rgba(18, 24, 41, .45);
+    --c-legacy-shadow-rgba_60_30_110__55_: rgba(0, 0, 0, 0.5);
+    --c-legacy-text-e9e4f9: #a3abc4;
+    --c-legacy-text-4c1d95: #c4b5fd;
+    --c-legacy-text-15803d: #4ade80;
+    --c-legacy-border-bbf7d0: color-mix(in srgb, #4ade80 30%, transparent);
+    --c-legacy-text-c9c4d8: #a3abc4;
+    --c-legacy-bg-fdeaea: color-mix(in srgb, #f87171 14%, #121829);
+    --c-legacy-bg-fae9ff: #182036;
+    --c-legacy-text-6366f1: #93c5fd;
+    --c-legacy-bg-e7fff4: color-mix(in srgb, #4ade80 14%, #121829);
+    --c-legacy-bg-e9f7ff: color-mix(in srgb, #93c5fd 14%, #121829);
+    --c-legacy-text-10b981: #4ade80;
+    --c-legacy-bg-e7f6ff: color-mix(in srgb, #93c5fd 14%, #121829);
+    --c-legacy-bg-eef2ff: color-mix(in srgb, #93c5fd 14%, #121829);
+    --c-legacy-text-3b82f6: #93c5fd;
+    --c-legacy-bg-fff3e0: color-mix(in srgb, #fb923c 14%, #121829);
+    --c-legacy-bg-ffe9f3: color-mix(in srgb, #f9a8d4 14%, #121829);
+    --c-legacy-text-d9cef0: #c4b5fd;
+    --c-legacy-text-b9a8e6: #c4b5fd;
+    --c-legacy-shadow-rgba_80_40_140__4_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-f1eef9: #182036;
+    --c-legacy-bg-fdecec: color-mix(in srgb, #f87171 14%, #121829);
+    --c-legacy-border-f6c6c6: color-mix(in srgb, #f87171 30%, transparent);
+    --c-legacy-border-ded7ee: #2e3752;
+    --c-legacy-bg-f1ecfe: #182036;
+    --c-legacy-bg-e3f3f6: color-mix(in srgb, #5eead4 14%, #121829);
+    --c-legacy-bg-e8f0fe: color-mix(in srgb, #93c5fd 14%, #121829);
+    --c-legacy-border-ddc9fb: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-text-ec4899: #f9a8d4;
+    --c-legacy-border-f7dca6: color-mix(in srgb, #fb923c 30%, transparent);
+    --c-legacy-border-fbdce7: color-mix(in srgb, #f9a8d4 30%, transparent);
+    --c-legacy-shadow-rgba_255_255_255__8_: rgba(0, 0, 0, 0.5);
+    --c-legacy-shadow-rgba_139_92_246_0_15_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-f5f3ff: #182036;
+    --c-legacy-border-ddd6fe: color-mix(in srgb, #93c5fd 30%, transparent);
+    --c-legacy-bg-ede9fe: #182036;
+    --c-legacy-text-e3ddf2: #a3abc4;
+    --c-legacy-text-e25c84: #f9a8d4;
+    --c-legacy-bg-rgba_124_58_237__035_: rgba(124,58,237,.035);
+    --c-legacy-bg-fef3e2: color-mix(in srgb, #fb923c 14%, #121829);
+    --c-legacy-bg-fef8ee: color-mix(in srgb, #fb923c 14%, #121829);
+    --c-legacy-border-f6e2bf: color-mix(in srgb, #fb923c 30%, transparent);
+    --c-legacy-text-6b5ca8: #c3c9db;
+    --c-legacy-border-rgba_124_58_237__35_: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-border-e4d9fb: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-text-5b3fa8: #c4b5fd;
+    --c-legacy-bg-fff1e9: color-mix(in srgb, #fb923c 14%, #121829);
+    --c-legacy-bg-ffe9f1: color-mix(in srgb, #f9a8d4 14%, #121829);
+    --c-legacy-bg-fff0f0: color-mix(in srgb, #f87171 14%, #121829);
+    --c-legacy-text-059669: #4ade80;
+    --c-legacy-shadow-rgba_139_92_246__8_: rgba(0, 0, 0, 0.5);
+    --c-legacy-text-7c6f4f: #fb923c;
+    --c-legacy-border-f3e6c4: color-mix(in srgb, #fb923c 30%, transparent);
+    --c-legacy-border-f6d9d9: color-mix(in srgb, #f87171 30%, transparent);
+    --c-legacy-bg-fff7fa: color-mix(in srgb, #f9a8d4 14%, #121829);
+    --c-legacy-border-e25c84: color-mix(in srgb, #f9a8d4 30%, transparent);
+    --c-legacy-text-c9c2e8: #93c5fd;
+    --c-legacy-bg-efeafc: #182036;
+    --c-legacy-text-e6e1ff: #93c5fd;
+    --c-legacy-text-ffd9d9: #f87171;
+    --c-legacy-bg-ffe9ec: color-mix(in srgb, #f87171 14%, #121829);
+    --c-legacy-bg-fff1f3: color-mix(in srgb, #f87171 14%, #121829);
+    --c-legacy-bg-faf0ff: #182036;
+    --c-legacy-bg-fff1dc: color-mix(in srgb, #fb923c 14%, #121829);
+    --c-legacy-bg-fff8ec: color-mix(in srgb, #fb923c 14%, #121829);
+    --c-legacy-bg-e0f2fe: color-mix(in srgb, #93c5fd 14%, #121829);
+    --c-legacy-bg-eff8ff: color-mix(in srgb, #93c5fd 14%, #121829);
+    --c-legacy-text-f43f5e: #f9a8d4;
+    --c-legacy-bg-fff1f2: color-mix(in srgb, #f87171 14%, #121829);
+    --c-legacy-text-e11d48: #f9a8d4;
+    --c-legacy-text-94a3b8: #93c5fd;
+    --c-legacy-text-ddd6fe: #93c5fd;
+    --c-legacy-shadow-rgba_43_37_67__12_: rgba(0, 0, 0, 0.5);
+    --c-legacy-border-e9dcff: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-border-f5c2d3: color-mix(in srgb, #f9a8d4 30%, transparent);
+    --c-legacy-border-d9c8fb: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-bg-fdeef3: color-mix(in srgb, #f9a8d4 14%, #121829);
+    --c-legacy-border-d6cfe8: #2e3752;
+    --c-legacy-border-d9cdf7: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-text-d1435b: #f9a8d4;
+    --c-legacy-bg-fdf1f3: color-mix(in srgb, #f87171 14%, #121829);
+    --c-legacy-bg-effcf3: color-mix(in srgb, #4ade80 14%, #121829);
+    --c-legacy-bg-f1fbf6: color-mix(in srgb, #4ade80 14%, #121829);
+  }
+}
+
+/* Exact light aliases for legacy app/page colors outside the neutral merge table. */
+:root {
+  --c-legacy-shadow-rgba_124_58_237__5_: rgba(124,58,237,.5);
+  --c-legacy-shadow-rgba_139_92_246__65_: rgba(139,92,246,.65);
+  --c-legacy-bg-edf9ff: #edf9ff;
+  --c-legacy-bg-f6effc: #f6effc;
+  --c-legacy-border-cdeed8: #cdeed8;
+  --c-legacy-shadow-rgba_120_60_180__6_: rgba(120,60,180,.6);
+  --c-legacy-border-d7d2e3: #d7d2e3;
+
+  --c-legacy-bg-f9fafb: #f9fafb;
+  --c-legacy-shadow-rgba_139_92_246__55_: rgba(139,92,246,.55);
+  --c-legacy-shadow-rgba_80_40_140__45_: rgba(80,40,140,.45);
+  --c-legacy-text-9a95ad: #9a95ad;
+  --c-legacy-bg-rgba_0_0_0__4_: rgba(0,0,0,.4);
+  --c-legacy-text-1877f2: #1877f2;
+  --c-legacy-text-000000: #000;
+  --c-legacy-text-6e8efb: #6e8efb;
+  --c-legacy-border-e6dcfb: #e6dcfb;
+  --c-legacy-text-b42318: #b42318;
+  --c-legacy-text-334155: #334155;
+  --c-legacy-shadow-rgba_15_23_42__15_: rgba(15,23,42,.15);
+  --c-legacy-text-475569: #475569;
+  --c-legacy-text-1e293b: #1e293b;
+  --c-legacy-border-ddd0f7: #ddd0f7;
+  --c-legacy-bg-d9cbf8: #d9cbf8;
+  --c-legacy-bg-rgba_231_222_250_0_: rgba(231,222,250,0);
+  --c-legacy-border-bfe8cd: #bfe8cd;
+  --c-legacy-text-2563eb: #2563eb;
+}
+@media screen {
+  :root.dark {
+    --c-legacy-shadow-rgba_124_58_237__5_: rgba(0, 0, 0, 0.5);
+    --c-legacy-shadow-rgba_139_92_246__65_: rgba(0, 0, 0, 0.5);
+    --c-legacy-bg-edf9ff: color-mix(in srgb, #93c5fd 14%, #121829);
+    --c-legacy-bg-f6effc: #182036;
+    --c-legacy-border-cdeed8: color-mix(in srgb, #4ade80 30%, transparent);
+    --c-legacy-shadow-rgba_120_60_180__6_: rgba(0, 0, 0, 0.5);
+    --c-legacy-border-d7d2e3: #2e3752;
+
+    --c-legacy-bg-f9fafb: color-mix(in srgb, #93c5fd 14%, #121829);
+    --c-legacy-shadow-rgba_139_92_246__55_: rgba(0, 0, 0, 0.5);
+    --c-legacy-shadow-rgba_80_40_140__45_: rgba(0, 0, 0, 0.5);
+    --c-legacy-text-9a95ad: #a3abc4;
+    --c-legacy-bg-rgba_0_0_0__4_: rgba(18, 24, 41, .4);
+    --c-legacy-text-1877f2: #93c5fd;
+    --c-legacy-text-000000: #f1f3fb;
+    --c-legacy-text-6e8efb: #93c5fd;
+    --c-legacy-border-e6dcfb: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-text-b42318: #f87171;
+    --c-legacy-text-334155: #93c5fd;
+    --c-legacy-shadow-rgba_15_23_42__15_: rgba(0, 0, 0, 0.5);
+    --c-legacy-text-475569: #93c5fd;
+    --c-legacy-text-1e293b: #93c5fd;
+    --c-legacy-border-ddd0f7: color-mix(in srgb, #c4b5fd 30%, transparent);
+    --c-legacy-bg-d9cbf8: color-mix(in srgb, #c4b5fd 14%, #121829);
+    --c-legacy-bg-rgba_231_222_250_0_: rgba(231,222,250,0);
+    --c-legacy-border-bfe8cd: color-mix(in srgb, #4ade80 30%, transparent);
+    --c-legacy-text-2563eb: #93c5fd;
+  }
 }

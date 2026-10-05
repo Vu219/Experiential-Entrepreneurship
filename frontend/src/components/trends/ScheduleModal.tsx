@@ -7,13 +7,14 @@ import { PLATFORMS, PLATFORM_BG } from '../../theme';
 import { listAllBrandProfiles, type BrandProfile, type Platform } from '../../api/brandProfile';
 import { listAllContentStrategies, type ContentStrategy } from '../../api/contentStrategy';
 import { type TrendSchedule } from '../../trendsSchedule';
+import { C } from '../../styles/colors';
 
 const selectStyle = {
-  width: '100%', border: '1px solid #ece8f6', borderRadius: 12, padding: '10px 12px',
-  fontSize: 13.5, color: '#241f3a', background: '#fff', outline: 'none', cursor: 'pointer',
+  width: '100%', border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 12px',
+  fontSize: 13.5, color: C.textStrong, background: C.surface, outline: 'none', cursor: 'pointer',
 } as const;
 
-const labelStyle = { fontSize: 12.5, fontWeight: 700, color: '#6b6680', marginBottom: 6 } as const;
+const labelStyle = { fontSize: 12.5, fontWeight: 700, color: C.textSecondary, marginBottom: 6 } as const;
 
 const tagOfPlatform = (p: Platform) => (p === 'FACEBOOK' ? 'FB' : p === 'INSTAGRAM' ? 'IG' : 'TH');
 
@@ -126,17 +127,17 @@ export default function ScheduleModal({
   return (
     <Modal title={t.trSideSchedule} subtitle={t.trScheduleSub} onClose={onClose} maxWidth={500}>
       {loading ? (
-        <div style={{ padding: '18px 0', fontSize: 13.5, color: '#8a85a0', textAlign: 'center' }}>{t.trLoading}</div>
+        <div style={{ padding: '18px 0', fontSize: 13.5, color: C.textMuted, textAlign: 'center' }}>{t.trLoading}</div>
       ) : error ? (
-        <div role="alert" style={{ fontSize: 13, color: '#dc2626' }}>{error}</div>
+        <div role="alert" style={{ fontSize: 13, color: C.danger }}>{error}</div>
       ) : brands.length === 0 ? (
-        <div style={{ fontSize: 13.5, color: '#4b4660', lineHeight: 1.6 }}>{t.trStartNoBrand}</div>
+        <div style={{ fontSize: 13.5, color: C.ink650, lineHeight: 1.6 }}>{t.trStartNoBrand}</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Bật/tắt */}
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f8f6fd', border: '1px solid #ece8f6', borderRadius: 12, padding: '10px 12px', cursor: 'pointer' }}>
-            <Icon icon={CalendarClock} size={16} stroke="#8b5cf6" />
-            <span style={{ flex: 1, fontSize: 13.5, fontWeight: 700, color: '#2b2543' }}>{t.trScheduleEnable}</span>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 12px', cursor: 'pointer' }}>
+            <Icon icon={CalendarClock} size={16} stroke={C.violetLight} />
+            <span style={{ flex: 1, fontSize: 13.5, fontWeight: 700, color: C.ink750 }}>{t.trScheduleEnable}</span>
             <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} style={{ width: 17, height: 17, accentColor: '#8b5cf6', cursor: 'pointer' }} />
           </label>
 
@@ -156,7 +157,7 @@ export default function ScheduleModal({
           <div>
             <div style={labelStyle}>{t.trStrategy}</div>
             {brandStrategies.length === 0 ? (
-              <div style={{ fontSize: 12.5, color: '#8a85a0' }}>{t.trStrategyNone}</div>
+              <div style={{ fontSize: 12.5, color: C.textMuted }}>{t.trStrategyNone}</div>
             ) : (
               <select value={strategyId} onChange={(e) => setStrategyId(e.target.value)} style={selectStyle}>
                 {brandStrategies.map((s) => (
@@ -182,9 +183,9 @@ export default function ScheduleModal({
                     aria-pressed={on}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px',
-                      border: on ? '1.5px solid #8b5cf6' : '1px solid #ece8f6', borderRadius: 11,
-                      background: on ? '#f6f1ff' : '#fff', cursor: 'pointer',
-                      fontSize: 12.5, fontWeight: 700, color: on ? '#6d28d9' : '#4b4660',
+                      border: on ? `1.5px solid ${C.violetLight}` : `1px solid ${C.border}`, borderRadius: 11,
+                      background: on ? C.border : C.surface, cursor: 'pointer',
+                      fontSize: 12.5, fontWeight: 700, color: on ? C.primaryStrong : C.ink650,
                     }}
                   >
                     <PlatformTag tag={tag} bg={PLATFORM_BG[tag]} size={18} radius={6} fontSize={9} />
@@ -224,9 +225,9 @@ export default function ScheduleModal({
                       onClick={() => toggleDay(d)}
                       aria-pressed={on}
                       style={{
-                        width: 42, padding: '7px 0', border: on ? '1.5px solid #8b5cf6' : '1px solid #ece8f6',
-                        borderRadius: 10, background: on ? '#f6f1ff' : '#fff', cursor: 'pointer',
-                        fontSize: 12, fontWeight: 700, color: on ? '#6d28d9' : '#4b4660',
+                        width: 42, padding: '7px 0', border: on ? `1.5px solid ${C.violetLight}` : `1px solid ${C.border}`,
+                        borderRadius: 10, background: on ? C.border : C.surface, cursor: 'pointer',
+                        fontSize: 12, fontWeight: 700, color: on ? C.primaryStrong : C.ink650,
                       }}
                     >
                       {label}
@@ -234,7 +235,7 @@ export default function ScheduleModal({
                   );
                 })}
               </div>
-              {dayError && <div style={{ fontSize: 12, color: '#dc2626', marginTop: 6 }}>{t.trSchedulePickDayReq}</div>}
+              {dayError && <div style={{ fontSize: 12, color: C.danger, marginTop: 6 }}>{t.trSchedulePickDayReq}</div>}
             </div>
           )}
 
@@ -245,7 +246,7 @@ export default function ScheduleModal({
             className="btn-grad"
             style={{
               border: 'none', borderRadius: 12, padding: '11px 18px', fontWeight: 700, fontSize: 13.5,
-              color: '#fff', background: 'var(--brand)',
+              color: C.onBrand, background: 'var(--brand)',
               cursor: !canSave ? 'not-allowed' : 'pointer', opacity: !canSave ? 0.55 : 1,
             }}
           >

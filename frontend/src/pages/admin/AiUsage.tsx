@@ -25,16 +25,17 @@ import {
   type AiUsageSummary,
 } from '../../api/adminAi';
 import PageContainer from '../../components/PageContainer';
+import { C } from '../../styles/colors';
 
-const tdStyle: CSSProperties = { padding: '12px 16px', fontSize: 13.5, color: '#2b2543' };
-const tdMuted: CSSProperties = { ...tdStyle, color: '#8a85a0', fontSize: 13 };
+const tdStyle: CSSProperties = { padding: '12px 16px', fontSize: 13.5, color: C.ink750 };
+const tdMuted: CSSProperties = { ...tdStyle, color: C.textMuted, fontSize: 13 };
 
 const fmtTokens = (n: number) => n.toLocaleString('vi-VN');
 const fmtUsd = (n: number | null) => (n == null ? '—' : `$${n.toLocaleString('en-US', { maximumFractionDigits: 4 })}`);
 
 /** Bảng con "chưa có dữ liệu" dùng cho các khối tổng hợp/danh sách trống. */
 function EmptyNote({ label }: { label: string }) {
-  return <div style={{ textAlign: 'center', padding: '28px 16px', color: '#8a85a0', fontSize: 13.5 }}>{label}</div>;
+  return <div style={{ textAlign: 'center', padding: '28px 16px', color: C.textMuted, fontSize: 13.5 }}>{label}</div>;
 }
 
 export default function AiUsage() {
@@ -82,7 +83,7 @@ export default function AiUsage() {
   if (load === 'error' && !summary) {
     return (
       <PageContainer>
-        <Card style={{ textAlign: 'center', padding: '54px 16px', color: '#8a85a0', fontSize: 14 }}>{t.listError}</Card>
+        <Card style={{ textAlign: 'center', padding: '54px 16px', color: C.textMuted, fontSize: 14 }}>{t.listError}</Card>
       </PageContainer>
     );
   }
@@ -94,12 +95,12 @@ export default function AiUsage() {
       {/* Chọn tháng + badge AI service */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <label style={{ fontSize: 13, fontWeight: 700, color: '#3f3a55' }}>{t.aiUsageMonth}</label>
+          <label style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t.aiUsageMonth}</label>
           <input
             type="month"
             value={month || s.month}
             onChange={(e) => { setMonth(e.target.value); }}
-            style={{ border: '1px solid #ece8f6', background: '#fff', borderRadius: 10, padding: '7px 12px', fontSize: 13.5, fontWeight: 600, color: '#4b4660', cursor: 'pointer' }}
+            style={{ border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '7px 12px', fontSize: 13.5, fontWeight: 600, color: C.ink650, cursor: 'pointer' }}
           />
         </div>
         <AiServiceStatusBadge />
@@ -110,9 +111,9 @@ export default function AiUsage() {
 
       {/* Tổng quan tháng */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 18 }}>
-        <StatCard icon={Coins} iconBg="linear-gradient(135deg,#f1e9ff,#fae9ff)" iconColor="#8b5cf6"
+        <StatCard icon={Coins} iconBg={`linear-gradient(135deg,${C.purpleSoft},${C.legacyBgfae9ff})`} iconColor={C.violetLight}
           value={fmtTokens(s.totalTokens)} label={`${t.aiUsageTotalTokens} · ${s.month}`} />
-        <StatCard icon={DollarSign} iconBg="linear-gradient(135deg,#fff3e0,#ffe9f3)" iconColor="#ec4899"
+        <StatCard icon={DollarSign} iconBg={`linear-gradient(135deg,${C.legacyBgfff3e0},${C.legacyBgffe9f3})`} iconColor={C.legacyTextec4899}
           value={fmtUsd(s.estimatedCost)} label={`${t.aiUsageCost} · ${s.month}`} valueFontSize={24} />
       </div>
 
@@ -121,8 +122,8 @@ export default function AiUsage() {
         <SectionCard title={t.aiTaskStatusTitle}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             {status.routes.map((r) => (
-              <div key={r.routingId} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid #f1eef8', borderRadius: 10, padding: '7px 12px' }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#3f3a55' }}>{aiTaskLabel(lang, r.taskCode)}</span>
+              <div key={r.routingId} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: `1px solid ${C.surfaceMuted}`, borderRadius: 10, padding: '7px 12px' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{aiTaskLabel(lang, r.taskCode)}</span>
                 <RouteHealthBadge health={r.health} enabled={r.enabled} />
               </div>
             ))}
@@ -136,7 +137,7 @@ export default function AiUsage() {
           {s.byTask.length === 0 ? <EmptyNote label={t.aiUsageEmpty} /> : (
             <DataTable head={[t.aiColTask, 'Token', t.aiUsageCost]} minWidth={300}>
               {s.byTask.map((b) => (
-                <tr key={b.taskCode} style={{ borderTop: '1px solid #f1eef8' }}>
+                <tr key={b.taskCode} style={{ borderTop: `1px solid ${C.surfaceMuted}` }}>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>{aiTaskLabel(lang, b.taskCode)}</td>
                   <td style={tdStyle}>{fmtTokens(b.totalTokens)}</td>
                   <td style={tdMuted}>{fmtUsd(b.estimatedCost)}</td>
@@ -151,10 +152,10 @@ export default function AiUsage() {
           {s.byModel.length === 0 ? <EmptyNote label={t.aiUsageEmpty} /> : (
             <DataTable head={['Model', 'Token', t.aiUsageCost]} minWidth={300}>
               {s.byModel.map((b, i) => (
-                <tr key={i} style={{ borderTop: '1px solid #f1eef8' }}>
+                <tr key={i} style={{ borderTop: `1px solid ${C.surfaceMuted}` }}>
                   <td style={tdStyle}>
                     <div style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600 }}>{b.modelCode}</div>
-                    <div style={{ fontSize: 11.5, color: '#a59fbb' }}>{b.providerCode}</div>
+                    <div style={{ fontSize: 11.5, color: C.textFaint }}>{b.providerCode}</div>
                   </td>
                   <td style={tdStyle}>{fmtTokens(b.totalTokens)}</td>
                   <td style={tdMuted}>{fmtUsd(b.estimatedCost)}</td>
@@ -171,7 +172,7 @@ export default function AiUsage() {
           <>
             <DataTable head={[t.aiUsageTime, t.aiUsageUser, t.aiColTask, 'Model', 'Token', t.aiUsageCost]} minWidth={780}>
               {rows.map((r) => (
-                <tr key={r.id} style={{ borderTop: '1px solid #f1eef8' }}>
+                <tr key={r.id} style={{ borderTop: `1px solid ${C.surfaceMuted}` }}>
                   <td style={tdMuted}>{fmtAiDateTime(r.createdAt)}</td>
                   <td style={tdStyle}>{r.userEmail ?? t.aiSystemActor}</td>
                   <td style={tdStyle}>{aiTaskLabel(lang, r.taskCode)}</td>
@@ -179,7 +180,7 @@ export default function AiUsage() {
                     {r.modelCode}
                     {/* Model dự phòng đã trả lời thay model chính — chi phí tính theo model này */}
                     {r.routedModelCode && r.routedModelCode !== r.modelCode && (
-                      <div style={{ fontSize: 11.5, color: '#b45309', fontFamily: 'inherit' }}>{aiFallbackText(lang).answeredBy(r.routedModelCode)}</div>
+                      <div style={{ fontSize: 11.5, color: C.amberText, fontFamily: 'inherit' }}>{aiFallbackText(lang).answeredBy(r.routedModelCode)}</div>
                     )}
                   </td>
                   <td style={tdStyle}>{fmtTokens(r.totalTokens)}</td>
@@ -200,7 +201,7 @@ export default function AiUsage() {
           <>
             <DataTable head={[t.aiUsageTime, t.aiAuditActor, t.aiAuditAction, t.aiAuditEntity]} minWidth={640}>
               {audit.map((a) => (
-                <tr key={a.id} style={{ borderTop: '1px solid #f1eef8' }} title={a.afterSnapshot ?? a.beforeSnapshot ?? undefined}>
+                <tr key={a.id} style={{ borderTop: `1px solid ${C.surfaceMuted}` }} title={a.afterSnapshot ?? a.beforeSnapshot ?? undefined}>
                   <td style={tdMuted}>{fmtAiDateTime(a.createdAt)}</td>
                   <td style={tdStyle}>{a.actorEmail ?? t.aiSystemActor}</td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>{aiAuditActionLabel(lang, a.action)}</td>

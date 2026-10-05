@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Clock } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { completeTime24, isTime24, maskTime24 } from '../../validations/scheduleValidation.ts';
+import { C } from '../../styles/colors';
 
 // Ô giờ đăng 24h (HH:mm) cho SchedulePlanner — thay <input type="time"> (hiển thị theo locale máy: 12h "06:34 PM"
 // bị cắt chữ, lệch định dạng với gợi ý "08:00–09:00"). Gõ tay được, hoặc bấm vào ô / icon đồng hồ để mở bảng chọn
@@ -99,7 +100,7 @@ export default function ScheduleTimeField({ value, onChange, ariaLabel, invalid 
       style={{
         ...cellBtn,
         background: on ? 'var(--brand)' : past ? 'transparent' : undefined,
-        color: on ? '#fff' : past ? '#c9c4d8' : '#3f3a55',
+        color: on ? C.onBrand : past ? C.legacyTextc9c4d8 : C.text,
         cursor: past ? 'not-allowed' : 'pointer',
         fontWeight: on ? 800 : 600,
       }}
@@ -113,7 +114,7 @@ export default function ScheduleTimeField({ value, onChange, ariaLabel, invalid 
   return (
     <>
       <div ref={boxRef}
-        style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 'none', width: 140, height: 42, boxSizing: 'border-box', border: `1px solid ${invalid || bad ? '#f3aabf' : focused || open ? '#c4b5fd' : '#ece8f6'}`, borderRadius: 10, padding: '0 6px 0 12px', background: '#fff' }}>
+        style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 'none', width: 140, height: 42, boxSizing: 'border-box', border: `1px solid ${invalid || bad ? C.inputErrorBorder : focused || open ? C.legacyBorderc4b5fd : C.border}`, borderRadius: 10, padding: '0 6px 0 12px', background: C.surface }}>
         <input
           ref={inputRef}
           value={draft}
@@ -129,16 +130,16 @@ export default function ScheduleTimeField({ value, onChange, ariaLabel, invalid 
           aria-invalid={invalid || bad}
           aria-haspopup="listbox"
           aria-expanded={open}
-          style={{ flex: 1, minWidth: 0, width: '100%', border: 'none', outline: 'none', background: 'transparent', fontSize: 14, fontWeight: 600, color: '#241f3a', fontVariantNumeric: 'tabular-nums', letterSpacing: '.02em', padding: 0, cursor: 'text' }}
+          style={{ flex: 1, minWidth: 0, width: '100%', border: 'none', outline: 'none', background: 'transparent', fontSize: 14, fontWeight: 600, color: C.textStrong, fontVariantNumeric: 'tabular-nums', letterSpacing: '.02em', padding: 0, cursor: 'text' }}
         />
         <button type="button" onClick={() => setOpen((v) => !v)} aria-label={t.planPickTime} title={t.planPickTime}
-          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none', width: 28, height: 28, border: 'none', borderRadius: 8, background: open ? '#f4f0ff' : 'transparent', cursor: 'pointer' }}>
-          <Clock size={15} color={open ? '#7c3aed' : '#a39bbf'} strokeWidth={1.8} aria-hidden="true" />
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none', width: 28, height: 28, border: 'none', borderRadius: 8, background: open ? C.border : 'transparent', cursor: 'pointer' }}>
+          <Clock size={15} color={open ? C.primary : C.ink350} strokeWidth={1.8} aria-hidden="true" />
         </button>
       </div>
       {open && createPortal(
         <div ref={panelRef} role="dialog" aria-label={ariaLabel} className="menu-pop"
-          style={{ position: 'fixed', top: pos.top, left: pos.left, width: PANEL_W, zIndex: 9999, background: '#fff', border: '1px solid #efeaf8', borderRadius: 14, boxShadow: '0 18px 38px -12px rgba(80,40,140,.35)', padding: 10 }}>
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: PANEL_W, zIndex: 9999, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, boxShadow: `0 18px 38px -12px ${C.legacyShadowrgba8040140_35_}`, padding: 10 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div style={colHead}>{t.planHourCol}</div>
             <div style={colHead}>{t.planMinuteCol}</div>
@@ -151,7 +152,7 @@ export default function ScheduleTimeField({ value, onChange, ariaLabel, invalid 
             </div>
           </div>
           {minTime && (
-            <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.45, color: over ? '#b45309' : '#8a85a0' }}>
+            <div style={{ marginTop: 8, fontSize: 11, lineHeight: 1.45, color: over ? C.amberText : C.textMuted }}>
               {over ? t.planTodayOver : t.planEarliestToday.replace('{time}', minTime)}
             </div>
           )}
@@ -162,9 +163,9 @@ export default function ScheduleTimeField({ value, onChange, ariaLabel, invalid 
   );
 }
 
-const colHead: CSSProperties = { fontSize: 11, fontWeight: 800, letterSpacing: '.04em', color: '#a59fbb', textAlign: 'center' };
-const col: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 216, overflowY: 'auto', padding: 2, border: '1px solid #f1eef8', borderRadius: 10 };
+const colHead: CSSProperties = { fontSize: 11, fontWeight: 800, letterSpacing: '.04em', color: C.textFaint, textAlign: 'center' };
+const col: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 216, overflowY: 'auto', padding: 2, border: `1px solid ${C.surfaceMuted}`, borderRadius: 10 };
 const cellBtn: CSSProperties = {
-  font: 'inherit', border: 'none', borderRadius: 8, padding: '6px 0', fontSize: 13.5, background: '#fff',
+  font: 'inherit', border: 'none', borderRadius: 8, padding: '6px 0', fontSize: 13.5, background: C.surface,
   fontVariantNumeric: 'tabular-nums', textAlign: 'center', flex: 'none',
 };

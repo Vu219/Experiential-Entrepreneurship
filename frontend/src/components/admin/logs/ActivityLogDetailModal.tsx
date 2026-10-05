@@ -4,9 +4,10 @@ import StatusBadge from '../StatusBadge';
 import { DetailRow } from '../AdminListPage';
 import { actionLabel } from './activityLabels';
 import type { ActivityLog } from '../../../api/admin';
+import { C } from '../../../styles/colors';
 
 const pre: React.CSSProperties = {
-  margin: 0, background: '#1f1b2e', color: '#c9c2e8', borderRadius: 10, padding: '12px 14px',
+  margin: 0, background: '#1f1b2e', color: C.legacyTextc9c2e8, borderRadius: 10, padding: '12px 14px',
   fontSize: 12, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
   maxHeight: 320, overflow: 'auto', fontFamily: 'ui-monospace,Menlo,Consolas,monospace',
 };
@@ -44,13 +45,13 @@ export default function ActivityLogDetailModal({ log, onClose }: { log: Activity
       <DetailRow label={t.alRequestId} value={log.id} />
 
       <div style={{ marginTop: 14 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#a59fbb', marginBottom: 6 }}>{t.aueUa}</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.textFaint, marginBottom: 6 }}>{t.aueUa}</div>
         <pre style={pre}>{log.userAgent || t.aueUnknown}</pre>
       </div>
 
       <div style={{ marginTop: 14 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#a59fbb', marginBottom: 6 }}>{t.alMetadata}</div>
-        {metadata ? <pre style={pre}>{metadata}</pre> : <div style={{ fontSize: 12.5, color: '#a59fbb' }}>{t.logNoDetail}</div>}
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.textFaint, marginBottom: 6 }}>{t.alMetadata}</div>
+        {metadata ? <pre style={pre}>{metadata}</pre> : <div style={{ fontSize: 12.5, color: C.textFaint }}>{t.logNoDetail}</div>}
       </div>
     </Modal>
   );

@@ -33,6 +33,7 @@ import {
 import {
   mockByContentType, mockByPlatform, mockHeatmap, mockInsights, mockSummary, mockTimeseries, mockTopPosts,
 } from '../../api/analyticsMock.ts';
+import { C } from '../../styles/colors';
 
 // UI-08 v2 — Trang Phân tích tổng hợp. Số liệu từ slice /analytics/* (AnalyticsController), GỘP theo
 // kỳ/ngày. MỘT nguồn bộ lọc duy nhất (khoảng ngày + nền tảng + loại nội dung + cột sort) đồng bộ lên
@@ -298,7 +299,7 @@ export default function Analytics() {
 
       {emptyNote && (
         <Card style={{ padding: 16 }}>
-          <div style={{ fontSize: 13.5, color: '#6b6680', lineHeight: 1.6 }}>{emptyNote}</div>
+          <div style={{ fontSize: 13.5, color: C.textSecondary, lineHeight: 1.6 }}>{emptyNote}</div>
         </Card>
       )}
 

@@ -6,6 +6,7 @@ import LandingFooter from '../../components/landing/LandingFooter';
 import LandingLink from '../../components/landing/LandingLink';
 import { cardStyle } from '../../components/ui';
 import { getLegalDoc, LEGAL_CONTACT_EMAIL, LEGAL_UPDATED_AT, type LegalDocKey } from '../../config/legalContent';
+import { C } from '../../styles/colors';
 
 // Khung chung cho 3 trang pháp lý công khai (/privacy, /terms, /data-deletion) — không cần đăng nhập.
 // `children` chèn giữa phần mở đầu và các mục (trang xoá dữ liệu dùng để hiện trạng thái theo mã).
@@ -40,9 +41,9 @@ export default function LegalPage({ docKey, children }: { docKey: LegalDocKey; c
                 className="btn-soft"
                 style={{
                   fontSize: 13, fontWeight: 600, textDecoration: 'none', borderRadius: 999, padding: '7px 14px',
-                  border: '1px solid #e6e2f2',
-                  background: n.key === docKey ? '#f3edff' : '#fff',
-                  color: n.key === docKey ? '#6d28d9' : '#4b4660',
+                  border: `1px solid ${C.border}`,
+                  background: n.key === docKey ? C.primarySoft : C.surface,
+                  color: n.key === docKey ? C.primaryStrong : C.ink650,
                 }}
               >
                 {n.label}
@@ -51,31 +52,31 @@ export default function LegalPage({ docKey, children }: { docKey: LegalDocKey; c
           </nav>
 
           <article style={{ ...cardStyle, padding: isMobile ? '26px 20px' : '40px 44px' }}>
-            <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 28 : 38, letterSpacing: '-.02em', margin: 0, color: '#171327' }}>{doc.title}</h1>
-            <div style={{ fontSize: 13, color: '#8a85a0', marginTop: 8 }}>{t.lgUpdated}: {LEGAL_UPDATED_AT}</div>
-            <p style={{ fontSize: 15, lineHeight: 1.7, color: '#4b4660', margin: '20px 0 0' }}>{doc.intro}</p>
+            <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 28 : 38, letterSpacing: '-.02em', margin: 0, color: C.ink900 }}>{doc.title}</h1>
+            <div style={{ fontSize: 13, color: C.textMuted, marginTop: 8 }}>{t.lgUpdated}: {LEGAL_UPDATED_AT}</div>
+            <p style={{ fontSize: 15, lineHeight: 1.7, color: C.ink650, margin: '20px 0 0' }}>{doc.intro}</p>
 
             {children}
 
             {doc.sections.map((s) => (
               <section key={s.heading} style={{ marginTop: 28 }}>
-                <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: isMobile ? 17 : 19, margin: '0 0 10px', color: '#1b1730' }}>{s.heading}</h2>
+                <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: isMobile ? 17 : 19, margin: '0 0 10px', color: C.textStrong }}>{s.heading}</h2>
                 {s.paragraphs?.map((p) => (
-                  <p key={p} style={{ fontSize: 14.5, lineHeight: 1.7, color: '#4b4660', margin: '0 0 10px' }}>{p}</p>
+                  <p key={p} style={{ fontSize: 14.5, lineHeight: 1.7, color: C.ink650, margin: '0 0 10px' }}>{p}</p>
                 ))}
                 {s.bullets && (
                   <ul style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 8, listStyle: 'disc' }}>
                     {s.bullets.map((b) => (
-                      <li key={b} style={{ fontSize: 14.5, lineHeight: 1.7, color: '#4b4660' }}>{b}</li>
+                      <li key={b} style={{ fontSize: 14.5, lineHeight: 1.7, color: C.ink650 }}>{b}</li>
                     ))}
                   </ul>
                 )}
               </section>
             ))}
 
-            <div style={{ marginTop: 32, paddingTop: 18, borderTop: '1px solid #efeaf8', fontSize: 14, color: '#6b6680' }}>
+            <div style={{ marginTop: 32, paddingTop: 18, borderTop: `1px solid ${C.border}`, fontSize: 14, color: C.textSecondary }}>
               {t.lgContact}:{' '}
-              <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className="link-underline" style={{ color: '#6d28d9', fontWeight: 600, textDecoration: 'none' }}>{LEGAL_CONTACT_EMAIL}</a>
+              <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className="link-underline" style={{ color: C.primaryStrong, fontWeight: 600, textDecoration: 'none' }}>{LEGAL_CONTACT_EMAIL}</a>
             </div>
           </article>
         </section>

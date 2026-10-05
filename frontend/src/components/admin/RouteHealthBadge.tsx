@@ -1,3 +1,4 @@
+import { C } from '../../styles/colors';
 import { AlertTriangle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import StatusBadge from './StatusBadge';
@@ -31,7 +32,7 @@ export function ModelBlockHint({ reason }: { reason: AiModelBlockReason | null }
       title={aiBlockReasonLabel(lang, reason)}
       style={{ display: 'inline-flex', alignItems: 'center', marginLeft: 6, cursor: 'help', verticalAlign: 'middle' }}
     >
-      <AlertTriangle size={13} stroke="#d97706" strokeWidth={2.4} />
+      <AlertTriangle size={13} stroke={C.warning} strokeWidth={2.4} />
     </span>
   );
 }

@@ -2,6 +2,7 @@ import { useApp } from '../../context/AppContext.tsx';
 import type { PostSchedule } from '../../api/schedules.ts';
 import ScheduleItem from './ScheduleItem.tsx';
 import { absDayLabel, dayRel, groupByDay } from './dateUtils.ts';
+import { C } from '../../styles/colors';
 
 // Danh sách lịch đăng nhóm theo ngày (UI-07 redesign): header "Hôm nay · 17 Tháng 7" + đếm,
 // item giữ nguyên đầy đủ hành động của hàng đợi. Dùng cho view Agenda (cột trái)
@@ -23,7 +24,7 @@ export default function AgendaView({ schedules, busyId, confirmCancelId, onResch
 
   if (schedules.length === 0) {
     return (
-      <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 13, color: '#8a85a0' }}>
+      <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 13, color: C.textMuted }}>
         {selectedDay ? t.schEmptyDay : t.schEmpty}
         {selectedDay && (
           <div style={{ marginTop: 8 }}>
@@ -43,11 +44,11 @@ export default function AgendaView({ schedules, busyId, confirmCancelId, onResch
         return (
           <div key={g.key}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 8 }}>
-              <span style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: 13, fontWeight: 800, color: rel === 'today' ? '#7c3aed' : '#4b4660' }}>
+              <span style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: 13, fontWeight: 800, color: rel === 'today' ? C.primary : C.ink650 }}>
                 {relLabel ?? abs}
               </span>
-              {relLabel && <span style={{ fontSize: 11.5, fontWeight: 600, color: '#a59fbb' }}>· {abs}</span>}
-              <span style={{ fontSize: 10.5, fontWeight: 800, background: '#f3f0fa', color: '#8a85a0', borderRadius: 999, padding: '1px 7px' }}>{g.items.length}</span>
+              {relLabel && <span style={{ fontSize: 11.5, fontWeight: 600, color: C.textFaint }}>· {abs}</span>}
+              <span style={{ fontSize: 10.5, fontWeight: 800, background: C.surfaceMuted, color: C.textMuted, borderRadius: 999, padding: '1px 7px' }}>{g.items.length}</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {g.items.map((s) => (
@@ -72,6 +73,6 @@ export default function AgendaView({ schedules, busyId, confirmCancelId, onResch
 }
 
 const clearBtn = {
-  background: 'none', border: 'none', color: '#7c3aed', fontSize: 12.5, fontWeight: 700,
+  background: 'none', border: 'none', color: C.primary, fontSize: 12.5, fontWeight: 700,
   cursor: 'pointer', padding: 0, width: 'fit-content',
 } as const;
