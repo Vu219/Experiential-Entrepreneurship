@@ -2,6 +2,7 @@ package com.aima.mapper;
 
 import com.aima.dto.response.AnalyzedPostResponse;
 import com.aima.dto.response.PostAnalyticsResponse;
+import com.aima.entity.PlatformMedia;
 import com.aima.entity.Post;
 import com.aima.entity.PostAnalytics;
 import com.aima.service.MetaApiClient;
@@ -30,6 +31,24 @@ public interface PostAnalyticsMapper {
     @Mapping(target = "optimizationInsights", ignore = true)
     PostAnalytics toAnalytics(Post post, MetaApiClient.MetaPostMetrics metrics,
                               Integer milestoneHours, Instant collectedAt);
+
+    /** Bài AIMA vừa thu số liệu lần đầu → dòng theo dõi trên nền tảng (trạng thái đồng bộ giữ mặc định ACTIVE). */
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
+    @Mapping(target = "platformAccount", source = "schedule.platformAccount")
+    @Mapping(target = "platformMediaId", source = "platformPostId")
+    @Mapping(target = "post", source = "post")
+    @Mapping(target = "origin", constant = "AIMA")
+    @Mapping(target = "platformStatus", ignore = true)
+    @Mapping(target = "syncStatus", ignore = true)
+    @Mapping(target = "nextSyncAt", ignore = true)
+    @Mapping(target = "lastSyncedAt", ignore = true)
+    @Mapping(target = "consecutiveFailures", ignore = true)
+    @Mapping(target = "lastErrorCode", ignore = true)
+    @Mapping(target = "lastErrorAt", ignore = true)
+    PlatformMedia toPlatformMedia(Post post);
 
     // ===== Entity → response (FR-60/FR-61) =====
 

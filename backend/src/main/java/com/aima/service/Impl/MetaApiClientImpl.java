@@ -1,10 +1,12 @@
 package com.aima.service.Impl;
 
 import com.aima.config.MetaProperties;
+import com.aima.enums.MetricsErrorType;
 import com.aima.enums.Platform;
 import com.aima.enums.PublishErrorType;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
+import com.aima.exception.MetricsFetchException;
 import com.aima.exception.PublishException;
 import com.aima.service.MetaApiClient;
 import com.aima.service.PlatformVersionService;
@@ -268,42 +270,60 @@ public class MetaApiClientImpl implements MetaApiClient {
             return getFacebookPostMetrics(platformPostId, token);
         }
         // Instagram: chưa có bài đăng (MVP không đăng media) — không có gì để thu thập.
-        throw new AppException(ErrorCode.META_API_ERROR);
+        throw new MetricsFetchException(MetricsErrorType.UNSUPPORTED, "UNSUPPORTED",
+                "Chưa hỗ trợ thu số liệu " + platform);
     }
+
+    /** Metric lượt xem bài Page — thay post_impressions đã bị Meta khai tử 15/11/2025. */
+    static final String FB_POST_VIEWS_METRIC = "post_media_view";
 
     private MetaPostMetrics getFacebookPostMetrics(String postId, String pageToken) {
         Platform platform = Platform.FACEBOOK;
         String version = versionService.getCurrentVersion(platform);
+        // reactions = mọi cảm xúc (Thích/Yêu thích/Haha/...), không chỉ Like; limit(0) = chỉ lấy tổng, không tải danh sách.
         String url = withProof(UriComponentsBuilder.fromUriString(metaProperties.graphBaseUrl())
                 .pathSegment(version, postId)
-                .queryParam("fields", "likes.summary(true),comments.summary(true),shares")
+                .queryParam("fields", "reactions.summary(total_count).limit(0),comments.summary(true).limit(0),shares")
                 .queryParam("access_token", pageToken), pageToken, platform)
                 .toUriString();
-        JsonNode body = get(url, platform);
+        JsonNode body = getMetrics(url, platform);
 
-        Long likes = summaryCount(body, "likes");
+        Long reactions = summaryCount(body, "reactions");
         Long comments = summaryCount(body, "comments");
         JsonNode sharesNode = body.path("shares").path("count");
         Long shares = sharesNode.isMissingNode() || sharesNode.isNull() ? 0L : sharesNode.asLong();
 
-        // Views (post_impressions) cần quyền read_insights — best-effort, thiếu quyền thì null.
+        // Lượt xem cần read_insights: thiếu quyền → views null nhưng vẫn lưu tương tác. Rate limit / token /
+        // lỗi tạm thì ném ra để cả mốc được thu lại sau — không lưu vĩnh viễn một snapshot thiếu views.
         Long views = null;
+        String insightsUrl = withProof(UriComponentsBuilder.fromUriString(metaProperties.graphBaseUrl())
+                .pathSegment(version, postId, "insights")
+                .queryParam("metric", FB_POST_VIEWS_METRIC)
+                .queryParam("access_token", pageToken), pageToken, platform)
+                .toUriString();
         try {
-            String insightsUrl = withProof(UriComponentsBuilder.fromUriString(metaProperties.graphBaseUrl())
-                    .pathSegment(version, postId, "insights")
-                    .queryParam("metric", "post_impressions")
-                    .queryParam("access_token", pageToken), pageToken, platform)
-                    .toUriString();
-            JsonNode insights = get(insightsUrl, platform);
-            JsonNode value = insights.path("data").path(0).path("values").path(0).path("value");
-            if (!value.isMissingNode() && !value.isNull()) {
-                views = value.asLong();
+            views = metricValue(getMetrics(insightsUrl, platform), FB_POST_VIEWS_METRIC);
+        } catch (MetricsFetchException e) {
+            if (e.getErrorType() == MetricsErrorType.PERMISSION) {
+                log.info("[Meta] Không có quyền đọc lượt xem bài {} (cần read_insights) — views = null", postId);
+            } else if (e.getErrorType() == MetricsErrorType.INVALID_REQUEST) {
+                log.error("[Meta] Metric {} bị từ chối cho bài {} ({}) — có thể Meta đã khai tử metric này",
+                        FB_POST_VIEWS_METRIC, postId, e.getResponseCode());
+            } else {
+                throw e;
             }
-        } catch (Exception e) {
-            log.debug("[Meta] Không lấy được post_impressions cho {} (thiếu read_insights?): {}",
-                    postId, e.getMessage());
         }
-        return new MetaPostMetrics(views, likes, comments, shares, null); // FB post không có saves
+        return new MetaPostMetrics(views, reactions, comments, shares, null); // FB post không có saves
+    }
+
+    private static Long metricValue(JsonNode insights, String metric) {
+        for (JsonNode item : insights.path("data")) {
+            if (metric.equals(text(item, "name"))) {
+                JsonNode value = item.path("values").path(0).path("value");
+                return value.isMissingNode() || value.isNull() ? null : value.asLong();
+            }
+        }
+        return null;
     }
 
     private MetaPostMetrics getThreadsPostMetrics(String mediaId, String token) {
@@ -314,7 +334,7 @@ public class MetaApiClientImpl implements MetaApiClient {
                 .queryParam("metric", "views,likes,replies,reposts,quotes")
                 .queryParam("access_token", token)
                 .toUriString();
-        JsonNode body = get(url, platform);
+        JsonNode body = getMetrics(url, platform);
 
         Long views = null;
         Long likes = null;
@@ -466,6 +486,59 @@ public class MetaApiClientImpl implements MetaApiClient {
             log.warn("[Meta] POST lỗi {} {}: {}", platform, e.getStatusCode(), mask(e.getResponseBodyAsString()));
             throw toAppException(e);
         }
+    }
+
+    // GET cho luồng thu số liệu (FR-59): KHÔNG gộp lỗi thành META_API_ERROR như get() — phân loại theo mã Graph
+    // để AnalyticsCollectionJob biết bài đã xoá / thiếu quyền / bị rate limit mà dừng hoặc giãn lịch thử lại.
+    private JsonNode getMetrics(String url, Platform platform) {
+        log.debug("[Meta] GET {} ({})", mask(url), platform);
+        try {
+            String raw = webClient.get().uri(encodedUri(url)).retrieve().bodyToMono(String.class).block();
+            return parse(raw);
+        } catch (WebClientResponseException e) {
+            log.warn("[Meta] Thu số liệu lỗi {} {}: {}", platform, e.getStatusCode(), mask(e.getResponseBodyAsString()));
+            throw toMetricsException(e);
+        } catch (WebClientRequestException e) {
+            log.warn("[Meta] Thu số liệu thất bại (network) {}: {}", platform, e.getMessage());
+            throw new MetricsFetchException(MetricsErrorType.TEMPORARY, "NETWORK", e.getMessage());
+        }
+    }
+
+    private MetricsFetchException toMetricsException(WebClientResponseException e) {
+        JsonNode error;
+        try {
+            error = objectMapper.readTree(e.getResponseBodyAsString()).path("error");
+        } catch (Exception ignored) {
+            error = objectMapper.missingNode(); // body không phải JSON
+        }
+        int code = error.path("code").asInt(-1);
+        int subcode = error.path("error_subcode").asInt(-1);
+        String responseCode = code < 0 ? "HTTP_" + e.getStatusCode().value()
+                : subcode > 0 ? code + "/" + subcode : String.valueOf(code);
+        return new MetricsFetchException(classifyMetricsError(code, subcode), responseCode,
+                mask(error.path("message").asText(e.getMessage())));
+    }
+
+    // Mã Graph bị giới hạn tần suất: 4 app, 17 user, 32 Page, 613 custom, 80001 Pages BUC, 80002 Instagram BUC.
+    private static final Set<Integer> RATE_LIMIT_GRAPH_CODES = Set.of(4, 17, 32, 613, 80001, 80002);
+
+    /** Phân loại lỗi thu số liệu theo mã Graph; mã lạ / không parse được (5xx...) → TEMPORARY. */
+    static MetricsErrorType classifyMetricsError(int code, int subcode) {
+        if (code == TOKEN_INVALID_CODE || code == 102) {
+            return MetricsErrorType.TOKEN_INVALID;
+        }
+        if (RATE_LIMIT_GRAPH_CODES.contains(code)) {
+            return MetricsErrorType.RATE_LIMIT;
+        }
+        if (code == 10 || (code >= 200 && code <= 299)) {
+            return MetricsErrorType.PERMISSION;
+        }
+        if (code == 100) {
+            // 100/33 = "Object ... does not exist, cannot be loaded due to missing permissions" — bài đã xoá
+            // (hoặc mất quyền); 100 khác = tham số sai, thường là metric đã bị khai tử.
+            return subcode == 33 ? MetricsErrorType.NOT_FOUND : MetricsErrorType.INVALID_REQUEST;
+        }
+        return MetricsErrorType.TEMPORARY;
     }
 
     // Graph code 190 = token hết hạn/bị thu hồi → mã riêng để caller (validate) phân biệt với

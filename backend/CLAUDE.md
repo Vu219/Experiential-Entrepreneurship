@@ -730,15 +730,25 @@ Lịch `ON_HOLD` được kích hoạt lại bằng `PUT /schedules/{id}` khi đ
 > `AnalyticsCollectionJob` (`@Scheduled fixedDelay=1h`): với mỗi mốc **24/48/168h**, query bài `POSTED`
 > đã qua mốc mà **chưa có** bản ghi `PostAnalytics` của mốc đó (`PostRepository.findDueForAnalytics`,
 > "not exists" theo `milestone_hours`) → `MetaApiClient.getPostMetrics` (HTTP ngoài transaction, rule #24)
-> → lưu snapshot qua `PostAnalyticsMapper.toAnalytics` (cascade từ `Post`). Bài lỗi chỉ log + bỏ qua,
-> lần quét sau tự thử lại (idempotent nhờ query "chưa có mốc"). Thu analytics KHÔNG đổi trạng thái
-> lịch/bài (Phase 1): bài PARTIALLY_POSTED/FAILED vẫn được thu số liệu cho Post đã đăng.
+> → lưu snapshot qua `PostAnalyticsMapper.toAnalytics` (cascade từ `Post`). Idempotent nhờ query "chưa có mốc".
+> Thu analytics KHÔNG đổi trạng thái lịch/bài (Phase 1): bài PARTIALLY_POSTED/FAILED vẫn được thu số liệu cho Post đã đăng.
+>
+> **Dừng gọi lại vô hạn (analytics dữ liệu thật — Giai đoạn 0, 2026-10-06)** — `getPostMetrics` ném
+> `MetricsFetchException` (`enums/MetricsErrorType`, CHỈ dùng trong luồng thu số liệu); job ghi trạng thái vào
+> `platform_media` (Flyway V6; `PlatformMediaRepository`, tạo lười qua `PostAnalyticsMapper.toPlatformMedia`) và
+> `findDueForAnalytics(milestone, threshold, now)` bỏ qua dòng `STOPPED` / `next_sync_at > now`. NOT_FOUND (100/33) hai
+> lần cách 24h → `DELETED` + `STOPPED`; UNSUPPORTED (IG) → `STOPPED`; PERMISSION/TOKEN_INVALID → thử lại sau 24h;
+> TEMPORARY/INVALID_REQUEST/lỗi nội bộ → backoff 1h·2^(n−1) tối đa 24h; 8 lỗi liên tiếp → `STOPPED`; RATE_LIMIT →
+> chờ 1h, không tính lỗi, `run()` dừng cả lượt quét. Thành công → reset đếm lỗi. Kế hoạch các giai đoạn sau:
+> `../docs/analytics-real-data-plan.md`.
 
-**Metric theo nền tảng** — FB Page post: `?fields=likes.summary(true),comments.summary(true),shares` + views
-(`/insights?metric=post_impressions`) **best-effort** (cần `read_insights`, thiếu quyền → views null); Threads:
+**Metric theo nền tảng** — FB Page post: `?fields=reactions.summary(total_count).limit(0),comments.summary(true).limit(0),shares`
+(`likes` lưu tổng MỌI cảm xúc) + views `/insights?metric=post_media_view` (`post_impressions` bị Meta khai tử 15/11/2025;
+cần `read_insights` — thiếu quyền → views null, metric bị từ chối mã 100 → views null + log ERROR, rate limit/token/lỗi tạm
+→ ném ra để thu lại cả mốc); Threads:
 `/{media-id}/insights?metric=views,likes,replies,reposts,quotes` (replies→comments, reposts+quotes→shares);
 saves/CTR/conversion/watch time = **null trong MVP** (nền tảng không cung cấp cho bài text). Instagram chưa có bài
-đăng nên `getPostMetrics(INSTAGRAM)` ném `META_API_ERROR`.
+đăng nên `getPostMetrics(INSTAGRAM)` ném `MetricsFetchException(UNSUPPORTED)`.
 
 **Endpoints** (`/analytics`, auth required): GET `/analytics/posts?page=&size=` (PageResponse, bài POSTED mới nhất trước,
 mỗi bài kèm đủ snapshot các mốc — FR-61/FR-62) • GET `/analytics/posts/{postId}`. **ErrorCode** 1946 `POST_NOT_FOUND`.

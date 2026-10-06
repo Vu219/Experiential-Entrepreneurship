@@ -193,12 +193,12 @@ class PostPublishWorkerIntegrationTest {
 
     @Test
     void twoVersionsOfOneItem_successAndPermanentFailureConcurrently_itemPartiallyPosted() {
-        int dueBefore = postRepository.findDueForAnalytics(24, Instant.now().plus(java.time.Duration.ofDays(1))).size();
+        int dueBefore = postRepository.findDueForAnalytics(24, Instant.now().plus(java.time.Duration.ofDays(1)), Instant.now()).size();
         assertEquals(ContentItemStatus.PARTIALLY_POSTED, runConcurrently(
                 json(200, "{\"id\":\"ok_1\"}"),
                 json(400, "{\"error\":{\"message\":\"Invalid parameter\",\"type\":\"OAuthException\",\"code\":100}}")));
         // Analytics không phụ thuộc trạng thái tổng: bài đã đăng của bài PARTIALLY_POSTED vẫn đến hạn thu.
-        assertEquals(dueBefore + 1, postRepository.findDueForAnalytics(24, Instant.now().plus(java.time.Duration.ofDays(1))).size());
+        assertEquals(dueBefore + 1, postRepository.findDueForAnalytics(24, Instant.now().plus(java.time.Duration.ofDays(1)), Instant.now()).size());
     }
 
     @Test

@@ -280,8 +280,12 @@ export function mockInsights(f: AnalyticsFilter = defFilter()): AnalyticsInsight
     .filter((c) => !c.lowSample)
     .sort((a, b) => b.avgEngagement - a.avgEngagement)[0];
 
-  const views = sum(dailyPoints(dates, filterFactor(f)).map((p) => p.views));
-  // Bài Facebook thường thiếu lượt xem → bị loại khỏi mẫu số, giống hệt dữ liệu thật.
+  // Tỷ lệ tương tác = Σ(thích + bình luận + chia sẻ) / Σ lượt xem — tử và mẫu lấy từ CÙNG chuỗi ngày
+  // của KPI. Trước đây tử số lấy từ heatmap (cố định theo kỳ) chia cho lượt xem theo ngày → 7 ngày ra 194%.
+  const points = dailyPoints(dates, filterFactor(f));
+  const views = sum(points.map((p) => p.views));
+  const interactions = sum(points.map((p) => p.likes + p.comments + p.shares));
+  // Một phần bài chưa có lượt xem (thiếu quyền read_insights / nền tảng chưa trả số) → bị loại khỏi mẫu số.
   const ratedPosts = Math.round(posts * 0.45);
 
   return {
@@ -301,7 +305,7 @@ export function mockInsights(f: AnalyticsFilter = defFilter()): AnalyticsInsight
           posts: best.posts, avgEngagement: best.avgEngagement,
         }
       : null,
-    engagementRatePct: views ? Math.round((engagement / views) * 1000) / 10 : null,
+    engagementRatePct: views ? Math.round((interactions / views) * 1000) / 10 : null,
     engagementRateDeltaPct: mockDelta('er' + f.from),
     ratedPosts,
     excludedPosts: posts - ratedPosts,

@@ -232,18 +232,108 @@ class MetaApiClientImplTest {
 
     @Test
     void getPostMetrics_facebook_summaryFieldsAndMetricEncodedExactlyOnce() throws InterruptedException {
-        server.enqueue(json("{\"likes\":{\"summary\":{\"total_count\":3}}}"));
-        server.enqueue(json("{\"data\":[{\"values\":[{\"value\":10}]}]}"));
+        server.enqueue(json("{\"reactions\":{\"summary\":{\"total_count\":3}}}"));
+        server.enqueue(json("{\"data\":[{\"name\":\"post_media_view\",\"values\":[{\"value\":10}]}]}"));
 
         client.getPostMetrics(Platform.FACEBOOK, "100_200", "page-tok");
 
         RecordedRequest fields = server.takeRequest(5, TimeUnit.SECONDS);
-        assertEquals("likes.summary(true),comments.summary(true),shares",
+        assertEquals("reactions.summary(total_count).limit(0),comments.summary(true).limit(0),shares",
                 fields.getRequestUrl().queryParameter("fields"));
         RecordedRequest insights = server.takeRequest(5, TimeUnit.SECONDS);
         assertEquals("/v25.0/100_200/insights", insights.getRequestUrl().encodedPath());
-        assertEquals("post_impressions", insights.getRequestUrl().queryParameter("metric"));
+        assertEquals("post_media_view", insights.getRequestUrl().queryParameter("metric"));
         assertFalse(fields.getPath().contains("%25") || insights.getPath().contains("%25"));
+    }
+
+    // ---------- getPostMetrics: số liệu + phân loại lỗi (analytics giai đoạn 0) ----------
+
+    private MockResponse graphError(int status, int code, Integer subcode) {
+        String sub = subcode == null ? "" : ",\"error_subcode\":" + subcode;
+        return new MockResponse().setResponseCode(status).addHeader("Content-Type", "application/json")
+                .setBody("{\"error\":{\"message\":\"boom\",\"type\":\"OAuthException\",\"code\":" + code + sub + "}}");
+    }
+
+    @Test
+    void getPostMetrics_facebook_reactionsCountAllEmotionsAndViewsFromPostMediaView() {
+        server.enqueue(json("{\"reactions\":{\"data\":[],\"summary\":{\"total_count\":42}},"
+                + "\"comments\":{\"data\":[],\"summary\":{\"total_count\":7}},\"shares\":{\"count\":3}}"));
+        server.enqueue(json("{\"data\":[{\"name\":\"post_media_view\",\"period\":\"lifetime\",\"values\":[{\"value\":1500}]}]}"));
+
+        MetaApiClient.MetaPostMetrics m = client.getPostMetrics(Platform.FACEBOOK, "100_200", "page-tok");
+
+        assertEquals(1500L, m.views());
+        assertEquals(42L, m.likes(), "likes của FB = tổng mọi cảm xúc");
+        assertEquals(7L, m.comments());
+        assertEquals(3L, m.shares());
+        assertNull(m.saves());
+    }
+
+    @Test
+    void getPostMetrics_facebook_missingReadInsights_viewsNullButInteractionsKept() {
+        server.enqueue(json("{\"reactions\":{\"summary\":{\"total_count\":5}},\"comments\":{\"summary\":{\"total_count\":1}}}"));
+        server.enqueue(graphError(400, 10, null));
+
+        MetaApiClient.MetaPostMetrics m = client.getPostMetrics(Platform.FACEBOOK, "100_200", "page-tok");
+
+        assertNull(m.views());
+        assertEquals(5L, m.likes());
+        assertEquals(1L, m.comments());
+        assertEquals(0L, m.shares(), "bài chưa ai chia sẻ thì Graph bỏ trường shares");
+    }
+
+    @Test
+    void getPostMetrics_facebook_deprecatedMetricRejected_viewsNull() {
+        server.enqueue(json("{\"reactions\":{\"summary\":{\"total_count\":5}}}"));
+        server.enqueue(graphError(400, 100, null)); // "(#100) The value must be a valid insights metric"
+
+        assertNull(client.getPostMetrics(Platform.FACEBOOK, "100_200", "page-tok").views());
+    }
+
+    @Test
+    void getPostMetrics_facebook_insightsRateLimited_throwsInsteadOfSavingPartialSnapshot() {
+        server.enqueue(json("{\"reactions\":{\"summary\":{\"total_count\":5}}}"));
+        server.enqueue(graphError(400, 4, null));
+
+        com.aima.exception.MetricsFetchException ex = assertThrows(com.aima.exception.MetricsFetchException.class,
+                () -> client.getPostMetrics(Platform.FACEBOOK, "100_200", "page-tok"));
+        assertEquals(com.aima.enums.MetricsErrorType.RATE_LIMIT, ex.getErrorType());
+    }
+
+    @Test
+    void getPostMetrics_facebook_deletedPost_notFoundWithOriginalCode() {
+        server.enqueue(graphError(400, 100, 33));
+
+        com.aima.exception.MetricsFetchException ex = assertThrows(com.aima.exception.MetricsFetchException.class,
+                () -> client.getPostMetrics(Platform.FACEBOOK, "100_200", "page-tok"));
+        assertEquals(com.aima.enums.MetricsErrorType.NOT_FOUND, ex.getErrorType());
+        assertEquals("100/33", ex.getResponseCode());
+    }
+
+    @Test
+    void getPostMetrics_facebook_classifiesTokenRateLimitPermissionAndServerErrors() {
+        Object[][] cases = {
+                {graphError(400, 190, 463), com.aima.enums.MetricsErrorType.TOKEN_INVALID, "190/463"},
+                {graphError(400, 80001, null), com.aima.enums.MetricsErrorType.RATE_LIMIT, "80001"},
+                {graphError(400, 17, null), com.aima.enums.MetricsErrorType.RATE_LIMIT, "17"},
+                {graphError(403, 200, null), com.aima.enums.MetricsErrorType.PERMISSION, "200"},
+                {new MockResponse().setResponseCode(503).setBody("down"), com.aima.enums.MetricsErrorType.TEMPORARY, "HTTP_503"},
+        };
+        for (Object[] c : cases) {
+            server.enqueue((MockResponse) c[0]);
+            com.aima.exception.MetricsFetchException ex = assertThrows(com.aima.exception.MetricsFetchException.class,
+                    () -> client.getPostMetrics(Platform.FACEBOOK, "100_200", "page-tok"));
+            assertEquals(c[1], ex.getErrorType(), String.valueOf(c[2]));
+            assertEquals(c[2], ex.getResponseCode());
+        }
+    }
+
+    @Test
+    void getPostMetrics_instagram_unsupported() {
+        com.aima.exception.MetricsFetchException ex = assertThrows(com.aima.exception.MetricsFetchException.class,
+                () -> client.getPostMetrics(Platform.INSTAGRAM, "1789", "tok"));
+        assertEquals(com.aima.enums.MetricsErrorType.UNSUPPORTED, ex.getErrorType());
+        assertEquals(0, server.getRequestCount(), "không gọi Meta cho nền tảng chưa hỗ trợ");
     }
 
     @Test

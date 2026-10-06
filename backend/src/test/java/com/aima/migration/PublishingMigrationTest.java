@@ -43,7 +43,7 @@ class PublishingMigrationTest {
     }
 
     @Test void emptyDatabaseMigratesValidatesAndSecondRunDoesNothing() throws Exception {
-        assertEquals(5, flyway(null).migrate().migrationsExecuted);
+        assertEquals(6, flyway(null).migrate().migrationsExecuted);
         assertEquals(0, flyway(null).migrate().migrationsExecuted);
         flyway(null).validate();
         assertEquals("timestamp with time zone", scalar("select data_type from information_schema.columns where table_schema='" + schema + "' and table_name='post_schedules' and column_name='scheduled_time'"));
@@ -69,7 +69,7 @@ class PublishingMigrationTest {
         db.createStatement().execute("insert into post_schedules(id,created_at,deleted_at,content_version_id,platform_account_id,status,scheduled_time) values ('"+schedule+"',now(),now(),'"+version+"','"+account+"','CANCELLED','2026-09-30 00:30:00')");
         db.createStatement().execute("insert into posts(id,created_at,schedule_id,platform_name,status,published_at) values ('"+post+"',now(),'"+schedule+"','FACEBOOK','POSTED','2026-09-29 23:30:00')");
         db.createStatement().execute("insert into posting_jobs(id,created_at,post_id,status,retry_count,start_time,end_time,next_retry_at) values ('"+UUID.randomUUID()+"',now(),'"+post+"','RETRYING',1,'2026-09-29 23:30:00',null,'2026-09-30 00:30:00')");
-        assertEquals(4, flyway(null).migrate().migrationsExecuted);
+        assertEquals(5, flyway(null).migrate().migrationsExecuted);
         for (String zone : new String[]{"UTC", "America/New_York", "Asia/Tokyo"}) {
             db.createStatement().execute("set time zone '"+zone+"'");
             try (var rs = db.createStatement().executeQuery("select scheduled_time from post_schedules")) {
@@ -95,7 +95,7 @@ class PublishingMigrationTest {
         db.createStatement().execute("drop table flyway_schema_history");
         assertThrows(Exception.class, () -> flyway(null).migrate());
         flyway(null).baseline();
-        assertEquals(4, flyway(null).migrate().migrationsExecuted);
+        assertEquals(5, flyway(null).migrate().migrationsExecuted);
         validateHibernate();
     }
 
@@ -128,7 +128,7 @@ class PublishingMigrationTest {
                     + id + "',now(),'" + owner + "','FACEBOOK','" + row[0] + "')");
             row[0] = id;
         }
-        assertEquals(3, flyway(null).migrate().migrationsExecuted);
+        assertEquals(4, flyway(null).migrate().migrationsExecuted);
         for (String[] row : items) {
             assertEquals(row[2], scalar("select status from content_items where id='" + row[1] + "'"), row[1]);
             assertEquals(row[3], scalar("select review_status from content_items where id='" + row[1] + "'"), row[1]);
@@ -173,7 +173,7 @@ class PublishingMigrationTest {
         String post = UUID.randomUUID().toString();
         db.createStatement().execute("insert into posts(id,created_at,schedule_id,platform_name,status) values ('"+post+"',now(),'"+sUnknown+"','FACEBOOK','POSTED')");
 
-        assertEquals(2, flyway(null).migrate().migrationsExecuted);
+        assertEquals(3, flyway(null).migrate().migrationsExecuted);
         assertEquals("ACCOUNT_REMOVED", scalar("select string_agg(reason, ',') from post_schedule_holds where schedule_id='"+sRemoved+"'"));
         assertEquals("ACCOUNT_ISSUE", scalar("select string_agg(reason, ',') from post_schedule_holds where schedule_id='"+sExpired+"'"));
         assertEquals("0", scalar("select count(*) from post_schedule_holds where schedule_id='"+sUnknown+"'"), "không bằng chứng → chưa phân loại");
@@ -185,6 +185,43 @@ class PublishingMigrationTest {
                 "unique theo lịch + lý do");
         validateHibernate();
         verifyEnumChecks();
+    }
+
+    // ===== V6 (analytics giai đoạn 0): platform_media backfill từ bài AIMA đã đăng, không đụng dữ liệu cũ
+
+    @Test void platformMediaBackfilledOnlyFromLivePostedPostsWithPlatformId() throws Exception {
+        flyway("5").migrate();
+        String brand = legacyBrand();
+        String owner = scalar("select user_id from brand_profiles where id='" + brand + "'");
+        String item = UUID.randomUUID().toString();
+        db.createStatement().execute("insert into content_items(id,created_at,brand_profile_id,status,review_status) values ('"+item+"',now(),'"+brand+"','POSTED','NONE')");
+        String page = account(owner, "ACTIVE", false);
+        String posted = post(item, page, "POSTED", "page_1", false);
+        post(item, page, "POSTED", null, false);        // POSTED nhưng chưa có id nền tảng
+        post(item, page, "FAILED", "page_2", false);    // đăng lỗi
+        post(item, page, "POSTED", "page_3", true);     // đã xoá mềm
+        db.createStatement().execute("insert into post_analytics(id,created_at,post_id,views,likes,milestone_hours,collected_at) values (gen_random_uuid(),now(),'"+posted+"',10,2,24,now())");
+
+        assertEquals(1, flyway(null).migrate().migrationsExecuted);
+        assertEquals("1", scalar("select count(*) from platform_media"));
+        assertEquals(posted + "|" + page + "|FACEBOOK|page_1|AIMA|ACTIVE|ACTIVE|0", scalar(
+                "select post_id||'|'||platform_account_id||'|'||platform_name||'|'||platform_media_id||'|'||origin||'|'||platform_status||'|'||sync_status||'|'||consecutive_failures from platform_media"));
+        assertEquals("4", scalar("select count(*) from posts"), "không xoá/sửa bài cũ");
+        assertEquals("1", scalar("select count(*) from post_analytics"), "không đụng số liệu cũ");
+        assertThrows(SQLException.class, () -> db.createStatement().execute(
+                "insert into platform_media(id,created_at,platform_account_id,platform_name,platform_media_id,origin,platform_status,sync_status) values (gen_random_uuid(),now(),'"+page+"','FACEBOOK','page_1','AIMA','ACTIVE','ACTIVE')"),
+                "unique theo tài khoản + id nền tảng");
+        validateHibernate();
+        verifyEnumChecks();
+    }
+
+    String post(String item, String account, String status, String platformPostId, boolean deleted) throws SQLException {
+        String version = UUID.randomUUID().toString(), schedule = UUID.randomUUID().toString(), post = UUID.randomUUID().toString();
+        db.createStatement().execute("insert into content_versions(id,created_at,content_item_id,platform_name,status,revision) values ('"+version+"',now(),'"+item+"','FACEBOOK','FORMATTED',0)");
+        db.createStatement().execute("insert into post_schedules(id,created_at,content_version_id,platform_account_id,status,scheduled_time) values ('"+schedule+"',now(),'"+version+"','"+account+"','"+status+"',now())");
+        db.createStatement().execute("insert into posts(id,created_at,deleted_at,schedule_id,platform_name,status,platform_post_id,published_at,snapshot_state) values ('"
+                +post+"',now(),"+(deleted ? "now()" : "null")+",'"+schedule+"','FACEBOOK','"+status+"',"+(platformPostId == null ? "null" : "'"+platformPostId+"'")+",now(),'UNKNOWN_LEGACY')");
+        return post;
     }
 
     String account(String user, String status, boolean deleted) throws SQLException {

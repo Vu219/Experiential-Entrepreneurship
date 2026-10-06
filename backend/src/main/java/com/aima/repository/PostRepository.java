@@ -20,11 +20,15 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
     // FR-59: bài POSTED đã qua mốc :milestone giờ mà CHƯA có bản ghi analytics của mốc đó.
     // Chỉ trả id: AnalyticsCollectionJob không có transaction bao ngoài, entity trả về sẽ detached.
+    // Bỏ qua bài có platform_media đã dừng (xoá trên nền tảng / lỗi quá ngưỡng) hoặc đang backoff (nextSyncAt > now).
     @Query("select p.id from Post p where p.status = com.aima.enums.PostStatus.POSTED and p.deletedAt is null "
             + "and p.publishedAt is not null and p.publishedAt <= :threshold "
             + "and not exists (select a from PostAnalytics a where a.post = p "
-            + "and a.milestoneHours = :milestone and a.deletedAt is null)")
-    List<UUID> findDueForAnalytics(@Param("milestone") int milestone, @Param("threshold") Instant threshold);
+            + "and a.milestoneHours = :milestone and a.deletedAt is null) "
+            + "and not exists (select m from PlatformMedia m where m.post = p and m.deletedAt is null "
+            + "and (m.syncStatus <> com.aima.enums.MetricsSyncStatus.ACTIVE or m.nextSyncAt > :now))")
+    List<UUID> findDueForAnalytics(@Param("milestone") int milestone, @Param("threshold") Instant threshold,
+                                   @Param("now") Instant now);
 
     // Nạp đủ đồ thị AnalyticsCollectionJob cần (token của kết nối + version/item để đổi trạng thái).
     @Query("select p from Post p join fetch p.schedule s join fetch s.platformAccount "

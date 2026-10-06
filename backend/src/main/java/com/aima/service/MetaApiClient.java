@@ -43,6 +43,9 @@ public interface MetaApiClient {
     /**
      * FR-59: số liệu tương tác của một bài đã đăng. Metric nền tảng không cung cấp → null
      * (Threads không có saves; FB Page cần read_insights cho views — thiếu quyền thì views null).
+     * FB: {@code likes} = tổng MỌI cảm xúc (reactions), views = {@code post_media_view}.
+     * Lỗi nền tảng ném {@link com.aima.exception.MetricsFetchException} đã phân loại
+     * (NOT_FOUND / RATE_LIMIT / PERMISSION / TOKEN_INVALID / UNSUPPORTED / ...) để job quyết định backoff.
      */
     MetaPostMetrics getPostMetrics(Platform platform, String platformPostId, String token);
 
