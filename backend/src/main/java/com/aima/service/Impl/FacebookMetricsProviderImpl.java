@@ -130,7 +130,10 @@ public class FacebookMetricsProviderImpl implements PlatformMetricsProvider {
                 .toList();
     }
 
-    /** attachments.media_type của Graph → nhãn loại nội dung dùng chung; không đính kèm = bài chữ. */
+    /**
+     * attachments.media_type của Graph → nhãn loại nội dung dùng chung; không đính kèm = bài chữ. Video trên Trang
+     * thường trả {@code video_inline}/{@code video_autoplay} chứ không phải {@code video} trơn.
+     */
     static String mediaType(MetaApiClient.MetaPublishedPost post) {
         if (!post.attachmentTypeKnown()) {
             return null;
@@ -138,9 +141,12 @@ public class FacebookMetricsProviderImpl implements PlatformMetricsProvider {
         if (post.attachmentType() == null) {
             return "TEXT";
         }
-        return switch (post.attachmentType().toLowerCase()) {
+        String type = post.attachmentType().toLowerCase();
+        if (type.startsWith("video")) {
+            return "VIDEO";
+        }
+        return switch (type) {
             case "photo", "album" -> "IMAGE";
-            case "video" -> "VIDEO";
             default -> "OTHER";
         };
     }

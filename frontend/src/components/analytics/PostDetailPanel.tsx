@@ -63,7 +63,14 @@ export default function PostDetailPanel({
         }}>
           {post.caption || t.schNoCaption}
         </h4>
-        {post.permalink && (
+        {post.platformStatus === 'DELETED' ? (
+          <p style={{
+            margin: '8px 0 0', padding: '8px 10px', borderRadius: 8, background: C.slateTint,
+            fontSize: 12, lineHeight: 1.5, color: C.textSecondary,
+          }}>
+            {t.anaDeletedNote}
+          </p>
+        ) : post.permalink && (
           <a href={post.permalink} target="_blank" rel="noopener noreferrer" style={{
             display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 8,
             fontSize: 12.5, fontWeight: 700, color: C.primary, textDecoration: 'none',

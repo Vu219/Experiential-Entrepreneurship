@@ -51,7 +51,7 @@ export default function AnalyticsFilterBar({
   /** Đang hiển thị dữ liệu mẫu → badge mảnh cạnh thanh lọc (không chiếm nguyên hàng như bản cũ). */
   demo: boolean;
 }) {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const { isMobile, isTablet } = useBreakpoint();
   const [openPanel, setOpenPanel] = useState<'range' | 'filters' | 'export' | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -70,8 +70,8 @@ export default function AnalyticsFilterBar({
     today: t.anaRangeToday, d7: t.anaRange7, d30: t.anaRange30, d90: t.anaRange90, custom: t.anaRangeCustom,
   };
   const rangeLabel = isMobile
-    ? (preset === 'custom' ? formatRangeLabel(filter.from, filter.to) : presetLabel[preset])
-    : formatRangeLabel(filter.from, filter.to);
+    ? (preset === 'custom' ? formatRangeLabel(filter.from, filter.to, lang) : presetLabel[preset])
+    : formatRangeLabel(filter.from, filter.to, lang);
 
   const close = () => setOpenPanel(null);
   const toggle = (panel: 'range' | 'filters' | 'export') => setOpenPanel((v) => (v === panel ? null : panel));
@@ -429,7 +429,7 @@ function MobileFilterSheet({
   onClose: () => void;
   onApply: (next: Partial<AnalyticsFilter>) => void;
 }) {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const [draft, setDraft] = useState<AnalyticsFilter>(filter);
   const preset = activePreset(draft.from, draft.to);
   const presetLabel: Record<PresetKey, string> = {
@@ -439,7 +439,7 @@ function MobileFilterSheet({
   return (
     <DaySheet
       title={t.anaFilterBtn}
-      subtitle={formatRangeLabel(draft.from, draft.to)}
+      subtitle={formatRangeLabel(draft.from, draft.to, lang)}
       onClose={onClose}
       footer={
         <div style={{ display: 'flex', gap: 10 }}>

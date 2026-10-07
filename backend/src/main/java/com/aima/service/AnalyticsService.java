@@ -127,8 +127,8 @@ public interface AnalyticsService {
     /**
      * Bộ lọc đã nhận từ query param, CHƯA phân giải. Service tự đặt mặc định (7 ngày gần nhất),
      * validate và quy ra khoảng thật. {@code platforms} rỗng/null = mọi nền tảng;
-     * {@code contentTypes} rỗng/null = mọi loại nội dung (nhãn {@code media_format} IN HOA,
-     * {@code OTHER} = bản chưa có định dạng); {@code source} = {@code aima} chỉ tính bài đăng qua AIMA, giá trị
+     * {@code contentTypes} rỗng/null = mọi loại nội dung (nhãn loại bài do nền tảng báo, IN HOA:
+     * IMAGE/VIDEO/TEXT/OTHER); {@code source} = {@code aima} chỉ tính bài đăng qua AIMA, giá trị
      * khác / null = toàn bộ bài của Trang (gồm bài người dùng tự đăng — mặc định, chốt Q5).
      */
     record AnalyticsQuery(LocalDate from, LocalDate to, List<Platform> platforms, List<String> contentTypes,

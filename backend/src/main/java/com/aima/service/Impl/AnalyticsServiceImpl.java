@@ -829,8 +829,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return platforms.stream().distinct().map(Platform::name).collect(Collectors.joining(","));
     }
 
-    // Loại nội dung là nhãn media_format tự do do AI ghi ("image"/"video"), KHÔNG phải enum — chuẩn
-    // hoá IN HOA + bỏ khoảng trắng để khớp với biểu thức chuẩn hoá trong SQL. Nhãn lạ vẫn lọc được
+    // Loại nội dung là nhãn chuỗi (platform_media.media_type), KHÔNG phải enum — chuẩn
+    // hoá IN HOA + bỏ khoảng trắng để khớp với nhãn trong SQL. Nhãn lạ vẫn lọc được
     // (không loại bỏ), đúng tinh thần donut "Loại nội dung" của Bảng điều khiển.
     private String contentTypeCsv(List<String> contentTypes) {
         if (contentTypes == null || contentTypes.isEmpty()) {

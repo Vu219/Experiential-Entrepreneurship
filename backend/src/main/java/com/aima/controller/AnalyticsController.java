@@ -102,8 +102,8 @@ public class AnalyticsController {
 
     @GetMapping("/by-content-type")
     @Operation(summary = "Hiệu suất theo loại nội dung cho donut + legend (khối F)",
-            description = "Nhãn lấy từ content_versions.media_format chuẩn hoá IN HOA (IMAGE/VIDEO/TEXT/…); bản "
-                    + "chưa định dạng gom vào OTHER. Chỉ trả loại CÓ bài trong kỳ — MVP không có 'Reels' riêng. "
+            description = "Nhãn = loại bài do nền tảng báo (IMAGE/VIDEO/TEXT/OTHER); bài AIMA chưa có nhãn nền tảng "
+                    + "= TEXT (AIMA chỉ đăng bài chữ). Chỉ trả loại CÓ bài trong kỳ — MVP không có 'Reels' riêng. "
                     + "Đối xứng với /by-platform: KHÔNG áp bộ lọc contentTypes (chiều của chính donut này), "
                     + "vẫn áp platforms.")
     public ApiResponse<List<AnalyticsContentTypeResponse>> byContentType(

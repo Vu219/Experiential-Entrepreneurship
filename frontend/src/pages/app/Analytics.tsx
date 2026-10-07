@@ -23,7 +23,7 @@ import AnalyticsSkeleton, {
   PlatformSkeleton, TopPostsSkeleton,
 } from '../../components/analytics/AnalyticsSkeleton.tsx';
 import { METRIC_TONE } from '../../components/analytics/analyticsTokens.ts';
-import { defaultRange } from '../../components/analytics/dateRange.ts';
+import { defaultRange, formatDateInput } from '../../components/analytics/dateRange.ts';
 import type { Platform } from '../../api/brandProfile.ts';
 import {
   CONTENT_TYPES, exportAnalyticsCsv, getAnalyticsByContentType, getAnalyticsByPlatform, getAnalyticsHeatmap,
@@ -90,10 +90,8 @@ function parseCsvParam<T extends string>(raw: string | null, allowed: readonly T
 const summaryHasData = (s: AnalyticsSummary) =>
   s.views.total > 0 || s.likes.total > 0 || s.comments.total > 0 || s.shares.total > 0;
 
-const ddmmyyyy = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
-
 export default function Analytics() {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const { isMobile, width } = useBreakpoint();
   const toast = useToast();
   const navigate = useNavigate();
@@ -317,7 +315,8 @@ export default function Analytics() {
   ];
   // Delta ghi rõ KHOẢNG kỳ trước đã tính (backend trả compareFrom/compareTo), không nói chung chung.
   const compareLabel = summary
-    ? t.anaVsRange.replace('{from}', ddmmyyyy(summary.compareFrom)).replace('{to}', ddmmyyyy(summary.compareTo))
+    ? t.anaVsRange.replace('{from}', formatDateInput(summary.compareFrom, lang))
+      .replace('{to}', formatDateInput(summary.compareTo, lang))
     : '';
 
   // Empty state (chỉ ở chế độ dữ liệu THẬT): phân biệt chưa kết nối / chưa có bài / lọc không ra.

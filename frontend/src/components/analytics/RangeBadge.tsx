@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { formatRangeLabel, formatRangeShort } from './dateRange';
+import { useApp } from '../../context/AppContext';
 import { C } from '../../styles/colors';
 
 /**
@@ -10,16 +11,17 @@ import { C } from '../../styles/colors';
  * còn muốn đổi khoảng thì dùng thanh công cụ đầu trang.
  */
 function RangeBadge({ from, to }: { from: string; to: string }) {
+  const { lang } = useApp();
   return (
     <span
-      title={formatRangeLabel(from, to)}
+      title={formatRangeLabel(from, to, lang)}
       style={{
         flex: 'none', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap',
         border: `1px solid ${C.surfaceMuted}`, background: C.surfaceSubtle, borderRadius: 999,
         padding: '4px 10px', fontSize: 11.5, fontWeight: 700, color: C.textFaint,
       }}
     >
-      {formatRangeShort(from, to)}
+      {formatRangeShort(from, to, lang)}
     </span>
   );
 }

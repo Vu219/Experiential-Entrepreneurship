@@ -9,12 +9,11 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 /**
- * Một loại nội dung trong khối F ("Hiệu suất theo loại nội dung"). Nhãn lấy từ
- * {@code content_versions.media_format} chuẩn hoá IN HOA (IMAGE/VIDEO/TEXT/CAROUSEL/…), bản chưa
- * định dạng gom vào {@code OTHER}; FE dịch nhãn qua từ điển sẵn có, nhãn lạ hiển thị nguyên văn.
+ * Một loại nội dung trong khối F ("Hiệu suất theo loại nội dung"). Nhãn = loại bài do nền tảng báo
+ * ({@code platform_media.media_type}: IMAGE/VIDEO/TEXT/OTHER); bài AIMA chưa có nhãn nền tảng = TEXT (AIMA chỉ
+ * đăng bài chữ). FE dịch nhãn qua từ điển sẵn có, nhãn lạ hiển thị nguyên văn.
  *
- * <p>Chỉ trả loại CÓ bài trong kỳ — không bịa ra loại rỗng (dữ liệu MVP không có "Reels" riêng,
- * AI chỉ sinh image/video/text).
+ * <p>Chỉ trả loại CÓ bài trong kỳ — không bịa ra loại rỗng (dữ liệu MVP không có "Reels" riêng).
  */
 @Data
 @Builder

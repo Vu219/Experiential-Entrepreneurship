@@ -93,9 +93,10 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
     /*
      * Bộ lọc dùng chung của trang Phân tích, lặp lại nguyên văn trong các truy vấn dưới:
      *   - platformCsv  null = mọi nền tảng; khác null = tên nền tảng nối bằng dấu phẩy ("FACEBOOK,THREADS").
-     *   - typeCsv      null = mọi loại nội dung; khác null = nhãn IN HOA ("IMAGE,VIDEO"). Bài AIMA lấy nhãn từ
-     *                  content_versions.media_format, bài ngoài AIMA từ platform_media.media_type (nền tảng báo);
-     *                  không có nhãn = OTHER.
+     *   - typeCsv      null = mọi loại nội dung; khác null = nhãn IN HOA ("IMAGE,VIDEO"). Nhãn = loại bài THỰC SỰ
+     *                  trên nền tảng: platform_media.media_type (nền tảng báo, mục 3.4 kế hoạch) — KHÔNG dùng
+     *                  content_versions.media_format (định dạng media AI gợi ý, có thể là "video" dù bài chỉ có chữ).
+     *                  Bài AIMA chưa có nhãn nền tảng = TEXT (AIMA hiện chỉ đăng bài chữ); bài ngoài không rõ = OTHER.
      *   - origin       null = toàn bộ bài của Trang (mặc định, chốt Q5); 'AIMA' = chỉ bài đăng qua AIMA.
      * CAST(:param AS text) là bắt buộc để PostgreSQL suy được kiểu khi bind null.
      *
@@ -118,8 +119,6 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
             join platform_media m on m.id = d.platform_media_id and m.deleted_at is null
             join platform_accounts pa on pa.id = m.platform_account_id and pa.deleted_at is null
             left join posts p on p.id = m.post_id
-            left join post_schedules ps on ps.id = p.schedule_id and ps.deleted_at is null
-            left join content_versions cv on cv.id = ps.content_version_id and cv.deleted_at is null
             where pa.user_id = :userId
               and d.deleted_at is null
               and (p.id is null or p.deleted_at is null)
@@ -128,7 +127,7 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
               and (cast(:platformCsv as text) is null
                    or m.platform_name = any(string_to_array(cast(:platformCsv as text), ',')))
               and (cast(:typeCsv as text) is null
-                   or upper(coalesce(nullif(trim(cv.media_format), ''), m.media_type, 'OTHER'))
+                   or coalesce(m.media_type, case when m.origin = 'AIMA' then 'TEXT' end, 'OTHER')
                        = any(string_to_array(cast(:typeCsv as text), ',')))
               and (cast(:origin as text) is null or m.origin = cast(:origin as text))
             group by 1
@@ -155,15 +154,13 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
             join platform_media m on m.id = d.platform_media_id and m.deleted_at is null
             join platform_accounts pa on pa.id = m.platform_account_id and pa.deleted_at is null
             left join posts p on p.id = m.post_id
-            left join post_schedules ps on ps.id = p.schedule_id and ps.deleted_at is null
-            left join content_versions cv on cv.id = ps.content_version_id and cv.deleted_at is null
             where pa.user_id = :userId
               and d.deleted_at is null
               and (p.id is null or p.deleted_at is null)
               and d.metric_date >= cast(:from as date)
               and d.metric_date < cast(:to as date)
               and (cast(:typeCsv as text) is null
-                   or upper(coalesce(nullif(trim(cv.media_format), ''), m.media_type, 'OTHER'))
+                   or coalesce(m.media_type, case when m.origin = 'AIMA' then 'TEXT' end, 'OTHER')
                        = any(string_to_array(cast(:typeCsv as text), ',')))
               and (cast(:origin as text) is null or m.origin = cast(:origin as text))
             group by m.platform_name
@@ -177,7 +174,7 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
     // Khối F — số liệu gộp theo TỪNG loại nội dung của bài đăng trong [from, to). Đối xứng với khối D: CỐ Ý không
     // nhận typeCsv (donut là tỷ trọng giữa các loại), nhưng vẫn áp lọc NỀN TẢNG và NGUỒN BÀI.
     @Query(value = """
-            select upper(coalesce(nullif(trim(cv.media_format), ''), m.media_type, 'OTHER')) as label,
+            select coalesce(m.media_type, case when m.origin = 'AIMA' then 'TEXT' end, 'OTHER') as label,
                    count(*) as posts,
                    cast(coalesce(sum(la.views), 0) as bigint) as views,
                    cast(coalesce(sum(la.likes), 0) as bigint) as likes,
@@ -189,7 +186,6 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
             join platform_accounts pa on pa.id = m.platform_account_id and pa.deleted_at is null
             left join posts p on p.id = m.post_id
             left join post_schedules ps on ps.id = p.schedule_id and ps.deleted_at is null
-            left join content_versions cv on cv.id = ps.content_version_id and cv.deleted_at is null
             left join lateral (
                 select s.views, s.reactions as likes, s.comments, s.shares, s.source
                 from post_metric_snapshots s
@@ -227,7 +223,6 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
             join platform_accounts pa on pa.id = m.platform_account_id and pa.deleted_at is null
             left join posts p on p.id = m.post_id
             left join post_schedules ps on ps.id = p.schedule_id and ps.deleted_at is null
-            left join content_versions cv on cv.id = ps.content_version_id and cv.deleted_at is null
             left join lateral (
                 select s.views, s.reactions as likes, s.comments, s.shares, s.source
                 from post_metric_snapshots s
@@ -244,7 +239,7 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
               and (cast(:platformCsv as text) is null
                    or m.platform_name = any(string_to_array(cast(:platformCsv as text), ',')))
               and (cast(:typeCsv as text) is null
-                   or upper(coalesce(nullif(trim(cv.media_format), ''), m.media_type, 'OTHER'))
+                   or coalesce(m.media_type, case when m.origin = 'AIMA' then 'TEXT' end, 'OTHER')
                        = any(string_to_array(cast(:typeCsv as text), ',')))
               and (cast(:origin as text) is null or m.origin = cast(:origin as text))
             group by 1, 2
@@ -263,7 +258,6 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
             join platform_accounts pa on pa.id = m.platform_account_id and pa.deleted_at is null
             left join posts p on p.id = m.post_id
             left join post_schedules ps on ps.id = p.schedule_id and ps.deleted_at is null
-            left join content_versions cv on cv.id = ps.content_version_id and cv.deleted_at is null
             where pa.user_id = :userId
               and m.deleted_at is null
               and (p.id is null or (p.deleted_at is null and p.status = 'POSTED' and ps.id is not null))
@@ -273,7 +267,7 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
               and (cast(:platformCsv as text) is null
                    or m.platform_name = any(string_to_array(cast(:platformCsv as text), ',')))
               and (cast(:typeCsv as text) is null
-                   or upper(coalesce(nullif(trim(cv.media_format), ''), m.media_type, 'OTHER'))
+                   or coalesce(m.media_type, case when m.origin = 'AIMA' then 'TEXT' end, 'OTHER')
                        = any(string_to_array(cast(:typeCsv as text), ',')))
               and (cast(:origin as text) is null or m.origin = cast(:origin as text))
             """, nativeQuery = true)
@@ -295,7 +289,6 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
             join platform_accounts pa on pa.id = m.platform_account_id and pa.deleted_at is null
             left join posts p on p.id = m.post_id
             left join post_schedules ps on ps.id = p.schedule_id and ps.deleted_at is null
-            left join content_versions cv on cv.id = ps.content_version_id and cv.deleted_at is null
             left join lateral (
                 select s.views, s.reactions as likes, s.comments, s.shares, s.source
                 from post_metric_snapshots s
@@ -312,7 +305,7 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
               and (cast(:platformCsv as text) is null
                    or m.platform_name = any(string_to_array(cast(:platformCsv as text), ',')))
               and (cast(:typeCsv as text) is null
-                   or upper(coalesce(nullif(trim(cv.media_format), ''), m.media_type, 'OTHER'))
+                   or coalesce(m.media_type, case when m.origin = 'AIMA' then 'TEXT' end, 'OTHER')
                        = any(string_to_array(cast(:typeCsv as text), ',')))
               and (cast(:origin as text) is null or m.origin = cast(:origin as text))
             """, nativeQuery = true)
@@ -365,7 +358,7 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
               and (cast(:platformCsv as text) is null
                    or m.platform_name = any(string_to_array(cast(:platformCsv as text), ',')))
               and (cast(:typeCsv as text) is null
-                   or upper(coalesce(nullif(trim(cv.media_format), ''), m.media_type, 'OTHER'))
+                   or coalesce(m.media_type, case when m.origin = 'AIMA' then 'TEXT' end, 'OTHER')
                        = any(string_to_array(cast(:typeCsv as text), ',')))
               and (cast(:origin as text) is null or m.origin = cast(:origin as text))
             order by (m.published_at AT TIME ZONE 'Asia/Ho_Chi_Minh') desc

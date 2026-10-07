@@ -122,7 +122,7 @@ GET /v25.0/{platform_post_id}/insights?metric=post_media_view
 - Tài khoản chưa có số thật: thẻ "Tỷ lệ tương tác TB" ở chế độ mẫu khoảng 11–12% (trước là 194.2%).
 - Có số thật: tỷ lệ tính cả bài Facebook có lượt xem.
 
-### D.3 Giai đoạn 1 — đã làm (2026-10-06, chưa commit)
+### D.3 Giai đoạn 1 — đã làm (2026-10-06, commit `1704479`)
 
 **Quyết định bổ sung (lượt duyệt 2):** Q3 đã trả lời (config có `pages_show_list, pages_read_engagement, read_insights,
 pages_read_user_content, pages_manage_posts, business_management`; app Development; chưa Business Verification). Bình luận
@@ -199,7 +199,7 @@ pages_read_user_content, pages_manage_posts, business_management`; app Developme
   - hạn `NOW+5 ngày` (27/09) và `NOW+10 ngày` (02/10) đã qua → gói bị hạ về FREE trước khi `activatePaidPlan` chạy.
 - Hướng sửa gợi ý: cho `getOrCreate` nhận `now` (hoặc inject `Clock`), hoặc test dùng ngày tương đối với `LocalDateTime.now()`.
 
-### D.5 Q9 + Q10 (2026-10-07, chưa commit)
+### D.5 Q9 + Q10 (2026-10-07, commit `1704479`)
 
 **Quyết định:**
 - **Q9:** KHÔNG điền mốc cũ bằng số hiện tại.
@@ -257,7 +257,7 @@ pages_read_user_content, pages_manage_posts, business_management`; app Developme
    where not exists (select 1 from post_metric_snapshots s where s.platform_media_id = m.id and s.source = 'POLL');
    ```
 
-### D.6 Giai đoạn 2 — đã làm (2026-10-07, chưa commit)
+### D.6 Giai đoạn 2 — đã làm (2026-10-07, commit `1704479`)
 
 **Quyết định (lượt duyệt 2026-10-07):** làm đủ (a) insights cấp Page, (b) import bài ngoài AIMA, (c) dọn snapshot thô quá
 180 ngày, (d) báo IG chưa chuyên nghiệp; **khôi phục** bảng mốc 24h/48h/7 ngày (FR-62) trong modal chi tiết bài; **giữ
@@ -303,7 +303,8 @@ transaction.
 **Đọc số liệu:**
 - Mọi truy vấn "bài ĐĂNG trong kỳ" (`top-posts`, `by-content-type`, `activity-heatmap`, `insights`, `export`) nay đi từ
   `platform_media` (LEFT JOIN `posts`) nên gồm cả bài ngoài AIMA; bài AIMA phải POSTED, chưa xoá mềm, lịch còn.
-  Loại nội dung = `content_versions.media_format` (bài AIMA) hoặc `platform_media.media_type` (bài ngoài).
+  Loại nội dung = `content_versions.media_format` (bài AIMA) hoặc `platform_media.media_type` (bài ngoài). **Đã đổi ở D.9:** mọi bài
+  theo `platform_media.media_type`.
 - Bộ lọc mới `source` trên mọi `/analytics/*`: `aima` = chỉ bài AIMA; bỏ trống/giá trị khác = toàn Trang (chốt Q5). FE `?source=aima`,
   mục "Nguồn bài → Chỉ bài đăng qua AIMA" trong popover Bộ lọc + chip.
 - Top bài viết trả thêm `mediaId` (khoá dòng), `origin`, `permalink`, `platformStatus`; `postId`/`contentItemId` null với bài ngoài.
@@ -351,7 +352,7 @@ mẫu `ana-gd2@aima.local`, Page `uitest-gd2-page`).
 liên kết với Trang nào); chưa dùng Batch API / header `X-Business-Use-Case-Usage`; giai đoạn 3 (webhook `feed`, tần suất thích ứng,
 nhân khẩu học, Graph v26).
 
-### D.7 Giai đoạn 3 — đã làm (2026-10-07, chưa commit)
+### D.7 Giai đoạn 3 — đã làm (2026-10-07, commit `1704479`)
 
 **Quyết định (07/10):** làm (1) webhook Page `feed` — bắt buộc kiểm chữ ký `X-Hub-Signature-256` bằng app secret, trả 200
 nhanh rồi xử lý bất đồng bộ, chống xử lý trùng, đảm bảo Trang được `subscribed_apps` khi kết nối, kèm hướng dẫn từng bước
@@ -419,7 +420,7 @@ mở rộng (subscribed_apps), `MetaApiClientImplTest` +2, `MetaOAuthServiceImpl
 **Cách kiểm thật:** theo [`META_WEBHOOK_SETUP.md`](./META_WEBHOOK_SETUP.md) bước 1–6 (cần thêm `META_WEBHOOK_VERIFY_TOKEN`, URL
 HTTPS công khai / tunnel, quyền `pages_manage_metadata`, kết nối lại Facebook). Không bật webhook thì mọi thứ vẫn chạy bằng lịch.
 
-### D.8 Lỗi phát hiện khi kiểm thật (2026-10-07, chưa commit)
+### D.8 Lỗi phát hiện khi kiểm thật (2026-10-07, commit `1704479`)
 
 **1. Bài đăng qua AIMA bị gắn "Ngoài AIMA" + bản ghi trùng.** Không phải lệch ID: AIMA chỉ đăng bài chữ qua `POST /{page}/feed`
 (Graph trả `pageid_postid`), trùng dạng id của `published_posts` và webhook. Nguyên nhân gốc: mỗi lần **ngắt kết nối rồi kết nối
@@ -446,6 +447,38 @@ sai ngày. Người dùng chọn (a) giữ chia đều + hiển thị: `/analyti
 
 **Dọn `meta_webhook_events`:** có — `LogRetentionJob` (03:30 hằng ngày) xoá sự kiện KHÔNG còn PENDING (PROCESSED/IGNORED/FAILED) cũ
 hơn 30 ngày (`WEBHOOK_EVENT_RETENTION_DAYS`, 0 = tắt).
+
+### D.9 Việc còn mở sau bàn giao (2026-10-07 tối, chưa commit)
+
+**1. "Hiệu suất theo loại nội dung" xếp bài chữ vào Video — đã sửa.** Xác nhận trên DB thật (truy vấn chỉ đọc): bài AIMA 07/10
+có `platform_media.media_type = TEXT` (nền tảng báo) nhưng `content_versions.media_format = video` (định dạng media AI gợi ý — AIMA
+chỉ đăng chữ) → SQL `coalesce(cv.media_format, m.media_type)` xếp vào VIDEO. Theo mục 3.4 (dùng loại nền tảng báo):
+- Nhãn mọi truy vấn `/analytics/*` (`PostAnalyticsRepository`, 7 chỗ): `coalesce(m.media_type, case when m.origin = 'AIMA' then
+  'TEXT' end, 'OTHER')` — bài AIMA chưa được quét danh sách bài (Threads, bài > 90 ngày, chưa tới lượt) = TEXT vì AIMA hiện chỉ đăng
+  bài chữ (FB `/feed`, Threads `TEXT`; IG bị chặn `IG_MEDIA_REQUIRED`); bài ngoài không rõ = OTHER. Bỏ join `content_versions` /
+  `post_schedules` không còn dùng. Quét danh sách bài vẫn ghi đè loại khi nền tảng trả giá trị (nền tảng là nguồn đúng).
+  ⚠️ Khi AIMA đăng được ảnh/video, phải ghi `media_type` lúc đăng (hoặc sửa nhánh fallback này).
+- Ô "Bài lỗi & cần xử lý" (`PostRepository.countFailedForUserInRange`): bài lỗi chưa lên nền tảng → TEXT (cùng quy ước).
+- Facebook `attachments.media_type` `video_inline` / `video_autoplay` (dạng video thường gặp trên Trang) trước rơi vào OTHER → nay
+  VIDEO (`FacebookMetricsProviderImpl.mediaType`). Dữ liệu cũ tự đúng ở lượt quét kế tiếp (ghi đè khi nền tảng trả giá trị).
+- Donut "Loại nội dung" của Bảng điều khiển KHÔNG đổi: nó đếm bản nội dung đã tạo theo định dạng AI gợi ý (khái niệm khác, không phải bài đã đăng).
+- Test: `AnalyticsRealDataPgTest` (fixture bài AIMA nay mang `media_format = video` → vẫn phải ra TEXT; test mới bài AIMA chưa có
+  nhãn nền tảng → TEXT, lọc VIDEO = 0), `FacebookMetricsProviderImplTest` (ánh xạ attachment).
+
+**2. "Đã xoá trên nền tảng" — thêm hướng dẫn.** Tooltip ghi rõ "bạn đã xoá hoặc nền tảng đã gỡ"; modal chi tiết bài thay link
+"Mở trên nền tảng" (đã chết) bằng ghi chú: vì sao (Meta không cho biết lý do), số liệu dừng ở lần thu cuối và vẫn tính trong báo cáo,
+làm gì tiếp (không tự xoá → xem Chất lượng tài khoản / thông báo Trang trên Meta trước khi đăng lại nội dung tương tự).
+**"Đã xoá bởi bạn" CHƯA làm:** chỉ phân biệt được khi AIMA có chức năng xoá bài trên nền tảng (`DELETE /{post-id}`, quyền
+`pages_manage_posts` đã có) và ghi lại thao tác đó — cần người dùng quyết định có làm chức năng này không.
+
+**3. Nhãn ngày theo ngôn ngữ.** `formatRangeLabel` / `formatRangeShort` / `formatDayMonth` nhận `lang` (vi `dd/MM/yyyy`, en
+`MM/dd/yyyy`): nút khoảng ngày, tiêu đề sheet lọc mobile, `RangeBadge` góc card, nhãn kỳ so sánh dưới KPI ("vs …") và trục ngày
+biểu đồ. Nghiệm thu headless (stack cô lập, `ana-gd2@aima.local`): popover nằm trọn viewport ở 390 / 820 / 1280px, không cuộn ngang,
+vi/en đổi đúng định dạng; modal bài "Đã xoá trên nền tảng" hiện ghi chú, không còn link "Mở trên nền tảng".
+
+**Kiểm chứng:** backend full suite 567 test, chỉ 15 lỗi cũ; FE build sạch + 30/30 test.
+
+**4. Kiểm tra trên DB thật (chỉ đọc):** `flyway_schema_history` có V6 → V10 `success = t` (áp 06–07/10).
 
 ### D.4 Cách kiểm tra Giai đoạn 1
 

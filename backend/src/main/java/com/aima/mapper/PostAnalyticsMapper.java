@@ -66,7 +66,7 @@ public interface PostAnalyticsMapper {
     @Mapping(target = "consecutiveFailures", ignore = true)
     @Mapping(target = "lastErrorCode", ignore = true)
     @Mapping(target = "lastErrorAt", ignore = true)
-    @Mapping(target = "mediaType", ignore = true)       // bài AIMA lấy loại nội dung từ content_versions
+    @Mapping(target = "mediaType", ignore = true)       // nền tảng báo khi quét danh sách bài (chưa có = TEXT trong SQL)
     @Mapping(target = "permalink", ignore = true)       // điền khi quét danh sách bài của Trang
     @Mapping(target = "captionExcerpt", ignore = true)
     PlatformMedia toPlatformMedia(Post post);

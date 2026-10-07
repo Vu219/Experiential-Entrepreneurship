@@ -320,6 +320,24 @@ class AnalyticsRealDataPgTest {
         assertEquals(List.of(300), snapshotAges(mediaB), "bản mới nhất của bài không bao giờ bị xoá");
     }
 
+    @Test
+    void contentType_followsPlatformNotAiMediaFormat() {
+        String email = "type-" + UUID.randomUUID() + "@it.local";
+        PlatformAccount page = newPage(email);
+        // Bài AIMA chưa được quét danh sách bài của Trang (chưa có nhãn nền tảng) → TEXT, KHÔNG phải "video" AI gợi ý.
+        newPost(page, "solo", Duration.ofDays(2), 1, 0, 0, 10);
+        syncService.prepare(1000);
+        LocalDate today = LocalDate.now(PublishingTime.LEGACY_ZONE);
+        AnalyticsQuery week = new AnalyticsQuery(today.minusDays(6), today, null, null);
+
+        List<AnalyticsContentTypeResponse> types = analyticsService.byContentType(email, week).getResult();
+        assertEquals(List.of("TEXT"), types.stream().map(AnalyticsContentTypeResponse::getLabel).toList());
+        assertEquals(1, analyticsService.topPosts(email, new AnalyticsQuery(today.minusDays(6), today, null,
+                List.of("TEXT")), "views,desc", 10).getResult().size());
+        assertEquals(0, analyticsService.topPosts(email, new AnalyticsQuery(today.minusDays(6), today, null,
+                List.of("VIDEO")), "views,desc", 10).getResult().size());
+    }
+
     private void snapshot(UUID mediaId, int daysAgo) {
         jdbcTemplate.update("insert into post_metric_snapshots(id,created_at,platform_media_id,collected_at,reactions,source) "
                 + "values (gen_random_uuid(), now(), ?, now() - make_interval(days => ?), 1, 'POLL')", mediaId, daysAgo);
@@ -367,7 +385,8 @@ class AnalyticsRealDataPgTest {
         version.setContentItem(item);
         version.setPlatformName(Platform.FACEBOOK);
         version.setFormattedCaption("Bai " + tag);
-        version.setMediaFormat("text");
+        // AI gợi ý media "video" nhưng AIMA chỉ đăng bài chữ → loại nội dung phải theo nền tảng báo (TEXT), không theo đây.
+        version.setMediaFormat("video");
         version.setStatus(ContentVersionStatus.FORMATTED);
         version = contentVersionRepository.save(version);
 

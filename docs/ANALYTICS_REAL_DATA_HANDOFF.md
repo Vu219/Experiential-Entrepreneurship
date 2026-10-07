@@ -1,16 +1,16 @@
 # Bàn giao: Analytics dữ liệu thật từ Meta
 
-> Cập nhật: **2026-10-07 (rà lại sau khi phiên trước bị tắt)** · Kế hoạch đầy đủ + quyết định: [`analytics-real-data-plan.md`](./analytics-real-data-plan.md)
-> (mục **D** thắng mọi chỗ khác; D.1 = Giai đoạn 0, D.3/D.4 = Giai đoạn 1, D.5 = Q9/Q10, **D.6 = Giai đoạn 2**, D.7 = Giai đoạn 3, D.8 = sửa sau kiểm thật).
+> Cập nhật: **2026-10-07 (tối — làm nốt việc còn mở, mục D.9)** · Kế hoạch đầy đủ + quyết định: [`analytics-real-data-plan.md`](./analytics-real-data-plan.md)
+> (mục **D** thắng mọi chỗ khác; D.1 = Giai đoạn 0, D.3/D.4 = Giai đoạn 1, D.5 = Q9/Q10, **D.6 = Giai đoạn 2**, D.7 = Giai đoạn 3, D.8 = sửa sau kiểm thật, **D.9 = việc còn mở sau bàn giao**).
 > Đọc file này trước khi làm tiếp — không cần khảo sát lại.
-> Lưu ý: tiêu đề các mục D.3–D.8 trong kế hoạch và vài dòng `docs/PLAN.md` vẫn ghi "chưa commit" — đã lỗi thời, xem cột Commit dưới đây.
+> Tiêu đề D.3–D.8 trong kế hoạch đã sửa thành commit `1704479`.
 
 ---
 
 ## 1. Tóm tắt tiến độ
 
-**Toàn bộ GĐ0–3 + D.8 đã commit trên nhánh `dev` nhưng CHƯA push** (`dev` đi trước `origin/dev` 2 commit; `origin/main` = `6330fe3`)
-→ backend production trên Render **chưa có** code analytics mới.
+**Toàn bộ GĐ0–3 + D.8 đã commit VÀ đã push**: `main` = `dev` = `origin/main` = `origin/dev` = `fd7fc14` (gồm `1b52e26`, `1704479`).
+D.9 (bên dưới) **chưa commit** — chỉ ở working tree. Chưa xác minh Render đã deploy bản mới hay chưa.
 
 | Hạng mục | Trạng thái | Commit · Migration |
 |---|---|---|
@@ -23,14 +23,17 @@
 | **Giai đoạn 2** (D.6): (a) insights cấp Page + ô "Người theo dõi mới", (b) import bài ngoài AIMA + lọc "Chỉ bài AIMA", (c) dọn snapshot thô > 180 ngày, (d) báo Trang chưa liên kết IG Business; kèm bảng mốc 24h/48h/7 ngày (FR-62) trong modal | ✅ Code xong + test; kiểm một phần với Meta thật 07/10 (bài tự đăng được nhập sau "Làm mới") | `1704479` · **V8** |
 | **Giai đoạn 3** (D.7): webhook Page `feed` (chữ ký, chống trùng, xử lý nền, `subscribed_apps`), tần suất thích ứng, rà Graph v26 (chỉ tài liệu); bỏ nhân khẩu học | ✅ Xong + **webhook đã test thật** (app ở Live, qua tunnel); xoá bài → "Đã xoá trên nền tảng", không FAILED / không thông báo | `1704479` · **V9** |
 | **D.8** sửa sau kiểm thật: gộp lịch sử khi kết nối lại + chuẩn hoá id bài FB; đánh dấu ngày ước tính trên biểu đồ | ✅ Xong | `1704479` · **V10** |
-| Popover khoảng ngày `/analytics` tràn mép phải; ô nhập ngày theo ngôn ngữ | ✅ Code xong (`FilterPopover` kẹp vào viewport, `formatDateInput/parseDateInput` vi `dd/MM/yyyy` · en `MM/dd/yyyy`) — **chưa có ghi nhận nghiệm thu bằng mắt**. Còn sót: nhãn nút khoảng tuỳ chọn + `RangeBadge` vẫn cố định `dd/MM/yyyy` cả khi tiếng Anh | `1704479` |
+| Popover khoảng ngày `/analytics` tràn mép phải; ô nhập ngày theo ngôn ngữ | ✅ Code xong (`FilterPopover` kẹp vào viewport, `formatDateInput/parseDateInput` vi `dd/MM/yyyy` · en `MM/dd/yyyy`); nhãn nút + `RangeBadge` theo ngôn ngữ (D.9) | `1704479` + D.9 |
+| **D.9** việc còn mở: widget "loại nội dung" theo loại nền tảng báo (hết xếp bài chữ vào Video), FB `video_inline/autoplay` → VIDEO, hướng dẫn "Đã xoá trên nền tảng", nhãn khoảng ngày theo ngôn ngữ | ✅ Code + test xong | **chưa commit** · không migration |
 
 **Lỗi phát hiện khi kiểm thật (D.8):** bài AIMA bị "Ngoài AIMA" do kết nối lại tạo dòng kết nối mới — code đã sửa + **Flyway V10** gộp dữ liệu cũ (duyệt 07/10, tự chạy khi khởi động backend; backup trước). Lượt xem rải đều trước ngày đăng = ước tính chia đều — biểu đồ nay đánh dấu điểm rỗng viền đứt + tooltip + chú thích.
 
 **Còn mở (chưa làm):**
-- Nhãn **"Đã xoá bởi bạn"**: chưa có. AIMA hiện **không có** chức năng xoá bài trên nền tảng (không có lời gọi `DELETE` Graph), nên chưa có nguồn để phân biệt "bạn xoá từ AIMA" với "xoá trên nền tảng". Nhãn "Đã xoá trên nền tảng" đã có tooltip mô tả (`anaDeletedTip`) nhưng chưa có hướng dẫn (vì sao / làm gì tiếp).
-- Widget **"Hiệu suất theo loại nội dung"** xếp bài chữ vào Video: chưa sửa. Nghi vấn chính: SQL khối F (`PostAnalyticsRepository`, và các chỗ lọc `typeCsv`) ưu tiên `content_versions.media_format` (định dạng media **AI gợi ý**, có thể là `video` dù AIMA chỉ đăng chữ) trước `platform_media.media_type` (**nền tảng báo**) — ngược thiết kế ở kế hoạch mục 3.4 ("theo nền tảng báo, bỏ dùng `media_format`"). Bài ngoài AIMA thật sự (không gắn `post_id`) thì lấy `media_type`: không đính kèm → `TEXT`. Cần soi `platform_media.media_type` + `origin` + `post_id` của các bài bị xếp sai trên DB thật để chốt nguyên nhân.
-- `SubscriptionLifecycleTest`: vẫn hỏng (mục 7).
+- Nhãn **"Đã xoá bởi bạn"**: chưa có — người dùng **đã đồng ý (07/10) làm chức năng xoá bài trên nền tảng ở phiên sau**; yêu cầu chi tiết ở `docs/PLAN.md` → Backlog
+  (`DELETE /{post-id}`, quyền `pages_manage_posts` đã có). Không có chức năng đó thì không có nguồn nào phân biệt "bạn xoá" với
+  "nền tảng gỡ" (payload webhook `remove` không nói). Nhãn "Đã xoá trên nền tảng" nay đã có hướng dẫn vì sao / làm gì tiếp (D.9).
+- `SubscriptionLifecycleTest` + 13 test gọi URL cũ + script `frontend/scripts/dark-mode/*.mjs`: đã đưa vào `docs/PLAN.md` → Backlog (07/10).
+- Popover khoảng ngày: đã chụp ảnh headless đạt (D.9) — vẫn nên nhìn lại bằng mắt trên trình duyệt thật.
 
 **Việc tiếp theo (người dùng chọn):** deploy production (push + Render + webhook URL production) → tách Test App Meta cho localhost → Instagram → Threads → Business Verification / App Review. Chi tiết mục 6.
 
@@ -90,13 +93,15 @@
 
 ## 4. Trạng thái git
 
-- Analytics nằm trong 2 commit trên `dev`: `1b52e26` (GĐ0, V6) và `1704479` (GĐ1–3, Q9/Q10, D.8, bỏ mẫu màu, V7–V10). Kế hoạch tách
-  commit A–E của bản bàn giao trước **không áp dụng nữa** (người dùng đã gộp một commit).
-- **Chưa push**: `dev` đi trước `origin/dev` 2 commit; `origin/main` = `6330fe3`.
-- Working tree (07/10) chỉ còn thay đổi **ngoài analytics**: `frontend/src/components/schedule/plannerLogic.ts` (sửa) +
-  `scheduleCalendarLogic.ts` (mới) — mở wizard từ một ngày trên Lịch đăng.
-
----
+- Analytics nằm trong 2 commit `1b52e26` (GĐ0, V6) và `1704479` (GĐ1–3, Q9/Q10, D.8, bỏ mẫu màu, V7–V10) — **đã push**:
+  `main` = `dev` = `origin/main` = `origin/dev` = `fd7fc14` (07/10 tối).
+- Working tree (07/10 tối) = **D.9, chưa commit**:
+  - BE: `PostAnalyticsRepository`, `PostRepository` (SQL loại nội dung), `FacebookMetricsProviderImpl` (video_*), chú thích ở
+    `AnalyticsController`, `AnalyticsService`, `AnalyticsServiceImpl`, `PostAnalyticsMapper`, `AnalyticsContentTypeResponse`,
+    `ContentTypeMetricProjection`; test `AnalyticsRealDataPgTest` (sửa fixture + 1 test mới), `FacebookMetricsProviderImplTest` (mới).
+  - FE: `dateRange.ts`, `RangeBadge.tsx`, `AnalyticsFilterBar.tsx`, `AnalyticsTrendChart.tsx`, `pages/app/Analytics.tsx`,
+    `PostDetailPanel.tsx`, `i18n.ts`.
+  - Docs: `PLAN.md`, `analytics-real-data-plan.md` (D.9 + sửa tiêu đề D.3–D.8), file này.
 
 ## 5. Còn phải kiểm tay (chưa ai làm)
 
@@ -104,15 +109,14 @@
 - **Q10:** Bảng điều khiển "Hiệu quả nội dung" 7/30 ngày khớp từng ngày với biểu đồ + KPI trang Phân tích (không lọc). Lưu ý từ GĐ2 cả hai đều gồm bài ngoài AIMA; Hồ sơ "Tổng lượt xem" vẫn chỉ bài AIMA.
 - **Q9:** bài chỉ có mốc cũ hiện "—" + tooltip ở Top bài viết (SQL ở D.5).
 - **Mẫu màu:** Cài đặt → Giao diện chỉ còn Đại dương; người từng chọn Tím/Hồng sương tự về Đại dương.
-- **Popover khoảng ngày:** mở ở desktop hẹp / mobile, không tràn mép phải; đổi vi/en thấy ô nhập đổi định dạng.
-- **V6–V10 trên DB thật:** backend local (`.env` → Supabase) đã boot khi kiểm thật 07/10 nên nhiều khả năng Flyway đã áp — xác nhận bằng
-  `select version, description, success, installed_on from flyway_schema_history order by installed_rank desc limit 6;`
+- ~~**Popover khoảng ngày**~~ — ✅ kiểm headless 07/10 tối (390/820/1280px, vi/en): không tràn, không cuộn ngang, mọi nhãn ngày đổi định dạng.
+- ~~**V6–V10 trên DB thật**~~ — ✅ đã xác nhận 07/10 tối (JDBC chỉ đọc): V6 → V10 `success = t`.
 
 ---
 
 ## 6. Việc tiếp theo (đề xuất thứ tự — chờ người dùng chọn)
 
-1. **Deploy production (Render):** push `dev` → merge vào nhánh Render deploy; backup DB trước (V6–V10 tự áp nếu chưa có).
+1. **Deploy production (Render):** code đã push lên `main`/`dev` (07/10) — kiểm Render đã deploy chưa (V6–V10 đã có trên DB Supabase trong `.env`).
    Env Render: `META_WEBHOOK_VERIFY_TOKEN` (giá trị riêng cho production), `META_FACEBOOK_APP_SECRET`,
    `META_FACEBOOK_REDIRECT_URI` = URL callback production, `FE_OAUTH_SUCCESS_URL` / `FE_OAUTH_ERROR_URL` (mặc định trong
    `application.yml` là `localhost:3000`). Meta App: Callback URL `https://api.aima-marketing.id.vn/api/aima/webhooks/meta` + verify token,
@@ -120,8 +124,8 @@
    Sau đó kết nối lại Facebook trên production và chạy bước 6 của `META_WEBHOOK_SETUP.md`.
 2. **Test App Meta cho localhost:** app chính ở Live chặn redirect `localhost`, và Meta chỉ cho một Callback URL / object → tạo Test App
    (con của app chính) ở Development cho `.env` local, để không phải đổi URL webhook production khi thử.
-3. **Sửa 2 lỗi analytics còn mở** (mục 1 "Còn mở"): widget loại nội dung, nhãn "Đã xoá bởi bạn" + hướng dẫn (nhãn này cần quyết định
-   có làm chức năng xoá bài trên nền tảng từ AIMA hay không).
+3. ~~Sửa 2 lỗi analytics còn mở~~ — widget loại nội dung + hướng dẫn nhãn xoá xong (D.9). Còn: chức năng xoá bài trên nền tảng
+   từ AIMA + nhãn "Đã xoá bởi bạn" — đã chốt làm, yêu cầu ở `docs/PLAN.md` → Backlog.
 4. **Instagram:** đăng bài (`IG_MEDIA_REQUIRED` — IG bắt buộc ảnh/video, AIMA không sinh media → cần người dùng tải media) rồi
    `InstagramMetricsProvider` (hiện stub `UNSUPPORTED`, TODO trong code).
 5. **Threads:** provider đang giữ hành vi cũ; thiếu `shares`, nghi `th_exchange_token` sai.
@@ -166,9 +170,9 @@
   ./mvnw -o test "-Disolated.postgres=true"     # full suite
   cd ../frontend && npm run build && npm test
   ```
-- **Baseline hiện tại (07/10 chiều):**
-  - Backend: **561 test, 15 lỗi cũ** (07/10 tối, Redis cô lập :56379 bật — tắt thì 9 test `RegistrationOtpFlowTest` bị skip) = 8 `AccountManagementTest` + 5 `BrandProfileTest` (gọi URL cũ → 401) + 2 `SubscriptionLifecycleTest` (bom hẹn giờ).
-  - Frontend: build sạch, **22/22** test.
+- **Baseline hiện tại (07/10 tối, sau D.9):**
+  - Backend: **567 test, 15 lỗi cũ** (Redis cô lập :56379 bật) = 8 `AccountManagementTest` + 5 `BrandProfileTest` (gọi URL cũ → 401) + 2 `SubscriptionLifecycleTest` (bom hẹn giờ).
+  - Frontend: build sạch, **30/30** test.
 - **Nghiệm thu giao diện:** stack cô lập `backend/isolated/start-backend.ps1` (BE :8092, scheduling tắt) + FE `VITE_API_BASE_URL=http://localhost:8092/api/aima npx vite --port 3100` (script `start-frontend.ps1` hỏng khi chạy qua PowerShell của tool: "Unknown command: pm").
 - ⚠️ **Đừng boot backend chỉ để thử:** `.env` trỏ Supabase thật, và `PostingDispatchJob` đăng bài thật mỗi 60s. Dùng test hoặc stack cô lập.
 - **Truy vấn native** trang Phân tích chỉ chạy trên Postgres (H2 không bắt lỗi). Thêm/sửa SQL thì chạy lại `AnalyticsRealDataPgTest`.

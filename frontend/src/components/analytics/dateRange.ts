@@ -44,14 +44,17 @@ export function activePreset(from: string, to: string): PresetKey {
   return match ? match.key : 'custom';
 }
 
-/** Nhãn nút khoảng ngày: `13/07/2026 - 19/07/2026`. */
-export const formatRangeLabel = (from: string, to: string) => `${ddmmyyyy(from)} - ${ddmmyyyy(to)}`;
+/** Nhãn nút khoảng ngày theo ngôn ngữ: vi `13/07/2026 - 19/07/2026`, en `07/13/2026 - 07/19/2026`. */
+export const formatRangeLabel = (from: string, to: string, lang: Lang) =>
+  `${formatDateInput(from, lang)} - ${formatDateInput(to, lang)}`;
 
-/** Nhãn rút gọn (bỏ năm) cho badge góc card: `13/07 – 19/07`. Bản đầy đủ vẫn ở tooltip. */
-export const formatRangeShort = (from: string, to: string) =>
-  `${from.slice(8, 10)}/${from.slice(5, 7)} – ${to.slice(8, 10)}/${to.slice(5, 7)}`;
+/** Nhãn rút gọn (bỏ năm) cho badge góc card: vi `13/07 – 19/07`, en `07/13 – 07/19`. Bản đầy đủ vẫn ở tooltip. */
+export const formatRangeShort = (from: string, to: string, lang: Lang) =>
+  `${formatDayMonth(from, lang)} – ${formatDayMonth(to, lang)}`;
 
-const ddmmyyyy = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+/** Ngày rút gọn (bỏ năm) theo ngôn ngữ: vi `13/07`, en `07/13` — badge góc card, trục ngày biểu đồ. */
+export const formatDayMonth = (iso: string, lang: Lang) =>
+  lang === 'en' ? `${iso.slice(5, 7)}/${iso.slice(8, 10)}` : `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
 /** Ngày trong ô nhập theo ngôn ngữ: vi `dd/MM/yyyy`, en `MM/dd/yyyy` (input gốc theo locale trình duyệt). */
 export const formatDateInput = (iso: string, lang: Lang) => {

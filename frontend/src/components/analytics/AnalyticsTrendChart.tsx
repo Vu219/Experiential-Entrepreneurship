@@ -7,6 +7,7 @@ import { useApp } from '../../context/AppContext';
 import { Card } from '../ui';
 import { formatCompactNumber, formatGroupedNumber } from '../../utils/format';
 import RangeBadge from './RangeBadge';
+import { formatDayMonth } from './dateRange';
 import { AXIS_TEXT, GRID_LINE, METRIC_COLOR, METRIC_ORDER, type MetricKey } from './analyticsTokens';
 import type { AnalyticsPoint } from '../../api/analytics';
 import { C } from '../../styles/colors';
@@ -31,8 +32,8 @@ function AnalyticsTrendChart({ points, from, to }: { points: AnalyticsPoint[]; f
   };
 
   const data = useMemo(
-    () => points.map((p) => ({ ...p, label: `${p.date.slice(8, 10)}/${p.date.slice(5, 7)}` })),
-    [points],
+    () => points.map((p) => ({ ...p, label: formatDayMonth(p.date, lang) })),
+    [points, lang],
   );
   const hasData = useMemo(
     () => points.some((p) => p.views > 0 || p.likes > 0 || p.comments > 0 || p.shares > 0),
