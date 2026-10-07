@@ -1,41 +1,50 @@
 package com.aima.service.Impl;
 
 import com.aima.config.MetaProperties;
-import com.aima.entity.PlatformAccount;
-import com.aima.entity.Post;
-import com.aima.entity.PostSchedule;
-import com.aima.enums.NotificationType;
-import com.aima.enums.PostStatus;
-import com.aima.enums.ScheduleStatus;
+import com.aima.entity.MetaWebhookEvent;
+import com.aima.enums.WebhookEventStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
-import com.aima.repository.PostRepository;
-import com.aima.service.ContentItemStatusResolver;
+import com.aima.mapper.PostAnalyticsMapper;
+import com.aima.repository.MetaWebhookEventRepository;
+import com.aima.service.MetaWebhookEventWorker;
 import com.aima.service.MetaWebhookService;
-import com.aima.service.NotificationService;
 import com.aima.service.SystemLogService;
+import com.aima.util.FacebookPostIds;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.task.TaskRejectedException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HexFormat;
-import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 
 /**
- * Webhook Meta (SEC-06/EX-02): thông báo vi phạm SAU khi đăng. Không có custom content filter —
- * chỉ phản ứng khi nền tảng báo bài bị gỡ: chuyển pipeline sang FAILED + notification cho chủ bài
- * (BR-07: không retry). Mọi event đều lưu SystemLog để admin soi lại (FR-84).
+ * Webhook Meta. Có hai việc:
+ * <ul>
+ *   <li>Analytics giai đoạn 3: Page {@code feed} (bài mới / bài xoá / bình luận / cảm xúc / chia sẻ) kích hoạt đồng bộ số
+ *       liệu sớm — webhook không mang số đếm, số vẫn lấy qua API.</li>
+ *   <li>Bài bị xoá → "Đã xoá trên nền tảng" (trung tính), KHÔNG đánh FAILED / không thông báo vi phạm: payload không cho biết
+ *       Meta gỡ hay người dùng tự xoá (07/10). Không có custom content filter.</li>
+ *   <li>Sự kiện test của App Dashboard (entry.id = "0") chỉ được lưu IGNORED.</li>
+ * </ul>
+ * Endpoint public nên: kiểm chữ ký X-Hub-Signature-256 (HMAC-SHA256 bằng app secret) TRƯỚC mọi thứ; mỗi thay đổi lưu một
+ * dòng {@code meta_webhook_events} với khoá chống trùng (Meta gửi lại cùng payload → bỏ qua); xử lý giao cho
+ * {@link MetaWebhookEventWorker} chạy nền để trả 200 ngay (Meta coi phản hồi chậm là lỗi và gửi lại).
  */
 @Service
 @RequiredArgsConstructor
@@ -44,18 +53,19 @@ import java.util.UUID;
 public class MetaWebhookServiceImpl implements MetaWebhookService {
 
     static final String SUBSCRIBE_MODE = "subscribe";
-    // Giá trị value.item của feed webhook ứng với chính bài viết (không phải comment/reaction/share).
-    static final Set<String> REMOVED_POST_ITEMS = Set.of("status", "post");
     static final String SIGNATURE_PREFIX = "sha256=";
     static final String LOG_MODULE = "webhook.meta";
     static final int LOG_BODY_MAX = 2000;
+    /** Nút "Test" trên App Dashboard gửi sự kiện mẫu có entry.id = "0" (không phải Trang thật). */
+    static final String DASHBOARD_TEST_PAGE_ID = "0";
 
     MetaProperties metaProperties;
-    PostRepository postRepository;
-    NotificationService notificationService;
     SystemLogService systemLogService;
     ObjectMapper objectMapper;
-    ContentItemStatusResolver statusResolver;
+    MetaWebhookEventRepository eventRepository;
+    MetaWebhookEventWorker eventWorker;
+    PostAnalyticsMapper postAnalyticsMapper;
+    TransactionTemplate transactionTemplate;
 
     @Override
     public String verify(String mode, String verifyToken, String challenge) {
@@ -69,7 +79,6 @@ public class MetaWebhookServiceImpl implements MetaWebhookService {
     }
 
     @Override
-    @Transactional
     public void handleEvent(String rawBody, String signature) {
         if (!isSignatureValid(rawBody, signature)) {
             log.warn("[Webhook] Chữ ký X-Hub-Signature-256 không hợp lệ — bỏ qua event");
@@ -85,45 +94,78 @@ public class MetaWebhookServiceImpl implements MetaWebhookService {
             return;
         }
 
-        // Lưu vết mọi event để admin soi lại (FR-84) — kể cả loại mình chưa xử lý.
-        systemLogService.warn(LOG_MODULE, "Nhận event: " + truncate(rawBody));
-
+        int total = 0;
+        int tests = 0;
+        List<UUID> stored = new ArrayList<>();
         for (JsonNode entry : root.path("entry")) {
+            String pageId = entry.path("id").asText(null);
+            long time = entry.path("time").asLong(0);
+            boolean dashboardTest = DASHBOARD_TEST_PAGE_ID.equals(pageId);
             for (JsonNode change : entry.path("changes")) {
-                JsonNode value = change.path("value");
-                String platformPostId = value.path("post_id").asText(null);
-                String verb = value.path("verb").asText("");
-                String item = value.path("item").asText("");
-                // Chỉ phản ứng khi chính BÀI bị gỡ (item status/post). Xoá comment/reaction cũng
-                // mang post_id + verb=remove nhưng bài vẫn còn — không được đánh FAILED.
-                if (platformPostId == null || !"remove".equalsIgnoreCase(verb) || !REMOVED_POST_ITEMS.contains(item)) {
-                    continue;
+                total++;
+                UUID id = store(pageId, time, change, dashboardTest);
+                if (dashboardTest) {
+                    tests++;
+                } else if (id != null) {
+                    stored.add(id);
                 }
-                postRepository.findByPlatformPostIdAndDeletedAtIsNull(platformPostId)
-                        .ifPresent(post -> markRemoved(post, platformPostId));
             }
+        }
+        if (tests > 0) {
+            log.info("[Webhook] Nhận {} sự kiện test từ App Dashboard (page_id = 0) — chỉ lưu, không xử lý", tests);
+        }
+        if (total > tests) {
+            log.info("[Webhook] Nhận {} thay đổi ({} mới)", total - tests, stored.size());
+        }
+        stored.forEach(this::dispatch);
+    }
+
+    // Lưu một thay đổi; null = trùng (đã nhận trước đó) hoặc lỗi lưu. Sự kiện test của Dashboard lưu thẳng IGNORED (để biết
+    // webhook đã thông) — không giao worker, không đụng dữ liệu, không ghi log lỗi.
+    private UUID store(String pageId, long time, JsonNode change, boolean dashboardTest) {
+        String dedupeKey = sha256(pageId + "|" + time + "|" + change.toString());
+        if (eventRepository.existsByDedupeKey(dedupeKey)) {
+            return null;
+        }
+        JsonNode value = change.path("value");
+        try {
+            MetaWebhookEvent event = postAnalyticsMapper.toWebhookEvent(
+                    dedupeKey, cut(pageId, 100), cut(change.path("field").asText(null), 50),
+                    cut(value.path("item").asText(null), 30), cut(value.path("verb").asText(null), 20),
+                    cut(FacebookPostIds.canonical(pageId, value.path("post_id").asText(null)), 255), change.toString(),
+                    time > 0 ? Instant.ofEpochSecond(time) : null);
+            if (dashboardTest) {
+                event.setStatus(WebhookEventStatus.IGNORED);
+                event.setProcessedAt(Instant.now());
+            }
+            return transactionTemplate.execute(tx -> eventRepository.save(event).getId());
+        } catch (DataIntegrityViolationException e) {
+            return null; // hai request trùng đến cùng lúc — unique dedupe_key chặn, bản kia đã lưu
+        } catch (Exception e) {
+            log.error("[Webhook] Không lưu được thay đổi của Trang {}", pageId, e);
+            return null;
         }
     }
 
-    // EX-02 sau khi đăng: bài bị nền tảng gỡ → pipeline FAILED (BR-07: dừng, không retry) + báo user.
-    private void markRemoved(Post post, String platformPostId) {
-        PostSchedule schedule = post.getSchedule();
-        UUID itemId = schedule.getContentVersion().getContentItem().getId();
-        statusResolver.lock(itemId);
-        post.setStatus(PostStatus.FAILED);
-        schedule.setStatus(ScheduleStatus.FAILED);
-        statusResolver.refresh(itemId);
+    private void dispatch(UUID eventId) {
+        try {
+            eventWorker.process(eventId);
+        } catch (TaskRejectedException e) {
+            // Hàng đợi đầy: sự kiện vẫn PENDING → MetaWebhookEventJob xử lý lại sau ~2 phút.
+            log.warn("[Webhook] Hàng đợi xử lý đầy — sự kiện {} chờ job quét lại", eventId);
+        }
+    }
 
-        PlatformAccount account = schedule.getPlatformAccount();
-        log.warn("[Webhook] Bài {} ({}) đã bị {} gỡ sau khi đăng", post.getId(), platformPostId, post.getPlatformName());
-        systemLogService.warn(LOG_MODULE, "Bài " + post.getId() + " bị " + post.getPlatformName()
-                + " gỡ sau khi đăng (platform post " + platformPostId + ")");
-        notificationService.notify(account.getUser(), NotificationType.POST_FAILED,
-                "Bài đã đăng bị nền tảng gỡ",
-                post.getPlatformName() + " đã gỡ bài của bạn trên " + account.getAccountName()
-                        + " (có thể do vi phạm chính sách). Hãy kiểm tra chi tiết trên nền tảng,"
-                        + " chỉnh sửa nội dung rồi đăng lại nếu phù hợp.",
-                post.getId());
+    private static String sha256(String value) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception e) {
+            throw new IllegalStateException("SHA-256 không khả dụng", e);
+        }
+    }
+
+    private static String cut(String value, int max) {
+        return value == null || value.length() <= max ? value : value.substring(0, max);
     }
 
     // Meta ký POST bằng HMAC-SHA256(app secret, raw body). Endpoint public → thiếu secret hoặc

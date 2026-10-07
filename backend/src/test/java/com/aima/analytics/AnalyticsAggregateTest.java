@@ -75,6 +75,9 @@ class AnalyticsAggregateTest {
     @Mock UserRepository userRepository;
     @Mock AnalyticsMapper analyticsMapper;
     @Mock org.springframework.core.env.Environment environment;
+    @Mock com.aima.repository.PlatformMediaRepository platformMediaRepository;
+    @Mock com.aima.repository.AccountInsightsDailyRepository accountInsightsDailyRepository;
+    @Mock com.aima.repository.AccountSyncStateRepository accountSyncStateRepository;
 
     @InjectMocks AnalyticsServiceImpl service;
 
@@ -94,6 +97,7 @@ class AnalyticsAggregateTest {
             public long getLikes() { return likes; }
             public long getComments() { return comments; }
             public long getShares() { return shares; }
+            public boolean getEstimated() { return false; }
         };
     }
 
@@ -106,7 +110,7 @@ class AnalyticsAggregateTest {
     @Test
     void summary_tinhTongVaSeries7Ngay_zeroFillNgayTrong() {
         // Kỳ 01→07/06 (7 ngày); DB chỉ trả 2 ngày có bài. Kỳ so sánh trả rỗng.
-        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), any(), any()))
+        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), any(), any(), any()))
                 .thenReturn(
                         List.of(row("2026-06-02", 100, 10, 2, 1),
                                 row("2026-06-05", 50, 5, 1, 0)),
@@ -133,7 +137,7 @@ class AnalyticsAggregateTest {
 
     @Test
     void summary_deltaPctNull_khiKyTruocBangKhong() {
-        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), any(), any()))
+        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(row("2026-06-02", 100, 10, 2, 1)), List.of());
 
         AnalyticsSummaryResponse summary = service.summary(EMAIL, range("2026-06-01", "2026-06-07")).getResult();
@@ -144,7 +148,7 @@ class AnalyticsAggregateTest {
     @Test
     void summary_deltaPct_soSanhKyTruoc() {
         // Kỳ này views 150, kỳ trước views 100 → +50%.
-        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), any(), any()))
+        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), any(), any(), any()))
                 .thenReturn(
                         List.of(row("2026-06-02", 100, 0, 0, 0), row("2026-06-05", 50, 0, 0, 0)),
                         List.of(row("2026-05-26", 100, 0, 0, 0)));
@@ -156,7 +160,7 @@ class AnalyticsAggregateTest {
 
     @Test
     void timeseries_zeroFillDuSoNgay() {
-        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), any(), any()))
+        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(row("2026-06-03", 80, 8, 2, 1)));
 
         AnalyticsTimeseriesResponse ts = service.timeseries(EMAIL, range("2026-06-01", "2026-06-07")).getResult();
@@ -172,7 +176,7 @@ class AnalyticsAggregateTest {
 
     @Test
     void summary_khongTruyenNgay_macDinh7NgayGanNhat() {
-        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
 
         AnalyticsSummaryResponse summary = service.summary(EMAIL,
                 new AnalyticsService.AnalyticsQuery(null, null, null, null)).getResult();
@@ -183,13 +187,13 @@ class AnalyticsAggregateTest {
 
     @Test
     void fetch_mocKetThucExclusive_baoGomCaNgayCuoi() {
-        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
         ArgumentCaptor<LocalDateTime> from = ArgumentCaptor.forClass(LocalDateTime.class);
         ArgumentCaptor<LocalDateTime> to = ArgumentCaptor.forClass(LocalDateTime.class);
 
         service.timeseries(EMAIL, range("2026-06-01", "2026-06-07"));
 
-        verify(postAnalyticsRepository).findDailyEngagementForUser(eq(USER_ID), from.capture(), to.capture(), any(), any());
+        verify(postAnalyticsRepository).findDailyEngagementForUser(eq(USER_ID), from.capture(), to.capture(), any(), any(), any());
         assertEquals(LocalDateTime.of(2026, 6, 1, 0, 0), from.getValue());
         assertEquals(LocalDateTime.of(2026, 6, 8, 0, 0), to.getValue(), "mốc kết thúc exclusive = đầu ngày 08 để 07 vẫn trong kỳ");
     }
@@ -198,25 +202,25 @@ class AnalyticsAggregateTest {
 
     @Test
     void platformFilter_noiTenBangDauPhay() {
-        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), anyString(), any())).thenReturn(List.of());
+        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), anyString(), any(), any())).thenReturn(List.of());
         ArgumentCaptor<String> csv = ArgumentCaptor.forClass(String.class);
 
         service.timeseries(EMAIL, new AnalyticsService.AnalyticsQuery(
                 LocalDate.parse("2026-06-01"), LocalDate.parse("2026-06-07"),
                 List.of(Platform.FACEBOOK, Platform.THREADS), null));
 
-        verify(postAnalyticsRepository).findDailyEngagementForUser(any(), any(), any(), csv.capture(), any());
+        verify(postAnalyticsRepository).findDailyEngagementForUser(any(), any(), any(), csv.capture(), any(), any());
         assertEquals("FACEBOOK,THREADS", csv.getValue());
     }
 
     @Test
     void platformFilter_rong_truyenNull() {
-        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
         ArgumentCaptor<String> csv = ArgumentCaptor.forClass(String.class);
 
         service.timeseries(EMAIL, range("2026-06-01", "2026-06-07"));
 
-        verify(postAnalyticsRepository).findDailyEngagementForUser(any(), any(), any(), csv.capture(), any());
+        verify(postAnalyticsRepository).findDailyEngagementForUser(any(), any(), any(), csv.capture(), any(), any());
         assertNull(csv.getValue(), "không lọc nền tảng → null để truy vấn bỏ điều kiện");
     }
 
@@ -260,7 +264,7 @@ class AnalyticsAggregateTest {
 
     @Test
     void byPlatform_du3NenTang_tyTrongVaTrangThaiKetNoi() {
-        when(postAnalyticsRepository.findPlatformMetricsForUser(any(), any(), any(), any()))
+        when(postAnalyticsRepository.findPlatformMetricsForUser(any(), any(), any(), any(), any()))
                 .thenReturn(List.of(
                         platformRow("FACEBOOK", 8000, 600, 150, 50, 800),
                         platformRow("THREADS", 2000, 150, 40, 10, 200)));
@@ -294,7 +298,7 @@ class AnalyticsAggregateTest {
 
     @Test
     void byPlatform_khongCoTuongTac_sharePct0_khongChiaCho0() {
-        when(postAnalyticsRepository.findPlatformMetricsForUser(any(), any(), any(), any())).thenReturn(List.of());
+        when(postAnalyticsRepository.findPlatformMetricsForUser(any(), any(), any(), any(), any())).thenReturn(List.of());
         when(platformAccountRepository.findByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(USER_ID))
                 .thenReturn(List.of());
 
@@ -309,7 +313,7 @@ class AnalyticsAggregateTest {
 
     // ---------- khối E — top bài viết ----------
 
-    private TopPostProjection topRow(long views) {
+    private TopPostProjection topRow(Long views) {
         return new TopPostProjection() {
             public UUID getPostId() { return UUID.randomUUID(); }
             public UUID getContentItemId() { return null; }
@@ -317,20 +321,43 @@ class AnalyticsAggregateTest {
             public String getCaption() { return null; }
             public String getAccountName() { return null; }
             public LocalDateTime getPublishedAt() { return LocalDateTime.of(2026, 6, 3, 9, 0); }
-            public long getViews() { return views; }
+            public Long getViews() { return views; }
             public long getLikes() { return 0; }
             public long getComments() { return 0; }
             public long getShares() { return 0; }
             public long getEngagement() { return 0; }
+            public boolean getLegacyOnly() { return views == null; }
+            public UUID getMediaId() { return UUID.randomUUID(); }
+            public String getOrigin() { return "AIMA"; }
+            public String getPermalink() { return null; }
+            public String getPlatformStatus() { return "ACTIVE"; }
         };
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void topPosts_viewsNull_xepCuoiKhiGiamDan_khongCoiLa0() {
+        when(analyticsMapper.toTopPostResponseList(any())).thenReturn(List.of());
+        when(postAnalyticsRepository.findTopPostsForUser(any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(topRow(null), topRow(5L), topRow(0L)));
+        ArgumentCaptor<List<TopPostProjection>> captor = ArgumentCaptor.forClass(List.class);
+
+        service.topPosts(EMAIL, range("2026-06-01", "2026-06-07"), null, 10);
+
+        verify(analyticsMapper).toTopPostResponseList(captor.capture());
+        List<TopPostProjection> passed = captor.getValue();
+        assertEquals(5L, passed.get(0).getViews());
+        assertEquals(0L, passed.get(1).getViews());
+        assertNull(passed.get(2).getViews(), "bài không có số liệu tại mốc xếp cuối, không thành 0");
+        assertTrue(passed.get(2).getLegacyOnly());
     }
 
     @SuppressWarnings("unchecked")
     @Test
     void topPosts_macDinhViewsGiamDan_vaKepLimit() {
         when(analyticsMapper.toTopPostResponseList(any())).thenReturn(List.of());
-        when(postAnalyticsRepository.findTopPostsForUser(any(), any(), any(), any(), any()))
-                .thenReturn(List.of(topRow(10), topRow(30), topRow(20)));
+        when(postAnalyticsRepository.findTopPostsForUser(any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(topRow(10L), topRow(30L), topRow(20L)));
         ArgumentCaptor<List<TopPostProjection>> captor = ArgumentCaptor.forClass(List.class);
 
         service.topPosts(EMAIL, range("2026-06-01", "2026-06-07"), null, 2);
@@ -338,32 +365,32 @@ class AnalyticsAggregateTest {
         verify(analyticsMapper).toTopPostResponseList(captor.capture());
         List<TopPostProjection> passed = captor.getValue();
         assertEquals(2, passed.size(), "limit 2");
-        assertEquals(30, passed.get(0).getViews(), "views giảm dần");
-        assertEquals(20, passed.get(1).getViews());
+        assertEquals(30L, passed.get(0).getViews(), "views giảm dần");
+        assertEquals(20L, passed.get(1).getViews());
     }
 
     @SuppressWarnings("unchecked")
     @Test
     void topPosts_sortTuyChon_tangDan() {
         when(analyticsMapper.toTopPostResponseList(any())).thenReturn(List.of());
-        when(postAnalyticsRepository.findTopPostsForUser(any(), any(), any(), any(), any()))
-                .thenReturn(List.of(topRow(10), topRow(30), topRow(20)));
+        when(postAnalyticsRepository.findTopPostsForUser(any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(topRow(10L), topRow(30L), topRow(20L)));
         ArgumentCaptor<List<TopPostProjection>> captor = ArgumentCaptor.forClass(List.class);
 
         service.topPosts(EMAIL, range("2026-06-01", "2026-06-07"), "views,asc", 10);
 
         verify(analyticsMapper).toTopPostResponseList(captor.capture());
         List<TopPostProjection> passed = captor.getValue();
-        assertEquals(10, passed.get(0).getViews(), "views tăng dần");
-        assertEquals(30, passed.get(2).getViews());
+        assertEquals(10L, passed.get(0).getViews(), "views tăng dần");
+        assertEquals(30L, passed.get(2).getViews());
     }
 
     @SuppressWarnings("unchecked")
     @Test
     void topPosts_sortLa_roiVeMacDinh() {
         when(analyticsMapper.toTopPostResponseList(any())).thenReturn(List.of());
-        when(postAnalyticsRepository.findTopPostsForUser(any(), any(), any(), any(), any()))
-                .thenReturn(List.of(topRow(10), topRow(30), topRow(20)));
+        when(postAnalyticsRepository.findTopPostsForUser(any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(topRow(10L), topRow(30L), topRow(20L)));
         ArgumentCaptor<List<TopPostProjection>> captor = ArgumentCaptor.forClass(List.class);
 
         service.topPosts(EMAIL, range("2026-06-01", "2026-06-07"), "hacky_column;drop", 10);
@@ -400,7 +427,7 @@ class AnalyticsAggregateTest {
     @Test
     void byContentType_boQuaLocLoaiNoiDung_nhungVanApLocNenTang() {
         stubContentTypeMapper();
-        when(postAnalyticsRepository.findContentTypeMetricsForUser(any(), any(), any(), any()))
+        when(postAnalyticsRepository.findContentTypeMetricsForUser(any(), any(), any(), any(), any()))
                 .thenReturn(List.of(typeRow("IMAGE", 6, 750), typeRow("VIDEO", 2, 250)));
         ArgumentCaptor<String> platformCsv = ArgumentCaptor.forClass(String.class);
 
@@ -410,7 +437,7 @@ class AnalyticsAggregateTest {
 
         // Truy vấn chỉ có 4 tham số (không có typeCsv) — donut là tỷ trọng GIỮA các loại nên lọc
         // loại nội dung sẽ để lại đúng một lát 100%.
-        verify(postAnalyticsRepository).findContentTypeMetricsForUser(any(), any(), any(), platformCsv.capture());
+        verify(postAnalyticsRepository).findContentTypeMetricsForUser(any(), any(), any(), platformCsv.capture(), any());
         assertEquals("FACEBOOK", platformCsv.getValue(), "vẫn áp lọc nền tảng — đó là chiều khác");
         assertEquals(75.0, rows.get(0).getSharePct(), "750 / 1000 tương tác");
         assertEquals(25.0, rows.get(1).getSharePct());
@@ -418,7 +445,7 @@ class AnalyticsAggregateTest {
 
     @Test
     void byPlatform_vanApLocLoaiNoiDung() {
-        when(postAnalyticsRepository.findPlatformMetricsForUser(any(), any(), any(), any())).thenReturn(List.of());
+        when(postAnalyticsRepository.findPlatformMetricsForUser(any(), any(), any(), any(), any())).thenReturn(List.of());
         when(platformAccountRepository.findByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(USER_ID))
                 .thenReturn(List.of());
         ArgumentCaptor<String> typeCsv = ArgumentCaptor.forClass(String.class);
@@ -426,7 +453,7 @@ class AnalyticsAggregateTest {
         service.byPlatform(EMAIL, new AnalyticsService.AnalyticsQuery(
                 LocalDate.parse("2026-06-01"), LocalDate.parse("2026-06-07"), null, List.of("image", "Video")));
 
-        verify(postAnalyticsRepository).findPlatformMetricsForUser(any(), any(), any(), typeCsv.capture());
+        verify(postAnalyticsRepository).findPlatformMetricsForUser(any(), any(), any(), typeCsv.capture(), any());
         assertEquals("IMAGE,VIDEO", typeCsv.getValue(), "nhãn media_format chuẩn hoá IN HOA để khớp SQL");
     }
 
@@ -454,7 +481,7 @@ class AnalyticsAggregateTest {
     @Test
     void heatmap_thangMauChiTinhODuMau_khongBiOViralMotBaiKeoGian() {
         stubHeatmapMapper();
-        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any()))
+        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(
                         cell(1, 2, 1, 9000),   // 1 bài viral: avg 9000 nhưng KHÔNG được vào thang màu
                         cell(2, 6, 4, 1200),   // đủ mẫu: avg 300
@@ -472,7 +499,7 @@ class AnalyticsAggregateTest {
     @Test
     void heatmap_oDuoiNguongMau_vanTraVeNhungDanhDauLowSample() {
         stubHeatmapMapper();
-        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any()))
+        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(cell(1, 2, 1, 9000), cell(2, 6, 4, 1200)));
 
         AnalyticsHeatmapResponse heatmap =
@@ -488,7 +515,7 @@ class AnalyticsAggregateTest {
     @Test
     void heatmap_chuaODuMau_maxMinNull() {
         stubHeatmapMapper();
-        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any()))
+        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(cell(1, 2, 1, 300), cell(4, 5, 2, 800)));
 
         AnalyticsHeatmapResponse heatmap =
@@ -512,9 +539,9 @@ class AnalyticsAggregateTest {
     @Test
     void insights_goodPosts_demBaiTrenMucTrungBinhKy() {
         stubHeatmapMapper();
-        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
         // TB = (10 + 20 + 300 + 30) / 4 = 90 → chỉ bài 300 vượt.
-        when(postAnalyticsRepository.findPostEngagementForUser(any(), any(), any(), any(), any()))
+        when(postAnalyticsRepository.findPostEngagementForUser(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(post(10, null), post(20, null), post(300, null), post(30, null)), List.of());
 
         AnalyticsInsightsResponse insights = service.insights(EMAIL, range("2026-06-01", "2026-06-07")).getResult();
@@ -527,9 +554,9 @@ class AnalyticsAggregateTest {
     @Test
     void insights_tyLeTuongTac_loaiBaiKhongCoLuotXem() {
         stubHeatmapMapper();
-        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
         // 2 bài Facebook views null (không thu được) + 2 bài có lượt xem: 60/1000 = 6%.
-        when(postAnalyticsRepository.findPostEngagementForUser(any(), any(), any(), any(), any()))
+        when(postAnalyticsRepository.findPostEngagementForUser(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(post(500, null), post(400, null), post(40, 600L), post(20, 400L)), List.of());
 
         AnalyticsInsightsResponse insights = service.insights(EMAIL, range("2026-06-01", "2026-06-07")).getResult();
@@ -542,8 +569,8 @@ class AnalyticsAggregateTest {
     @Test
     void insights_khongBaiNaoCoLuotXem_tyLeNull_khongPhaiKhong() {
         stubHeatmapMapper();
-        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any())).thenReturn(List.of());
-        when(postAnalyticsRepository.findPostEngagementForUser(any(), any(), any(), any(), any()))
+        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(postAnalyticsRepository.findPostEngagementForUser(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(post(500, null), post(400, null)), List.of());
 
         AnalyticsInsightsResponse insights = service.insights(EMAIL, range("2026-06-01", "2026-06-07")).getResult();
@@ -555,8 +582,8 @@ class AnalyticsAggregateTest {
     @Test
     void insights_goldenHour_chonODuMauCaoNhat() {
         stubHeatmapMapper();
-        when(postAnalyticsRepository.findPostEngagementForUser(any(), any(), any(), any(), any())).thenReturn(List.of());
-        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any()))
+        when(postAnalyticsRepository.findPostEngagementForUser(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(
                         cell(1, 2, 1, 9000),   // viral 1 bài — không đủ mẫu
                         cell(3, 6, 4, 1200),   // avg 300 — đủ mẫu, cao nhất
@@ -573,8 +600,8 @@ class AnalyticsAggregateTest {
     @Test
     void insights_goldenHourNull_khiChuaODuMau() {
         stubHeatmapMapper();
-        when(postAnalyticsRepository.findPostEngagementForUser(any(), any(), any(), any(), any())).thenReturn(List.of());
-        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any()))
+        when(postAnalyticsRepository.findPostEngagementForUser(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(cell(1, 2, 1, 9000), cell(4, 5, 2, 800)));
 
         AnalyticsInsightsResponse insights = service.insights(EMAIL, range("2026-06-01", "2026-06-07")).getResult();
@@ -585,8 +612,8 @@ class AnalyticsAggregateTest {
     @Test
     void insights_baiLoi_demTheoKyVaKyTruoc() {
         stubHeatmapMapper();
-        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any())).thenReturn(List.of());
-        when(postAnalyticsRepository.findPostEngagementForUser(any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(postAnalyticsRepository.findPostEngagementForUser(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
         when(postRepository.countFailedForUserInRange(any(), any(), any(), any(), any())).thenReturn(3L, 4L);
 
         AnalyticsInsightsResponse insights = service.insights(EMAIL, range("2026-06-01", "2026-06-07")).getResult();
@@ -600,7 +627,7 @@ class AnalyticsAggregateTest {
 
     @Test
     void export_vuotTran_baoLoiThayViCatCut() {
-        when(postAnalyticsRepository.countPostsForUser(any(), any(), any(), any(), any()))
+        when(postAnalyticsRepository.countPostsForUser(any(), any(), any(), any(), any(), any()))
                 .thenReturn((long) AnalyticsService.MAX_EXPORT_ROWS + 1);
 
         AppException error = assertThrows(AppException.class,
@@ -611,16 +638,76 @@ class AnalyticsAggregateTest {
 
     @Test
     void export_csvCoHeaderVaDongTheoSort() {
-        when(postAnalyticsRepository.countPostsForUser(any(), any(), any(), any(), any())).thenReturn(2L);
-        when(postAnalyticsRepository.findTopPostsForUser(any(), any(), any(), any(), any()))
-                .thenReturn(List.of(topRow(10), topRow(30)));
+        when(postAnalyticsRepository.countPostsForUser(any(), any(), any(), any(), any(), any())).thenReturn(2L);
+        when(postAnalyticsRepository.findTopPostsForUser(any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(topRow(10L), topRow(30L)));
 
         String csv = service.export(EMAIL, range("2026-06-01", "2026-06-07"), null).getResult();
 
         String[] lines = csv.split("\n");
-        assertEquals("published_at,platform,account_name,caption,views,likes,comments,shares,engagement", lines[0]);
+        assertEquals("published_at,platform,account_name,caption,views,likes,comments,shares,engagement,origin,permalink",
+                lines[0]);
         assertEquals(3, lines.length, "header + 2 dòng");
         assertTrue(lines[1].contains(",30,"), "mặc định views giảm dần");
+        assertTrue(lines[1].endsWith(",AIMA,"), "nguồn bài + permalink (trống) ở cuối dòng");
+    }
+
+    // ---------- bộ lọc nguồn bài (giai đoạn 2) ----------
+
+    @Test
+    void sourceAima_locChiBaiAima_giaTriKhacLaToanTrang() {
+        when(postAnalyticsRepository.findDailyEngagementForUser(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
+        LocalDate from = LocalDate.parse("2026-06-01"), to = LocalDate.parse("2026-06-07");
+
+        service.summary(EMAIL, new AnalyticsService.AnalyticsQuery(from, to, null, null, " AIMA "));
+        service.summary(EMAIL, new AnalyticsService.AnalyticsQuery(from, to, null, null, "all"));
+        service.summary(EMAIL, new AnalyticsService.AnalyticsQuery(from, to, null, null, "bogus"));
+
+        ArgumentCaptor<String> origin = ArgumentCaptor.forClass(String.class);
+        verify(postAnalyticsRepository, org.mockito.Mockito.atLeast(1))
+                .findDailyEngagementForUser(any(), any(), any(), any(), any(), origin.capture());
+        assertTrue(origin.getAllValues().contains("AIMA"), "source=aima (không phân biệt hoa thường) → origin AIMA");
+        assertTrue(origin.getAllValues().contains(null), "all / giá trị lạ → toàn bộ Trang, không ném lỗi");
+    }
+
+    // ---------- người theo dõi mới (cấp Trang, giai đoạn 2) ----------
+
+    private com.aima.repository.projection.FollowerGrowthProjection growth(Long follows, long samples) {
+        return new com.aima.repository.projection.FollowerGrowthProjection() {
+            public Long getFollows() { return follows; }
+            public long getSamples() { return samples; }
+        };
+    }
+
+    @Test
+    void insights_nguoiTheoDoiMoi_coSoVaDeltaSoKyTruoc() {
+        when(postAnalyticsRepository.findPostEngagementForUser(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(accountInsightsDailyRepository.findFollowerGrowthForUser(eq(USER_ID), eq(LocalDate.parse("2026-06-08")), any(), any()))
+                .thenReturn(growth(30L, 7));
+        when(accountInsightsDailyRepository.findFollowerGrowthForUser(eq(USER_ID), eq(LocalDate.parse("2026-06-01")), any(), any()))
+                .thenReturn(growth(20L, 7));
+        when(accountInsightsDailyRepository.findFollowersTotalForUser(any(), any())).thenReturn(1250L);
+
+        AnalyticsInsightsResponse r = service.insights(EMAIL, range("2026-06-08", "2026-06-14")).getResult();
+
+        assertEquals(30L, r.getNewFollowers());
+        assertEquals(50.0, r.getNewFollowersDeltaPct());
+        assertEquals(1250L, r.getFollowersTotal());
+    }
+
+    @Test
+    void insights_khongNgayNaoCoSoTheoNgay_nguoiTheoDoiMoiLaNull() {
+        when(postAnalyticsRepository.findPostEngagementForUser(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(postAnalyticsRepository.findHeatmapForUser(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
+        when(accountInsightsDailyRepository.findFollowerGrowthForUser(any(), any(), any(), any())).thenReturn(growth(null, 0));
+        when(accountInsightsDailyRepository.findFollowersTotalForUser(any(), any())).thenReturn(null);
+
+        AnalyticsInsightsResponse r = service.insights(EMAIL, range("2026-06-08", "2026-06-14")).getResult();
+
+        assertNull(r.getNewFollowers(), "không có số ≠ 0 người theo dõi mới");
+        assertNull(r.getNewFollowersDeltaPct());
+        assertNull(r.getFollowersTotal());
     }
 
     // ---------- dev seeder (cờ mặc định tắt) ----------

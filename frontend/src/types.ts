@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 
 export type Lang = 'vi' | 'en';
 
-export type ThemeKey = 'aurora' | 'sunset' | 'ocean';
+export type ThemeKey = 'ocean';
 
 export type Route =
   | 'landing'

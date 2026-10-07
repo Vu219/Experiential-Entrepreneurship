@@ -8,6 +8,8 @@ import { PLATFORM_TO_TAG } from '../../api/connections';
 import { METRIC_COLOR } from './analyticsTokens';
 import type { AnalyticsTopPost } from '../../api/analytics';
 import { C, alpha } from '../../styles/colors';
+import MetricValue from './MetricValue';
+import PostOriginBadges from './PostOriginBadges';
 
 /**
  * Component hiển thị chi tiết bài viết (dùng trong modal hoặc widget tương lai).
@@ -28,9 +30,9 @@ export default function PostDetailPanel({
   const { t, lang, brandGradient } = useApp();
   const tag = PLATFORM_TO_TAG[post.platform] ?? 'FB';
   const totalInteractions = post.likes + post.comments + post.shares;
-  const engagementRate = post.views > 0 ? ((totalInteractions / post.views) * 100) : null;
+  const engagementRate = post.views ? ((totalInteractions / post.views) * 100) : null;
 
-  const statItems: { icon: typeof Eye; label: string; value: number; color: string }[] = [
+  const statItems: { icon: typeof Eye; label: string; value: number | null; color: string }[] = [
     { icon: Eye, label: t.anaViews, value: post.views, color: METRIC_COLOR.views },
     { icon: Heart, label: t.anaLikes, value: post.likes, color: METRIC_COLOR.likes },
     { icon: MessageCircle, label: t.anaComments, value: post.comments, color: METRIC_COLOR.comments },
@@ -45,6 +47,7 @@ export default function PostDetailPanel({
           <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={26} radius={7} fontSize={11} />
           <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
             {post.accountName || tag}
+            <PostOriginBadges post={post} />
           </span>
         </div>
         <span style={{ fontSize: 11.5, color: C.textFaint, fontWeight: 500 }}>
@@ -60,6 +63,15 @@ export default function PostDetailPanel({
         }}>
           {post.caption || t.schNoCaption}
         </h4>
+        {post.permalink && (
+          <a href={post.permalink} target="_blank" rel="noopener noreferrer" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 8,
+            fontSize: 12.5, fontWeight: 700, color: C.primary, textDecoration: 'none',
+          }}>
+            {t.anaOpenOnPlatform}
+            <ExternalLink size={13} />
+          </a>
+        )}
       </div>
 
       {/* 3. 2x2 Metric Grid (Statistics) */}
@@ -80,7 +92,7 @@ export default function PostDetailPanel({
                 <span style={{ fontSize: 11.5, color: C.textSecondary, fontWeight: 600 }}>{s.label}</span>
               </div>
               <div style={{ fontSize: 17, fontWeight: 800, color: C.ink900, marginTop: 4 }}>
-                {formatGroupedNumber(s.value, lang)}
+                <MetricValue value={s.value} post={post} />
               </div>
             </div>
           ))}

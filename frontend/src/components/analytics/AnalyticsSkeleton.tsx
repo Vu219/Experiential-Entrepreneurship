@@ -45,7 +45,7 @@ export default function AnalyticsSkeleton({
   const kpiSpan = wide ? 3 : width < 760 ? 12 : 6;
   const mainSpan = wide ? 8 : 12;
   const sideSpan = wide ? 4 : 12;
-  const insightsCols = wide ? 5 : width > 1024 ? 3 : 2;
+  const insightsCols = width > 1024 ? 3 : 2; // khớp InsightsStrip (6 ô = 3 × 2)
 
   return (
     // Fragment (KHÔNG bọc div): thanh lọc và lưới là con TRỰC TIẾP của `.page-shell` nên hưởng đúng
@@ -256,8 +256,8 @@ export function InsightsSkeleton({ cols }: { cols: number }) {
   return (
     <SkCard minHeight={MIN_H.insights}>
       <SkHeader withBadge={false} />
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, marginTop: 14 }}>
-        {Array.from({ length: 5 }).map((_, i) => (
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, rowGap: 16, marginTop: 14 }}>
+        {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} style={{
             display: 'flex', alignItems: 'flex-start', gap: 10, padding: '4px 14px',
             borderLeft: i % cols === 0 ? 'none' : `1px solid ${C.surfaceMuted}`,

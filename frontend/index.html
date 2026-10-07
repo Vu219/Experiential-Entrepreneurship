@@ -11,7 +11,7 @@
       (function () {
         try {
           var t = localStorage.getItem('aima-theme');
-          var ok = ['ocean', 'aurora', 'sunset'].indexOf(t) !== -1;
+          var ok = ['ocean'].indexOf(t) !== -1;
           document.documentElement.setAttribute('data-theme', ok ? t : 'ocean');
         } catch (e) {
           document.documentElement.setAttribute('data-theme', 'ocean');

@@ -1,5 +1,6 @@
 package com.aima.scheduler;
 
+import com.aima.util.PublishingTime;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -12,6 +13,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -22,6 +24,10 @@ import java.time.LocalDateTime;
  *   <li>{@code activity_logs} — log hoạt động nghiệp vụ (mặc định 90 ngày)</li>
  *   <li>{@code system_logs} — log lỗi hệ thống (mặc định 180 ngày, cần lâu hơn để điều tra sự cố)</li>
  *   <li>{@code ai_usage} — event usage thô: SUCCESS 90 ngày, ERROR/TIMEOUT 180 ngày</li>
+ *   <li>{@code meta_webhook_events} — sự kiện webhook Meta đã xử lý / bỏ qua / lỗi (mặc định 30 ngày; PENDING không xoá)</li>
+ *   <li>{@code post_metric_snapshots} — snapshot số liệu bài thô (mặc định 180 ngày, chốt Q7 của
+ *       docs/analytics-real-data-plan.md); LUÔN giữ snapshot mới nhất của mỗi bài vì Top bài viết / heatmap /
+ *       Hồ sơ đọc nó. Số theo ngày ({@code post_metrics_daily}) giữ vĩnh viễn, không đụng tới.</li>
  * </ul>
  *
  * <p>Toàn bộ số ngày đọc từ biến môi trường ({@code aima.retention.*}) — đổi chính sách không cần
@@ -62,6 +68,14 @@ public class LogRetentionJob {
     @Value("${aima.retention.usage-error-days:180}")
     int usageErrorDays;
 
+    @NonFinal
+    @Value("${aima.retention.metric-snapshot-days:180}")
+    int metricSnapshotDays;
+
+    @NonFinal
+    @Value("${aima.retention.webhook-event-days:30}")
+    int webhookEventDays;
+
     @Scheduled(cron = "0 30 3 * * *")
     @SchedulerLock(name = "log-retention", lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
     @Transactional
@@ -69,6 +83,23 @@ public class LogRetentionJob {
         purgeActivityLogs();
         purgeSystemLogs();
         purgeUsageEvents();
+        purgeMetricSnapshots();
+        purgeWebhookEvents();
+    }
+
+    private void purgeWebhookEvents() {
+        if (webhookEventDays <= 0) {
+            return;
+        }
+        try {
+            int purged = jdbcTemplate.update(
+                    "DELETE FROM meta_webhook_events WHERE created_at < ? AND status <> 'PENDING'", cutoff(webhookEventDays));
+            if (purged > 0) {
+                log.info("[LogRetention] Xoá {} sự kiện webhook Meta (>{}d)", purged, webhookEventDays);
+            }
+        } catch (Exception e) {
+            log.error("[LogRetention] Dọn meta_webhook_events thất bại: {}", e.getMessage());
+        }
     }
 
     private void purgeActivityLogs() {
@@ -124,6 +155,28 @@ public class LogRetentionJob {
             }
         } catch (Exception e) {
             log.error("[LogRetention] Dọn ai_usage thất bại: {}", e.getMessage());
+        }
+    }
+
+    // Chỉ xoá snapshot có snapshot MỚI HƠN của cùng bài. Bài cũ quá 90 ngày đã thôi đồng bộ nên số theo ngày của
+    // chúng không bị tính lại; nếu một bài như vậy được đồng bộ lại (vd. bài chưa từng đồng bộ), phần lịch sử đã dọn
+    // được chia đều lại từ ngày đăng (is_estimated) — tổng không đổi.
+    private void purgeMetricSnapshots() {
+        if (metricSnapshotDays <= 0) {
+            return;
+        }
+        try {
+            int purged = jdbcTemplate.update(
+                    "DELETE FROM post_metric_snapshots s WHERE s.collected_at < ? AND EXISTS ("
+                            + "SELECT 1 FROM post_metric_snapshots n WHERE n.platform_media_id = s.platform_media_id "
+                            + "AND n.collected_at > s.collected_at)",
+                    Timestamp.from(cutoff(metricSnapshotDays).atZone(PublishingTime.LEGACY_ZONE).toInstant()));
+            if (purged > 0) {
+                log.info("[LogRetention] Xoá {} snapshot số liệu bài (>{}d, giữ bản mới nhất mỗi bài)",
+                        purged, metricSnapshotDays);
+            }
+        } catch (Exception e) {
+            log.error("[LogRetention] Dọn post_metric_snapshots thất bại: {}", e.getMessage());
         }
     }
 

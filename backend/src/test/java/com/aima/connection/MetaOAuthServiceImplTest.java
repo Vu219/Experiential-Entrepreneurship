@@ -14,6 +14,7 @@ import com.aima.exception.ErrorCode;
 import com.aima.repository.PlatformAccountRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.ActivityLogService;
+import com.aima.service.AnalyticsAccountSyncService;
 import com.aima.service.MetaApiClient;
 import com.aima.service.MetaOAuthService;
 import com.aima.service.NotificationService;
@@ -47,6 +48,7 @@ class MetaOAuthServiceImplTest {
     private UserRepository userRepository;
     private ScheduleHoldService holdService;
     private NotificationService notificationService;
+    private AnalyticsAccountSyncService analyticsAccountSyncService;
     @SuppressWarnings("unchecked")
     private final RedisTemplate<String, String> redisTemplate = mock(RedisTemplate.class);
     @SuppressWarnings("unchecked")
@@ -62,6 +64,7 @@ class MetaOAuthServiceImplTest {
         userRepository = mock(UserRepository.class);
         holdService = mock(ScheduleHoldService.class);
         notificationService = mock(NotificationService.class);
+        analyticsAccountSyncService = mock(AnalyticsAccountSyncService.class);
         service = newService(null);
 
         lenient().when(redisTemplate.opsForValue()).thenReturn(valueOps);
@@ -80,7 +83,7 @@ class MetaOAuthServiceImplTest {
                 new AimaProperties.OAuth(10, "http://fe/success", "http://fe/error"));
         return new MetaOAuthServiceImpl(mock(ActivityLogService.class), metaApiClient, versionService,
                 accountRepository, userRepository, props, aima, redisTemplate, new ObjectMapper(),
-                holdService, notificationService);
+                holdService, notificationService, analyticsAccountSyncService);
     }
 
     @Test
@@ -157,6 +160,9 @@ class MetaOAuthServiceImplTest {
         // Scope lưu = quyền user thực cấp, KHÔNG phải scope trong config (instagram_basic).
         assertEquals("[\"pages_show_list\",\"pages_manage_posts\",\"public_profile\"]", created.get(0).getScopes());
         assertEquals(created.get(0).getScopes(), created.get(1).getScopes());
+        // Trang không có IG Business → ghi NOT_LINKED để Cài đặt hướng dẫn liên kết Instagram.
+        verify(analyticsAccountSyncService).recordInstagramLink(created.get(1), false);
+        verify(analyticsAccountSyncService).ensureWebhookSubscribed(created.get(1).getId()); // Trang → subscribed_apps
     }
 
     @Test
@@ -172,6 +178,7 @@ class MetaOAuthServiceImplTest {
         assertEquals(PlatformAccountType.PAGE, created.get(1).getAccountType());
         assertEquals("p1", created.get(1).getPlatformAccountId());
         verify(accountRepository, times(2)).save(any());
+        verify(analyticsAccountSyncService).recordInstagramLink(created.get(1), null); // không tra được ≠ chưa liên kết
     }
 
     @Test

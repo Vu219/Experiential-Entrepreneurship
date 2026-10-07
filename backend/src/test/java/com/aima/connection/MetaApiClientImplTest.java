@@ -238,7 +238,7 @@ class MetaApiClientImplTest {
         client.getPostMetrics(Platform.FACEBOOK, "100_200", "page-tok");
 
         RecordedRequest fields = server.takeRequest(5, TimeUnit.SECONDS);
-        assertEquals("reactions.summary(total_count).limit(0),comments.summary(true).limit(0),shares",
+        assertEquals("reactions.summary(total_count).limit(0),comments.filter(stream).summary(true).limit(0),shares",
                 fields.getRequestUrl().queryParameter("fields"));
         RecordedRequest insights = server.takeRequest(5, TimeUnit.SECONDS);
         assertEquals("/v25.0/100_200/insights", insights.getRequestUrl().encodedPath());
@@ -267,6 +267,8 @@ class MetaApiClientImplTest {
         assertEquals(7L, m.comments());
         assertEquals(3L, m.shares());
         assertNull(m.saves());
+        assertTrue(m.raw().contains("\"post_media_view\"") && m.raw().contains("\"total_count\":42"),
+                "raw giữ cả phản hồi fields lẫn insights: " + m.raw());
     }
 
     @Test
@@ -371,5 +373,127 @@ class MetaApiClientImplTest {
         long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
 
         assertTrue(elapsedMs < 10_000, "revoke phải bỏ cuộc sau ~5s, thực tế " + elapsedMs + "ms");
+    }
+
+    // ---------- Cấp Trang (analytics giai đoạn 2) ----------
+
+    @Test
+    void getPagePublishedPosts_followsCursorAndParsesAttachmentType() throws InterruptedException {
+        server.enqueue(json("{\"data\":[{\"id\":\"1_10\",\"created_time\":\"2026-10-05T03:21:45+0000\","
+                + "\"permalink_url\":\"https://fb/1_10\",\"message\":\"Hi\",\"attachments\":{\"data\":[{\"media_type\":\"photo\"}]}}],"
+                + "\"paging\":{\"cursors\":{\"after\":\"CUR\"},\"next\":\"https://graph/next\"}}"));
+        server.enqueue(json("{\"data\":[{\"id\":\"1_11\",\"created_time\":\"2026-10-04T00:00:00+0000\"}],"
+                + "\"paging\":{\"cursors\":{\"after\":\"END\"}}}"));
+
+        List<MetaApiClient.MetaPublishedPost> posts =
+                client.getPagePublishedPosts("1", "page-tok", java.time.Instant.parse("2026-07-01T00:00:00Z"));
+
+        assertEquals(2, posts.size());
+        assertEquals("photo", posts.get(0).attachmentType());
+        assertTrue(posts.get(0).attachmentTypeKnown());
+        assertEquals(java.time.Instant.parse("2026-10-05T03:21:45Z"), posts.get(0).createdTime());
+        assertNull(posts.get(1).attachmentType(), "không đính kèm");
+        RecordedRequest first = server.takeRequest();
+        assertTrue(first.getPath().startsWith("/v25.0/1/published_posts"));
+        assertEquals(String.valueOf(java.time.Instant.parse("2026-07-01T00:00:00Z").getEpochSecond()),
+                first.getRequestUrl().queryParameter("since"));
+        assertEquals("CUR", server.takeRequest().getRequestUrl().queryParameter("after"), "trang sau dựng lại bằng cursor");
+        assertEquals(2, server.getRequestCount(), "không có paging.next → dừng");
+    }
+
+    @Test
+    void getPagePublishedPosts_attachmentsRejected_retriesWithoutTypeAndMarksUnknown() throws InterruptedException {
+        server.enqueue(graphError(400, 100, null));
+        server.enqueue(json("{\"data\":[{\"id\":\"1_10\",\"created_time\":\"2026-10-05T03:21:45+0000\"}]}"));
+
+        List<MetaApiClient.MetaPublishedPost> posts = client.getPagePublishedPosts("1", "page-tok", java.time.Instant.now());
+
+        assertEquals(1, posts.size());
+        assertFalse(posts.get(0).attachmentTypeKnown(), "không biết loại nội dung ≠ bài chữ");
+        server.takeRequest();
+        assertFalse(server.takeRequest().getRequestUrl().queryParameter("fields").contains("attachments"));
+    }
+
+    @Test
+    void getPagePublishedPosts_permissionError_throwsClassified() {
+        server.enqueue(graphError(400, 10, null));
+
+        com.aima.exception.MetricsFetchException ex = assertThrows(com.aima.exception.MetricsFetchException.class,
+                () -> client.getPagePublishedPosts("1", "page-tok", java.time.Instant.now()));
+        assertEquals(com.aima.enums.MetricsErrorType.PERMISSION, ex.getErrorType());
+    }
+
+    @Test
+    void getPageInsights_mapsEndTimeToPacificDay() throws InterruptedException {
+        // end_time 2026-10-05T07:00:00+0000 = nửa đêm 05/10 giờ Thái Bình Dương → số của NGÀY 04/10.
+        server.enqueue(json("{\"data\":[{\"name\":\"page_daily_follows_unique\",\"period\":\"day\",\"values\":["
+                + "{\"value\":3,\"end_time\":\"2026-10-05T07:00:00+0000\"},{\"value\":4,\"end_time\":\"2026-10-06T07:00:00+0000\"}]}]}"));
+
+        MetaApiClient.MetaPageInsights insights = client.getPageInsights("1", "page-tok",
+                java.time.LocalDate.parse("2026-10-04"), java.time.LocalDate.parse("2026-10-05"));
+
+        assertEquals(3L, insights.values().get("page_daily_follows_unique").get(java.time.LocalDate.parse("2026-10-04")));
+        assertEquals(4L, insights.values().get("page_daily_follows_unique").get(java.time.LocalDate.parse("2026-10-05")));
+        RecordedRequest request = server.takeRequest();
+        assertEquals("day", request.getRequestUrl().queryParameter("period"));
+        assertTrue(request.getRequestUrl().queryParameter("metric").contains("page_media_view"));
+    }
+
+    @Test
+    void getPageInsights_deprecatedMetric_retriesEachMetricAndKeepsTheRest(CapturedOutput output) {
+        server.enqueue(graphError(400, 100, null)); // lời gọi gộp bị từ chối
+        server.enqueue(json("{\"data\":[{\"name\":\"page_daily_follows_unique\",\"values\":[{\"value\":2,\"end_time\":\"2026-10-05T07:00:00+0000\"}]}]}"));
+        for (int i = 1; i < 5; i++) {
+            server.enqueue(i == 2 ? graphError(400, 100, null) : json("{\"data\":[]}"));
+        }
+
+        MetaApiClient.MetaPageInsights insights = client.getPageInsights("1", "page-tok",
+                java.time.LocalDate.parse("2026-10-04"), java.time.LocalDate.parse("2026-10-04"));
+
+        assertEquals(2L, insights.values().get("page_daily_follows_unique").get(java.time.LocalDate.parse("2026-10-04")));
+        assertEquals(6, server.getRequestCount(), "1 lời gọi gộp + 5 lời gọi từng metric");
+        assertTrue(output.getOut().contains("bị từ chối"), "metric bị khai tử được log ERROR");
+    }
+
+    @Test
+    void getPageFollowersCount_parsesField() {
+        server.enqueue(json("{\"followers_count\":321,\"id\":\"1\"}"));
+
+        assertEquals(321L, client.getPageFollowersCount("1", "page-tok"));
+    }
+
+    @Test
+    void subscribePageWebhook_postsFeedFieldWithPageToken() throws InterruptedException {
+        server.enqueue(json("{\"success\":true}"));
+
+        client.subscribePageWebhook("1", "page-tok", "feed");
+
+        RecordedRequest request = server.takeRequest();
+        assertEquals("POST", request.getMethod());
+        assertEquals("/v25.0/1/subscribed_apps", request.getPath());
+        String body = request.getBody().readUtf8();
+        assertTrue(body.contains("subscribed_fields=feed"));
+        assertTrue(body.contains("access_token=page-tok"));
+    }
+
+    @Test
+    void subscribePageWebhook_missingPermission_throwsClassified() {
+        server.enqueue(graphError(400, 200, null));
+
+        com.aima.exception.MetricsFetchException ex = assertThrows(com.aima.exception.MetricsFetchException.class,
+                () -> client.subscribePageWebhook("1", "page-tok", "feed"));
+        assertEquals(com.aima.enums.MetricsErrorType.PERMISSION, ex.getErrorType());
+    }
+
+    @Test
+    void publishPagePost_returnsCanonicalPagePrefixedPostId() {
+        server.enqueue(json("{\"id\":\"1_200\"}"));                       // /feed
+        assertEquals("1_200", client.publishPagePost("1", "page-tok", "hi").platformPostId());
+
+        server.enqueue(json("{\"id\":\"999\",\"post_id\":\"1_300\"}"));   // dạng /photos: id = ảnh, post_id = bài
+        assertEquals("1_300", client.publishPagePost("1", "page-tok", "hi").platformPostId());
+
+        server.enqueue(json("{\"id\":\"400\"}"));                          // id trần → thêm tiền tố Trang
+        assertEquals("1_400", client.publishPagePost("1", "page-tok", "hi").platformPostId());
     }
 }

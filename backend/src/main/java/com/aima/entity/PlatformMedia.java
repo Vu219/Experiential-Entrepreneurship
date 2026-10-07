@@ -36,7 +36,7 @@ public class PlatformMedia extends BaseEntity {
     @Column(name = "platform_media_id", nullable = false, length = 255)
     String platformMediaId;
 
-    /** Bài AIMA tương ứng; null với bài người dùng tự đăng ngoài AIMA (giai đoạn 2). */
+    /** Bài AIMA tương ứng; null với bài người dùng tự đăng ngoài AIMA (giai đoạn 2, origin = EXTERNAL). */
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id")
     @ToString.Exclude
@@ -49,6 +49,17 @@ public class PlatformMedia extends BaseEntity {
 
     @Column(name = "published_at")
     Instant publishedAt;
+
+    /** Loại nội dung theo nền tảng báo, chuẩn hoá IMAGE/VIDEO/TEXT/OTHER (V8). Bài AIMA dùng content_versions. */
+    @Column(name = "media_type", length = 20)
+    String mediaType;
+
+    @Column(name = "permalink", length = 2048)
+    String permalink;
+
+    /** Trích đoạn caption cho bài ngoài AIMA (không có content_versions). */
+    @Column(name = "caption_excerpt", length = 300)
+    String captionExcerpt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "platform_status", nullable = false, length = 20)

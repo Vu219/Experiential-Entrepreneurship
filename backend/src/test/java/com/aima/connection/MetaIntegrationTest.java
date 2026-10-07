@@ -264,7 +264,7 @@ class MetaIntegrationTest {
     // ================================================================== webhook
 
     @Test
-    void webhook_requiresValidSignature_andOnlyReactsToRemovedPosts() throws Exception {
+    void webhook_requiresValidSignature_andNeverFailsTheAimaPost() throws Exception {
         Graph g = newGraph("fb-" + UUID.randomUUID());
         String postId = "123_" + UUID.randomUUID();
         Post post = newPost(g.schedule(), postId, PostStatus.POSTED);
@@ -290,11 +290,13 @@ class MetaIntegrationTest {
                 .andExpect(status().isOk());
         assertEquals(PostStatus.POSTED, postRepository.findById(post.getId()).orElseThrow().getStatus());
 
-        // 4) Chữ ký đúng + bài bị gỡ → FAILED.
+        // 4) Chữ ký đúng + bài bị xoá trên nền tảng → từ 07/10 KHÔNG đánh FAILED (webhook không phân biệt Meta gỡ hay người
+        //    dùng tự xoá); chỉ dòng theo dõi số liệu thành "Đã xoá trên nền tảng" — kiểm ở MetaWebhookFeedIntegrationTest.
         mockMvc.perform(post("/webhooks/meta").contentType("application/json").content(removeStatus)
                         .header("X-Hub-Signature-256", "sha256=" + hmacHex(removeStatus)))
                 .andExpect(status().isOk());
-        assertEquals(PostStatus.FAILED, postRepository.findById(post.getId()).orElseThrow().getStatus());
+        Thread.sleep(1500); // worker chạy nền
+        assertEquals(PostStatus.POSTED, postRepository.findById(post.getId()).orElseThrow().getStatus());
     }
 
     // ================================================================== chống đăng trùng / job kẹt

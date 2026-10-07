@@ -1,6 +1,7 @@
 package com.aima.dto.response;
 
 import com.aima.enums.ConnectionStatus;
+import com.aima.enums.InstagramLinkStatus;
 import com.aima.enums.Platform;
 import com.aima.enums.PlatformAccountType;
 import com.aima.enums.TokenType;
@@ -48,6 +49,10 @@ public class PlatformConnectionResponse {
 
     @Schema(description = "ID kết nối gốc (User-level) nếu đây là Page/IG con.")
     UUID parentConnectionId;
+
+    @Schema(description = "Chỉ Trang Facebook: Trang có liên kết Instagram Doanh nghiệp/Nhà sáng tạo (LINKED) hay không "
+            + "(NOT_LINKED → FE hướng dẫn chuyển IG sang tài khoản chuyên nghiệp); null = chưa kiểm tra / không áp dụng.")
+    InstagramLinkStatus instagramLinkStatus;
 
     LocalDateTime createdAt;
 }

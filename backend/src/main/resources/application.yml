@@ -149,7 +149,8 @@ meta:
   threads-base-url: ${META_THREADS_BASE_URL:https://graph.threads.net}
   # Bật appsecret_proof cho mọi request Meta (bắt buộc ở production).
   app-secret-proof-enabled: ${META_APP_SECRET_PROOF_ENABLED:false}
-  # Webhook nhận thông báo vi phạm/gỡ bài sau khi đăng (đăng ký URL /webhooks/meta trên Meta App).
+  # Webhook Page "feed" (đăng ký URL /webhooks/meta trên Meta App — docs/META_WEBHOOK_SETUP.md): bài bị gỡ/xoá,
+  # bài mới, bình luận/cảm xúc/chia sẻ → kích hoạt đồng bộ số liệu sớm. Chữ ký kiểm bằng META_FACEBOOK_APP_SECRET.
   webhook:
     verify-token: ${META_WEBHOOK_VERIFY_TOKEN:}
 
@@ -266,6 +267,11 @@ aima:
     system-log-days: ${SYSTEM_LOG_RETENTION_DAYS:180}
     usage-success-days: ${USAGE_SUCCESS_RETENTION_DAYS:90}
     usage-error-days: ${USAGE_ERROR_RETENTION_DAYS:180}
+    # Snapshot số liệu bài thô (post_metric_snapshots) — luôn giữ snapshot MỚI NHẤT của mỗi bài; số theo ngày
+    # (post_metrics_daily) giữ vĩnh viễn (chốt Q7, docs/analytics-real-data-plan.md).
+    metric-snapshot-days: ${METRIC_SNAPSHOT_RETENTION_DAYS:180}
+    # Sự kiện webhook Meta đã xử lý (meta_webhook_events) — chỉ để soi lại; PENDING không bao giờ bị xoá.
+    webhook-event-days: ${WEBHOOK_EVENT_RETENTION_DAYS:30}
 
 springdoc:
   api-docs:

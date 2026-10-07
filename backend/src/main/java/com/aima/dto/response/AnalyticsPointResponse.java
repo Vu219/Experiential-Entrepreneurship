@@ -34,4 +34,8 @@ public class AnalyticsPointResponse {
 
     @Schema(description = "Chia sẻ.", example = "12")
     long shares;
+
+    @Schema(description = "true = số của ngày này có phần ƯỚC TÍNH (chia đều từ ngày đăng đến lần đồng bộ đầu tiên khi bài được "
+            + "theo dõi muộn) — FE hiển thị điểm rỗng + chú thích.", example = "false")
+    boolean estimated;
 }

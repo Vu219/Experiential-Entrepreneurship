@@ -2,10 +2,14 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefO
 import { createPortal } from 'react-dom';
 import { C } from '../../styles/colors';
 
+/** Khoảng cách tối thiểu tới mép viewport / tới trigger. */
+const EDGE = 16;
+const GAP = 8;
+
 /**
  * Khuôn popover cho hàng công cụ trang Phân tích: portal ra body (không bị cắt bởi card cha),
- * neo dưới nút trigger, đóng khi Esc / click ngoài. Khác `admin/RowActionsMenu` ở chỗ **không đóng
- * khi cuộn** mà tính lại vị trí để panel luôn dính theo trigger.
+ * neo dưới nút trigger (tự lật lên trên khi thiếu chỗ), đóng khi Esc / click ngoài. Khác
+ * `admin/RowActionsMenu` ở chỗ **không đóng khi cuộn** mà tính lại vị trí để panel luôn dính theo trigger.
  * Mobile dùng bottom sheet riêng (`FilterSheet`), không dùng component này.
  */
 export default function FilterPopover({
@@ -22,15 +26,27 @@ export default function FilterPopover({
   children: ReactNode;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const [coords, setCoords] = useState<{ top?: number; bottom?: number; left: number; maxHeight: number } | null>(null);
 
   useLayoutEffect(() => {
     const place = () => {
       const r = anchorRef.current?.getBoundingClientRect();
       if (!r) return;
-      // Căn phải theo trigger, kẹp trong viewport để popover rộng không tràn mép trái/phải.
-      const left = Math.max(8, Math.min(r.right - width, window.innerWidth - width - 8));
-      setCoords({ top: r.bottom + 8, left });
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      // Căn MÉP PHẢI theo trigger (align end), rồi dịch/kẹp để panel luôn nằm trọn trong viewport
+      // (cách mép EDGE px) — bề rộng cũng bị kẹp theo viewport, khớp `maxWidth` bên dưới.
+      const w = Math.min(width, vw - EDGE * 2);
+      const left = Math.max(EDGE, Math.min(r.right - w, vw - w - EDGE));
+      // Lật lên trên trigger khi phía dưới không đủ chỗ và phía trên rộng hơn.
+      const h = panelRef.current?.scrollHeight ?? 0;
+      const below = vh - r.bottom - GAP - EDGE;
+      const above = r.top - GAP - EDGE;
+      if (h > below && above > below) {
+        setCoords({ bottom: vh - r.top + GAP, left, maxHeight: above });
+      } else {
+        setCoords({ top: r.bottom + GAP, left, maxHeight: below });
+      }
     };
     place();
     window.addEventListener('scroll', place, true);
@@ -57,8 +73,6 @@ export default function FilterPopover({
     };
   }, [anchorRef, onClose]);
 
-  if (!coords) return null;
-
   return createPortal(
     <div
       ref={panelRef}
@@ -66,8 +80,11 @@ export default function FilterPopover({
       role="dialog"
       aria-label={ariaLabel}
       style={{
-        position: 'fixed', top: coords.top, left: coords.left, width,
-        maxHeight: `calc(100vh - ${coords.top + 16}px)`, overflowY: 'auto',
+        // Lượt render đầu chưa có toạ độ: vẽ ẩn để đo chiều cao rồi mới đặt vị trí (lật trên/dưới).
+        position: 'fixed', top: coords?.top, bottom: coords?.bottom, left: coords?.left ?? 0,
+        visibility: coords ? 'visible' : 'hidden',
+        width, maxWidth: `calc(100vw - ${EDGE * 2}px)`,
+        maxHeight: coords?.maxHeight, overflowY: 'auto',
         background: C.surface, borderRadius: 16, border: `1px solid ${C.border}`,
         boxShadow: `0 24px 50px -22px ${C.legacyShadowrgba8040140_5_}`, zIndex: 1000, padding: 14,
       }}

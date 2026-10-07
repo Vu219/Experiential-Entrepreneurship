@@ -1,5 +1,5 @@
 import { memo, type CSSProperties } from 'react';
-import { Activity, AlertTriangle, ArrowRight, Clock, FileText, Info, TrendingUp, type LucideIcon } from 'lucide-react';
+import { Activity, AlertTriangle, ArrowRight, Clock, FileText, Info, TrendingUp, UserPlus, type LucideIcon } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Card, Icon } from '../ui';
@@ -9,8 +9,8 @@ import type { AnalyticsInsights } from '../../api/analytics';
 import { C } from '../../styles/colors';
 
 /**
- * Khối H — dải "Thông tin chi tiết" (full width, CUỐI trang): 5 mục tổng kết kỳ nằm liền mạch trong
- * MỘT card, ngăn nhau bằng vạch dọc mảnh (không bọc mỗi mục thành một card con — 5 khung lồng trong
+ * Khối H — dải "Thông tin chi tiết" (full width, CUỐI trang): 6 mục tổng kết kỳ nằm liền mạch trong
+ * MỘT card, ngăn nhau bằng vạch dọc mảnh (không bọc mỗi mục thành một card con — 6 khung lồng trong
  * một khung đọc rối và ăn thêm 2 lớp viền).
  *
  * Ba điểm dễ hiểu sai, đã xử lý ngay trên giao diện:
@@ -20,13 +20,15 @@ import { C } from '../../styles/colors';
  *   Cố ý KHÔNG gộp hai số vào một thanh chia đôi hay một dấu "/" — chúng không cùng mẫu số.
  * - "Tỷ lệ tương tác TB" chỉ tính trên bài CÓ lượt xem (Facebook thường không trả lượt xem) → luôn
  *   chú thích số bài được tính / bị loại.
+ * - "Người theo dõi mới" là số CẤP TRANG (giai đoạn 2) — không theo bộ lọc loại nội dung / nguồn bài; null
+ *   (nền tảng chưa trả số theo ngày) hiện "—" + lý do, KHÔNG hiện 0.
  */
 function InsightsStrip({ data, onOpenFailed }: { data: AnalyticsInsights; onOpenFailed: () => void }) {
   const { t, lang } = useApp();
   const { width } = useBreakpoint();
-  // 5 ô thẳng hàng ở màn rộng; hẹp dần thì gập xuống 3 → 2 cột. Mobile giữ 2 cột (không xuống 1)
-  // để strip vẫn là một dải gọn thay vì cột số liệu dài lê thê.
-  const cols = width >= 1280 ? 5 : width > 1024 ? 3 : 2;
+  // 6 ô = 3 cột × 2 hàng ở desktop (6 cột trên khung 1600px cắt cụt nhãn "Bài lỗi & cần xử lý"); hẹp thì
+  // 2 cột. Mobile giữ 2 cột (không xuống 1) để strip vẫn gọn. Khớp `insightsCols` của trang + khung xương.
+  const cols = width > 1024 ? 3 : 2;
 
   const dowLabel = [t.anaDow1, t.anaDow2, t.anaDow3, t.anaDow4, t.anaDow5, t.anaDow6, t.anaDow7];
   const slotLabel = [t.anaSlot0, t.anaSlot1, t.anaSlot2, t.anaSlot3, t.anaSlot4, t.anaSlot5, t.anaSlot6, t.anaSlot7];
@@ -41,7 +43,7 @@ function InsightsStrip({ data, onOpenFailed }: { data: AnalyticsInsights; onOpen
 
       {/* Vạch ngăn = borderLeft của mục không đứng đầu hàng, nên khi strip gập xuống 3 hoặc 2 cột
           mục đầu mỗi hàng vẫn không dính vạch thừa ở mép trái. */}
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, marginTop: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, rowGap: 16, marginTop: 14 }}>
         <Tile index={0} cols={cols} icon={FileText} tone="violet" label={t.anaTotalPostsStat}
           value={num(data.totalPosts)} deltaPct={data.totalPostsDeltaPct} />
 
@@ -67,6 +69,15 @@ function InsightsStrip({ data, onOpenFailed }: { data: AnalyticsInsights; onOpen
           note={data.engagementRatePct === null
             ? t.anaAvgEngRateNone
             : t.anaAvgEngRateNote.replace('{n}', String(data.ratedPosts)).replace('{x}', String(data.excludedPosts))} />
+
+        <Tile index={5} cols={cols} icon={UserPlus} tone="emerald" label={t.anaNewFollowers}
+          value={data.newFollowers === null ? '—' : num(data.newFollowers)}
+          muted={data.newFollowers === null}
+          deltaPct={data.newFollowers === null ? undefined : data.newFollowersDeltaPct}
+          note={[
+            data.newFollowers === null ? t.anaNewFollowersNone : t.anaNewFollowersNote,
+            data.followersTotal === null ? '' : t.anaFollowersTotal.replace('{n}', num(data.followersTotal)),
+          ].filter(Boolean).join(' ')} />
       </div>
     </Card>
   );

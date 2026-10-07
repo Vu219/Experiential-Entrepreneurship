@@ -56,7 +56,7 @@ const typeFactorOf = (types?: string[]) =>
 const defFrom = () => shiftISO(todayISO(), -6);
 
 /** Bộ lọc mặc định khi gọi mock trực tiếp (chưa có filter từ trang). */
-const defFilter = (): AnalyticsFilter => ({ from: defFrom(), to: todayISO(), platforms: [], contentTypes: [] });
+const defFilter = (): AnalyticsFilter => ({ from: defFrom(), to: todayISO(), platforms: [], contentTypes: [], aimaOnly: false });
 
 /** Số liệu 4 metric theo từng ngày — sóng mượt + xu hướng tăng nhẹ, jitter tất định theo ngày. */
 function dailyPoints(dates: string[], factor: number): AnalyticsPoint[] {
@@ -172,6 +172,8 @@ export function mockTopPosts(f: AnalyticsFilter = defFilter(), sort?: TopPostSor
   const rows: AnalyticsTopPost[] = pool.length === 0 ? [] : CAPTIONS
     .map((caption, i) => ({ caption, i }))
     .filter(({ i }) => f.contentTypes.length === 0 || f.contentTypes.includes(mockTypeOf(i)))
+    // Vài bài "tự đăng ngoài AIMA" để chip Ngoài AIMA / bộ lọc "Chỉ bài AIMA" có tác dụng thật.
+    .filter(({ i }) => !f.aimaOnly || !mockExternal(i))
     .map(({ caption, i }) => {
     const platform = pool[i % pool.length];
     // Rải đều bài trong khoảng đã chọn để luôn hiển thị dù đổi preset.
@@ -181,15 +183,21 @@ export function mockTopPosts(f: AnalyticsFilter = defFilter(), sort?: TopPostSor
     const likes = Math.round(views * (0.06 + 0.05 * seed('l' + caption)));
     const comments = Math.round(views * (0.01 + 0.02 * seed('c' + caption)));
     const shares = Math.round(views * (0.006 + 0.012 * seed('s' + caption)));
+    const external = mockExternal(i);
     return {
-      postId: `mock-${i}`,
-      contentItemId: `mock-item-${i}`,
+      mediaId: `mock-media-${i}`,
+      postId: external ? null : `mock-${i}`,
+      contentItemId: external ? null : `mock-item-${i}`,
       platform,
       caption,
       accountName: account[platform],
       publishedAt: `${date}T${pad(8 + (i % 10))}:${pad((i * 7) % 60)}:00`,
       views, likes, comments, shares,
       engagement: likes + comments + shares,
+      legacyOnly: false,
+      origin: external ? 'EXTERNAL' as const : 'AIMA' as const,
+      permalink: null,
+      platformStatus: 'ACTIVE' as const,
     };
   });
 
@@ -202,6 +210,9 @@ export function mockTopPosts(f: AnalyticsFilter = defFilter(), sort?: TopPostSor
 
   return rows.slice(0, Math.min(Math.max(limit, 1), 50));
 }
+
+/** Bài mock thứ i là bài người dùng tự đăng ngoài AIMA (giai đoạn 2). */
+const mockExternal = (i: number) => i % 6 === 5;
 
 /** Loại nội dung của bài mock thứ i — MVP không có "Reels" (AI chỉ sinh image/video/text). */
 const MOCK_TYPES: ContentTypeLabel[] = ['IMAGE', 'VIDEO', 'TEXT', 'IMAGE', 'OTHER'];
@@ -309,5 +320,9 @@ export function mockInsights(f: AnalyticsFilter = defFilter()): AnalyticsInsight
     engagementRateDeltaPct: mockDelta('er' + f.from),
     ratedPosts,
     excludedPosts: posts - ratedPosts,
+    // Người theo dõi mới là số cấp Trang — không đổi theo bộ lọc loại nội dung / nguồn bài.
+    newFollowers: Math.round(rangeDays * (2 + seed('nf' + f.from) * 3)),
+    newFollowersDeltaPct: mockDelta('nf' + f.from),
+    followersTotal: 1240,
   };
 }

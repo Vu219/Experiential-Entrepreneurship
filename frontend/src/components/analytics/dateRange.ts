@@ -4,6 +4,8 @@
  * 7 ngày gần nhất.
  */
 
+import type { Lang } from '../../types';
+
 const pad = (n: number) => String(n).padStart(2, '0');
 
 export const toISO = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -50,3 +52,19 @@ export const formatRangeShort = (from: string, to: string) =>
   `${from.slice(8, 10)}/${from.slice(5, 7)} – ${to.slice(8, 10)}/${to.slice(5, 7)}`;
 
 const ddmmyyyy = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+
+/** Ngày trong ô nhập theo ngôn ngữ: vi `dd/MM/yyyy`, en `MM/dd/yyyy` (input gốc theo locale trình duyệt). */
+export const formatDateInput = (iso: string, lang: Lang) => {
+  const [y, m, d] = [iso.slice(0, 4), iso.slice(5, 7), iso.slice(8, 10)];
+  return lang === 'en' ? `${m}/${d}/${y}` : `${d}/${m}/${y}`;
+};
+
+/** Ngược lại `formatDateInput`; trả `null` nếu sai định dạng hoặc ngày không tồn tại (31/02…). */
+export function parseDateInput(text: string, lang: Lang): string | null {
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text.trim());
+  if (!m) return null;
+  const [a, b, y] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const [month, day] = lang === 'en' ? [a, b] : [b, a];
+  const iso = `${y}-${pad(month)}-${pad(day)}`;
+  return toISO(new Date(y, month - 1, day)) === iso ? iso : null;
+}

@@ -26,6 +26,8 @@ export interface PlatformConnection {
   tokenDaysRemaining: number | null;
   parentConnectionId: string | null;
   createdAt: string;
+  /** Chỉ Trang Facebook: có liên kết Instagram Doanh nghiệp/Nhà sáng tạo không; null = chưa kiểm tra. */
+  instagramLinkStatus?: 'LINKED' | 'NOT_LINKED' | null;
 }
 
 export interface ConnectionStats {

@@ -41,7 +41,9 @@ public class MetaWebhookController {
     @PostMapping
     @SecurityRequirements({})
     @Operation(summary = "Receive webhook events",
-            description = "Signature-checked (X-Hub-Signature-256). A removed post moves its pipeline to FAILED and notifies the owner; every event is recorded in system logs.")
+            description = "Signature-checked (X-Hub-Signature-256), stored with de-duplication, answered 200 immediately and processed "
+                    + "asynchronously. Page feed: new post → page re-scan, engagement → post re-sync in ~5 min, removed post → "
+                    + "\"deleted on platform\" (post status unchanged, no notification). Dashboard test events (page id 0) are stored as IGNORED.")
     public ApiResponse<Void> receive(@RequestBody String body,
                                      @RequestHeader(value = "X-Hub-Signature-256", required = false) String signature) {
         metaWebhookService.handleEvent(body, signature);

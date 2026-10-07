@@ -115,6 +115,21 @@ public class AsyncConfig implements AsyncConfigurer {
         return executor;
     }
 
+    /**
+     * Xử lý sự kiện webhook Meta (analytics giai đoạn 3) — mỗi sự kiện vài câu UPDATE. Hàng đợi đầy thì TỪ CHỐI (không
+     * chạy trên thread request): sự kiện đã lưu PENDING, {@code MetaWebhookEventJob} quét lại sau ~2 phút.
+     */
+    @Bean(name = "metaWebhookExecutor")
+    public Executor metaWebhookExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(500);
+        executor.setThreadNamePrefix("meta-webhook-");
+        executor.initialize();
+        return executor;
+    }
+
     // Dùng cho các transaction ngắn quanh phần ghi DB của tác vụ nền, để cuộc gọi AI chạy NGOÀI
     // transaction (rule #24) — xem ContentGenerationWorkerImpl.
     @Bean

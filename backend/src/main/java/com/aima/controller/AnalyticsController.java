@@ -5,6 +5,7 @@ import com.aima.dto.response.AnalyticsHeatmapResponse;
 import com.aima.dto.response.AnalyticsInsightsResponse;
 import com.aima.dto.response.AnalyticsPlatformResponse;
 import com.aima.dto.response.AnalyticsSummaryResponse;
+import com.aima.dto.response.AnalyticsSyncStatusResponse;
 import com.aima.dto.response.AnalyticsTimeseriesResponse;
 import com.aima.dto.response.AnalyticsTopPostResponse;
 import com.aima.dto.response.ApiResponse;
@@ -34,7 +35,8 @@ import java.util.List;
  * khác nhau nên không đụng nhau.
  *
  * <p>Bộ lọc dùng chung: {@code from}/{@code to} (yyyy-MM-dd, mặc định 7 ngày gần nhất) +
- * {@code platforms} (rỗng = mọi nền tảng) + {@code contentTypes} (rỗng = mọi loại nội dung). Service
+ * {@code platforms} (rỗng = mọi nền tảng) + {@code contentTypes} (rỗng = mọi loại nội dung) + {@code source}
+ * ({@code aima} = chỉ bài đăng qua AIMA; bỏ trống = toàn bộ bài của Trang, gồm bài người dùng tự đăng). Service
  * validate và quy ra khoảng thật; khoảng ngược → mã 2050, quá dài → 2051. So sánh luôn theo kỳ liền
  * trước cùng độ dài.
  *
@@ -61,9 +63,10 @@ public class AnalyticsController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) List<Platform> platforms,
-            @RequestParam(required = false) List<String> contentTypes) {
+            @RequestParam(required = false) List<String> contentTypes,
+            @RequestParam(required = false) String source) {
         return analyticsService.summary(principal.getUsername(),
-                new AnalyticsService.AnalyticsQuery(from, to, platforms, contentTypes));
+                new AnalyticsService.AnalyticsQuery(from, to, platforms, contentTypes, source));
     }
 
     @GetMapping("/timeseries")
@@ -75,9 +78,10 @@ public class AnalyticsController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) List<Platform> platforms,
-            @RequestParam(required = false) List<String> contentTypes) {
+            @RequestParam(required = false) List<String> contentTypes,
+            @RequestParam(required = false) String source) {
         return analyticsService.timeseries(principal.getUsername(),
-                new AnalyticsService.AnalyticsQuery(from, to, platforms, contentTypes));
+                new AnalyticsService.AnalyticsQuery(from, to, platforms, contentTypes, source));
     }
 
     @GetMapping("/by-platform")
@@ -90,9 +94,10 @@ public class AnalyticsController {
             @AuthenticationPrincipal UserDetails principal,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @RequestParam(required = false) List<String> contentTypes) {
+            @RequestParam(required = false) List<String> contentTypes,
+            @RequestParam(required = false) String source) {
         return analyticsService.byPlatform(principal.getUsername(),
-                new AnalyticsService.AnalyticsQuery(from, to, null, contentTypes));
+                new AnalyticsService.AnalyticsQuery(from, to, null, contentTypes, source));
     }
 
     @GetMapping("/by-content-type")
@@ -105,9 +110,10 @@ public class AnalyticsController {
             @AuthenticationPrincipal UserDetails principal,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @RequestParam(required = false) List<Platform> platforms) {
+            @RequestParam(required = false) List<Platform> platforms,
+            @RequestParam(required = false) String source) {
         return analyticsService.byContentType(principal.getUsername(),
-                new AnalyticsService.AnalyticsQuery(from, to, platforms, null));
+                new AnalyticsService.AnalyticsQuery(from, to, platforms, null, source));
     }
 
     @GetMapping("/activity-heatmap")
@@ -121,9 +127,10 @@ public class AnalyticsController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) List<Platform> platforms,
-            @RequestParam(required = false) List<String> contentTypes) {
+            @RequestParam(required = false) List<String> contentTypes,
+            @RequestParam(required = false) String source) {
         return analyticsService.activityHeatmap(principal.getUsername(),
-                new AnalyticsService.AnalyticsQuery(from, to, platforms, contentTypes));
+                new AnalyticsService.AnalyticsQuery(from, to, platforms, contentTypes, source));
     }
 
     @GetMapping("/insights")
@@ -138,9 +145,10 @@ public class AnalyticsController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) List<Platform> platforms,
-            @RequestParam(required = false) List<String> contentTypes) {
+            @RequestParam(required = false) List<String> contentTypes,
+            @RequestParam(required = false) String source) {
         return analyticsService.insights(principal.getUsername(),
-                new AnalyticsService.AnalyticsQuery(from, to, platforms, contentTypes));
+                new AnalyticsService.AnalyticsQuery(from, to, platforms, contentTypes, source));
     }
 
     @GetMapping("/export")
@@ -154,9 +162,10 @@ public class AnalyticsController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) List<Platform> platforms,
             @RequestParam(required = false) List<String> contentTypes,
+            @RequestParam(required = false) String source,
             @RequestParam(required = false) String sort) {
         return analyticsService.export(principal.getUsername(),
-                new AnalyticsService.AnalyticsQuery(from, to, platforms, contentTypes), sort);
+                new AnalyticsService.AnalyticsQuery(from, to, platforms, contentTypes, source), sort);
     }
 
     @GetMapping("/top-posts")
@@ -170,10 +179,29 @@ public class AnalyticsController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) List<Platform> platforms,
             @RequestParam(required = false) List<String> contentTypes,
+            @RequestParam(required = false) String source,
             @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "10") int limit) {
         return analyticsService.topPosts(principal.getUsername(),
-                new AnalyticsService.AnalyticsQuery(from, to, platforms, contentTypes), sort, limit);
+                new AnalyticsService.AnalyticsQuery(from, to, platforms, contentTypes, source), sort, limit);
+    }
+
+    @GetMapping("/sync-status")
+    @Operation(summary = "Trạng thái đồng bộ số liệu từ nền tảng",
+            description = "Các kênh đăng (Page / IG Business / Threads) của user: trạng thái kết nối, quyền đọc lượt xem "
+                    + "(Facebook read_insights), số bài đang theo dõi / chờ đồng bộ lần đầu / đã dừng / lỗi quyền, lần "
+                    + "đồng bộ gần nhất. connected=false → FE hiện chế độ Dữ liệu mẫu.")
+    public ApiResponse<AnalyticsSyncStatusResponse> syncStatus(@AuthenticationPrincipal UserDetails principal) {
+        return analyticsService.syncStatus(principal.getUsername());
+    }
+
+    @PostMapping("/sync")
+    @Operation(summary = "Làm mới số liệu — xếp lịch đồng bộ ngay (chạy nền, NFR-04)",
+            description = "Đưa bài + kênh đăng của user về hạn đồng bộ; job nền (mỗi 5 phút) gọi nền tảng (kênh = quét bài "
+                    + "mới tự đăng trên Trang + insights). Bỏ qua bài vừa đồng bộ trong 15 phút, kênh vừa quét trong 2 phút và "
+                    + "mục đang lỗi (giữ backoff). Trả số mục được xếp lịch.")
+    public ApiResponse<Integer> requestSync(@AuthenticationPrincipal UserDetails principal) {
+        return analyticsService.requestSync(principal.getUsername());
     }
 
     @PostMapping("/dev-seed")

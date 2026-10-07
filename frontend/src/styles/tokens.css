@@ -53,45 +53,9 @@
   --theme-surface-to: #7e86f1;
 }
 
-/* Tím sương (Lilac Mist) — violet pastel.
-   Giữ key aurora để lựa chọn đã lưu tiếp tục hoạt động.
-   Brand = ĐÚNG bảng màu swatch ở Cài đặt > Giao diện (themeOptions trong data.ts). */
-:root[data-theme='aurora'] {
-  --brand-from: #b7a6da;
-  --brand-via: #c6b6e6;
-  --brand-to: #d5c6ef;
-  --brand-glow: rgba(183, 166, 218, 0.35);
-  --c-on-brand: #35274d;
-  --brand-text-gradient: linear-gradient(135deg, #705a95, #6c548e, #745899);
-  --theme-surface-from: #b7a6da;
-  --theme-surface-via: #c6b6e6;
-  --theme-surface-to: #d5c6ef;
-}
-
-/* Hồng sương (Rose Mist) — hồng/lavender pastel.
-   Giữ key sunset để lựa chọn đã lưu tiếp tục hoạt động.
-   Brand = ĐÚNG bảng màu swatch ở Cài đặt > Giao diện (themeOptions trong data.ts). */
-:root[data-theme='sunset'] {
-  --brand-from: #dfa9c0;
-  --brand-via: #d6afd5;
-  --brand-to: #c9b8e3;
-  --brand-glow: rgba(223, 169, 192, 0.35);
-  --c-on-brand: #35274d;
-  --brand-text-gradient: linear-gradient(135deg, #93516f, #865086, #71528e);
-  --theme-surface-from: #dfa9c0;
-  --theme-surface-via: #d6afd5;
-  --theme-surface-to: #c9b8e3;
-}
-@media screen {
-  :root.dark[data-theme='aurora'],
-  :root.dark[data-theme='sunset'] {
-    --brand-text-gradient: var(--brand-gradient);
-  }
-}
-
 /* ===== Màu giao diện SÁNG/TỐI (dark mode) =====
-   Tách khỏi data-theme ở trên: data-theme = bảng màu THƯƠNG HIỆU (ocean/aurora/sunset),
-   class "dark" trên <html> = chế độ sáng/tối. Hai trục chồng được lên nhau (3 × 2).
+   Tách khỏi data-theme ở trên: data-theme = bảng màu THƯƠNG HIỆU (hiện chỉ còn ocean),
+   class "dark" trên <html> = chế độ sáng/tối. Hai trục chồng được lên nhau.
    Giá trị sáng = ĐÚNG mã hex đang dùng (bảng ánh xạ: docs/dark-mode-color-map.md).
    Code dùng qua object `C` ở styles/colors.ts (inline style) hoặc var(--c-*) trong CSS.
    Thêm token mới → khai báo CẢ hai khối (sáng ở :root, tối ở :root.dark) + thêm vào colors.ts. */

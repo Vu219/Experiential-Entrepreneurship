@@ -2,11 +2,13 @@ import { memo, type CSSProperties } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { PlatformTag } from '../ui';
-import { formatDateTimeVN, formatGroupedNumber } from '../../utils/format';
+import { formatDateTimeVN } from '../../utils/format';
 import { PLATFORM_BG } from '../../theme';
 import { PLATFORM_TO_TAG } from '../../api/connections';
 import type { AnalyticsTopPost, TopPostSort, TopPostSortField } from '../../api/analytics';
 import { C } from '../../styles/colors';
+import MetricValue from './MetricValue';
+import PostOriginBadges from './PostOriginBadges';
 
 /**
  * Bản MOBILE của bảng bài viết: mỗi bài một card (tiêu đề + nền tảng + ngày, 4 chỉ số xếp lưới 2×2)
@@ -26,7 +28,7 @@ function PostsCardList({
   onSortChange: (sort: TopPostSort) => void;
   onRowClick: (row: AnalyticsTopPost) => void;
 }) {
-  const { t, lang } = useApp();
+  const { t } = useApp();
 
   const metrics: { key: Exclude<TopPostSortField, 'engagement' | 'date'>; label: string }[] = [
     { key: 'views', label: t.anaViews },
@@ -63,7 +65,7 @@ function PostsCardList({
         {rows.map((r) => {
           const tag = PLATFORM_TO_TAG[r.platform] ?? 'FB';
           return (
-            <button key={r.postId} type="button" onClick={() => onRowClick(r)} style={cardBtn}>
+            <button key={r.mediaId} type="button" onClick={() => onRowClick(r)} style={cardBtn}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={26} radius={7} fontSize={11} />
                 <div style={{ minWidth: 0, flex: 1 }}>
@@ -73,7 +75,10 @@ function PostsCardList({
                   }}>
                     {r.caption || t.schNoCaption}
                   </div>
-                  <div style={{ fontSize: 11.5, color: C.textFaint, marginTop: 3 }}>{formatDateTimeVN(r.publishedAt)}</div>
+                  <div style={{ fontSize: 11.5, color: C.textFaint, marginTop: 3 }}>
+                    {formatDateTimeVN(r.publishedAt)}
+                    <PostOriginBadges post={r} />
+                  </div>
                 </div>
               </div>
 
@@ -82,7 +87,7 @@ function PostsCardList({
                   <div key={m.key} style={{ background: C.surfaceSubtle, borderRadius: 10, padding: '8px 10px' }}>
                     <div style={{ fontSize: 11, color: C.textMuted }}>{m.label}</div>
                     <div style={{ fontSize: 14, fontWeight: 800, color: C.textStrong }}>
-                      {formatGroupedNumber(r[m.key], lang)}
+                      <MetricValue value={r[m.key]} post={r} />
                     </div>
                   </div>
                 ))}

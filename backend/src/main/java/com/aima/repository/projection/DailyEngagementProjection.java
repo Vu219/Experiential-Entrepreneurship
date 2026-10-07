@@ -18,4 +18,10 @@ public interface DailyEngagementProjection {
     long getComments();
 
     long getShares();
+
+    /**
+     * Ngày có phần số liệu ƯỚC TÍNH: bài được theo dõi muộn nên phần tăng giữa hai lần đồng bộ cách nhiều ngày được chia đều
+     * từ ngày đăng (hoặc lần trước) tới lần đồng bộ (post_metrics_daily.is_estimated).
+     */
+    boolean getEstimated();
 }

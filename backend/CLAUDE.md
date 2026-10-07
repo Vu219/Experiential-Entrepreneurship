@@ -727,23 +727,64 @@ SCHEDULED của account → `ON_HOLD` với lý do ACCOUNT_ISSUE (FR-70, khớp 
 Lịch `ON_HOLD` được kích hoạt lại bằng `PUT /schedules/{id}` khi đã hết lý do giữ (tự về SCHEDULED nếu giờ mới ở tương lai).
 
 ### Performance Analysis — FR-59..FR-62 (BR-09)
-> `AnalyticsCollectionJob` (`@Scheduled fixedDelay=1h`): với mỗi mốc **24/48/168h**, query bài `POSTED`
-> đã qua mốc mà **chưa có** bản ghi `PostAnalytics` của mốc đó (`PostRepository.findDueForAnalytics`,
-> "not exists" theo `milestone_hours`) → `MetaApiClient.getPostMetrics` (HTTP ngoài transaction, rule #24)
-> → lưu snapshot qua `PostAnalyticsMapper.toAnalytics` (cascade từ `Post`). Idempotent nhờ query "chưa có mốc".
-> Thu analytics KHÔNG đổi trạng thái lịch/bài (Phase 1): bài PARTIALLY_POSTED/FAILED vẫn được thu số liệu cho Post đã đăng.
+> **Dữ liệu thật (giai đoạn 1, 2026-10-06 — `../docs/analytics-real-data-plan.md` mục D.3).** `AnalyticsCollectionJob`
+> (`@Scheduled fixedDelay=5 phút`, ShedLock `analytics-collection`) chỉ điều phối `AnalyticsSyncService`/`Impl`:
+> (1) `prepare` — tạo `platform_media` (Flyway V6) cho bài POSTED mới (`PostRepository.findPostedWithoutMedia`) và chép
+> mốc cũ `post_analytics` sang `post_metric_snapshots` (`source=BACKFILL`, Flyway V7); (2) `findDue` — bài đến hạn gom
+> theo tài khoản ACTIVE (bài chưa đồng bộ lần nào luôn đến hạn MỘT lần; đã đồng bộ thì chỉ trong 90 ngày sau khi đăng);
+> (3) `syncAccount` — gọi adapter `PlatformMetricsProvider` (map theo `Platform`, NFR-09: `FacebookMetricsProviderImpl`
+> thật, `ThreadsMetricsProviderImpl` giữ hành vi cũ, `InstagramMetricsProviderImpl` stub UNSUPPORTED; `fetchAccountMetrics`/
+> `listPublishedPosts` = TODO giai đoạn 2) NGOÀI transaction, rồi mỗi bài MỘT transaction: snapshot `POLL` → tính lại toàn
+> bộ `post_metrics_daily` từ chuỗi snapshot (`util/MetricDeltaDistributor`, hàm thuần, chia phần tăng theo tỷ lệ thời gian
+> theo ngày giờ VN, `is_estimated` khi trải nhiều ngày) → mốc `post_analytics` 24/48/168h = snapshot đầu tiên trong
+> `[mốc, mốc+24h)` (không tạo trùng, KHÔNG sửa mốc cũ) → `next_sync_at` thưa dần theo tuổi (2h/6h/12h/1 ngày/7 ngày, ép
+> ngay sau mốc). Lỗi: `MetricsFetchException` + `MetricsErrorType` (NOT_FOUND 2 lần cách 24h → DELETED+STOPPED;
+> UNSUPPORTED → STOPPED; PERMISSION/TOKEN_INVALID → 24h; tạm → 1h·2^(n−1) ≤ 24h; 8 lỗi liên tiếp → STOPPED; RATE_LIMIT →
+> 1h, `syncAccount` trả false, job dừng cả lượt). Analytics KHÔNG đổi trạng thái lịch/bài (D2).
 >
-> **Dừng gọi lại vô hạn (analytics dữ liệu thật — Giai đoạn 0, 2026-10-06)** — `getPostMetrics` ném
-> `MetricsFetchException` (`enums/MetricsErrorType`, CHỈ dùng trong luồng thu số liệu); job ghi trạng thái vào
-> `platform_media` (Flyway V6; `PlatformMediaRepository`, tạo lười qua `PostAnalyticsMapper.toPlatformMedia`) và
-> `findDueForAnalytics(milestone, threshold, now)` bỏ qua dòng `STOPPED` / `next_sync_at > now`. NOT_FOUND (100/33) hai
-> lần cách 24h → `DELETED` + `STOPPED`; UNSUPPORTED (IG) → `STOPPED`; PERMISSION/TOKEN_INVALID → thử lại sau 24h;
-> TEMPORARY/INVALID_REQUEST/lỗi nội bộ → backoff 1h·2^(n−1) tối đa 24h; 8 lỗi liên tiếp → `STOPPED`; RATE_LIMIT →
-> chờ 1h, không tính lỗi, `run()` dừng cả lượt quét. Thành công → reset đếm lỗi. Kế hoạch các giai đoạn sau:
-> `../docs/analytics-real-data-plan.md`.
+> **Đọc số liệu:** `/analytics/{summary,timeseries,by-platform}` cộng delta `post_metrics_daily` (số PHÁT SINH trong kỳ);
+> `/analytics/{top-posts,by-content-type,activity-heatmap,insights,export}` = bài ĐĂNG trong kỳ + snapshot mới nhất
+> (`LEFT JOIN LATERAL … LIMIT 1`) — cùng tên/chữ ký method cũ trong `PostAnalyticsRepository`, đổi SQL. `GET /analytics/sync-status`
+> (kênh đăng, quyền `read_insights` từ `platform_accounts.scopes`, số bài theo dõi/chờ/dừng/lỗi quyền) và `POST /analytics/sync`
+> (nút "Làm mới": `PlatformMediaRepository.markDueNow`, bỏ bài vừa đồng bộ < 15 phút / đang lỗi). Khoá cache 45s của
+> `AnalyticsServiceImpl` gồm `max(last_synced_at)` của user. Bảng điều khiển (`DashboardServiceImpl.buildPerformance`) gọi CHÍNH
+> `findDailyEngagementForUser` (không lọc) để số khớp trang Phân tích; Hồ sơ (`findLifetimeStatsForUser`) và "Top chủ đề"
+> (`findTopTopicsForUser`) đọc snapshot mới nhất. Top bài viết trả `views` null (không ép 0) + `legacyOnly` (snapshot mới nhất
+> là BACKFILL) — FE hiện "—". Chỉ FR-62 / optimizer / giờ vàng còn đọc `post_analytics` (mốc đã tính từ snapshot).
+> Dev-seed: sau khi seed gọi `prepare` (chép sang snapshot) rồi `stopForAccounts` (không gọi Meta cho bài mẫu); clear xoá
+> daily → snapshot → media của tài khoản mẫu trước. SQL native chỉ chạy trên PG: kiểm bằng `AnalyticsRealDataPgTest`
+> (`-Disolated.postgres=true`).
 
-**Metric theo nền tảng** — FB Page post: `?fields=reactions.summary(total_count).limit(0),comments.summary(true).limit(0),shares`
-(`likes` lưu tổng MỌI cảm xúc) + views `/insights?metric=post_media_view` (`post_impressions` bị Meta khai tử 15/11/2025;
+> **Giai đoạn 2 (2026-10-07 — `../docs/analytics-real-data-plan.md` mục D.6, Flyway V8):** `AnalyticsCollectionJob` gọi
+> `AnalyticsAccountSyncService`/`Impl` TRƯỚC bước đồng bộ bài: mỗi kênh (chỉ nền tảng có `PlatformMetricsProvider.supportsAccountSync()`
+> — hiện Facebook) 1 giờ/lần ("Làm mới" xếp lại nếu kênh quét > 2 phút trước; `sync-status` trả `accountSyncedAt` để FE tự tải lại), trạng thái ở `account_sync_state` (`next_sync_at` null = không tự đồng bộ, dev-seed dùng
+> `disableForAccounts`). (1) `listPublishedPosts` (`/{page-id}/published_posts`) → bài tự đăng thành `platform_media`
+> `origin=EXTERNAL` (`post_id` null, `media_type/permalink/caption_excerpt`), bài đã theo dõi chỉ được bổ sung chi tiết; `prepare`
+> NHẬN LẠI dòng EXTERNAL trùng id của bài AIMA vừa đăng. (2) `fetchAccountMetrics` (insights Trang theo ngày + `followers_count`) →
+> `account_insights_daily` (upsert, null không ghi đè số cũ). (3) Trang có/không có IG Business → `instagram_link_status` (cũng ghi ở
+> OAuth callback qua `recordInstagramLink`; `GET /connections` trả `instagramLinkStatus`). Lỗi danh sách bài → backoff như bài;
+> RATE_LIMIT → 1h + dừng cả lượt; lỗi insights chỉ ghi `insights_error_code`. Mọi truy vấn "bài đăng trong kỳ" của `/analytics/*` đi
+> từ `platform_media` (gồm bài ngoài AIMA); bộ lọc `source=aima` (`AnalyticsQuery.source`, SQL `:origin`) = chỉ bài AIMA. `insights`
+> thêm `newFollowers`/`newFollowersDeltaPct`/`followersTotal` (cấp Trang, chỉ lọc nền tảng). Optimizer / giờ vàng / FR-62 / Hồ sơ vẫn
+> chỉ bài AIMA. `LogRetentionJob` xoá snapshot thô > `aima.retention.metric-snapshot-days` (180) nhưng luôn giữ snapshot mới nhất
+> mỗi bài.
+
+> **Giai đoạn 3 (2026-10-07 — plan mục D.7, Flyway V9, cấu hình: `../docs/META_WEBHOOK_SETUP.md`):** `MetaWebhookServiceImpl`
+> (POST `/webhooks/meta`) kiểm `X-Hub-Signature-256` (app secret) → lưu mỗi `changes[]` vào `meta_webhook_events` (`dedupe_key`
+> unique, trùng → bỏ) → `MetaWebhookEventWorker.process` (`@Async("metaWebhookExecutor")`, khoá dòng) → trả 200 ngay;
+> `MetaWebhookEventJob` (1 phút, ShedLock `meta-webhook-events`) xử lý lại PENDING > 2 phút, 3 lần lỗi → FAILED. Feed: bài remove →
+> `AnalyticsSyncService.markDeleted` ("Đã xoá trên nền tảng", KHÔNG FAILED / KHÔNG thông báo — 07/10), sự kiện test Dashboard
+> (`entry.id = "0"`) lưu thẳng IGNORED, bài add → `AnalyticsAccountSyncService.markDueForPage`,
+> comment/reaction/share/like → `syncSoon(post, 5 phút)`. Trang được `subscribed_apps?subscribed_fields=feed` sau commit OAuth
+> (`ensureWebhookSubscribed`) và mỗi lượt quét Trang nếu chưa (`account_sync_state.webhook_subscribed_at/webhook_error_code`).
+> Kết nối lại (OAuth tạo dòng `platform_accounts` mới) → `adoptPreviousConnections` chuyển/gộp `platform_media` của kết nối cũ
+> (Flyway V10 dọn dữ liệu đã trùng). ID bài Facebook luôn dạng `pageId_postId` (`util/FacebookPostIds`). `/analytics/timeseries`
+> trả `points[].estimated` (ngày có số chia đều ước tính).
+> Lịch đồng bộ bài thích ứng: `nextSyncAt(published, now, engagementPerHour)` (≥ 5 tương tác/giờ → chia đôi, ≥ 1h; bài ≥ 24h
+> không tương tác mới → nhân đôi, ≤ 7 ngày; mốc vẫn ép).
+
+**Metric theo nền tảng** — FB Page post: `?fields=reactions.summary(total_count).limit(0),comments.filter(stream).summary(true).limit(0),shares`
+(`likes`/`reactions` = tổng MỌI cảm xúc, bình luận gồm cả phản hồi; `raw` = phản hồi gốc lưu vào snapshot) + views `/insights?metric=post_media_view` (`post_impressions` bị Meta khai tử 15/11/2025;
 cần `read_insights` — thiếu quyền → views null, metric bị từ chối mã 100 → views null + log ERROR, rate limit/token/lỗi tạm
 → ném ra để thu lại cả mốc); Threads:
 `/{media-id}/insights?metric=views,likes,replies,reposts,quotes` (replies→comments, reposts+quotes→shares);

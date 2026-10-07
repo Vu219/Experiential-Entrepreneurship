@@ -47,7 +47,8 @@ export async function getAnalyzedPost(postId: string): Promise<AnalyzedPost> {
 // ============================================================================
 // Trang Phân tích tổng hợp (UI-08) — backend AnalyticsController (/analytics/*).
 // Bộ lọc dùng chung: from/to (yyyy-MM-dd, mặc định 7 ngày gần nhất) + platforms
-// (bỏ trống = mọi nền tảng) + contentTypes (bỏ trống = mọi loại nội dung). Chỉ
+// (bỏ trống = mọi nền tảng) + contentTypes (bỏ trống = mọi loại nội dung) + source (aima = chỉ bài
+// đăng qua AIMA; bỏ trống = toàn bộ bài của Trang, kể cả bài tự đăng — giai đoạn 2). Chỉ
 // FB/IG/Threads trong scope. So sánh luôn theo kỳ liền trước cùng độ dài;
 // deltaPct = null khi kỳ trước bằng 0.
 //
@@ -89,6 +90,8 @@ export interface AnalyticsPoint {
   likes: number;
   comments: number;
   shares: number;
+  /** Số của ngày có phần ƯỚC TÍNH (chia đều từ ngày đăng đến lần đồng bộ đầu tiên khi bài được theo dõi muộn). */
+  estimated?: boolean;
 }
 
 export interface AnalyticsTimeseries {
@@ -115,19 +118,34 @@ export interface AnalyticsPlatform {
   sharePct: number;
 }
 
+/** Nguồn bài: đăng qua AIMA hay người dùng tự đăng trên nền tảng (import từ giai đoạn 2). */
+export type MediaOrigin = 'AIMA' | 'EXTERNAL';
+/** Bài còn trên nền tảng không — DELETED vẫn giữ số liệu đã thu. */
+export type PlatformMediaStatus = 'ACTIVE' | 'UNAVAILABLE' | 'DELETED';
+
 /** Một dòng bảng "Top bài viết hiệu quả" (khối E). MVP không có thumbnail. */
 export interface AnalyticsTopPost {
-  postId: string;
+  /** Id dòng theo dõi số liệu — luôn có, dùng làm khoá dòng. */
+  mediaId: string;
+  /** null với bài đăng ngoài AIMA. */
+  postId: string | null;
   contentItemId: string | null;
   platform: Platform;
   caption: string | null;
   accountName: string | null;
   publishedAt: string;
-  views: number;
+  /** null = KHÔNG có số liệu lượt xem (khác 0) — hiện "—". */
+  views: number | null;
   likes: number;
   comments: number;
   shares: number;
   engagement: number;
+  /** true = số liệu duy nhất là bản chép từ mốc cũ (bài đăng trước khi có đồng bộ đầy đủ). */
+  legacyOnly: boolean;
+  origin: MediaOrigin;
+  /** Đường dẫn bài trên nền tảng; null khi chưa quét được. */
+  permalink: string | null;
+  platformStatus: PlatformMediaStatus;
 }
 
 /** Cột sắp xếp hợp lệ của bảng Top bài viết (whitelist, khớp backend). */
@@ -208,6 +226,11 @@ export interface AnalyticsInsights {
   ratedPosts: number;
   /** Bài bị loại khỏi mẫu số vì nền tảng không trả lượt xem (chủ yếu Facebook). */
   excludedPosts: number;
+  /** Người theo dõi MỚI trong kỳ (cấp Trang); null = nền tảng chưa trả số theo ngày (khác 0). */
+  newFollowers: number | null;
+  newFollowersDeltaPct: number | null;
+  /** Tổng người theo dõi hiện tại; null khi chưa có. */
+  followersTotal: number | null;
 }
 
 // platforms / contentTypes → CSV; Spring bind chuỗi "FACEBOOK,THREADS" thành List. Rỗng = bỏ tham số.
@@ -223,12 +246,17 @@ export interface AnalyticsFilter {
   to: string;
   platforms: Platform[];
   contentTypes: ContentTypeLabel[];
+  /** true = chỉ bài đăng qua AIMA; false (mặc định) = toàn bộ bài của Trang, kể cả bài tự đăng. */
+  aimaOnly: boolean;
 }
+
+// Bộ lọc nguồn bài → query param `source` (backend: aima | bỏ trống = toàn Trang).
+const sourceParam = (f: AnalyticsFilter): string | undefined => (f.aimaOnly ? 'aima' : undefined);
 
 // GET /analytics/summary — 4 KPI + so sánh kỳ trước (khối B).
 export async function getAnalyticsSummary(f: AnalyticsFilter): Promise<AnalyticsSummary> {
   const { data } = await client.get<ApiResponse<AnalyticsSummary>>("/analytics/summary", {
-    params: { from: f.from, to: f.to, platforms: csvParam(f.platforms), contentTypes: csvParam(f.contentTypes) },
+    params: { from: f.from, to: f.to, platforms: csvParam(f.platforms), contentTypes: csvParam(f.contentTypes), source: sourceParam(f) },
   });
   return data.result;
 }
@@ -236,7 +264,7 @@ export async function getAnalyticsSummary(f: AnalyticsFilter): Promise<Analytics
 // GET /analytics/timeseries — chuỗi 4 metric theo ngày, đã zero-fill (khối C).
 export async function getAnalyticsTimeseries(f: AnalyticsFilter): Promise<AnalyticsTimeseries> {
   const { data } = await client.get<ApiResponse<AnalyticsTimeseries>>("/analytics/timeseries", {
-    params: { from: f.from, to: f.to, platforms: csvParam(f.platforms), contentTypes: csvParam(f.contentTypes) },
+    params: { from: f.from, to: f.to, platforms: csvParam(f.platforms), contentTypes: csvParam(f.contentTypes), source: sourceParam(f) },
   });
   return data.result;
 }
@@ -244,7 +272,7 @@ export async function getAnalyticsTimeseries(f: AnalyticsFilter): Promise<Analyt
 // GET /analytics/by-platform — donut + danh sách nền tảng (khối D). KHÔNG nhận platforms (ngoại lệ 1).
 export async function getAnalyticsByPlatform(f: AnalyticsFilter): Promise<AnalyticsPlatform[]> {
   const { data } = await client.get<ApiResponse<AnalyticsPlatform[]>>("/analytics/by-platform", {
-    params: { from: f.from, to: f.to, contentTypes: csvParam(f.contentTypes) },
+    params: { from: f.from, to: f.to, contentTypes: csvParam(f.contentTypes), source: sourceParam(f) },
   });
   return data.result;
 }
@@ -252,7 +280,7 @@ export async function getAnalyticsByPlatform(f: AnalyticsFilter): Promise<Analyt
 // GET /analytics/by-content-type — donut loại nội dung (khối F). KHÔNG nhận contentTypes (ngoại lệ 2).
 export async function getAnalyticsByContentType(f: AnalyticsFilter): Promise<AnalyticsContentType[]> {
   const { data } = await client.get<ApiResponse<AnalyticsContentType[]>>("/analytics/by-content-type", {
-    params: { from: f.from, to: f.to, platforms: csvParam(f.platforms) },
+    params: { from: f.from, to: f.to, platforms: csvParam(f.platforms), source: sourceParam(f) },
   });
   return data.result;
 }
@@ -260,7 +288,7 @@ export async function getAnalyticsByContentType(f: AnalyticsFilter): Promise<Ana
 // GET /analytics/activity-heatmap — lưới 7 thứ × 8 khung 3 giờ (khối G).
 export async function getAnalyticsHeatmap(f: AnalyticsFilter): Promise<AnalyticsHeatmap> {
   const { data } = await client.get<ApiResponse<AnalyticsHeatmap>>("/analytics/activity-heatmap", {
-    params: { from: f.from, to: f.to, platforms: csvParam(f.platforms), contentTypes: csvParam(f.contentTypes) },
+    params: { from: f.from, to: f.to, platforms: csvParam(f.platforms), contentTypes: csvParam(f.contentTypes), source: sourceParam(f) },
   });
   return data.result;
 }
@@ -268,7 +296,7 @@ export async function getAnalyticsHeatmap(f: AnalyticsFilter): Promise<Analytics
 // GET /analytics/insights — dải "Thông tin chi tiết" (khối H).
 export async function getAnalyticsInsights(f: AnalyticsFilter): Promise<AnalyticsInsights> {
   const { data } = await client.get<ApiResponse<AnalyticsInsights>>("/analytics/insights", {
-    params: { from: f.from, to: f.to, platforms: csvParam(f.platforms), contentTypes: csvParam(f.contentTypes) },
+    params: { from: f.from, to: f.to, platforms: csvParam(f.platforms), contentTypes: csvParam(f.contentTypes), source: sourceParam(f) },
   });
   return data.result;
 }
@@ -279,7 +307,7 @@ export async function exportAnalyticsCsv(f: AnalyticsFilter, sort?: TopPostSort)
   const { data } = await client.get<ApiResponse<string>>("/analytics/export", {
     params: {
       from: f.from, to: f.to, platforms: csvParam(f.platforms), contentTypes: csvParam(f.contentTypes),
-      sort: sortParamOf(sort),
+      source: sourceParam(f), sort: sortParamOf(sort),
     },
   });
   return data.result;
@@ -290,9 +318,48 @@ export async function getAnalyticsTopPosts(f: AnalyticsFilter, sort?: TopPostSor
   const { data } = await client.get<ApiResponse<AnalyticsTopPost[]>>("/analytics/top-posts", {
     params: {
       from: f.from, to: f.to, platforms: csvParam(f.platforms), contentTypes: csvParam(f.contentTypes),
-      sort: sortParamOf(sort), limit,
+      source: sourceParam(f), sort: sortParamOf(sort), limit,
     },
   });
+  return data.result;
+}
+
+// ---- Đồng bộ số liệu thật từ nền tảng (analytics giai đoạn 1) ----
+
+/** Trạng thái đồng bộ của MỘT kênh đăng (Page / IG Business / Threads). */
+export interface AnalyticsSyncAccount {
+  accountId: string;
+  platform: Platform;
+  accountName: string;
+  avatarUrl: string | null;
+  status: ConnectionStatus | null;
+  /** Facebook: token có quyền read_insights (đọc lượt xem); nền tảng khác null. */
+  insightsPermission: boolean | null;
+  trackedPosts: number;
+  /** Bài chưa đồng bộ lần nào (đang chờ lượt quét đầu tiên, ≤ 5 phút). */
+  pendingPosts: number;
+  stoppedPosts: number;
+  permissionErrors: number;
+  lastSyncedAt: string | null;
+  /** Lần quét kênh gần nhất (bài tự đăng trên Trang + insights); null khi chưa quét. */
+  accountSyncedAt?: string | null;
+}
+
+export interface AnalyticsSyncStatus {
+  /** false = chưa có kênh đăng nào ACTIVE → trang hiện "Dữ liệu mẫu". */
+  connected: boolean;
+  accounts: AnalyticsSyncAccount[];
+}
+
+// GET /analytics/sync-status
+export async function getAnalyticsSyncStatus(): Promise<AnalyticsSyncStatus> {
+  const { data } = await client.get<ApiResponse<AnalyticsSyncStatus>>("/analytics/sync-status");
+  return data.result;
+}
+
+// POST /analytics/sync — nút "Làm mới": xếp lịch đồng bộ ngay (job nền ≤ 5 phút). Trả số bài được xếp lịch.
+export async function requestAnalyticsSync(): Promise<number> {
+  const { data } = await client.post<ApiResponse<number>>("/analytics/sync");
   return data.result;
 }
 

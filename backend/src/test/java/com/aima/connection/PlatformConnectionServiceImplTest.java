@@ -32,7 +32,8 @@ class PlatformConnectionServiceImplTest {
                         "http://fe/settings?tab=connections&status=success",
                         "http://fe/settings?tab=connections&error=oauth_failed"));
         service = new PlatformConnectionServiceImpl(metaOAuthService, mock(PlatformAccountRepository.class),
-                mock(UserRepository.class), mock(PlatformConnectionMapper.class), aima);
+                mock(UserRepository.class), mock(PlatformConnectionMapper.class), aima,
+                mock(com.aima.repository.AccountSyncStateRepository.class));
     }
 
     @Test

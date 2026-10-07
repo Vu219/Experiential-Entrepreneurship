@@ -8,6 +8,7 @@ import { Card } from '../../components/ui.tsx';
 import PageContainer from '../../components/PageContainer.tsx';
 import KpiCard from '../../components/analytics/KpiCard.tsx';
 import AnalyticsFilterBar from '../../components/analytics/AnalyticsFilterBar.tsx';
+import AnalyticsSyncBar from '../../components/analytics/AnalyticsSyncBar.tsx';
 import AnalyticsTrendChart from '../../components/analytics/AnalyticsTrendChart.tsx';
 import PlatformBreakdown from '../../components/analytics/PlatformBreakdown.tsx';
 import ContentTypeBreakdown from '../../components/analytics/ContentTypeBreakdown.tsx';
@@ -26,8 +27,9 @@ import { defaultRange } from '../../components/analytics/dateRange.ts';
 import type { Platform } from '../../api/brandProfile.ts';
 import {
   CONTENT_TYPES, exportAnalyticsCsv, getAnalyticsByContentType, getAnalyticsByPlatform, getAnalyticsHeatmap,
-  getAnalyticsInsights, getAnalyticsSummary, getAnalyticsTimeseries, getAnalyticsTopPosts,
-  type AnalyticsFilter, type AnalyticsSummary, type AnalyticsTimeseries, type AnalyticsTopPost,
+  getAnalyticsInsights, getAnalyticsSummary, getAnalyticsSyncStatus, getAnalyticsTimeseries, getAnalyticsTopPosts,
+  requestAnalyticsSync,
+  type AnalyticsFilter, type AnalyticsSummary, type AnalyticsSyncStatus, type AnalyticsTimeseries, type AnalyticsTopPost,
   type ContentTypeLabel, type TopPostSort, type TopPostSortField,
 } from '../../api/analytics.ts';
 import {
@@ -45,15 +47,18 @@ import { C } from '../../styles/colors';
 // tải/skeleton/thử lại ĐỘC LẬP: đổi bộ lọc chỉ thay phần dữ liệu, hàng công cụ vẫn thao tác được,
 // không remount cả trang.
 //
-// DỮ LIỆU MẪU: chỉ bật khi tài khoản CHƯA từng có số liệu thật (hoặc API lỗi ngay lần đầu). Khi đã
-// thấy dữ liệu thật một lần, mọi lần lọc sau LUÔN hiển thị dữ liệu thật — lọc không ra kết quả thì
-// hiện empty state, tuyệt đối không âm thầm đổi sang số liệu demo. Cờ VITE_USE_MOCK=true ép mock.
+// DỮ LIỆU MẪU: quyết định bằng GET /analytics/sync-status — chưa có kênh đăng nào ACTIVE (Page / IG
+// Business / Threads) thì hiện dữ liệu mẫu; đã kết nối thì LUÔN là dữ liệu thật (kể cả toàn 0 khi đang
+// đồng bộ lần đầu hay chưa có bài — hiện empty state), tuyệt đối không âm thầm đổi sang số liệu demo.
+// Không đọc được sync-status → quay về luật cũ (mẫu khi chưa từng thấy số liệu thật). Cờ VITE_USE_MOCK=true ép mock.
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 const ALL_PLATFORMS: Platform[] = ['FACEBOOK', 'INSTAGRAM', 'THREADS'];
 const SORT_FIELDS: TopPostSortField[] = ['views', 'likes', 'comments', 'shares', 'engagement', 'date'];
 /** Trần export của backend — vượt thì trả mã 2053 kèm hướng dẫn thu hẹp bộ lọc. */
 const EXPORT_TOO_LARGE_CODE = 2053;
+/** Sau "Làm mới": job nền chạy mỗi 5 phút + thời gian gọi Meta → chờ tối đa 7 phút rồi thôi theo dõi. */
+const WAIT_FOR_NEW_DATA_MS = 7 * 60_000;
 /** Một khoảng cách duy nhất cho cả hàng lẫn cột của lưới 12 cột. */
 const GRID_GAP = 18;
 
@@ -102,6 +107,8 @@ export default function Analytics() {
       to: params.get('to') || def.to,
       platforms: parseCsvParam(params.get('platforms'), ALL_PLATFORMS),
       contentTypes: parseCsvParam<ContentTypeLabel>(params.get('types'), CONTENT_TYPES),
+      // Mặc định toàn bộ bài của Trang (kể cả bài tự đăng ngoài AIMA); ?source=aima = chỉ bài AIMA.
+      aimaOnly: params.get('source') === 'aima',
     };
   }, [params]);
 
@@ -128,13 +135,30 @@ export default function Analytics() {
       from: next.from, to: next.to,
       platforms: next.platforms.join(',') || undefined,
       types: next.contentTypes.join(',') || undefined,
+      source: next.aimaOnly ? 'aima' : undefined,
     });
   }, [filter, patchParams]);
   const setSort = (next: TopPostSort) => patchParams({ sortField: next.field, sortDir: next.asc ? 'asc' : 'desc' });
 
   // Khoá ổn định để các useCallback bên dưới chỉ đổi khi bộ lọc thực sự đổi.
-  const filterKey = `${filter.from}|${filter.to}|${filter.platforms.join(',')}|${filter.contentTypes.join(',')}`;
+  const filterKey = `${filter.from}|${filter.to}|${filter.platforms.join(',')}|${filter.contentTypes.join(',')}|${filter.aimaOnly}`;
   const stableFilter = useMemo(() => filter, [filterKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---- Trạng thái đồng bộ số liệu thật: quyết định chế độ mẫu/thật + thanh "Cập nhật lần cuối · Làm mới" ----
+  const [sync, setSync] = useState<AnalyticsSyncStatus | null>(null);
+  const [syncLoad, setSyncLoad] = useState<'loading' | 'ok' | 'error'>(USE_MOCK ? 'ok' : 'loading');
+  const loadSync = useCallback(() => {
+    getAnalyticsSyncStatus()
+      .then((s) => { setSync(s); setSyncLoad('ok'); })
+      // Lỗi ở lần hỏi lại (đang theo dõi) thì giữ trạng thái cũ; lỗi ngay lần đầu → luật cũ.
+      .catch(() => setSyncLoad((prev) => (prev === 'loading' ? 'error' : prev)));
+  }, []);
+  useEffect(() => { if (!USE_MOCK) loadSync(); }, [loadSync]);
+  const connected = sync ? sync.connected : null;
+  const pendingPosts = sync ? sync.accounts.reduce((n, a) => n + a.pendingPosts, 0) : 0;
+  // ISO-8601 cùng định dạng nên so sánh chuỗi = so sánh thời điểm.
+  const lastSyncedAt = useMemo(() => (sync?.accounts ?? []).reduce<string | null>(
+    (latest, a) => (a.lastSyncedAt && (!latest || a.lastSyncedAt > latest) ? a.lastSyncedAt : latest), null), [sync]);
 
   // ---- Khối lõi: KPI (B) + chart (C). Quyết định luôn trang đang ở chế độ thật hay dữ liệu mẫu ----
   const [coreLoad, setCoreLoad] = useState<'loading' | 'ok' | 'error'>('loading');
@@ -147,6 +171,7 @@ export default function Analytics() {
   const everReal = useRef(false);
 
   const fetchCore = useCallback(() => {
+    if (!USE_MOCK && syncLoad === 'loading') return; // chờ biết đã kết nối nền tảng chưa
     setCoreLoad('loading');
     const useMockData = () => {
       setSummary(mockSummary(stableFilter));
@@ -154,18 +179,20 @@ export default function Analytics() {
       setDemo(true);
       setCoreLoad('ok');
     };
-    if (USE_MOCK) { useMockData(); return; }
+    if (USE_MOCK || connected === false) { useMockData(); return; }
+    // Đã có kênh đăng ACTIVE → luôn dữ liệu thật, kể cả toàn 0 (đang đồng bộ lần đầu / chưa có bài).
+    const realMode = connected === true;
     Promise.all([getAnalyticsSummary(stableFilter), getAnalyticsTimeseries(stableFilter)])
       .then(([s, ts]) => {
         if (summaryHasData(s)) everReal.current = true;
-        if (summaryHasData(s) || everReal.current) {
+        if (realMode || summaryHasData(s) || everReal.current) {
           setSummary(s); setSeries(ts); setDemo(false); setCoreLoad('ok');
         } else useMockData();
       })
-      // Đã từng có dữ liệu thật thì lỗi là lỗi thật → hiện nút "Thử lại", KHÔNG lặng lẽ đổi sang
-      // dữ liệu mẫu (người dùng sẽ tưởng số liệu của mình tụt).
-      .catch(() => { if (everReal.current) setCoreLoad('error'); else useMockData(); });
-  }, [stableFilter]);
+      // Đã kết nối / từng có dữ liệu thật thì lỗi là lỗi thật → hiện nút "Thử lại", KHÔNG lặng lẽ đổi
+      // sang dữ liệu mẫu (người dùng sẽ tưởng số liệu của mình tụt).
+      .catch(() => { if (realMode || everReal.current) setCoreLoad('error'); else useMockData(); });
+  }, [stableFilter, syncLoad, connected]);
   useEffect(() => { fetchCore(); }, [fetchCore]);
   useEffect(() => { if (coreLoad !== 'loading') setBooted(true); }, [coreLoad]);
 
@@ -187,6 +214,62 @@ export default function Analytics() {
     useCallback(() => getAnalyticsTopPosts(stableFilter, sort, 50), [stableFilter, sort.field, sort.asc]), // eslint-disable-line react-hooks/exhaustive-deps
     useCallback(() => mockTopPosts(stableFilter, sort, 50), [stableFilter, sort.field, sort.asc]), // eslint-disable-line react-hooks/exhaustive-deps
     demo);
+
+  // ---- Đồng bộ: "phiên bản dữ liệu" = lần đồng bộ bài gần nhất + lần quét kênh gần nhất (bài tự đăng vừa import) +
+  // số bài đang theo dõi. Phiên bản đổi → tải lại toàn bộ khối số liệu tại chỗ (giữ bộ lọc, không F5).
+  const dataVersion = useMemo(() => {
+    const accounts = sync?.accounts ?? [];
+    const lastAccountSync = accounts.reduce<string>((v, a) => (a.accountSyncedAt && a.accountSyncedAt > v ? a.accountSyncedAt : v), '');
+    return `${lastSyncedAt ?? ''}|${lastAccountSync}|${accounts.reduce((n, a) => n + a.trackedPosts, 0)}`;
+  }, [sync, lastSyncedAt]);
+
+  // Sau khi bấm "Làm mới": CHỜ số liệu mới (job nền chạy mỗi 5 phút) — hỏi lại trạng thái 15 giây/lần, có số mới thì
+  // tự tải lại + báo; quá WAIT_FOR_NEW_DATA_MS mà nền tảng không trả gì mới thì thôi chờ và báo. Còn bài chờ đồng bộ
+  // lần đầu thì vẫn hỏi 30 giây/lần như trước.
+  const [waitingUntil, setWaitingUntil] = useState<number | null>(null);
+  useEffect(() => {
+    if (USE_MOCK || !sync?.connected) return;
+    if (waitingUntil !== null && Date.now() > waitingUntil) {
+      setWaitingUntil(null);
+      toast.info(t.anaSyncNoNews);
+      return;
+    }
+    if (pendingPosts === 0 && waitingUntil === null) return;
+    const id = window.setTimeout(loadSync, waitingUntil !== null ? 15_000 : 30_000);
+    return () => window.clearTimeout(id);
+  }, [sync, pendingPosts, waitingUntil, loadSync]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const seenVersion = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!sync) return;
+    if (seenVersion.current === undefined) { seenVersion.current = dataVersion; return; }
+    if (dataVersion === seenVersion.current) return;
+    seenVersion.current = dataVersion;
+    if (demo !== false) return;
+    fetchCore();
+    byPlatform.reload(); byContentType.reload(); heatmap.reload(); insights.reload(); topPosts.reload();
+    if (waitingUntil !== null) {
+      setWaitingUntil(null);
+      toast.success(t.anaSyncReloaded);
+    }
+  }, [dataVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const queued = await requestAnalyticsSync();
+      if (queued > 0) {
+        toast.success(t.anaSyncQueued);
+        setWaitingUntil(Date.now() + WAIT_FOR_NEW_DATA_MS);
+        loadSync();
+      } else toast.info(t.anaSyncUpToDate);
+    } catch {
+      toast.error(t.anaSyncFailed);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // ---- Xuất báo cáo ----
   const [exporting, setExporting] = useState(false);
@@ -223,7 +306,8 @@ export default function Analytics() {
   const kpiSpan = wide ? 3 : isMobile ? 12 : 6;
   const mainSpan = wide ? 8 : 12;   // chart / bảng Top bài viết
   const sideSpan = wide ? 4 : 12;   // donut nền tảng / donut loại nội dung
-  const insightsCols = wide ? 5 : width > 1024 ? 3 : 2; // <768 vẫn 2 cột để strip không cao lêu nghêu
+  // 6 ô (thêm "Người theo dõi mới") — khớp InsightsStrip: 3 cột × 2 hàng ở desktop, 2 cột khi hẹp.
+  const insightsCols = width > 1024 ? 3 : 2; // <768 vẫn 2 cột để strip không cao lêu nghêu
 
   const kpi = [
     { key: 'views' as const, icon: Eye, label: t.anaViews },
@@ -239,11 +323,12 @@ export default function Analytics() {
   // Empty state (chỉ ở chế độ dữ liệu THẬT): phân biệt chưa kết nối / chưa có bài / lọc không ra.
   const emptyNote = useMemo(() => {
     if (demo !== false || !summary || summaryHasData(summary)) return null;
+    if (pendingPosts > 0) return t.anaSyncingFirst;
     const rows = byPlatform.data;
     if (rows && rows.length > 0 && rows.every((r) => !r.connected)) return t.anaEmptyNoConnection;
-    if (filter.platforms.length > 0 || filter.contentTypes.length > 0) return t.anaEmptyNoResult;
+    if (filter.platforms.length > 0 || filter.contentTypes.length > 0 || filter.aimaOnly) return t.anaEmptyNoResult;
     return t.anaEmptyNoPosts;
-  }, [demo, summary, byPlatform.data, filter.platforms.length, filter.contentTypes.length, t]);
+  }, [demo, summary, pendingPosts, byPlatform.data, filter.platforms.length, filter.contentTypes.length, filter.aimaOnly, t]);
 
   // Lần tải ĐẦU: skeleton cả trang (kèm thanh lọc) dùng CÙNG lưới 12 cột và bao gồm tất cả
   // các khối (KPI, chart, nền tảng, top bài viết, loại nội dung, heatmap, thông tin chi tiết)
@@ -297,6 +382,11 @@ export default function Analytics() {
         onExportCsv={onExportCsv} exporting={exporting} demo={demo === true}
       />
 
+      {demo === false && sync && sync.accounts.length > 0 && (
+        <AnalyticsSyncBar status={sync} lastSyncedAt={lastSyncedAt} refreshing={refreshing} onRefresh={onRefresh}
+          waiting={waitingUntil !== null} />
+      )}
+
       {emptyNote && (
         <Card style={{ padding: 16 }}>
           <div style={{ fontSize: 13.5, color: C.textSecondary, lineHeight: 1.6 }}>{emptyNote}</div>
@@ -318,7 +408,7 @@ export default function Analytics() {
           kpi.map((k) => (
             <Cell key={k.key} span={kpiSpan} ready>
               <KpiCard icon={k.icon} tone={METRIC_TONE[k.key]} label={k.label}
-                stat={summary[k.key]} comparisonLabel={compareLabel} />
+                stat={summary[k.key]} comparisonLabel={compareLabel} hint={t.anaKpiAccruedHint} />
             </Cell>
           ))
         )}
@@ -356,12 +446,9 @@ export default function Analytics() {
 
       {detailPost && (
         <PostDetailModal
-          postId={detailPost.postId}
-          fallback={{
-            caption: detailPost.caption, platform: detailPost.platform, publishedAt: detailPost.publishedAt,
-            views: detailPost.views, likes: detailPost.likes, comments: detailPost.comments, shares: detailPost.shares,
-          }}
+          post={detailPost}
           allPosts={topPosts.data ?? []}
+          demo={demo === true}
           onClose={() => setDetailPost(null)}
         />
       )}
@@ -406,9 +493,10 @@ function download(content: string, filename: string) {
 
 /** CSV cho chế độ dữ liệu mẫu — cùng cột với export thật của backend. */
 function mockCsv(rows: AnalyticsTopPost[]): string {
-  const head = 'publishedAt,platform,caption,views,likes,comments,shares,engagement';
+  const head = 'publishedAt,platform,caption,views,likes,comments,shares,engagement,origin,permalink';
   const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
   return [head, ...rows.map((r) => [
-    r.publishedAt, r.platform, esc(r.caption ?? ''), r.views, r.likes, r.comments, r.shares, r.engagement,
+    r.publishedAt, r.platform, esc(r.caption ?? ''), r.views ?? '', r.likes, r.comments, r.shares, r.engagement,
+    r.origin, r.permalink ?? '',
   ].join(','))].join('\n');
 }

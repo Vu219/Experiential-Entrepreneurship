@@ -2,13 +2,18 @@ package com.aima.mapper;
 
 import com.aima.dto.response.AnalyticsContentTypeResponse;
 import com.aima.dto.response.AnalyticsHeatmapCellResponse;
+import com.aima.dto.response.AnalyticsSyncAccountResponse;
+import com.aima.dto.response.AnalyticsSyncStatusResponse;
 import com.aima.dto.response.AnalyticsTopPostResponse;
+import com.aima.entity.PlatformAccount;
 import com.aima.repository.projection.ContentTypeMetricProjection;
 import com.aima.repository.projection.HeatmapCellProjection;
+import com.aima.repository.projection.MediaSyncStatsProjection;
 import com.aima.repository.projection.TopPostProjection;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -21,6 +26,22 @@ import java.util.List;
  */
 @Mapper(componentModel = "spring")
 public interface AnalyticsMapper {
+
+    /** Trạng thái đồng bộ của một kênh đăng; {@code stats} null = chưa có bài nào được theo dõi. */
+    @Mapping(target = "accountId", source = "account.id")
+    @Mapping(target = "platform", source = "account.platformName")
+    @Mapping(target = "accountName", source = "account.accountName")
+    @Mapping(target = "avatarUrl", source = "account.avatarUrl")
+    @Mapping(target = "status", source = "account.connectionStatus")
+    @Mapping(target = "trackedPosts", source = "stats.trackedPosts")
+    @Mapping(target = "pendingPosts", source = "stats.pendingPosts")
+    @Mapping(target = "stoppedPosts", source = "stats.stoppedPosts")
+    @Mapping(target = "permissionErrors", source = "stats.permissionErrors")
+    @Mapping(target = "lastSyncedAt", source = "stats.lastSyncedAt")
+    AnalyticsSyncAccountResponse toSyncAccountResponse(PlatformAccount account, MediaSyncStatsProjection stats,
+                                                       Boolean insightsPermission, Instant accountSyncedAt);
+
+    AnalyticsSyncStatusResponse toSyncStatusResponse(boolean connected, List<AnalyticsSyncAccountResponse> accounts);
 
     AnalyticsTopPostResponse toTopPostResponse(TopPostProjection projection);
 

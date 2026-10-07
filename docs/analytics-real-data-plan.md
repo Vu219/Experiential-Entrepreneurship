@@ -1,6 +1,6 @@
 # Kế hoạch: Trang Phân tích dùng dữ liệu thật từ Meta
 
-> Trạng thái: **ĐÃ DUYỆT 2026-10-06** (kèm quyết định ở mục D bên dưới) · **Giai đoạn 0: code xong 2026-10-06, chờ kiểm tra với Meta thật (mục D.2)** · Giai đoạn 1: chưa bắt đầu
+> Trạng thái: **ĐÃ DUYỆT 2026-10-06** (kèm quyết định ở mục D bên dưới) · Giai đoạn 0: đã duyệt (commit `1b52e26`) · Giai đoạn 1: đã kiểm với Meta thật (khớp Business Suite, Page test **AIMA Marketing**) · **Q9/Q10: code xong 2026-10-07, chưa commit (mục D.5)** · **Giai đoạn 2: xong 2026-10-07, đã kiểm thật một phần, chưa commit (mục D.6)** · **Giai đoạn 3: xong 2026-10-07, webhook đã test thật, chưa commit (mục D.7)**
 > Ngày khảo sát: 2026-10-06 · Phạm vi đợt này: **chỉ Facebook Page**. Instagram/Threads làm sau, nhưng kiến trúc chuẩn bị sẵn
 > Đọc kèm: `docs/Analytics.md` (v1), `docs/Analytics-v2.md` (v2, mục "TIẾN ĐỘ & BÀN GIAO")
 
@@ -121,6 +121,389 @@ GET /v25.0/{platform_post_id}/insights?metric=post_media_view
 **D. Trang /analytics**
 - Tài khoản chưa có số thật: thẻ "Tỷ lệ tương tác TB" ở chế độ mẫu khoảng 11–12% (trước là 194.2%).
 - Có số thật: tỷ lệ tính cả bài Facebook có lượt xem.
+
+### D.3 Giai đoạn 1 — đã làm (2026-10-06, chưa commit)
+
+**Quyết định bổ sung (lượt duyệt 2):** Q3 đã trả lời (config có `pages_show_list, pages_read_engagement, read_insights,
+pages_read_user_content, pages_manage_posts, business_management`; app Development; chưa Business Verification). Bình luận
+đếm **cả phản hồi** (`comments.filter(stream)`). Từ giai đoạn này **không commit** — người dùng tự review/commit.
+
+**Schema — Flyway V7 (chỉ thêm bảng, không sửa/xoá dữ liệu cũ):**
+- `post_metric_snapshots`: số TÍCH LUỸ mỗi lần đồng bộ.
+  - Cột dùng chung `views, reach, reactions, comments, shares, saves`, đều nullable.
+  - `raw` jsonb (phản hồi gốc của Meta) + `source` (`POLL` | `BACKFILL`).
+  - Index `(platform_media_id, collected_at desc)`.
+- `post_metrics_daily`: số PHÁT SINH theo ngày giờ VN.
+  - Cột `views/reactions/comments/shares/saves_delta` + `is_estimated`.
+  - Unique `(platform_media_id, metric_date)`, index `metric_date`.
+  - Không có `reach_delta` vì số người xem duy nhất không cộng dồn được qua các ngày.
+- **Không thêm** unique cho `post_analytics(post_id, milestone_hours)`: dữ liệu thật có thể đã trùng (từng có nhiều instance cùng chạy job), thêm vào sẽ làm migration lỗi.
+
+**Kiến trúc:**
+- `PlatformMetricsProvider` có `fetchPostMetrics` / `fetchAccountMetrics` / `listPublishedPosts`.
+  - `FacebookMetricsProviderImpl`: thu số liệu bài. Hai hàm còn lại `TODO giai đoạn 2`.
+  - `ThreadsMetricsProviderImpl`: chỉ giữ nguyên cách thu số liệu bài cũ để không thoái lui; còn lại là stub `TODO`.
+  - `InstagramMetricsProviderImpl`: stub, trả `UNSUPPORTED`.
+  - Mọi lời gọi HTTP vẫn đi qua `MetaApiClient`.
+- `AnalyticsSyncService(Impl)` làm toàn bộ việc đồng bộ.
+- `AnalyticsCollectionJob` (giữ tên) chỉ điều phối, **chạy mỗi 5 phút**:
+  1. `prepare`: tạo `platform_media` cho bài mới đăng, và **chép mốc cũ trong `post_analytics` sang snapshot `BACKFILL`** cho bài chưa có snapshot.
+  2. `findDue`: lấy các bài đến hạn, gom theo tài khoản. Chỉ tài khoản đang ACTIVE.
+  3. `syncAccount`: gọi provider, rồi mỗi bài một transaction gồm: snapshot → tính lại toàn bộ số theo ngày → mốc → lịch kế tiếp.
+- **Số theo ngày** (`util/MetricDeltaDistributor`, hàm thuần):
+  - Mốc gốc là (giờ đăng, 0). Phần tăng giữa hai snapshot được chia cho các ngày **theo tỷ lệ thời gian** (giờ VN), phần dư dồn vào ngày cuối.
+  - Đoạn trải hơn một ngày được đánh `is_estimated`.
+  - Metric null (chưa có quyền) bị bỏ qua: lần đầu có số, phần tăng tính từ giờ đăng.
+- **Lịch đồng bộ theo tuổi bài:** dưới 24h mỗi 2h; dưới 3 ngày mỗi 6h; dưới 7 ngày mỗi 12h; dưới 30 ngày mỗi ngày; còn lại mỗi tuần.
+  - Quá 90 ngày thì thôi quét định kỳ.
+  - Bài **chưa đồng bộ lần nào** (kể cả bài cũ) luôn được quét **một lần**. Đây chính là bước "đồng bộ lại lượt xem cho bài cũ".
+  - Luôn ép một lượt ngay sau mốc 24/48/168h.
+- **`post_analytics` tính từ snapshot:**
+  - Mốc mới = snapshot đầu tiên rơi vào `[mốc, mốc + 24h)`. Quá cửa sổ thì không tạo, để tránh gán số hôm nay cho mốc 24h.
+  - Mốc đã có thì không tạo trùng.
+  - **Mốc cũ không bị sửa:** dòng mốc cũ có `views` null vẫn null (xem câu hỏi Q9 dưới).
+
+**API:**
+- `/analytics/{summary,timeseries,by-platform}` = **delta** từ `post_metrics_daily`.
+- `/analytics/{top-posts,by-content-type,activity-heatmap,insights,export}` = **bài đăng trong kỳ** + snapshot MỚI NHẤT (`LATERAL … LIMIT 1`).
+- Hợp đồng API giữ nguyên.
+- Mới:
+  - `GET /analytics/sync-status`: kênh đăng, quyền `read_insights`, số bài đang theo dõi / chờ / đã dừng / lỗi quyền, lần đồng bộ cuối.
+  - `POST /analytics/sync`: nút "Làm mới". Đưa bài về hạn ngay, job xử lý trong vòng 5 phút. Bỏ qua bài vừa đồng bộ dưới 15 phút và bài đang lỗi.
+- Khoá cache 45 giây có thêm "lần đồng bộ gần nhất", nên số mới hiện ngay sau khi đồng bộ.
+
+**Giao diện:**
+- **Chế độ mẫu chỉ khi chưa có kênh đăng ACTIVE.** Đã kết nối thì luôn hiện dữ liệu thật, kể cả toàn số 0.
+- Thanh trạng thái hiển thị:
+  - "Cập nhật lần cuối" hoặc "Đang đồng bộ N bài…";
+  - nút **Làm mới**;
+  - cảnh báo Page thiếu `read_insights` / cần kết nối lại, kèm nút sang Cài đặt.
+- Trang tự hỏi lại trạng thái mỗi 30 giây khi còn bài chờ đồng bộ hoặc vừa bấm "Làm mới", và tự tải lại khi có lượt đồng bộ mới.
+- **Chú thích theo Q4:**
+  - Tooltip KPI: "số phát sinh trong kỳ…".
+  - Phụ đề biểu đồ: "Số phát sinh mỗi ngày".
+  - Nền tảng: "phát sinh trong kỳ".
+  - Top bài / loại nội dung / heatmap: "Bài đăng trong kỳ…".
+
+**Vẫn đọc `post_analytics`:** bảng so sánh mốc (FR-62), optimizer (FR-67), giờ vàng (FR-48). Bảng điều khiển / Hồ sơ /
+"Top chủ đề" đã chuyển sang bảng mới ở mục D.5.
+
+**Câu hỏi mở**
+- **Q9.** Có muốn điền `views` cho các dòng mốc cũ đang null không? Chỉ điền được bằng số **hiện tại** (không phải số tại mốc), nên em chưa làm. Đây là sửa dữ liệu cũ, cần anh/chị đồng ý.
+- **Q10.** Có chuyển Bảng điều khiển / Hồ sơ sang bảng mới không?
+
+**Ghi chú test `SubscriptionLifecycleTest` (không sửa, để anh/chị xử lý riêng):**
+- 2 test hỏng: `activatePaidPlan_samePlanStillValid_accumulatesOntoExistingExpiry` và `activatePaidPlan_planWithoutEnumLabel_keepsPreviousLabel`.
+- Cùng một nguyên nhân là "bom hẹn giờ":
+  - test cố định `NOW = 2026-09-22T10:00`, nhưng `SubscriptionServiceImpl.getOrCreate` gọi `expireToFreePlan(subscription, LocalDateTime.now())` bằng **đồng hồ thật**;
+  - hạn `NOW+5 ngày` (27/09) và `NOW+10 ngày` (02/10) đã qua → gói bị hạ về FREE trước khi `activatePaidPlan` chạy.
+- Hướng sửa gợi ý: cho `getOrCreate` nhận `now` (hoặc inject `Clock`), hoặc test dùng ngày tương đối với `LocalDateTime.now()`.
+
+### D.5 Q9 + Q10 (2026-10-07, chưa commit)
+
+**Quyết định:**
+- **Q9:** KHÔNG điền mốc cũ bằng số hiện tại.
+- **Q10:** Bảng điều khiển, Hồ sơ và "Top chủ đề" đọc bảng mới, dùng chung cách tính với trang Phân tích. Bảng so sánh mốc (FR-62), tối ưu chiến lược và gợi ý giờ vàng vẫn đọc `post_analytics`, vì bảng này nay đã tính từ snapshot.
+
+**Q9 — giao diện:**
+- Bảng mốc 24h/48h/7 ngày **không còn hiển thị trên giao diện** (bị gỡ ở đợt v1, `af3f48c`). API `/analytics/posts` vẫn trả `views = null` cho mốc cũ.
+- Nơi người dùng thấy lượt xem từng bài là **Top bài viết** (bảng, danh sách mobile, "Xem tất cả", chi tiết bài). Trước đây ô này ép số trống thành `0`.
+- Nay backend trả `views = null` kèm cờ `legacyOnly`; cờ này bật khi snapshot mới nhất của bài là bản chép từ mốc cũ (`BACKFILL`).
+- Giao diện (`MetricValue`) hiện **"—"** kèm tooltip:
+  - `legacyOnly` → "Bài đăng trước khi có đồng bộ đầy đủ, không có số liệu tại mốc này";
+  - còn lại → "Chưa có lượt xem — chưa cấp quyền read_insights hoặc nền tảng chưa trả số".
+- Sắp xếp theo lượt xem: bài "—" luôn nằm cuối khi giảm dần. CSV để trống ô. Lượt xem trung bình trong chi tiết bài chỉ tính trên các bài có số.
+
+**Q10 — chung nguồn với trang Phân tích:**
+- Biểu đồ "Hiệu quả nội dung" trên Bảng điều khiển gọi **chính** `findDailyEngagementForUser`, cùng truy vấn với KPI/biểu đồ của trang Phân tích, không lọc gì:
+  - "Lượt xem" = `views_delta`;
+  - "Lượt tương tác" = cảm xúc + bình luận + chia sẻ phát sinh mỗi ngày.
+- Nhãn đổi "Lượt tiếp cận" → "Lượt xem"; tiêu đề có tooltip giải thích.
+- Hồ sơ "Tổng lượt xem" (trước là "Tổng tiếp cận") và "Top chủ đề": snapshot MỚI NHẤT mỗi bài, dùng cùng `LATERAL` với Top bài viết.
+- Đã bỏ `findDailyPerformanceForUser` và `DailyMetricProjection` vì không còn dùng.
+- Kiểm chứng: `AnalyticsRealDataPgTest` so từng ngày của Bảng điều khiển với `/analytics/timeseries` (cả lượt xem lẫn tương tác) và tổng lượt xem ở Hồ sơ trên Postgres thật.
+
+**Cách kiểm tra số khớp giữa các trang**
+1. Bảng điều khiển → "Hiệu quả nội dung" → **7 ngày**. Rê chuột lên từng điểm để lấy "Lượt xem" và "Lượt tương tác" của từng ngày.
+2. Phân tích → khoảng **7 ngày** (mặc định, đến hôm nay), **không** lọc nền tảng/loại nội dung:
+   - "Lượt xem" từng ngày trên biểu đồ = "Lượt xem" của Bảng điều khiển cùng ngày;
+   - tổng thẻ KPI "Lượt xem" = tổng 7 điểm của Bảng điều khiển;
+   - "Lượt thích" + "Bình luận" + "Chia sẻ" (KPI) = tổng "Lượt tương tác" 7 ngày của Bảng điều khiển.
+3. Lặp lại với **30 ngày** ở cả hai trang.
+4. Hồ sơ → "Tổng lượt xem" = tổng cột "Lượt xem" của mọi bài đã đăng. So nhanh: Phân tích, khoảng dài nhất bao trùm mọi bài (≤ 366 ngày), tổng thẻ "Lượt xem". Hai số bằng nhau khi mọi bài nằm trong khoảng đó.
+5. Đối chiếu bằng SQL:
+   ```sql
+   -- Bảng điều khiển & Phân tích (7 ngày, giờ VN): cùng một con số
+   select d.metric_date, sum(d.views_delta) views,
+          sum(d.reactions_delta + d.comments_delta + d.shares_delta) engagement
+   from post_metrics_daily d join platform_media m on m.id = d.platform_media_id and m.deleted_at is null
+   join platform_accounts pa on pa.id = m.platform_account_id and pa.deleted_at is null
+   left join posts p on p.id = m.post_id
+   where pa.user_id = '<user_id>' and d.deleted_at is null and (p.id is null or p.deleted_at is null)
+     and d.metric_date between current_date - 6 and current_date
+   group by 1 order by 1;
+
+   -- Hồ sơ: tổng lượt xem = snapshot mới nhất mỗi bài đã đăng
+   select count(*) posts, coalesce(sum(la.views), 0) total_views
+   from posts p join post_schedules ps on ps.id = p.schedule_id
+   join platform_accounts pa on pa.id = ps.platform_account_id
+   left join lateral (select s.views from platform_media m join post_metric_snapshots s on s.platform_media_id = m.id
+                      where m.post_id = p.id order by s.collected_at desc limit 1) la on true
+   where pa.user_id = '<user_id>' and p.status = 'POSTED' and p.deleted_at is null;
+   ```
+6. **Q9:** tìm bài chỉ có mốc cũ (thường là bài đã xoá trên Facebook trước khi có đồng bộ). Ô "Lượt xem" ở Top bài viết phải là "—"; rê chuột thấy tooltip.
+   ```sql
+   select p.platform_post_id from platform_media m join posts p on p.id = m.post_id
+   where not exists (select 1 from post_metric_snapshots s where s.platform_media_id = m.id and s.source = 'POLL');
+   ```
+
+### D.6 Giai đoạn 2 — đã làm (2026-10-07, chưa commit)
+
+**Quyết định (lượt duyệt 2026-10-07):** làm đủ (a) insights cấp Page, (b) import bài ngoài AIMA, (c) dọn snapshot thô quá
+180 ngày, (d) báo IG chưa chuyên nghiệp; **khôi phục** bảng mốc 24h/48h/7 ngày (FR-62) trong modal chi tiết bài; **giữ
+nguyên** mục "Mẫu màu" (một ô Đại dương); xong giai đoạn 2 thì **dừng chờ duyệt**, chưa sang giai đoạn 3.
+
+**Schema — Flyway V8 (chỉ thêm, không sửa/xoá dữ liệu cũ):**
+- `platform_media` thêm 3 cột nullable `media_type` (IMAGE/VIDEO/TEXT/OTHER theo nền tảng báo), `permalink`, `caption_excerpt`
+  (≤ 300 ký tự) + index `(platform_account_id, published_at)`.
+- `account_sync_state` (1 dòng / kênh, unique một phần): `next_sync_at` (null = không tự đồng bộ — kết nối mẫu dev-seed),
+  `last_synced_at`, `consecutive_failures`, `posts_error_code`, `insights_error_code`, `last_error_at`,
+  `instagram_link_status` (LINKED / NOT_LINKED, CHECK).
+- `account_insights_daily`: `followers_count, follows, unfollows, views, reach, interactions` (nullable — null ≠ 0) + `raw` jsonb +
+  `collected_at`; unique `(platform_account_id, metric_date)`; giữ vĩnh viễn. Ngày = ngày Meta tính (giờ Thái Bình Dương).
+
+**Đồng bộ cấp tài khoản — `AnalyticsAccountSyncService(Impl)`**, gọi trong `AnalyticsCollectionJob` (mỗi 5 phút) **trước**
+bước đồng bộ bài để bài vừa import được đồng bộ ngay trong lượt. Chỉ nền tảng có `PlatformMetricsProvider.supportsAccountSync()`
+(hiện chỉ Facebook; IG/Threads vẫn stub). Mỗi kênh: đọc token trong transaction ngắn → gọi Meta NGOÀI transaction → ghi một
+transaction.
+- **Danh sách bài** `GET /{page-id}/published_posts?fields=id,created_time,permalink_url,message,attachments{media_type}`
+  (cursor `after`, tối đa 10 trang × 100 bài/lượt). Lần đầu quét 90 ngày, sau đó từ lần thành công trước − 1 ngày. Meta từ chối
+  trường `attachments` → đọc lại không kèm loại nội dung (loại = null, không đoán là bài chữ).
+  - Bài chưa theo dõi → `platform_media` `origin = EXTERNAL`, `post_id` null; bài đã theo dõi (kể cả AIMA) → bổ sung
+    permalink / loại nội dung / trích caption còn thiếu.
+  - Loại nội dung: photo/album → IMAGE, video → VIDEO, không đính kèm → TEXT, còn lại → OTHER.
+  - Bài AIMA vừa đăng mà bị quét trước khi có dòng theo dõi: `AnalyticsSyncService.prepare` **nhận lại** dòng EXTERNAL đó
+    (gắn `post_id`, đổi origin AIMA) — không tạo trùng, số liệu đã thu giữ nguyên.
+- **Insights Trang** `GET /{page-id}/insights?period=day&metric=page_daily_follows_unique,page_daily_unfollows_unique,page_follows,page_media_view,page_post_engagements`
+  (lần đầu 90 ngày, sau đó 3 ngày gần nhất — Meta sửa số ~48h) + `GET /{page-id}?fields=followers_count` gắn vào ngày hôm nay.
+  Một metric bị khai tử → hỏi lại từng metric, bỏ metric bị từ chối (log ERROR). Upsert theo (kênh, ngày); metric lần sau không
+  trả thì **giữ số cũ**.
+- **Liên kết Instagram**: OAuth callback và mỗi lượt đồng bộ ghi Trang có/không có `instagram_business_account`
+  (không tra được → giữ trạng thái cũ, KHÔNG coi là "chưa liên kết").
+- **Lịch / lỗi:** thành công → **1 giờ** sau (đổi từ 6 giờ ngày 07/10 sau khi kiểm thật: bài tự đăng phải hiện sớm). Lỗi danh sách bài → backoff như bài (thiếu quyền / token 24h; lỗi tạm 1h·2^(n−1) ≤ 24h);
+  RATE_LIMIT → 1h, dừng cả lượt quét. Lỗi insights chỉ ghi `insights_error_code`, không làm hỏng phần danh sách bài.
+  Nút "Làm mới" cũng đưa kênh về hạn (bỏ qua kênh vừa quét < 2 phút / đang lỗi); kết quả trả về = số bài + số kênh được xếp lịch.
+- **Tự tải lại sau "Làm mới" (07/10):** `sync-status` trả thêm `accountSyncedAt` mỗi kênh. FE coi "phiên bản dữ liệu" = lần đồng bộ
+  bài cuối + lần quét kênh cuối + số bài theo dõi; sau khi bấm "Làm mới" thanh trạng thái hiện "Đang chờ số liệu mới…", hỏi lại
+  15 giây/lần tối đa 7 phút → phiên bản đổi thì tải lại mọi khối tại chỗ (giữ bộ lọc) + toast "Đã có số liệu mới"; hết 7 phút → toast
+  "Chưa có số liệu mới". Khoá cache 45s có thêm lần quét kênh cuối.
+- **Kiểm thật 07/10:** bài "hi" đăng tay 10:42 được nhập lúc 10:54 sau khi bấm "Làm mới" (EXTERNAL, IMAGE, 1 cảm xúc, 1 bình luận).
+  Meta trả thừa một ngày SAU khoảng hỏi (toàn 0) → provider bỏ ngày > `to`; truy vấn tổng người theo dõi chỉ xét ngày ≤ hôm nay.
+
+**Đọc số liệu:**
+- Mọi truy vấn "bài ĐĂNG trong kỳ" (`top-posts`, `by-content-type`, `activity-heatmap`, `insights`, `export`) nay đi từ
+  `platform_media` (LEFT JOIN `posts`) nên gồm cả bài ngoài AIMA; bài AIMA phải POSTED, chưa xoá mềm, lịch còn.
+  Loại nội dung = `content_versions.media_format` (bài AIMA) hoặc `platform_media.media_type` (bài ngoài).
+- Bộ lọc mới `source` trên mọi `/analytics/*`: `aima` = chỉ bài AIMA; bỏ trống/giá trị khác = toàn Trang (chốt Q5). FE `?source=aima`,
+  mục "Nguồn bài → Chỉ bài đăng qua AIMA" trong popover Bộ lọc + chip.
+- Top bài viết trả thêm `mediaId` (khoá dòng), `origin`, `permalink`, `platformStatus`; `postId`/`contentItemId` null với bài ngoài.
+  FE: chip "Ngoài AIMA" / "Đã xoá", link "Mở trên nền tảng". CSV thêm cột `origin,permalink`.
+- `insights` trả thêm `newFollowers` (Σ follows theo ngày, null khi không ngày nào có số), `newFollowersDeltaPct`,
+  `followersTotal`. Số cấp Trang chỉ áp bộ lọc nền tảng. FE: ô thứ 6 "Người theo dõi mới"; dải "Thông tin chi tiết" thành 3 cột × 2 hàng.
+- Bảng điều khiển ("Hiệu quả nội dung") dùng chung truy vấn nên nay cũng gồm bài ngoài AIMA (= trang Phân tích, không lọc).
+  Hồ sơ "Tổng lượt xem" / "Top chủ đề", optimizer (FR-67), giờ vàng lịch đăng (FR-48) và FR-62 vẫn **chỉ bài AIMA**.
+- `GET /connections` trả `instagramLinkStatus` cho Trang Facebook; Cài đặt › Kết nối hiện hướng dẫn khi chưa có Instagram nào:
+  NOT_LINKED → "chuyển Instagram sang tài khoản chuyên nghiệp, liên kết với Trang rồi kết nối lại"; LINKED → "kết nối lại để thêm IG".
+- **FR-62 khôi phục:** modal chi tiết bài (bài AIMA) có bảng "Số liệu theo mốc sau khi đăng" đọc `GET /analytics/posts/{postId}`:
+  mốc chưa tới → "Chưa tới mốc"; đã qua mà không có dòng → "Không thu được số liệu ở mốc này"; views null → "—". Bài ngoài AIMA chỉ ghi chú.
+
+**Dọn snapshot thô (c):** `LogRetentionJob` (03:30) xoá `post_metric_snapshots` có `collected_at` cũ hơn 180 ngày
+(`METRIC_SNAPSHOT_RETENTION_DAYS`, 0 = tắt) **nhưng chỉ khi bài còn snapshot mới hơn** — snapshot mới nhất mỗi bài không bao giờ bị
+xoá (Top bài viết / heatmap / Hồ sơ đọc nó). `post_metrics_daily` không bị đụng. Nếu bài cũ đã dọn được đồng bộ lại (hiếm: chỉ bài
+chưa từng đồng bộ), phần lịch sử được chia đều lại từ ngày đăng (`is_estimated`) — tổng không đổi.
+
+**Test:** `AnalyticsAccountSyncServiceIntegrationTest` 7 (H2 + Meta giả), `MetaApiClientImplTest` +6, `AnalyticsAggregateTest` +3,
+`AnalyticsCollectionJobTest` 3, `AnalyticsRealDataPgTest` (PG: bài ngoài AIMA, lọc nguồn, người theo dõi, liên kết IG, dọn snapshot)
+2, `PublishingMigrationTest` +1 (V8). Full suite 548 test, chỉ 15 lỗi cũ. FE build + 22/22. Ảnh nghiệm thu trên stack cô lập (dữ liệu
+mẫu `ana-gd2@aima.local`, Page `uitest-gd2-page`).
+
+**Cách kiểm với Meta thật (chưa ai làm):**
+1. Backup DB rồi khởi động backend mới → Flyway áp **V8** (chỉ thêm). Lượt quét đầu (≤ 5 phút): log
+   `[AnalyticsAccountSync] Tài khoản … (FACEBOOK): N bài mới ngoài AIMA, M ngày insights`.
+2. Đăng tay 1–2 bài trực tiếp trên Page test (không qua AIMA). Bấm "Làm mới" ở /analytics (hoặc chờ ≤ 6 giờ):
+   - Top bài viết có bài đó với chip "Ngoài AIMA", "Mở trên nền tảng" mở đúng bài; số khớp Business Suite.
+   - Bộ lọc → "Chỉ bài đăng qua AIMA" → bài đó biến mất, KPI chỉ còn số của bài AIMA.
+3. Ô "Người theo dõi mới" so với Business Suite → Thông tin chi tiết → Người theo dõi (cùng khoảng ngày; Meta tính ngày theo giờ
+   Thái Bình Dương nên có thể lệch 1 ngày ở mép). Page dưới ~100 lượt thích có thể không có số theo ngày → ô hiện "—" (đúng thiết kế).
+4. Cài đặt › Kết nối: Page chưa liên kết IG Business → khung hướng dẫn màu xanh dưới 3 thẻ nền tảng.
+5. SQL:
+   ```sql
+   select platform_media_id, origin, media_type, permalink, platform_status, last_synced_at
+   from platform_media where platform_account_id = '<page_account_id>' order by published_at desc;
+   select metric_date, follows, unfollows, followers_count, views, interactions
+   from account_insights_daily where platform_account_id = '<page_account_id>' order by metric_date desc limit 10;
+   select next_sync_at, last_synced_at, consecutive_failures, posts_error_code, insights_error_code, instagram_link_status
+   from account_sync_state where platform_account_id = '<page_account_id>';
+   ```
+   `insights_error_code = PERMISSION:…` → token Page thiếu `read_insights` (kết nối lại).
+
+**Chưa làm / để sau:** Instagram/Threads cấp tài khoản (stub); phát hiện IG chỉ gián tiếp qua Trang (không biết IG cá nhân chưa
+liên kết với Trang nào); chưa dùng Batch API / header `X-Business-Use-Case-Usage`; giai đoạn 3 (webhook `feed`, tần suất thích ứng,
+nhân khẩu học, Graph v26).
+
+### D.7 Giai đoạn 3 — đã làm (2026-10-07, chưa commit)
+
+**Quyết định (07/10):** làm (1) webhook Page `feed` — bắt buộc kiểm chữ ký `X-Hub-Signature-256` bằng app secret, trả 200
+nhanh rồi xử lý bất đồng bộ, chống xử lý trùng, đảm bảo Trang được `subscribed_apps` khi kết nối, kèm hướng dẫn từng bước
+(cả test local bằng cloudflared/ngrok); (2) tần suất đồng bộ thích ứng; (3) **chỉ rà** changelog Graph v26 và ghi tài liệu,
+KHÔNG đổi version mặc định. **Bỏ** nhân khẩu học (Meta đã khai tử họ `page_fans_*` của Trang; `follower_demographics` chỉ có
+cho IG/Threads — ngoài phạm vi). App vẫn ở Development. Xong thì dừng.
+
+**Webhook `feed`** (hướng dẫn cấu hình: [`META_WEBHOOK_SETUP.md`](./META_WEBHOOK_SETUP.md)):
+- **Flyway V9** (chỉ thêm): bảng `meta_webhook_events` (một dòng / `entry[].changes[]`, `dedupe_key` unique = SHA-256(id Trang |
+  entry.time | nội dung change), `status` PENDING/PROCESSED/IGNORED/FAILED, `attempts`, `last_error`); cột
+  `account_sync_state.webhook_subscribed_at` + `webhook_error_code`.
+- `MetaWebhookServiceImpl.handleEvent` (POST `/webhooks/meta`, public): kiểm chữ ký TRƯỚC → mỗi thay đổi lưu một dòng
+  (trùng → bỏ) → giao `MetaWebhookEventWorker.process` (`@Async("metaWebhookExecutor")`, hàng đợi đầy thì để PENDING) →
+  trả 200. Bỏ việc ghi `system_logs` cho MỌI event (feed rất nhiều sự kiện); bảng sự kiện thay vai trò lưu vết. Chữ ký sai vẫn
+  ghi `system_logs`.
+- Worker (một transaction / sự kiện, khoá dòng `PESSIMISTIC_WRITE` nên worker và job không xử lý trùng):
+  - bài `verb=remove` (item status/post/photo/video) → `AnalyticsSyncService.markDeleted`: trạng thái riêng "Đã xoá trên nền
+    tảng" (DELETED + STOPPED ngay), giữ số liệu cuối cùng. **Không** đánh FAILED, **không** thông báo "bị nền tảng gỡ" (quyết định
+    07/10 sau khi test thật — payload không phân biệt Meta gỡ hay người dùng tự xoá; thay hành vi SEC-06 cũ của webhook). FE: nhãn
+    xám "Đã xoá trên nền tảng";
+  - bài `verb=add` → `AnalyticsAccountSyncService.markDueForPage` (quét Trang ở lượt job kế tiếp);
+  - comment/reaction/share/like → `AnalyticsSyncService.syncSoon(post, 5 phút)` (không lùi lịch đã sớm hơn, bỏ bài đã dừng);
+  - còn lại → IGNORED.
+- `MetaWebhookEventJob` (mỗi phút, ShedLock `meta-webhook-events`) xử lý lại sự kiện PENDING > 2 phút; lỗi 3 lần → FAILED.
+- `subscribed_apps`: `MetaApiClient.subscribePageWebhook` (POST form `subscribed_fields=feed`). Gọi SAU commit của OAuth callback
+  cho từng Trang (`ensureWebhookSubscribed`), và mỗi lượt quét Trang nếu chưa đăng ký được (thiếu `pages_manage_metadata` →
+  `webhook_error_code`).
+- `LogRetentionJob` dọn `meta_webhook_events` không PENDING > 30 ngày (`WEBHOOK_EVENT_RETENTION_DAYS`).
+- Sự kiện test của App Dashboard (`entry.id = "0"`) được lưu thẳng `IGNORED` (không giao worker, không ghi log lỗi).
+- **Kiểm thật 07/10:** webhook chạy thành công. Phát hiện: app ở **Development** thì Meta KHÔNG gửi webhook dữ liệu thật (chỉ webhook
+  test từ Dashboard, page_id = 0) — phải chuyển app sang **Live** (ghi ở `META_WEBHOOK_SETUP.md` mục 6).
+- `PostRepository.findByPlatformPostIdAndDeletedAtIsNull` (chỉ phục vụ luồng FAILED cũ) đã bỏ.
+
+**Tần suất thích ứng** (`AnalyticsSyncServiceImpl.nextSyncAt(published, now, engagementPerHour)`): tốc độ = (cảm xúc + bình luận
++ chia sẻ) tăng thêm / giờ so với snapshot trước (bỏ qua nếu hai lần cách < 15 phút; lượt xem không dùng vì trễ 24–48h).
+≥ 5 tương tác/giờ → chu kỳ theo tuổi chia đôi (không dưới 1 giờ); bài ≥ 24h không có tương tác mới → nhân đôi (tối đa 7 ngày);
+còn lại / không đo được → lịch theo tuổi như cũ. Mốc 24/48/168h vẫn luôn được ép. Webhook (nếu bật) còn kéo bài về sớm hơn nữa.
+
+**Rà Graph API v26.0** (phát hành 29/07/2026; v25.0 dùng tới **29/07/2028**). Không đổi version mặc định (admin chuyển ở
+`/admin/api-versions` khi muốn):
+- **Không thay đổi** với mọi lời gọi AIMA đang dùng: fields `reactions/comments.filter(stream)/shares` của bài, insights
+  `post_media_view`, `/{page-id}/published_posts`, insights Trang `page_daily_follows_unique, page_daily_unfollows_unique,
+  page_follows, page_media_view, page_post_engagements` (period=day), `followers_count`, `instagram_business_account{…}`,
+  `subscribed_apps` + payload `feed` (item/verb/post_id), `POST /{page-id}/feed`, `/me/accounts`, `/me/permissions`, OAuth.
+- v26 chặn các tính năng cũ `pretty`, `debug`, `date_format`, `GET /?ids=…`, cache `If-None-Match`/ETag — và **từ khoảng
+  27/10/2026 chặn trên MỌI phiên bản kể cả v25**. Đã grep: backend/AI **không dùng** cái nào.
+- v26 bỏ 5 field Trang (`current_location, genre, network, parking, start_info`) + `auto_publish_page_info_updates` — không dùng.
+- v25 (19/05 & 15/06/2026) đã khai tử trên mọi phiên bản `page_impressions_unique`, `page_posts_impressions*`,
+  `post_impressions_unique*`, `*_video_views_unique`, metric story — AIMA không gọi.
+- Webhook mTLS: từ 31/03/2026 chứng chỉ client của Meta ký bằng CA riêng `meta-outbound-api-ca-2025-12.pem` — chỉ ảnh hưởng nếu
+  server kiểm chứng chỉ client (AIMA không).
+- Chưa xác minh được: thay đổi ngoài chu kỳ năm 2026 (trang out-of-cycle chưa có mục 2026); tài liệu Post v26 ghi đọc bài Trang cần
+  `pages_manage_posts` + Page Public Content Access — AIMA đọc bài Trang của chính mình bằng Page token và đã kiểm thật được (07/10).
+- Nguồn: developers.facebook.com/docs/graph-api/changelog (+ /version26.0, /version25.0, /out-of-cycle-changes),
+  /docs/graph-api/reference/insights, /docs/platforminsights/page/deprecated-metrics, /docs/graph-api/webhooks
+  (+ /reference/page, /getting-started/webhooks-for-pages), blog 2026/07/29 "Introducing Graph API v26".
+- **Cách nâng khi cần:** admin → API versions → Facebook → đặt `v26.0` (áp ngay, cache 5 phút) → theo dõi log `[Meta]` + chạy
+  Làm mới ở trang Phân tích; có lỗi thì đặt lại `v25.0`. Instagram dùng chung Graph version.
+
+**Test:** `MetaWebhookFeedIntegrationTest` 7 (H2: chữ ký sai, chống trùng, tương tác → 5 phút, không lùi lịch sớm hơn, xoá bài
+không FAILED / không thông báo / giữ số cuối, sự kiện test page_id 0, bỏ qua), `AnalyticsSyncServiceIntegrationTest` +2 (tần suất thích ứng), `AnalyticsAccountSyncServiceIntegrationTest` +1 và
+mở rộng (subscribed_apps), `MetaApiClientImplTest` +2, `MetaOAuthServiceImplTest` (gọi đăng ký webhook), `PublishingMigrationTest`
++1 (V9).
+
+**Cách kiểm thật:** theo [`META_WEBHOOK_SETUP.md`](./META_WEBHOOK_SETUP.md) bước 1–6 (cần thêm `META_WEBHOOK_VERIFY_TOKEN`, URL
+HTTPS công khai / tunnel, quyền `pages_manage_metadata`, kết nối lại Facebook). Không bật webhook thì mọi thứ vẫn chạy bằng lịch.
+
+### D.8 Lỗi phát hiện khi kiểm thật (2026-10-07, chưa commit)
+
+**1. Bài đăng qua AIMA bị gắn "Ngoài AIMA" + bản ghi trùng.** Không phải lệch ID: AIMA chỉ đăng bài chữ qua `POST /{page}/feed`
+(Graph trả `pageid_postid`), trùng dạng id của `published_posts` và webhook. Nguyên nhân gốc: mỗi lần **ngắt kết nối rồi kết nối
+lại** tạo dòng `platform_accounts` MỚI (dòng cũ xoá mềm; DB thật có 5 lần kết nối Trang AIMA Marketing). `platform_media` gắn theo
+dòng kết nối → bài cũ (kể cả bài AIMA) kẹt ở kết nối đã xoá (truy vấn Phân tích lọc `pa.deleted_at is null` nên bị ẩn), lượt quét
+Trang của kết nối mới không thấy → tạo bản `EXTERNAL` trùng. DB thật: 3 bài × 3 bản.
+- Sửa code: `AnalyticsAccountSyncService.adoptPreviousConnections` — gọi trong `MetaOAuthServiceImpl.upsert` khi tạo dòng kết nối
+  mới: chuyển bài đang theo dõi của các kết nối cũ (cùng user + nền tảng + id tài khoản nền tảng) sang kết nối mới; trùng id → giữ
+  bản gắn bài AIMA (không thì bản cũ nhất), chuyển snapshot của bản bị gộp sang, xoá mềm bản bị gộp + số theo ngày của nó, đồng bộ
+  lại bản giữ ngay.
+- Chuẩn hoá id bài Facebook một dạng `pageId_postId` (`util/FacebookPostIds`) ở mọi điểm vào: kết quả đăng bài (ưu tiên `post_id`
+  nếu Graph trả — endpoint ảnh trả id ẢNH ở `id`), `published_posts`, webhook. Ghi chú ảnh/nhiều ảnh/video trong javadoc.
+- Dữ liệu cũ: **Flyway V10** `V10__merge_reconnect_duplicate_media.sql` (người dùng duyệt 07/10) — chạy lại an toàn (chỉ xử lý nhóm
+  còn trùng / còn ở kết nối đã xoá), chỉ xoá mềm, không đụng `posts`, `post_analytics`, `account_insights_daily`. Bản tham khảo + truy
+  vấn xem trước: `docs/sql/analytics_merge_reconnect_duplicates.sql` (PHẦN A sau V10 phải trả 0 dòng). Dry-run trên DB thật trước V10:
+  3 bài, giữ 3 bản (bài AIMA giữ bản gắn bài AIMA), gộp 6 bản.
+
+**2. Lượt xem 3–4/ngày từ 01/10–06/10 dù bài trong kỳ đăng 07/10.** Số đến từ bài **29/09** "Bạn đã bao giờ rơi vào tình trạng cạn
+kiệt…" (bài tự đăng). Lần đồng bộ đầu tiên (07/10) mới thấy 38 lượt xem → `MetricDeltaDistributor` **chia đều** từ ngày đăng tới
+ngày thu (thiết kế D.3, `is_estimated = true`). KPI/biểu đồ là số PHÁT SINH trong kỳ (Q4) nên tính cả bài đăng trước kỳ. Không gán
+sai ngày. Người dùng chọn (a) giữ chia đều + hiển thị: `/analytics/timeseries` trả `points[].estimated`
+(`bool_or(post_metrics_daily.is_estimated)` theo ngày); biểu đồ vẽ điểm rỗng viền đứt cho ngày ước tính (điểm thật tô đặc), tooltip
+"Ước tính (chia đều từ ngày đăng đến lần đồng bộ đầu tiên)", chú thích nhỏ dưới biểu đồ khi kỳ có ngày ước tính (vi/en).
+
+**Dọn `meta_webhook_events`:** có — `LogRetentionJob` (03:30 hằng ngày) xoá sự kiện KHÔNG còn PENDING (PROCESSED/IGNORED/FAILED) cũ
+hơn 30 ngày (`WEBHOOK_EVENT_RETENTION_DAYS`, 0 = tắt).
+
+### D.4 Cách kiểm tra Giai đoạn 1
+
+**Chuẩn bị**
+- Backup DB rồi khởi động backend có code mới. Flyway tự áp **V7**, và **V6** nếu chưa áp.
+- ⚠️ Backend thật còn bật job đăng bài đến hạn.
+- Page test đã kết nối lại và có `read_insights`.
+- Job chạy mỗi 5 phút. Lượt đầu (ngay khi khởi động) sẽ:
+  - chép mốc cũ sang snapshot;
+  - đồng bộ lại **mọi bài AIMA đã đăng** (kể cả bài cũ quá 90 ngày, mỗi bài một lần).
+- Log cần thấy: `[AnalyticsCollection] Đã chuẩn bị N bài` và `[AnalyticsSync] Tài khoản … (FACEBOOK): x/y bài đã cập nhật`.
+
+**Trên giao diện (`/analytics`)**
+1. Tài khoản có Page ACTIVE → **không còn chip "Dữ liệu mẫu"**.
+   - Thanh trạng thái hiện "Đang đồng bộ N bài…" (lượt đầu), rồi "Cập nhật lần cuối dd/MM/yyyy HH:mm".
+   - Trang tự tải lại khi đồng bộ xong.
+2. Chọn 7/30 ngày:
+   - KPI "Lượt xem / Thích / Bình luận / Chia sẻ" = số **phát sinh** trong kỳ. Rê chuột vào nhãn KPI để xem giải thích.
+   - Đối chiếu **Meta Business Suite → Thông tin chi tiết → Nội dung**, cùng khoảng ngày, với các bài đăng qua AIMA.
+   - Lượt xem của 1–2 ngày gần nhất có thể thấp hơn vì Meta trả trễ.
+   - Bài cũ được đồng bộ lại lần đầu sẽ có số rải đều từ ngày đăng tới hôm nay (ước tính).
+3. **Top bài viết:** mỗi dòng = số liệu mới nhất của bài (Lượt xem = "Lượt xem", Thích = tổng cảm xúc, Bình luận gồm cả phản hồi). So từng bài trên Business Suite.
+4. **Tỷ lệ tương tác TB** = (cảm xúc + bình luận + chia sẻ) / lượt xem của các bài đăng trong kỳ; hiện "—" khi không có lượt xem.
+5. **Làm mới:**
+   - Vừa đồng bộ dưới 15 phút → báo "Số liệu vừa được cập nhật".
+   - Quá 15 phút → "Đã xếp lịch cập nhật N bài". Trong ≤ 5 phút thanh trạng thái đổi giờ và số liệu tự tải lại.
+6. Gỡ quyền `read_insights` (hoặc dùng Page chưa cấp) → cảnh báo vàng "Trang … chưa cấp quyền read_insights" + nút "Kết nối lại".
+7. Tài khoản chưa kết nối kênh nào → vẫn hiện "Dữ liệu mẫu" như cũ.
+
+**Qua SQL** (thay `<post_id_nền_tảng>` bằng `posts.platform_post_id`):
+```sql
+-- 1) Bài đang theo dõi + trạng thái đồng bộ
+select platform_media_id, platform_status, sync_status, consecutive_failures, last_error_code,
+       last_synced_at at time zone 'Asia/Ho_Chi_Minh' as last_synced_vn,
+       next_sync_at  at time zone 'Asia/Ho_Chi_Minh' as next_sync_vn
+from platform_media order by published_at desc;
+
+-- 2) Chuỗi snapshot tích luỹ của một bài (BACKFILL = chép từ mốc cũ, POLL = gọi Meta)
+select s.collected_at at time zone 'Asia/Ho_Chi_Minh' as at_vn, s.source, s.views, s.reactions, s.comments, s.shares
+from post_metric_snapshots s join platform_media m on m.id = s.platform_media_id
+where m.platform_media_id = '<post_id_nền_tảng>' order by s.collected_at;
+
+-- 3) Số phát sinh theo ngày của bài đó — TỔNG mỗi cột phải bằng snapshot mới nhất
+select d.metric_date, d.views_delta, d.reactions_delta, d.comments_delta, d.shares_delta, d.is_estimated
+from post_metrics_daily d join platform_media m on m.id = d.platform_media_id
+where m.platform_media_id = '<post_id_nền_tảng>' order by d.metric_date;
+
+-- 4) KPI 7 ngày như trang hiển thị (đổi ngày cho khớp bộ lọc)
+select sum(d.views_delta) views, sum(d.reactions_delta) reactions, sum(d.comments_delta) comments, sum(d.shares_delta) shares
+from post_metrics_daily d join platform_media m on m.id = d.platform_media_id
+join platform_accounts pa on pa.id = m.platform_account_id
+where pa.user_id = '<user_id>' and d.metric_date between current_date - 6 and current_date;
+
+-- 5) Mốc 24/48/168h (mốc mới tính từ snapshot; mốc cũ giữ nguyên)
+select a.milestone_hours, a.views, a.likes, a.comments, a.shares, a.collected_at
+from post_analytics a join posts p on p.id = a.post_id
+where p.platform_post_id = '<post_id_nền_tảng>' order by 1;
+```
 
 ---
 

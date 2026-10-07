@@ -23,7 +23,8 @@ const readActiveBrand = (): string | null => {
 // data-theme lên <html> → mọi var(--brand-*/--theme-surface-*) đổi theo (tokens.css).
 // FOUC được chặn bằng inline script ở index.html (áp trước paint); ở đây đồng bộ store.
 const THEME_KEY = "aima-theme";
-const ALLOWED_THEMES: ThemeKey[] = ["ocean", "aurora", "sunset"];
+// Lựa chọn cũ "aurora"/"sunset" (đã bỏ) không còn hợp lệ → tự về "ocean".
+const ALLOWED_THEMES: ThemeKey[] = ["ocean"];
 const readTheme = (): ThemeKey => {
   try {
     const t = localStorage.getItem(THEME_KEY);

@@ -53,7 +53,7 @@ function PerformanceChart({
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.perfTitle}</span>
+            <span title={t.dbPerfHint} style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.perfTitle}</span>
             {demo && <DemoBadge label={t.dbDemoData} />}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 6, flexWrap: 'wrap' }}>

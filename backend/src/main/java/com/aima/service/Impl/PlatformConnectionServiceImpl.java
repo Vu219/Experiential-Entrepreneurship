@@ -5,13 +5,16 @@ import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.AuthorizationUrlResponse;
 import com.aima.dto.response.ConnectionStatsResponse;
 import com.aima.dto.response.PlatformConnectionResponse;
+import com.aima.entity.AccountSyncState;
 import com.aima.entity.PlatformAccount;
 import com.aima.entity.User;
 import com.aima.enums.ConnectionStatus;
+import com.aima.enums.InstagramLinkStatus;
 import com.aima.enums.Platform;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.mapper.PlatformConnectionMapper;
+import com.aima.repository.AccountSyncStateRepository;
 import com.aima.repository.PlatformAccountRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.MetaOAuthService;
@@ -25,7 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +46,7 @@ public class PlatformConnectionServiceImpl implements PlatformConnectionService 
     UserRepository userRepository;
     PlatformConnectionMapper connectionMapper;
     AimaProperties aimaProperties;
+    AccountSyncStateRepository accountSyncStateRepository;
 
     @Override
     public ApiResponse<AuthorizationUrlResponse> getAuthorizationUrl(Platform platform, String email) {
@@ -85,7 +91,13 @@ public class PlatformConnectionServiceImpl implements PlatformConnectionService 
     public ApiResponse<List<PlatformConnectionResponse>> listConnections(String email) {
         List<PlatformAccount> accounts =
                 accountRepository.findByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(currentUser(email).getId());
-        List<PlatformConnectionResponse> responses = connectionMapper.toResponseList(accounts);
+        // Trang Facebook không có IG Business liên kết → FE hướng dẫn ở thẻ Instagram (analytics giai đoạn 2).
+        Map<UUID, InstagramLinkStatus> instagramLinks = accountSyncStateRepository
+                .findByPlatformAccount_IdInAndDeletedAtIsNull(accounts.stream().map(PlatformAccount::getId).toList())
+                .stream().filter(state -> state.getInstagramLinkStatus() != null)
+                .collect(Collectors.toMap(state -> state.getPlatformAccount().getId(),
+                        AccountSyncState::getInstagramLinkStatus, (first, second) -> first));
+        List<PlatformConnectionResponse> responses = connectionMapper.toResponseList(accounts, instagramLinks);
         return ApiResponse.success("Lấy danh sách kết nối thành công", responses);
     }
 

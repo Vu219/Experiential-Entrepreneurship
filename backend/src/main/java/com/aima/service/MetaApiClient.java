@@ -2,7 +2,10 @@ package com.aima.service;
 
 import com.aima.enums.Platform;
 
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -49,6 +52,30 @@ public interface MetaApiClient {
      */
     MetaPostMetrics getPostMetrics(Platform platform, String platformPostId, String token);
 
+    // --- Số liệu cấp Trang (analytics giai đoạn 2) — lỗi ném MetricsFetchException đã phân loại ---
+
+    /**
+     * Mọi bài đã đăng của Trang từ {@code since} (kể cả bài người dùng tự đăng ngoài AIMA):
+     * {@code GET /{page-id}/published_posts}, phân trang theo cursor, có trần số trang. Cần pages_read_engagement.
+     */
+    List<MetaPublishedPost> getPagePublishedPosts(String pageId, String pageToken, Instant since);
+
+    /**
+     * Insights theo NGÀY của Trang trong [{@code since}, {@code until}] (tối đa 90 ngày, ngày theo giờ Thái Bình
+     * Dương như Meta tính): {@code GET /{page-id}/insights?period=day}. Metric bị Meta từ chối (đã khai tử) được bỏ
+     * qua kèm log ERROR, không làm mất các metric còn lại. Cần read_insights.
+     */
+    MetaPageInsights getPageInsights(String pageId, String pageToken, LocalDate since, LocalDate until);
+
+    /** Tổng người theo dõi hiện tại của Trang ({@code ?fields=followers_count}); null khi Meta không trả. */
+    Long getPageFollowersCount(String pageId, String pageToken);
+
+    /**
+     * Đăng ký app nhận webhook của Trang: {@code POST /{page-id}/subscribed_apps?subscribed_fields=...} (giai đoạn 3).
+     * Cần pages_manage_metadata. Lỗi ném {@link com.aima.exception.MetricsFetchException} đã phân loại.
+     */
+    void subscribePageWebhook(String pageId, String pageToken, String subscribedFields);
+
     // --- Kết quả trả về ---
     record MetaTokenResult(String accessToken, Long expiresInSeconds) {
     }
@@ -65,6 +92,20 @@ public interface MetaApiClient {
     record MetaPostResult(String platformPostId) {
     }
 
-    record MetaPostMetrics(Long views, Long likes, Long comments, Long shares, Long saves) {
+    /** {@code raw} = phản hồi gốc (JSON) của nền tảng, lưu vào snapshot để tính lại khi Meta đổi metric. */
+    record MetaPostMetrics(Long views, Long likes, Long comments, Long shares, Long saves, String raw) {
+    }
+
+    /**
+     * Một bài của Trang. {@code attachmentType} = {@code attachments.media_type} của Graph (photo/video/album/
+     * link...), null khi bài không có đính kèm; {@code attachmentTypeKnown} = false khi Meta từ chối trường
+     * attachments nên không biết loại nội dung.
+     */
+    record MetaPublishedPost(String id, Instant createdTime, String permalinkUrl, String message,
+                             String attachmentType, boolean attachmentTypeKnown) {
+    }
+
+    /** Giá trị theo ngày của từng metric: tên metric → (ngày → giá trị). Metric không có số thì vắng mặt. */
+    record MetaPageInsights(Map<String, Map<LocalDate, Long>> values) {
     }
 }

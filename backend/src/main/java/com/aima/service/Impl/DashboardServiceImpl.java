@@ -25,7 +25,7 @@ import com.aima.repository.ContentVersionRepository;
 import com.aima.repository.PlatformAccountRepository;
 import com.aima.repository.PostAnalyticsRepository;
 import com.aima.repository.UserRepository;
-import com.aima.repository.projection.DailyMetricProjection;
+import com.aima.repository.projection.DailyEngagementProjection;
 import com.aima.repository.projection.DailyStatusCountProjection;
 import com.aima.repository.projection.LabelCountProjection;
 import com.aima.repository.projection.StatusCountProjection;
@@ -239,22 +239,24 @@ public class DashboardServiceImpl implements DashboardService {
 
     // ===== Biểu đồ hiệu suất =====
 
+    // CÙNG truy vấn với biểu đồ/KPI của trang Phân tích (số PHÁT SINH theo ngày, không lọc nền tảng/loại) để hai
+    // trang luôn ra một con số: reach = lượt xem, engagement = cảm xúc + bình luận + chia sẻ.
     private List<DashboardPointResponse> buildPerformance(UUID userId, LocalDate today, int rangeDays) {
         LocalDate start = today.minusDays(rangeDays - 1L);
-        Map<String, DailyMetricProjection> byDay = postAnalyticsRepository
-                .findDailyPerformanceForUser(userId, start.atStartOfDay())
+        Map<String, DailyEngagementProjection> byDay = postAnalyticsRepository
+                .findDailyEngagementForUser(userId, start.atStartOfDay(), today.plusDays(1).atStartOfDay(), null, null, null)
                 .stream()
-                .collect(Collectors.toMap(DailyMetricProjection::getDay, row -> row, (first, second) -> first));
+                .collect(Collectors.toMap(DailyEngagementProjection::getDay, row -> row, (first, second) -> first));
 
-        // Zero-fill: ngày không có bài đăng vẫn phải có điểm, nếu không đường biểu đồ sẽ đứt quãng.
+        // Zero-fill: ngày không có số liệu vẫn phải có điểm, nếu không đường biểu đồ sẽ đứt quãng.
         List<DashboardPointResponse> points = new ArrayList<>(rangeDays);
         for (int i = 0; i < rangeDays; i++) {
             String day = start.plusDays(i).toString();
-            DailyMetricProjection row = byDay.get(day);
+            DailyEngagementProjection row = byDay.get(day);
             points.add(DashboardPointResponse.builder()
                     .date(day)
-                    .reach(row == null ? 0 : row.getReach())
-                    .engagement(row == null ? 0 : row.getEngagement())
+                    .reach(row == null ? 0 : row.getViews())
+                    .engagement(row == null ? 0 : row.getLikes() + row.getComments() + row.getShares())
                     .build());
         }
         return points;

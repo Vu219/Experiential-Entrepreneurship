@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { RefreshCw, ShieldCheck, ShieldUser, Link, PlugZap, Activity, ShieldAlert, Users, type LucideIcon } from 'lucide-react';
+import { RefreshCw, ShieldCheck, ShieldUser, Link, PlugZap, Activity, ShieldAlert, Users, Info, type LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useUiStore } from '../store/useUiStore';
@@ -402,6 +402,16 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
     return acc;
   }, {});
 
+  // Chưa có Instagram nào: Trang Facebook không có IG Doanh nghiệp/Nhà sáng tạo liên kết → hướng dẫn chuyển IG sang
+  // tài khoản chuyên nghiệp; Trang đã liên kết (sau lần kết nối trước) → nhắc kết nối lại để thêm IG (analytics GĐ2).
+  const hasInstagram = connections.some((c) => c.platform === 'INSTAGRAM' && c.connectionStatus === 'ACTIVE');
+  const instagramHints = hasInstagram ? [] : connections
+    .filter((c) => c.platform === 'FACEBOOK' && c.accountType === 'PAGE' && c.instagramLinkStatus)
+    .map((c) => ({
+      id: c.id,
+      text: (c.instagramLinkStatus === 'NOT_LINKED' ? t.seIgNotLinked : t.seIgLinkedReconnect).replace('{name}', c.accountName),
+    }));
+
   // ——— Filtering & Pagination ———
   const filtered = statusFilter === 'ALL'
     ? connections
@@ -533,6 +543,19 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
               />
             ))}
           </div>
+          {instagramHints.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 14 }}>
+              {instagramHints.map((h) => (
+                <div key={h.id} role="note" style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, lineHeight: 1.55,
+                  color: C.text, background: C.infoSoft, borderRadius: 10, padding: '8px 11px',
+                }}>
+                  <Info size={14} strokeWidth={2} color={C.info} aria-hidden style={{ flex: 'none', marginTop: 2 }} />
+                  <span>{h.text}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
 
         {/* Right card: Tổng quan kết nối */}

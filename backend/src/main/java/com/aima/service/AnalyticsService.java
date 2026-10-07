@@ -5,6 +5,7 @@ import com.aima.dto.response.AnalyticsHeatmapResponse;
 import com.aima.dto.response.AnalyticsInsightsResponse;
 import com.aima.dto.response.AnalyticsPlatformResponse;
 import com.aima.dto.response.AnalyticsSummaryResponse;
+import com.aima.dto.response.AnalyticsSyncStatusResponse;
 import com.aima.dto.response.AnalyticsTimeseriesResponse;
 import com.aima.dto.response.AnalyticsTopPostResponse;
 import com.aima.dto.response.ApiResponse;
@@ -17,9 +18,10 @@ import java.util.List;
  * Số liệu tổng hợp cho trang Phân tích (UI-08, khối B + C). Khác {@link PostAnalyticsService}
  * (danh sách từng bài): dịch vụ này GỘP số liệu theo kỳ/ngày.
  *
- * <p>Nguồn dữ liệu là {@code post_analytics} — số cộng dồn ở các mốc 24h/48h/168h, nên mỗi bài chỉ
- * lấy MỘT snapshot mốc muộn nhất khi gộp (tránh đếm trùng). Mọi truy vấn scope theo user đang đăng
- * nhập qua chuỗi {@code posts → post_schedules → platform_accounts.user_id} (API-03/SEC-04).
+ * <p>Nguồn dữ liệu (analytics dữ liệu thật): {@code post_metrics_daily} (số phát sinh theo ngày) và snapshot mới
+ * nhất trong {@code post_metric_snapshots} của từng bài trên nền tảng ({@code platform_media} — gồm cả bài người
+ * dùng tự đăng ngoài AIMA). Mọi truy vấn scope theo user đang đăng nhập qua {@code platform_accounts.user_id}
+ * (API-03/SEC-04).
  * So sánh luôn theo kỳ liền trước cùng độ dài ({@code compare=previous_period} — chế độ duy nhất).
  */
 public interface AnalyticsService {
@@ -107,6 +109,18 @@ public interface AnalyticsService {
      */
     ApiResponse<Integer> devSeed(String email);
 
+    /**
+     * Trạng thái đồng bộ số liệu: các kênh đăng + số bài đang chờ / đã dừng / lỗi quyền + lần đồng bộ gần nhất.
+     * {@code connected=false} → FE hiện chế độ "Dữ liệu mẫu".
+     */
+    ApiResponse<AnalyticsSyncStatusResponse> syncStatus(String email);
+
+    /**
+     * Nút "Làm mới": đưa bài + kênh đăng của user về hạn ngay (job ≤ 5 phút đồng bộ — NFR-04; kênh = quét bài mới tự đăng
+     * trên Trang + insights). Trả số mục (bài + kênh) được xếp lịch; 0 = vừa được cập nhật.
+     */
+    ApiResponse<Integer> requestSync(String email);
+
     /** DEV-ONLY: xoá sạch dữ liệu do {@link #devSeed} sinh ra (chạy lại được). Trả số bài mẫu đã xoá. */
     ApiResponse<Integer> devSeedClear(String email);
 
@@ -114,8 +128,15 @@ public interface AnalyticsService {
      * Bộ lọc đã nhận từ query param, CHƯA phân giải. Service tự đặt mặc định (7 ngày gần nhất),
      * validate và quy ra khoảng thật. {@code platforms} rỗng/null = mọi nền tảng;
      * {@code contentTypes} rỗng/null = mọi loại nội dung (nhãn {@code media_format} IN HOA,
-     * {@code OTHER} = bản chưa có định dạng).
+     * {@code OTHER} = bản chưa có định dạng); {@code source} = {@code aima} chỉ tính bài đăng qua AIMA, giá trị
+     * khác / null = toàn bộ bài của Trang (gồm bài người dùng tự đăng — mặc định, chốt Q5).
      */
-    record AnalyticsQuery(LocalDate from, LocalDate to, List<Platform> platforms, List<String> contentTypes) {
+    record AnalyticsQuery(LocalDate from, LocalDate to, List<Platform> platforms, List<String> contentTypes,
+                          String source) {
+
+        /** Không lọc nguồn bài (toàn bộ Trang). */
+        public AnalyticsQuery(LocalDate from, LocalDate to, List<Platform> platforms, List<String> contentTypes) {
+            this(from, to, platforms, contentTypes, null);
+        }
     }
 }

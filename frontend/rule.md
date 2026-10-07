@@ -15,8 +15,8 @@
 
 ## 1. Hệ màu & theme
 
-- **3 theme gradient** trong [`tokens.css`](src/styles/tokens.css): Đại dương (`ocean`, mặc định),
-  Tím sương (`aurora`) và Hồng sương (`sunset`). Giữ key cũ để tương thích lựa chọn localStorage đã lưu.
+- **1 theme gradient** trong [`tokens.css`](src/styles/tokens.css): Đại dương (`ocean`). Tím sương (`aurora`) và
+  Hồng sương (`sunset`) đã bỏ (2026-10-07) — lựa chọn cũ trong localStorage tự về `ocean`.
   Theme đang chọn được bơm vào CSS var `--brand` (và `--soft`) ở [`App.tsx`](src/App.tsx).
 - **Dùng `var(--brand)`** cho mọi nền/chữ gradient thương hiệu — đừng hardcode lại chuỗi gradient.
   Chữ gradient: thêm class `.gradtext`. Ví dụ nút chính: `background: var(--brand)`.

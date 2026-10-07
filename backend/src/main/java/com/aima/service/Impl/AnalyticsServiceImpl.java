@@ -9,6 +9,8 @@ import com.aima.dto.response.AnalyticsPlatformResponse;
 import com.aima.dto.response.AnalyticsPointResponse;
 import com.aima.dto.response.AnalyticsStatResponse;
 import com.aima.dto.response.AnalyticsSummaryResponse;
+import com.aima.dto.response.AnalyticsSyncAccountResponse;
+import com.aima.dto.response.AnalyticsSyncStatusResponse;
 import com.aima.dto.response.AnalyticsTimeseriesResponse;
 import com.aima.dto.response.AnalyticsTopPostResponse;
 import com.aima.dto.response.ApiResponse;
@@ -22,6 +24,7 @@ import com.aima.entity.PostSchedule;
 import com.aima.entity.User;
 import com.aima.enums.ConnectionStatus;
 import com.aima.enums.ContentVersionStatus;
+import com.aima.enums.MediaOrigin;
 import com.aima.enums.Platform;
 import com.aima.enums.PlatformAccountType;
 import com.aima.enums.PostStatus;
@@ -30,18 +33,27 @@ import com.aima.enums.TokenType;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.mapper.AnalyticsMapper;
+import com.aima.repository.AccountInsightsDailyRepository;
+import com.aima.repository.AccountSyncStateRepository;
 import com.aima.repository.BrandProfileRepository;
 import com.aima.repository.PlatformAccountRepository;
+import com.aima.repository.PlatformMediaRepository;
 import com.aima.repository.PostAnalyticsRepository;
+import com.aima.repository.PostMetricSnapshotRepository;
+import com.aima.repository.PostMetricsDailyRepository;
 import com.aima.repository.PostRepository;
 import com.aima.repository.UserRepository;
 import com.aima.repository.projection.ContentTypeMetricProjection;
 import com.aima.repository.projection.DailyEngagementProjection;
+import com.aima.repository.projection.FollowerGrowthProjection;
 import com.aima.repository.projection.HeatmapCellProjection;
+import com.aima.repository.projection.MediaSyncStatsProjection;
 import com.aima.repository.projection.PlatformMetricProjection;
 import com.aima.repository.projection.PostEngagementProjection;
 import com.aima.repository.projection.TopPostProjection;
+import com.aima.service.AnalyticsAccountSyncService;
 import com.aima.service.AnalyticsService;
+import com.aima.service.AnalyticsSyncService;
 import com.aima.service.ContentItemStatusResolver;
 import com.aima.util.CsvUtil;
 import lombok.AccessLevel;
@@ -55,6 +67,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -62,6 +75,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -95,13 +109,16 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     // TTL cố tình ngắn để số liệu mới thu về chậm nhất một phút là hiện.
     static Duration CACHE_TTL = Duration.ofSeconds(45);
 
+    // Giá trị query param source cho bộ lọc "Chỉ bài AIMA" (mặc định: toàn bộ bài của Trang — chốt Q5).
+    static String SOURCE_AIMA = "aima";
+
     // Chặn map phình vô hạn (mỗi user × mỗi tổ hợp bộ lọc là một key): chạm trần thì xoá sạch,
     // đơn giản hơn LRU và chấp nhận được với cache TTL 45 giây.
     static int CACHE_MAX_ENTRIES = 500;
 
     // Header CSV export — snake_case như các endpoint export sẵn có (usage, log hoạt động).
     static String EXPORT_HEADER =
-            "published_at,platform,account_name,caption,views,likes,comments,shares,engagement\n";
+            "published_at,platform,account_name,caption,views,likes,comments,shares,engagement,origin,permalink\n";
 
     // ===== Đánh dấu dữ liệu dev-seed để dọn sạch khi seed lại / clear =====
     static String DEV_BRAND_NAME = "[DEV-SEED] Phân tích demo";
@@ -118,6 +135,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     AnalyticsMapper analyticsMapper;
     Environment environment;
     ContentItemStatusResolver statusResolver;
+    PlatformMediaRepository platformMediaRepository;
+    PostMetricSnapshotRepository postMetricSnapshotRepository;
+    PostMetricsDailyRepository postMetricsDailyRepository;
+    AnalyticsSyncService analyticsSyncService;
+    AnalyticsAccountSyncService analyticsAccountSyncService;
+    AccountInsightsDailyRepository accountInsightsDailyRepository;
+    AccountSyncStateRepository accountSyncStateRepository;
 
     // Có khởi tạo sẵn nên KHÔNG vào constructor của @RequiredArgsConstructor (Lombok bỏ qua final
     // đã gán giá trị) — đây là state cục bộ của service, không phải dependency.
@@ -182,7 +206,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private List<AnalyticsPointResponse> fetchPoints(UUID userId, LocalDate from, LocalDate to, Filters filters) {
         Map<String, DailyEngagementProjection> byDay = postAnalyticsRepository
                 .findDailyEngagementForUser(userId, from.atStartOfDay(), to.plusDays(1).atStartOfDay(),
-                        filters.platformCsv(), filters.typeCsv())
+                        filters.platformCsv(), filters.typeCsv(), filters.origin())
                 .stream()
                 .collect(Collectors.toMap(DailyEngagementProjection::getDay, row -> row, (first, second) -> first));
 
@@ -197,6 +221,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     .likes(row == null ? 0 : row.getLikes())
                     .comments(row == null ? 0 : row.getComments())
                     .shares(row == null ? 0 : row.getShares())
+                    .estimated(row != null && row.getEstimated())
                     .build());
         }
         return points;
@@ -238,7 +263,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         List<AnalyticsPlatformResponse> result = cached(key("by-platform", userId, range, filters), () -> {
             Map<Platform, PlatformMetricProjection> metrics = postAnalyticsRepository
                     .findPlatformMetricsForUser(userId, range.from().atStartOfDay(),
-                            range.to().plusDays(1).atStartOfDay(), filters.typeCsv())
+                            range.to().plusDays(1).atStartOfDay(), filters.typeCsv(), filters.origin())
                     .stream()
                     .collect(Collectors.toMap(row -> Platform.valueOf(row.getPlatform()), row -> row,
                             (first, second) -> first, () -> new EnumMap<>(Platform.class)));
@@ -266,7 +291,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         List<AnalyticsContentTypeResponse> result = cached(key("by-content-type", userId, range, filters), () -> {
             List<ContentTypeMetricProjection> rows = postAnalyticsRepository.findContentTypeMetricsForUser(
                     userId, range.from().atStartOfDay(), range.to().plusDays(1).atStartOfDay(),
-                    filters.platformCsv());
+                    filters.platformCsv(), filters.origin());
             long totalEngagement = rows.stream().mapToLong(ContentTypeMetricProjection::getEngagement).sum();
 
             List<AnalyticsContentTypeResponse> mapped = analyticsMapper.toContentTypeResponseList(rows);
@@ -298,7 +323,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private AnalyticsHeatmapResponse buildHeatmap(UUID userId, ResolvedRange range, Filters filters) {
         List<HeatmapCellProjection> rows = postAnalyticsRepository.findHeatmapForUser(
                 userId, range.from().atStartOfDay(), range.to().plusDays(1).atStartOfDay(),
-                filters.platformCsv(), filters.typeCsv());
+                filters.platformCsv(), filters.typeCsv(), filters.origin());
 
         List<AnalyticsHeatmapCellResponse> cells = analyticsMapper.toHeatmapCellList(rows);
         cells.forEach(cell -> {
@@ -339,6 +364,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         AnalyticsInsightsResponse response = cached(key("insights", userId, range, filters), () -> {
             PeriodInsight current = periodInsight(userId, range.from(), range.to(), filters);
             PeriodInsight previous = periodInsight(userId, previousPeriod.from(), previousPeriod.to(), filters);
+            Long newFollowers = newFollowers(userId, range.from(), range.to(), filters);
+            Long previousFollowers = newFollowers(userId, previousPeriod.from(), previousPeriod.to(), filters);
 
             return AnalyticsInsightsResponse.builder()
                     .from(range.from().toString())
@@ -357,6 +384,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     .engagementRateDeltaPct(rateDeltaPct(current.engagementRatePct(), previous.engagementRatePct()))
                     .ratedPosts(current.ratedPosts())
                     .excludedPosts(current.totalPosts() - current.ratedPosts())
+                    .newFollowers(newFollowers)
+                    .newFollowersDeltaPct(newFollowers == null || previousFollowers == null
+                            ? null : deltaPct(newFollowers, previousFollowers))
+                    .followersTotal(accountInsightsDailyRepository.findFollowersTotalForUser(userId, filters.platformCsv()))
                     .build();
         });
         return ApiResponse.success("Lấy thông tin chi tiết thành công", response);
@@ -373,7 +404,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         LocalDateTime start = from.atStartOfDay();
         LocalDateTime end = to.plusDays(1).atStartOfDay();
         List<PostEngagementProjection> posts = postAnalyticsRepository.findPostEngagementForUser(
-                userId, start, end, filters.platformCsv(), filters.typeCsv());
+                userId, start, end, filters.platformCsv(), filters.typeCsv(), filters.origin());
 
         long totalPosts = posts.size();
         long totalEngagement = posts.stream().mapToLong(PostEngagementProjection::getEngagement).sum();
@@ -394,6 +425,16 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         return new PeriodInsight(totalPosts, goodPosts, round1(avgEngagement), failedPosts,
                 rated.size(), engagementRatePct);
+    }
+
+    /**
+     * Người theo dõi MỚI trong kỳ — số cấp Trang nên chỉ áp bộ lọc nền tảng (loại nội dung / nguồn bài không có
+     * nghĩa ở cấp Trang). null khi không ngày nào có số (khác 0 người theo dõi mới).
+     */
+    private Long newFollowers(UUID userId, LocalDate from, LocalDate to, Filters filters) {
+        FollowerGrowthProjection growth = accountInsightsDailyRepository.findFollowerGrowthForUser(
+                userId, from, to, filters.platformCsv());
+        return growth == null || growth.getSamples() == 0 ? null : growth.getFollows();
     }
 
     // Khung giờ vàng = ô có tương tác TB cao nhất trong các ô ĐỦ MẪU; hoà thì ưu tiên ô nhiều bài hơn.
@@ -425,14 +466,15 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         LocalDateTime end = range.to().plusDays(1).atStartOfDay();
 
         long count = postAnalyticsRepository.countPostsForUser(userId, start, end,
-                filters.platformCsv(), filters.typeCsv());
+                filters.platformCsv(), filters.typeCsv(), filters.origin());
         if (count > MAX_EXPORT_ROWS) {
             // KHÔNG cắt cụt im lặng — người dùng thu hẹp khoảng ngày/bộ lọc rồi export lại.
             throw new AppException(ErrorCode.ANALYTICS_EXPORT_TOO_LARGE);
         }
 
         StringBuilder csv = new StringBuilder(EXPORT_HEADER);
-        postAnalyticsRepository.findTopPostsForUser(userId, start, end, filters.platformCsv(), filters.typeCsv())
+        postAnalyticsRepository.findTopPostsForUser(userId, start, end, filters.platformCsv(), filters.typeCsv(),
+                        filters.origin())
                 .stream()
                 .sorted(topComparator(sort))
                 .forEach(row -> appendCsvRow(csv, row));
@@ -444,11 +486,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .append(CsvUtil.field(row.getPlatform())).append(',')
                 .append(CsvUtil.field(row.getAccountName())).append(',')
                 .append(CsvUtil.field(row.getCaption())).append(',')
-                .append(row.getViews()).append(',')
+                .append(CsvUtil.nullToEmpty(row.getViews())).append(',') // null = không có số liệu, khác 0
                 .append(row.getLikes()).append(',')
                 .append(row.getComments()).append(',')
                 .append(row.getShares()).append(',')
-                .append(row.getEngagement()).append('\n');
+                .append(row.getEngagement()).append(',')
+                .append(CsvUtil.field(row.getOrigin())).append(',')
+                .append(CsvUtil.field(row.getPermalink())).append('\n');
     }
 
     private AnalyticsPlatformResponse buildPlatform(Platform platform, PlatformMetricProjection metric,
@@ -498,7 +542,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         List<TopPostProjection> top = postAnalyticsRepository
                 .findTopPostsForUser(userId, range.from().atStartOfDay(), range.to().plusDays(1).atStartOfDay(),
-                        filters.platformCsv(), filters.typeCsv())
+                        filters.platformCsv(), filters.typeCsv(), filters.origin())
                 .stream()
                 .sorted(topComparator(sort))
                 .limit(cappedLimit)
@@ -527,9 +571,51 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             case "shares" -> Comparator.comparingLong(TopPostProjection::getShares);
             case "engagement" -> Comparator.comparingLong(TopPostProjection::getEngagement);
             case "date" -> Comparator.comparing(TopPostProjection::getPublishedAt);
-            default -> Comparator.comparingLong(TopPostProjection::getViews);
+            // Bài không có lượt xem (null) xếp sau cùng khi giảm dần — không coi là 0.
+            default -> Comparator.comparing(TopPostProjection::getViews, Comparator.nullsFirst(Comparator.naturalOrder()));
         };
         return descending ? comparator.reversed() : comparator;
+    }
+
+    // ===== Trạng thái đồng bộ + làm mới thủ công =====
+
+    @Override
+    public ApiResponse<AnalyticsSyncStatusResponse> syncStatus(String email) {
+        UUID userId = currentUser(email).getId();
+        Map<UUID, MediaSyncStatsProjection> stats = platformMediaRepository.findSyncStatsForUser(userId).stream()
+                .collect(Collectors.toMap(MediaSyncStatsProjection::getAccountId, row -> row));
+        List<PlatformAccount> userAccounts = platformAccountRepository.findByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(userId);
+        Map<UUID, Instant> accountSynced = new HashMap<>();
+        accountSyncStateRepository.findByPlatformAccount_IdInAndDeletedAtIsNull(
+                        userAccounts.stream().map(PlatformAccount::getId).toList())
+                .stream().filter(state -> state.getLastSyncedAt() != null)
+                .forEach(state -> accountSynced.put(state.getPlatformAccount().getId(), state.getLastSyncedAt()));
+        // Kênh đăng = Page / IG Business / Threads; kết nối Facebook gốc (USER) không đăng bài nên không tính.
+        List<AnalyticsSyncAccountResponse> accounts = userAccounts.stream()
+                .filter(account -> account.getAccountType() != PlatformAccountType.USER)
+                .map(account -> analyticsMapper.toSyncAccountResponse(account, stats.get(account.getId()),
+                        insightsPermission(account), accountSynced.get(account.getId())))
+                .toList();
+        boolean connected = accounts.stream().anyMatch(account -> account.getStatus() == ConnectionStatus.ACTIVE);
+        AnalyticsSyncStatusResponse response = analyticsMapper.toSyncStatusResponse(connected, accounts);
+        return ApiResponse.success("Lấy trạng thái đồng bộ số liệu thành công", response);
+    }
+
+    // Facebook: lượt xem cần read_insights — scopes lưu quyền THỰC SỰ được cấp (JSON array). Nền tảng khác: null.
+    private Boolean insightsPermission(PlatformAccount account) {
+        if (account.getPlatformName() != Platform.FACEBOOK) {
+            return null;
+        }
+        return account.getScopes() != null && account.getScopes().contains("\"read_insights\"");
+    }
+
+    @Override
+    @Transactional // ghi next_sync_at — không dùng transaction read-only của class
+    public ApiResponse<Integer> requestSync(String email) {
+        UUID userId = currentUser(email).getId();
+        // Bài đến hạn + kênh (quét bài mới tự đăng trên Trang + insights) — 0 = mọi thứ vừa được cập nhật.
+        int queued = analyticsSyncService.requestSync(userId) + analyticsAccountSyncService.requestSync(userId);
+        return ApiResponse.success("Đã xếp lịch đồng bộ số liệu", queued);
     }
 
     // ===== Dev seeder (dev-only, gỡ/tắt khi có dữ liệu thật) =====
@@ -561,6 +647,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             snapshots += item.getContentVersions().get(0).getPostSchedule().getPost().getPostAnalytics().size();
         }
         brandProfileRepository.save(brand);
+        // Trang Phân tích đọc snapshot/số theo ngày: chép mốc mẫu sang đó (cùng đường với dữ liệu thật cũ), rồi
+        // dừng theo dõi để job không gọi Meta cho bài không tồn tại.
+        analyticsSyncService.prepare(DEV_SEED_POSTS * 2);
+        platformMediaRepository.stopForAccounts(accounts.values().stream().map(PlatformAccount::getId).toList());
+        analyticsAccountSyncService.disableForAccounts(accounts.values());
         // Không dọn cache thì trang Phân tích còn hiện số cũ tới 45 giây sau khi seed — dev tưởng seeder hỏng.
         resultCache.clear();
 
@@ -582,17 +673,26 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     // Xoá hồ sơ MẪU (cascade content item → version → lịch → post → analytics) rồi mới xoá kết nối
     // MẪU — flush giữa hai bước để lịch (FK tới platform_account) biến mất trước. Trả số bài đã xoá.
     private int clearDevData(User user) {
+        List<PlatformAccount> devAccounts = platformAccountRepository
+                .findByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(user.getId()).stream()
+                .filter(account -> account.getPlatformAccountId() != null
+                        && account.getPlatformAccountId().startsWith(DEV_MARKER_PREFIX))
+                .toList();
+        // Số liệu đồng bộ của bài MẪU tham chiếu post/kết nối → xoá trước hồ sơ (cascade post) và kết nối.
+        if (!devAccounts.isEmpty()) {
+            List<UUID> devAccountIds = devAccounts.stream().map(PlatformAccount::getId).toList();
+            postMetricsDailyRepository.deleteForAccounts(devAccountIds);
+            postMetricSnapshotRepository.deleteForAccounts(devAccountIds);
+            platformMediaRepository.deleteForAccounts(devAccountIds);
+            accountInsightsDailyRepository.deleteForAccounts(devAccountIds);
+            accountSyncStateRepository.deleteForAccounts(devAccountIds);
+        }
         List<BrandProfile> devBrands = brandProfileRepository.findByUser_IdAndBrandName(user.getId(), DEV_BRAND_NAME);
         int removed = devBrands.stream().mapToInt(brand -> brand.getContentItems().size()).sum();
         if (!devBrands.isEmpty()) {
             brandProfileRepository.deleteAll(devBrands);
             brandProfileRepository.flush();
         }
-        List<PlatformAccount> devAccounts = platformAccountRepository
-                .findByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(user.getId()).stream()
-                .filter(account -> account.getPlatformAccountId() != null
-                        && account.getPlatformAccountId().startsWith(DEV_MARKER_PREFIX))
-                .toList();
         if (!devAccounts.isEmpty()) {
             platformAccountRepository.deleteAll(devAccounts);
             platformAccountRepository.flush();
@@ -745,7 +845,12 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     private Filters filters(AnalyticsQuery query) {
-        return new Filters(platformCsv(query.platforms()), contentTypeCsv(query.contentTypes()));
+        return new Filters(platformCsv(query.platforms()), contentTypeCsv(query.contentTypes()), origin(query.source()));
+    }
+
+    // "aima" = chỉ bài đăng qua AIMA; mọi giá trị khác (kể cả lạ) = toàn bộ Trang — không ném lỗi, như whitelist sort.
+    private String origin(String source) {
+        return source != null && source.trim().equalsIgnoreCase(SOURCE_AIMA) ? MediaOrigin.AIMA.name() : null;
     }
 
     // Kỳ so sánh: cùng độ dài, nằm ngay trước kỳ hiện tại (compare=previous_period — chế độ duy nhất).
@@ -788,9 +893,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     // Khoá gồm ĐỦ mọi thứ đổi kết quả: user + khối + kỳ + bộ lọc — thiếu một mảnh là trả nhầm số
     // liệu của bộ lọc khác.
+    // Khoá gồm lần đồng bộ số liệu gần nhất của user: job vừa ghi số mới thì khoá đổi → không trả số cũ tới 45 giây
+    // (nút "Làm mới" trên trang phải thấy ngay kết quả).
     private String key(String block, UUID userId, ResolvedRange range, Filters filters) {
         return String.join("|", block, userId.toString(), range.from().toString(), range.to().toString(),
-                String.valueOf(filters.platformCsv()), String.valueOf(filters.typeCsv()));
+                String.valueOf(filters.platformCsv()), String.valueOf(filters.typeCsv()), String.valueOf(filters.origin()),
+                String.valueOf(platformMediaRepository.findLatestSyncForUser(userId)),
+                String.valueOf(accountSyncStateRepository.findLatestSyncForUser(userId))); // bài mới tự đăng vừa import
     }
 
     private record CachedResult(Object value, LocalDateTime cachedAt) {
@@ -799,8 +908,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         }
     }
 
-    /** Bộ lọc đã chuẩn hoá thành CSV cho truy vấn native; null = không lọc chiều đó. */
-    private record Filters(String platformCsv, String typeCsv) {
+    /** Bộ lọc đã chuẩn hoá cho truy vấn native; null = không lọc chiều đó. origin 'AIMA' = chỉ bài AIMA. */
+    private record Filters(String platformCsv, String typeCsv, String origin) {
     }
 
     /** Kỳ so sánh (cùng độ dài, liền trước kỳ hiện tại). */

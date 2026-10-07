@@ -1,6 +1,7 @@
 package com.aima.service.Impl;
 
 import com.aima.service.ActivityLogService;
+import com.aima.service.AnalyticsAccountSyncService;
 import com.aima.enums.ActivityAction;
 import com.aima.config.AimaProperties;
 import com.aima.config.MetaProperties;
@@ -63,6 +64,7 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
     ObjectMapper objectMapper;
     ScheduleHoldService holdService;
     NotificationService notificationService;
+    AnalyticsAccountSyncService analyticsAccountSyncService;
 
     private static final String STATE_PREFIX = "oauth_state:";
 
@@ -173,6 +175,7 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
         created.add(userConn);
 
         List<MetaApiClient.MetaPage> pages = metaApiClient.getMyAccounts(longToken.accessToken());
+        List<UUID> pageConnectionIds = new ArrayList<>();
         if (pages.isEmpty()) {
             // Đủ quyền nhưng /me/accounts rỗng = user không chọn Trang nào trong dialog (Facebook Login
             // for Business chỉ trả các Trang được cấp) → chỉ có kết nối USER, không đăng bài được.
@@ -186,17 +189,23 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
                     page.accessToken(), null, null,
                     grantedCsv, userConn);
             created.add(pageConn);
+            pageConnectionIds.add(pageConn.getId());
 
             // Best-effort: Page vẫn được lưu (đăng Facebook được) dù không tra được IG Business —
             // callback chỉ được thất bại ở bước đổi token / đọc quyền / /me/accounts.
             Optional<MetaApiClient.MetaIgAccount> ig;
+            Boolean igLinked;
             try {
                 ig = metaApiClient.getInstagramBusinessAccount(page.id(), page.accessToken());
+                igLinked = ig.isPresent();
             } catch (Exception e) {
                 log.warn("[OAuth] Không lấy được Instagram Business của Page {} — bỏ qua IG, vẫn lưu Page: {}",
                         page.id(), MetaApiClientImpl.mask(String.valueOf(e.getMessage())));
                 ig = Optional.empty();
+                igLinked = null; // không tra được ≠ chưa liên kết
             }
+            // Trang không có IG Business = IG cá nhân / chưa liên kết → Cài đặt hiện hướng dẫn (analytics GĐ2).
+            analyticsAccountSyncService.recordInstagramLink(pageConn, igLinked);
             if (ig.isPresent()) {
                 MetaApiClient.MetaIgAccount account = ig.get();
                 PlatformAccount igConn = upsert(user, Platform.INSTAGRAM, account.id(),
@@ -208,6 +217,16 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
                 created.add(igConn);
             }
         }
+        // Đăng ký app nhận webhook "feed" của từng Trang (analytics giai đoạn 3) — SAU commit, ngoài transaction (rule #24).
+        // Best-effort: thiếu pages_manage_metadata thì chỉ ghi lỗi, lượt đồng bộ cấp kênh tự thử lại.
+        runAfterCommit(() -> pageConnectionIds.forEach(id -> {
+            try {
+                analyticsAccountSyncService.ensureWebhookSubscribed(id);
+            } catch (Exception e) {
+                log.warn("[OAuth] Không đăng ký được webhook cho kết nối {}: {}", id,
+                        MetaApiClientImpl.mask(String.valueOf(e.getMessage())));
+            }
+        }));
         return created;
     }
 
@@ -252,7 +271,13 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
         account.setLastSyncAt(LocalDateTime.now());
         account.setConnectionStatus(ConnectionStatus.ACTIVE);
         account.setParentConnection(parent);
-        return accountRepository.save(account);
+        boolean created = account.getId() == null;
+        PlatformAccount saved = accountRepository.save(account);
+        if (created) {
+            // Kết nối lại sau khi ngắt (dòng cũ đã xoá mềm) → mang lịch sử số liệu sang kết nối mới (không tạo bản trùng).
+            analyticsAccountSyncService.adoptPreviousConnections(saved);
+        }
+        return saved;
     }
 
     // ---------- Validate / Refresh / Disconnect ----------

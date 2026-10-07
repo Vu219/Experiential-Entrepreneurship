@@ -2,11 +2,13 @@ import { memo } from 'react';
 import { ChevronDown, ChevronUp, ChevronsUpDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { PlatformTag } from '../ui';
-import { formatGroupedNumber, formatDateTimeVN } from '../../utils/format';
+import { formatDateTimeVN } from '../../utils/format';
 import { PLATFORM_BG } from '../../theme';
 import { PLATFORM_TO_TAG } from '../../api/connections';
 import type { AnalyticsTopPost, TopPostSort, TopPostSortField } from '../../api/analytics';
 import { C } from '../../styles/colors';
+import MetricValue from './MetricValue';
+import PostOriginBadges from './PostOriginBadges';
 
 /**
  * Bảng bài viết SẮP XẾP THEO CỘT (thuần trình bày) — dùng trong `TopPostsTable` và `AllPostsModal`.
@@ -32,7 +34,7 @@ function PostsTable({
   /** Hạng của dòng đầu tiên (modal phân trang truyền offset để # không lặp lại 1 ở mỗi trang). */
   startIndex?: number;
 }) {
-  const { t, lang } = useApp();
+  const { t } = useApp();
 
   // Bấm cột đang sort → đảo chiều; cột mới → mặc định giảm dần (giá trị/ngày mới nhất lên đầu).
   const clickSort = (field: TopPostSortField) =>
@@ -88,7 +90,7 @@ function PostsTable({
           {rows.map((r, i) => {
             const tag = PLATFORM_TO_TAG[r.platform] ?? 'FB';
             return (
-              <tr key={r.postId} onClick={() => onRowClick(r)}
+              <tr key={r.mediaId} onClick={() => onRowClick(r)}
                 style={{
                   borderTop: `1px solid ${C.surfaceMuted}`,
                   cursor: 'pointer',
@@ -110,6 +112,7 @@ function PostsTable({
                   <span style={{ display: 'block', fontSize: 12, color: C.textMuted, marginTop: 4, fontWeight: 500 }}>
                     {formatDateTimeVN(r.publishedAt)}
                     {r.accountName && ` · ${r.accountName}`}
+                    <PostOriginBadges post={r} />
                   </span>
                 </td>
                 <td style={cell}>
@@ -117,7 +120,7 @@ function PostsTable({
                 </td>
                 {numCols.map((c) => (
                   <td key={c.key} style={numCell}>
-                    {formatGroupedNumber(r[c.key], lang)}
+                    <MetricValue value={r[c.key]} post={r} />
                   </td>
                 ))}
               </tr>

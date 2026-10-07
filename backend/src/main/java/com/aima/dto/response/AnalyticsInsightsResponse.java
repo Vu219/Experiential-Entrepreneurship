@@ -83,4 +83,16 @@ public class AnalyticsInsightsResponse {
     @Schema(description = "Số bài BỊ LOẠI khỏi tỷ lệ tương tác vì nền tảng không trả lượt xem "
             + "(chủ yếu Facebook thiếu quyền read_insights).", example = "13")
     long excludedPosts;
+
+    @Schema(description = "Người theo dõi MỚI trong kỳ (cấp Trang, cộng theo ngày — chỉ áp bộ lọc nền tảng); null = nền "
+            + "tảng chưa trả số theo ngày (thiếu read_insights / Trang dưới ngưỡng của Meta), KHÁC 0.", example = "37")
+    Long newFollowers;
+
+    @Schema(description = "% thay đổi người theo dõi mới so kỳ trước; null khi một trong hai kỳ không có số hoặc kỳ trước = 0.",
+            example = "12.5")
+    Double newFollowersDeltaPct;
+
+    @Schema(description = "Tổng người theo dõi hiện tại của các kênh (số mới nhất mỗi kênh cộng lại); null khi chưa có.",
+            example = "1250")
+    Long followersTotal;
 }

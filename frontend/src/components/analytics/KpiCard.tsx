@@ -22,12 +22,15 @@ function KpiCard({
   tone,
   stat,
   comparisonLabel,
+  hint,
 }: {
   icon: LucideIcon;
   label: string;
   tone: StatTone;
   stat: DashboardStat;
   comparisonLabel: string;
+  /** Giải thích ý nghĩa con số (tooltip của nhãn). */
+  hint?: string;
 }) {
   const { lang } = useApp();
   const { bg, color, stroke } = STAT_TONES[tone];
@@ -50,7 +53,7 @@ function KpiCard({
       </span>
 
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{
+        <div title={hint} style={{
           fontSize: 12, fontWeight: 600, color: C.textMuted, lineHeight: 1.3,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>

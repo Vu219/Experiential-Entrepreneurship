@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { todayISO } from './dateRange';
@@ -8,8 +8,8 @@ import { C } from '../../styles/colors';
  * Lịch chọn KHOẢNG ngày (dự án chỉ có `DatePicker` chọn MỘT ngày). Dùng lại y hệt cách dựng lưới
  * tháng + nhãn thứ/tháng i18n của `DatePicker` — không thêm thư viện (quyết định D5 của Analytics v2).
  *
- * Bấm lần 1 đặt ngày bắt đầu, lần 2 đặt ngày kết thúc (chọn ngược thì tự đảo). Chỉ khi đã đủ hai
- * đầu mới gọi `onChange` — trang không phải fetch lại giữa chừng.
+ * Bấm lần 1 đặt ngày bắt đầu → `onChange(ngày, '')` (chưa có ngày kết thúc), lần 2 đặt ngày kết thúc
+ * (chọn ngược thì tự đảo) → `onChange(from, to)`. Nơi gọi tự quyết khi nào áp dụng (nút Xác nhận).
  */
 const pad = (n: number) => String(n).padStart(2, '0');
 const toISO = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
@@ -37,13 +37,22 @@ export default function RangeCalendar({
   const [view, setView] = useState({ year: start.year, month: start.month });
   // Đầu neo khi đang chọn dở (đã bấm 1 ngày, chờ ngày thứ hai).
   const [pending, setPending] = useState<string | null>(null);
+  // Giá trị lịch vừa tự phát ra — from/to quay về đúng giá trị này thì KHÔNG coi là đổi từ ngoài
+  // (không xoá đầu neo, không nhảy tháng khi người dùng đã lật sang tháng khác để chọn ngày thứ hai).
+  const emitted = useRef<string | null>(null);
 
-  // Khoảng đổi từ ngoài (bấm preset) → nhảy lịch về tháng chứa ngày bắt đầu.
+  // Khoảng đổi từ ngoài (bấm preset / gõ ô ngày) → nhảy lịch về tháng chứa ngày bắt đầu.
   useEffect(() => {
+    if (emitted.current === `${from}|${to}`) return;
     const p = parseISO(from);
     setView({ year: p.year, month: p.month });
     setPending(null);
-  }, [from]);
+  }, [from, to]);
+
+  const emit = (f: string, tt: string) => {
+    emitted.current = `${f}|${tt}`;
+    onChange(f, tt);
+  };
 
   const monthNames = t.dpMonths.split(',');
   const weekDays = [t.dpSun, t.dpMon, t.dpTue, t.dpWed, t.dpThu, t.dpFri, t.dpSat];
@@ -56,10 +65,10 @@ export default function RangeCalendar({
   });
 
   const pick = (iso: string) => {
-    if (!pending) { setPending(iso); return; }
+    if (!pending) { setPending(iso); emit(iso, ''); return; }
     const [a, b] = pending <= iso ? [pending, iso] : [iso, pending];
     setPending(null);
-    onChange(a, b);
+    emit(a, b);
   };
 
   // Lưới: ngày tháng trước/sau chỉ để lấp chỗ (disabled), giống DatePicker.

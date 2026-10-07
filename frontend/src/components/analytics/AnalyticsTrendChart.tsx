@@ -17,6 +17,9 @@ import { C } from '../../styles/colors';
  * theo range (giãn nhãn khi > 10 điểm). Legend ngang ở góc trên trái, bấm để bật/tắt từng series;
  * badge khoảng ngày ở góc trên phải; tooltip gộp mọi series đang hiển thị. Cùng kỹ thuật gradient +
  * tooltip-dạng-hàm với `dashboard/PerformanceChart`.
+ *
+ * Ngày có số ƯỚC TÍNH (`point.estimated` — bài được theo dõi muộn, phần tăng tới lần đồng bộ đầu được chia đều từ ngày đăng):
+ * điểm rỗng viền đứt (điểm thật tô đặc), tooltip ghi "Ước tính…", và một dòng chú thích dưới biểu đồ khi kỳ có ngày ước tính.
  */
 function AnalyticsTrendChart({ points, from, to }: { points: AnalyticsPoint[]; from: string; to: string }) {
   const { t, lang } = useApp();
@@ -35,6 +38,7 @@ function AnalyticsTrendChart({ points, from, to }: { points: AnalyticsPoint[]; f
     () => points.some((p) => p.views > 0 || p.likes > 0 || p.comments > 0 || p.shares > 0),
     [points],
   );
+  const hasEstimated = useMemo(() => points.some((p) => p.estimated), [points]);
   const tickInterval = data.length > 10 ? Math.floor(data.length / 7) : 0;
   const showDots = data.length <= 31;
   const toggle = (k: MetricKey) => setHidden((prev) => {
@@ -103,7 +107,7 @@ function AnalyticsTrendChart({ points, from, to }: { points: AnalyticsPoint[]; f
               <Tooltip
                 cursor={{ stroke: GRID_LINE, strokeWidth: 2 }}
                 content={(props) => (
-                  <ChartTooltip {...props} labels={metricLabel} hidden={hidden} lang={lang} />
+                  <ChartTooltip {...props} labels={metricLabel} hidden={hidden} lang={lang} estimatedLabel={t.anaEstimatedTip} />
                 )}
               />
               {METRIC_ORDER.filter((k) => !hidden.has(k)).map((k) => (
@@ -111,7 +115,8 @@ function AnalyticsTrendChart({ points, from, to }: { points: AnalyticsPoint[]; f
                   fill={`url(#ana-${k}-${gid})`} fillOpacity={1}
                   // Marker tròn trên từng điểm; range dài (>31 ngày) thì bỏ marker, nếu không các
                   // chấm dính liền thành một vệt dày che mất đường.
-                  dot={showDots ? { r: 3, strokeWidth: 2, stroke: METRIC_COLOR[k], fill: '#fff' } : false}
+                  // Điểm thật tô đặc; ngày ước tính là điểm rỗng viền đứt.
+                  dot={showDots ? (props: DotProps) => <TrendDot key={`${k}-${props.index}`} {...props} color={METRIC_COLOR[k]} /> : false}
                   activeDot={{ r: 4 }} isAnimationActive={false} />
               ))}
             </AreaChart>
@@ -125,18 +130,41 @@ function AnalyticsTrendChart({ points, from, to }: { points: AnalyticsPoint[]; f
           {t.anaTrendEmpty}
         </div>
       )}
+
+      {hasData && hasEstimated && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 10, fontSize: 11.5, lineHeight: 1.5, color: C.textMuted }}>
+          <svg width="12" height="12" aria-hidden style={{ flex: 'none' }}>
+            <circle cx="6" cy="6" r="4" fill={C.surface} stroke={C.textMuted} strokeWidth={1.6} strokeDasharray="2 1.6" />
+          </svg>
+          <span>{t.anaEstimatedNote}</span>
+        </div>
+      )}
     </Card>
   );
 }
 
+type DotProps = { cx?: number; cy?: number; index?: number; payload?: { estimated?: boolean } };
+
+/** Marker một điểm: thật = tô đặc màu metric; ước tính = rỗng (nền card) viền đứt. */
+function TrendDot({ cx, cy, payload, color }: DotProps & { color: string }) {
+  if (cx == null || cy == null) return null;
+  const estimated = !!payload?.estimated;
+  return (
+    <circle cx={cx} cy={cy} r={estimated ? 3.5 : 3} stroke={color} strokeWidth={estimated ? 1.6 : 2}
+      fill={estimated ? C.surface : color} strokeDasharray={estimated ? '2 1.6' : undefined} />
+  );
+}
+
 function ChartTooltip({
-  active, payload, label, labels, hidden, lang,
+  active, payload, label, labels, hidden, lang, estimatedLabel,
 }: TooltipContentProps & {
   labels: Record<MetricKey, string>;
   hidden: Set<MetricKey>;
   lang: string;
+  estimatedLabel: string;
 }) {
   if (!active || !payload?.length) return null;
+  const estimated = !!(payload[0]?.payload as { estimated?: boolean } | undefined)?.estimated;
   const valueOf = (k: MetricKey) => Number(payload.find((p) => p.dataKey === k)?.value ?? 0);
   const rows = METRIC_ORDER.filter((k) => !hidden.has(k));
   return (
@@ -152,6 +180,11 @@ function ChartTooltip({
           <strong style={{ color: C.textStrong }}>{formatGroupedNumber(valueOf(k), lang)}</strong>
         </div>
       ))}
+      {estimated && (
+        <div style={{ marginTop: 7, paddingTop: 6, borderTop: `1px dashed ${C.border}`, fontSize: 11.5, color: C.textMuted, maxWidth: 220 }}>
+          {estimatedLabel}
+        </div>
+      )}
     </div>
   );
 }

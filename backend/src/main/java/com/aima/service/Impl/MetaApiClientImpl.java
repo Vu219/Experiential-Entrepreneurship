@@ -10,8 +10,10 @@ import com.aima.exception.MetricsFetchException;
 import com.aima.exception.PublishException;
 import com.aima.service.MetaApiClient;
 import com.aima.service.PlatformVersionService;
+import com.aima.util.FacebookPostIds;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -31,10 +33,19 @@ import javax.crypto.spec.SecretKeySpec;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * Cài đặt {@link MetaApiClient} bằng WebClient (đồng bộ qua .block() vì app dùng Spring MVC).
@@ -277,13 +288,17 @@ public class MetaApiClientImpl implements MetaApiClient {
     /** Metric lượt xem bài Page — thay post_impressions đã bị Meta khai tử 15/11/2025. */
     static final String FB_POST_VIEWS_METRIC = "post_media_view";
 
+    static final String FB_POST_FIELDS =
+            "reactions.summary(total_count).limit(0),comments.filter(stream).summary(true).limit(0),shares";
+
     private MetaPostMetrics getFacebookPostMetrics(String postId, String pageToken) {
         Platform platform = Platform.FACEBOOK;
         String version = versionService.getCurrentVersion(platform);
-        // reactions = mọi cảm xúc (Thích/Yêu thích/Haha/...), không chỉ Like; limit(0) = chỉ lấy tổng, không tải danh sách.
+        // reactions = mọi cảm xúc (Thích/Yêu thích/Haha/...), không chỉ Like; comments filter(stream) = cả phản hồi
+        // (khớp Meta Business Suite); limit(0) = chỉ lấy tổng, không tải danh sách.
         String url = withProof(UriComponentsBuilder.fromUriString(metaProperties.graphBaseUrl())
                 .pathSegment(version, postId)
-                .queryParam("fields", "reactions.summary(total_count).limit(0),comments.summary(true).limit(0),shares")
+                .queryParam("fields", FB_POST_FIELDS)
                 .queryParam("access_token", pageToken), pageToken, platform)
                 .toUriString();
         JsonNode body = getMetrics(url, platform);
@@ -296,13 +311,15 @@ public class MetaApiClientImpl implements MetaApiClient {
         // Lượt xem cần read_insights: thiếu quyền → views null nhưng vẫn lưu tương tác. Rate limit / token /
         // lỗi tạm thì ném ra để cả mốc được thu lại sau — không lưu vĩnh viễn một snapshot thiếu views.
         Long views = null;
+        JsonNode insights = null;
         String insightsUrl = withProof(UriComponentsBuilder.fromUriString(metaProperties.graphBaseUrl())
                 .pathSegment(version, postId, "insights")
                 .queryParam("metric", FB_POST_VIEWS_METRIC)
                 .queryParam("access_token", pageToken), pageToken, platform)
                 .toUriString();
         try {
-            views = metricValue(getMetrics(insightsUrl, platform), FB_POST_VIEWS_METRIC);
+            insights = getMetrics(insightsUrl, platform);
+            views = metricValue(insights, FB_POST_VIEWS_METRIC);
         } catch (MetricsFetchException e) {
             if (e.getErrorType() == MetricsErrorType.PERMISSION) {
                 log.info("[Meta] Không có quyền đọc lượt xem bài {} (cần read_insights) — views = null", postId);
@@ -313,7 +330,12 @@ public class MetaApiClientImpl implements MetaApiClient {
                 throw e;
             }
         }
-        return new MetaPostMetrics(views, reactions, comments, shares, null); // FB post không có saves
+        ObjectNode raw = objectMapper.createObjectNode();
+        raw.set("fields", body);
+        if (insights != null) {
+            raw.set("insights", insights);
+        }
+        return new MetaPostMetrics(views, reactions, comments, shares, null, raw.toString()); // FB post không có saves
     }
 
     private static Long metricValue(JsonNode insights, String metric) {
@@ -359,12 +381,192 @@ public class MetaApiClientImpl implements MetaApiClient {
             }
         }
         // reposts + quotes gộp thành shares; Threads không có saves.
-        return new MetaPostMetrics(views, likes, replies, hasShares ? sharesTotal : null, null);
+        return new MetaPostMetrics(views, likes, replies, hasShares ? sharesTotal : null, null, body.toString());
     }
 
     private static Long summaryCount(JsonNode body, String field) {
         JsonNode count = body.path(field).path("summary").path("total_count");
         return count.isMissingNode() || count.isNull() ? null : count.asLong();
+    }
+
+    // ---------- Số liệu cấp Trang (analytics giai đoạn 2) ----------
+
+    static final String FB_PUBLISHED_POST_FIELDS = "id,created_time,permalink_url,message,attachments{media_type}";
+    /** Dự phòng khi Meta từ chối trường attachments: vẫn import được bài, chỉ không biết loại nội dung. */
+    static final String FB_PUBLISHED_POST_FIELDS_MINIMAL = "id,created_time,permalink_url,message";
+    static final int PUBLISHED_POSTS_PAGE_SIZE = 100;
+    /** Trần số trang mỗi lượt quét (≤ 1.000 bài) — lượt sau quét tiếp từ mốc thời gian mới. */
+    static final int PUBLISHED_POSTS_MAX_PAGES = 10;
+
+    /** Metric theo ngày của Trang còn dùng được (page_impressions / page_fans* đã bị khai tử 15/11/2025). */
+    static final List<String> FB_PAGE_DAILY_METRICS = List.of("page_daily_follows_unique",
+            "page_daily_unfollows_unique", "page_follows", "page_media_view", "page_post_engagements");
+    /** Meta chia ngày của insights Trang theo giờ Thái Bình Dương; end_time = nửa đêm cuối ngày đó. */
+    static final ZoneId META_INSIGHTS_ZONE = ZoneId.of("America/Los_Angeles");
+    private static final DateTimeFormatter GRAPH_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ");
+
+    @Override
+    public List<MetaPublishedPost> getPagePublishedPosts(String pageId, String pageToken, Instant since) {
+        try {
+            return listPublishedPosts(pageId, pageToken, since, FB_PUBLISHED_POST_FIELDS, true);
+        } catch (MetricsFetchException e) {
+            if (e.getErrorType() != MetricsErrorType.INVALID_REQUEST) {
+                throw e;
+            }
+            log.error("[Meta] Trường attachments bị từ chối khi đọc bài của Trang {} ({}) — đọc lại không kèm loại nội dung",
+                    pageId, e.getResponseCode());
+            return listPublishedPosts(pageId, pageToken, since, FB_PUBLISHED_POST_FIELDS_MINIMAL, false);
+        }
+    }
+
+    private List<MetaPublishedPost> listPublishedPosts(String pageId, String pageToken, Instant since, String fields,
+                                                       boolean withAttachments) {
+        Platform platform = Platform.FACEBOOK;
+        String version = versionService.getCurrentVersion(platform);
+        List<MetaPublishedPost> posts = new ArrayList<>();
+        String after = null;
+        for (int page = 0; page < PUBLISHED_POSTS_MAX_PAGES; page++) {
+            UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(metaProperties.graphBaseUrl())
+                    .pathSegment(version, pageId, "published_posts")
+                    .queryParam("fields", fields)
+                    .queryParam("since", since.getEpochSecond())
+                    .queryParam("limit", PUBLISHED_POSTS_PAGE_SIZE)
+                    .queryParam("access_token", pageToken);
+            if (after != null) {
+                builder.queryParam("after", after);
+            }
+            JsonNode body = getMetrics(withProof(builder, pageToken, platform).toUriString(), platform);
+            for (JsonNode node : body.path("data")) {
+                String id = FacebookPostIds.canonical(pageId, text(node, "id"));
+                if (id == null) {
+                    continue;
+                }
+                posts.add(new MetaPublishedPost(id, graphTime(text(node, "created_time")), text(node, "permalink_url"),
+                        text(node, "message"), text(node.path("attachments").path("data").path(0), "media_type"),
+                        withAttachments));
+            }
+            // Còn trang sau thì Graph trả paging.next; dựng lại URL bằng cursor "after" (không dùng nguyên link next
+            // vì link đó mang sẵn token, không qua withProof).
+            after = body.path("paging").has("next") ? text(body.path("paging").path("cursors"), "after") : null;
+            if (after == null) {
+                break;
+            }
+        }
+        return posts;
+    }
+
+    @Override
+    public MetaPageInsights getPageInsights(String pageId, String pageToken, LocalDate since, LocalDate until) {
+        Map<String, Map<LocalDate, Long>> values = new LinkedHashMap<>();
+        try {
+            collectPageInsights(fetchPageInsights(pageId, pageToken, String.join(",", FB_PAGE_DAILY_METRICS), since, until), values);
+        } catch (MetricsFetchException e) {
+            if (e.getErrorType() != MetricsErrorType.INVALID_REQUEST) {
+                throw e;
+            }
+            // Một metric bị khai tử làm hỏng CẢ lời gọi → hỏi từng metric, bỏ metric bị từ chối.
+            for (String metric : FB_PAGE_DAILY_METRICS) {
+                try {
+                    collectPageInsights(fetchPageInsights(pageId, pageToken, metric, since, until), values);
+                } catch (MetricsFetchException each) {
+                    if (each.getErrorType() != MetricsErrorType.INVALID_REQUEST) {
+                        throw each;
+                    }
+                    log.error("[Meta] Metric Trang {} bị từ chối ({}) — có thể Meta đã khai tử metric này",
+                            metric, each.getResponseCode());
+                }
+            }
+        }
+        return new MetaPageInsights(values);
+    }
+
+    private JsonNode fetchPageInsights(String pageId, String pageToken, String metrics, LocalDate since, LocalDate until) {
+        Platform platform = Platform.FACEBOOK;
+        String version = versionService.getCurrentVersion(platform);
+        String url = withProof(UriComponentsBuilder.fromUriString(metaProperties.graphBaseUrl())
+                .pathSegment(version, pageId, "insights")
+                .queryParam("metric", metrics)
+                .queryParam("period", "day")
+                .queryParam("since", since.atStartOfDay(META_INSIGHTS_ZONE).toEpochSecond())
+                .queryParam("until", until.plusDays(1).atStartOfDay(META_INSIGHTS_ZONE).toEpochSecond())
+                .queryParam("access_token", pageToken), pageToken, platform)
+                .toUriString();
+        return getMetrics(url, platform);
+    }
+
+    // values[].end_time = nửa đêm (giờ Thái Bình Dương) KẾT THÚC ngày được đo → ngày = end_time − 1 ngày.
+    private static void collectPageInsights(JsonNode body, Map<String, Map<LocalDate, Long>> values) {
+        for (JsonNode metric : body.path("data")) {
+            String name = text(metric, "name");
+            if (name == null) {
+                continue;
+            }
+            for (JsonNode point : metric.path("values")) {
+                JsonNode value = point.path("value");
+                Instant endTime = graphTime(text(point, "end_time"));
+                if (endTime == null || !value.isNumber()) {
+                    continue;
+                }
+                LocalDate day = endTime.atZone(META_INSIGHTS_ZONE).toLocalDate().minusDays(1);
+                values.computeIfAbsent(name, k -> new TreeMap<>()).put(day, value.asLong());
+            }
+        }
+    }
+
+    @Override
+    public Long getPageFollowersCount(String pageId, String pageToken) {
+        Platform platform = Platform.FACEBOOK;
+        String version = versionService.getCurrentVersion(platform);
+        String url = withProof(UriComponentsBuilder.fromUriString(metaProperties.graphBaseUrl())
+                .pathSegment(version, pageId)
+                .queryParam("fields", "followers_count")
+                .queryParam("access_token", pageToken), pageToken, platform)
+                .toUriString();
+        return longValue(getMetrics(url, platform), "followers_count");
+    }
+
+    @Override
+    public void subscribePageWebhook(String pageId, String pageToken, String subscribedFields) {
+        Platform platform = Platform.FACEBOOK;
+        String version = versionService.getCurrentVersion(platform);
+        String url = UriComponentsBuilder.fromUriString(metaProperties.graphBaseUrl())
+                .pathSegment(version, pageId, "subscribed_apps")
+                .toUriString();
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("subscribed_fields", subscribedFields);
+        form.add("access_token", pageToken);
+        if (metaProperties.appSecretProofEnabled()) {
+            form.add("appsecret_proof", generateAppSecretProof(pageToken, appConfig(platform).appSecret()));
+        }
+        log.debug("[Meta] POST {} ({})", mask(url), platform);
+        JsonNode body;
+        try {
+            String raw = webClient.post().uri(encodedUri(url))
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(BodyInserters.fromFormData(form))
+                    .retrieve().bodyToMono(String.class).block();
+            body = parse(raw);
+        } catch (WebClientResponseException e) {
+            log.warn("[Meta] Đăng ký webhook Trang {} lỗi {}: {}", pageId, e.getStatusCode(), mask(e.getResponseBodyAsString()));
+            throw toMetricsException(e);
+        } catch (WebClientRequestException e) {
+            throw new MetricsFetchException(MetricsErrorType.TEMPORARY, "NETWORK", e.getMessage());
+        }
+        if (!body.path("success").asBoolean(false)) {
+            throw new MetricsFetchException(MetricsErrorType.TEMPORARY, "NOT_SUBSCRIBED", "Meta không xác nhận đăng ký webhook");
+        }
+    }
+
+    /** Thời điểm dạng Graph "2026-10-05T07:00:00+0000"; null nếu thiếu/sai định dạng. */
+    private static Instant graphTime(String value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return OffsetDateTime.parse(value, GRAPH_TIME).toInstant();
+        } catch (DateTimeParseException e) {
+            return null;
+        }
     }
 
     // ---------- Publish (FR-53/FR-54) ----------
@@ -386,7 +588,9 @@ public class MetaApiClientImpl implements MetaApiClient {
         }
 
         JsonNode body = postFormForPublish(url, form, platform);
-        return new MetaPostResult(text(body, "id"));
+        // /feed trả id dạng pageId_postId; nếu có post_id (endpoint ảnh) thì đó mới là id BÀI. Chuẩn hoá một dạng duy nhất.
+        String postId = text(body, "post_id") != null ? text(body, "post_id") : text(body, "id");
+        return new MetaPostResult(FacebookPostIds.canonical(pageId, postId));
     }
 
     @Override
