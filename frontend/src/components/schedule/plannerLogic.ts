@@ -5,7 +5,7 @@
 import type { Platform } from '../../api/brandProfile';
 import type { ContentVersionResponse } from '../../api/contentGeneration';
 import type { PostSchedule, ScheduleBatchResult, ScheduleBatchRow } from '../../api/schedules';
-import { publishingInstant } from '../../utils/publishingTime.ts'; // đuôi .ts: node --test chạy trực tiếp file này
+import { publishingInstant, wallTime, zonedTimestamp } from '../../utils/publishingTime.ts'; // đuôi .ts: node --test chạy trực tiếp file này
 
 /** NOW = đăng ngay; SCHEDULE = tự chọn giờ; SUGGEST = chọn một khung gợi ý; NONE = không lên lịch nền tảng này. */
 export type RowMode = 'NOW' | 'SCHEDULE' | 'SUGGEST' | 'NONE';
@@ -56,8 +56,11 @@ export function blockOf(version: ContentVersionResponse, accounts: PlannerAccoun
   return null;
 }
 
-/** Một dòng / bản nền tảng; dòng đủ điều kiện mặc định SCHEDULE trên tài khoản đầu tiên của nền tảng. */
-export function initialRows(versions: ContentVersionResponse[], accounts: PlannerAccount[], newKey: () => string): PlannerRow[] {
+/**
+ * Một dòng / bản nền tảng; dòng đủ điều kiện mặc định SCHEDULE trên tài khoản đầu tiên của nền tảng.
+ * {@code initialDate} (yyyy-MM-dd, đã kiểm không ở quá khứ) — mở từ một ngày trên Lịch đăng → chọn sẵn ngày đó.
+ */
+export function initialRows(versions: ContentVersionResponse[], accounts: PlannerAccount[], newKey: () => string, initialDate = ''): PlannerRow[] {
   return versions.map((v) => {
     const block = blockOf(v, accounts);
     return {
@@ -66,7 +69,7 @@ export function initialRows(versions: ContentVersionResponse[], accounts: Planne
       block,
       accountId: accounts.find((a) => a.platform === v.platformName)?.id ?? '',
       mode: block ? 'NONE' : 'SCHEDULE',
-      date: '',
+      date: block ? '' : initialDate,
       time: '',
       key: newKey(),
       keyPayload: null,
@@ -147,15 +150,19 @@ export const isSubmittable = (row: PlannerRow) => !row.block && row.mode !== 'NO
 
 /**
  * Dựng payload batch + cập nhật key: cùng dòng thử lại với CÙNG payload giữ nguyên key (server trả lại kết quả
- * cũ, không tạo trùng); payload đổi (giờ/tài khoản/chế độ) → key mới.
+ * cũ, không tạo trùng); payload đổi (giờ/tài khoản/chế độ/múi giờ) → key mới.
+ * {@code zone} = múi giờ đang chọn trong planner: có → giờ tường quy ra instant UTC ngay tại đây (tầng api để
+ * nguyên chuỗi có 'Z'); bỏ trống → gửi giờ tường, tầng api quy theo múi giờ tài khoản. Ném RangeError khi giờ
+ * không tồn tại / mơ hồ do đổi giờ mùa hè.
  */
-export function toBatchRows(rows: PlannerRow[], shared: SharedTime, newKey: () => string): { payload: ScheduleBatchRow[]; rows: PlannerRow[] } {
+export function toBatchRows(rows: PlannerRow[], shared: SharedTime, newKey: () => string, zone?: string): { payload: ScheduleBatchRow[]; rows: PlannerRow[] } {
   const payload: ScheduleBatchRow[] = [];
   const next = rows.map((row) => {
     if (!isSubmittable(row)) return row;
     const dt = wallDateTime(row, shared);
     const mode = row.mode === 'NOW' ? 'NOW' : 'SCHEDULE';
-    const signature = `${row.versionId}|${row.accountId}|${mode}|${dt ?? ''}`;
+    const scheduledTime = dt ? (zone ? publishingInstant(dt, zone) : `${dt}:00`) : undefined;
+    const signature = `${row.versionId}|${row.accountId}|${mode}|${scheduledTime ?? ''}`;
     const key = row.keyPayload === null || row.keyPayload === signature ? row.key : newKey();
     payload.push({
       clientRowId: row.versionId,
@@ -163,7 +170,7 @@ export function toBatchRows(rows: PlannerRow[], shared: SharedTime, newKey: () =
       contentVersionId: row.versionId,
       platformAccountId: row.accountId,
       mode,
-      scheduledTime: dt ? `${dt}:00` : undefined,
+      scheduledTime,
     });
     return { ...row, key, keyPayload: signature };
   });
@@ -184,11 +191,11 @@ export function applyBatchResult(rows: PlannerRow[], result: ScheduleBatchResult
  * Cảnh báo trùng lịch phía client (trước khi gửi): lịch chiếm chỗ cùng tài khoản gần hơn cửa sổ của user.
  * Chỉ để nhắc — server tính lại khi tạo lịch.
  */
-export function localConflicts(accountId: string, wall: string | null, schedules: PostSchedule[], windowMinutes: number): PostSchedule[] {
+export function localConflicts(accountId: string, wall: string | null, schedules: PostSchedule[], windowMinutes: number, zone?: string): PostSchedule[] {
   if (!wall || windowMinutes <= 0 || !accountId) return [];
   let at: number;
   try {
-    at = Date.parse(publishingInstant(wall.length === 16 ? `${wall}:00` : wall));
+    at = Date.parse(publishingInstant(wall.length === 16 ? `${wall}:00` : wall, zone));
   } catch {
     return [];
   }
@@ -197,3 +204,99 @@ export function localConflicts(accountId: string, wall: string | null, schedules
     && (s.status === 'SCHEDULED' || s.status === 'ON_HOLD' || s.status === 'POSTING')
     && Math.abs(Date.parse(s.scheduledTime) - at) < windowMs);
 }
+
+// ---- Lịch tháng inline + múi giờ riêng của planner ----
+
+/** Cách hiện lịch tháng của một dòng: hidden = không có lịch (dòng khóa / đã xong / đang dùng giờ chung). */
+export type CalendarMode = 'interactive' | 'readonly' | 'disabled' | 'hidden';
+
+/**
+ * Lịch tháng và ô nhập dùng CHUNG state của dòng (row.date): lịch hiện ngày đang chọn, ô ngày đổi → lịch nhảy
+ * tháng. Đăng ngay → chỉ đọc, sáng ngày hôm nay; Không đăng → khóa; Chọn giờ khi bật giờ chung → lịch chung.
+ */
+export function calendarStateFor(row: PlannerRow, sharedEnabled: boolean, todayISO: string): { mode: CalendarMode; value: string } {
+  if (row.block || row.result?.ok) return { mode: 'hidden', value: '' };
+  if (row.mode === 'NONE') return { mode: 'disabled', value: '' };
+  if (row.mode === 'NOW') return { mode: 'readonly', value: todayISO };
+  if (row.mode === 'SCHEDULE' && sharedEnabled) return { mode: 'hidden', value: '' };
+  return { mode: 'interactive', value: row.date };
+}
+
+/** Bấm một ngày trên lịch (Chọn giờ / giờ chung): điền vào ô ngày; ngày đã qua → null (không đổi gì). */
+export function pickCalendarDay(day: string, todayISO: string): { date: string } | null {
+  return day && day >= todayISO ? { date: day } : null;
+}
+
+/** Badge trạng thái của dòng: chưa đủ thông tin → 'unset' (cam); đủ → 'at' + giờ tường (error khi giờ đã qua / quá sát). */
+export type RowBadge =
+  | { kind: 'blocked' | 'none' | 'now' | 'unset' }
+  | { kind: 'at'; wall: string; error: boolean };
+
+export function rowBadge(row: PlannerRow, shared: SharedTime, error: RowError): RowBadge | null {
+  if (row.block) return { kind: 'blocked' };
+  if (row.result?.ok) return null;
+  if (row.mode === 'NONE') return { kind: 'none' };
+  if (row.mode === 'NOW') return { kind: 'now' };
+  const wall = wallDateTime(row, shared);
+  return wall ? { kind: 'at', wall, error: error === 'PAST' || error === 'TOO_SOON' } : { kind: 'unset' };
+}
+
+/**
+ * Bật/tắt "Dùng chung giờ" không làm mất giờ đã chọn: bật khi giờ chung còn trống → lấy giờ của dòng Chọn giờ
+ * đầu tiên đã có ngày; tắt → dòng Chọn giờ chưa có ngày/giờ riêng nhận lại giờ chung đang dùng.
+ */
+export function applySharedToggle(enabled: boolean, shared: SharedTime, rows: PlannerRow[]): { shared: SharedTime; rows: PlannerRow[] } {
+  const editable = (r: PlannerRow) => !r.block && !r.result?.ok && r.mode === 'SCHEDULE';
+  if (enabled) {
+    const source = shared.date || shared.time ? null : rows.find((r) => editable(r) && r.date);
+    return { shared: source ? { enabled, date: source.date, time: source.time } : { ...shared, enabled }, rows };
+  }
+  return {
+    shared: { ...shared, enabled },
+    rows: rows.map((r) => (editable(r) && !r.date && !r.time ? { ...r, date: shared.date, time: shared.time } : r)),
+  };
+}
+
+/** Giờ tường hiện tại (yyyy-MM-ddTHH:mm) theo {@code zone}. */
+export const nowWallIn = (zone: string, now: Date = new Date()) => wallTime(now, zone).slice(0, 16);
+
+/** Chuỗi giờ có offset của API (theo múi giờ tài khoản) → offset của {@code zone}, cùng instant. */
+export const rezone = (iso: string, zone: string) => zonedTimestamp(iso, zone);
+
+/** Lịch hiện có hiển thị theo {@code zone}: slice(0, 10) / slice(11, 16) ra đúng ngày & giờ của múi giờ đó. */
+export const rezoneSchedules = (schedules: PostSchedule[], zone: string): PostSchedule[] =>
+  schedules.map((s) => ({ ...s, scheduledTime: rezone(s.scheduledTime, zone) }));
+
+/** Ngày đã có lịch (chưa hủy) của các tài khoản {@code accountIds} → nền tảng của từng lịch (chấm màu). */
+export function bookedDays(schedules: PostSchedule[], accountIds: ReadonlySet<string>): Map<string, Platform[]> {
+  const map = new Map<string, Platform[]>();
+  for (const s of schedules) {
+    if (s.status === 'CANCELLED' || !accountIds.has(s.platformAccountId)) continue;
+    const key = s.scheduledTime.slice(0, 10);
+    map.set(key, [...(map.get(key) ?? []), s.platformName]);
+  }
+  return map;
+}
+
+/**
+ * Giờ HH:mm của ngày {@code date} theo {@code fromZone} → giờ HH:mm theo {@code toZone} (khung giờ vàng tính theo
+ * múi giờ tài khoản, hiện theo múi giờ đang chọn). Giờ không tồn tại do đổi giờ mùa hè → giữ nguyên.
+ */
+export function convertHour(date: string, hhmm: string, fromZone: string, toZone: string): string {
+  if (fromZone === toZone || !date || !hhmm) return hhmm;
+  try {
+    return wallTime(publishingInstant(`${date}T${hhmm}`, fromZone), toZone).slice(11, 16);
+  } catch {
+    return hhmm;
+  }
+}
+
+/** Khung giờ vàng "08:00-09:00" đổi sang múi giờ đang chọn (cả hai đầu). */
+export const convertGoldenHours = (hours: string[], date: string, fromZone: string, toZone: string): string[] =>
+  fromZone === toZone ? hours : hours.map((h) => h.split('-').map((part) => convertHour(date, part.trim(), fromZone, toZone)).join('-'));
+
+/** Gợi ý (giờ tường yyyy-MM-ddTHH:mm) của đúng ngày {@code day}. */
+export const slotsOnDay = (slots: string[], day: string) => slots.filter((s) => s.slice(0, 10) === day);
+
+/** {@code n} gợi ý gần nhất từ ngày {@code day} trở đi (khi ngày đó không còn khung trống). */
+export const nearestSlotsFrom = (slots: string[], day: string, n = 3) => slots.filter((s) => s.slice(0, 10) >= day).slice(0, n);

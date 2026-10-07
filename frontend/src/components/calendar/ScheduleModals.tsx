@@ -14,13 +14,15 @@ import { C } from '../../styles/colors';
 // Nghiệp vụ giữ nguyên: chỉ bản FORMATTED, tài khoản ACTIVE cùng nền tảng, giờ đăng phải ở tương lai
 // (server kiểm lại mọi điều kiện); mobile (<760) chuyển thành bottom sheet.
 
-export function CreateScheduleModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+/** {@code initialDate}: mở từ một ngày đang chọn trên Lịch đăng → lịch trong planner mở đúng tháng và chọn sẵn ngày đó. */
+export function CreateScheduleModal({ onClose, onCreated, initialDate }: { onClose: () => void; onCreated: () => void; initialDate?: string }) {
   const { t, go } = useApp();
   const { isMobile } = useBreakpoint();
   // Phase 4: dùng chung SchedulePlanner (chọn bài → một dòng mỗi nền tảng → gửi batch). Đóng khi mọi dòng thành
   // công; còn dòng lỗi thì giữ modal để người dùng sửa/thử lại (dòng thành công không bị gửi lại).
   const planner = (
     <SchedulePlanner
+      initialDate={initialDate}
       onConnect={() => { onClose(); go('settings'); }}
       onSubmitted={(result) => { if (result.failed === 0) onCreated(); }}
     />

@@ -510,6 +510,7 @@ export default function Calendar() {
 
       {createOpen && (
         <CreateScheduleModal
+          initialDate={selectedDay ?? undefined}
           onClose={() => setCreateOpen(false)}
           onCreated={() => { setCreateOpen(false); refresh(); }}
         />

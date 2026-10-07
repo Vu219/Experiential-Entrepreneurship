@@ -1,113 +1,107 @@
-import { useState, type CSSProperties } from 'react';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Link2, Loader2, Sparkles, XCircle } from 'lucide-react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { AlertTriangle, ArrowLeft, CalendarClock, CheckCircle2, Link2, Sparkles, XCircle, Zap } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { PlatformTag } from '../ui.tsx';
 import { PLATFORM_BG } from '../../theme.ts';
 import { PLATFORM_TO_TAG } from '../../api/connections.ts';
-import { WEEKDAYS_FULL } from '../calendar/dateUtils.ts';
-import { getSuggestedSlots, type PostSchedule, type SuggestedSlot } from '../../api/schedules.ts';
+import type { PostSchedule } from '../../api/schedules.ts';
 import ScheduleDateField from './ScheduleDateField.tsx';
 import ScheduleTimeField from './ScheduleTimeField.tsx';
+import ScheduleCalendar from './ScheduleCalendar.tsx';
+import ScheduleModeTabs from './ScheduleModeTabs.tsx';
+import SuggestedSlots, { useSuggestedSlots } from './SuggestedSlots.tsx';
 import type { Dict } from '../../i18n.ts';
 import {
-  MIN_LEAD_MINUTES, addWallMinutes, earliestTimeOn, isSlotPast, wallDiffMinutes,
-  type PlannerAccount, type PlannerRow, type RowError, type RowMode,
+  MIN_LEAD_MINUTES, addWallMinutes, bookedDays, calendarStateFor, convertGoldenHours, earliestTimeOn, isSlotPast, pickCalendarDay, rezone, rowBadge,
+  wallDiffMinutes, type PlannerAccount, type PlannerRow, type RowBadge, type RowError, type RowMode, type SharedTime,
 } from './plannerLogic.ts';
 import { C } from '../../styles/colors';
 
 // Một card của SchedulePlanner = một bản nền tảng. Card bị khóa vẫn hiện (mờ) kèm lý do (IG cần ảnh/video, chưa
 // định dạng, đã có lịch, chưa kết nối) thay vì ẩn đi; card đủ điều kiện chọn Đăng ngay / Chọn giờ / Gợi ý / Không đăng.
+// Card đủ rộng (≥ lg) chia 2 cột: thao tác bên trái, lịch tháng inline bên phải — cả hai đọc/ghi CÙNG row.date/time/mode.
 
 export const PLATFORM_NAME: Record<string, string> = { FACEBOOK: 'Facebook', INSTAGRAM: 'Instagram', THREADS: 'Threads' };
-const MODES: RowMode[] = ['NOW', 'SCHEDULE', 'SUGGEST', 'NONE'];
 
 export interface SchedulePlatformRowProps {
   row: PlannerRow;
   accounts: PlannerAccount[];
-  sharedEnabled: boolean;
+  shared: SharedTime;
+  /** Khung giờ vàng của nền tảng (theo múi giờ tài khoản — card tự quy đổi sang múi giờ đang chọn). */
   goldenHours: string[];
   conflicts: PostSchedule[];
-  /** Lịch hiện có của tài khoản đích — chấm màu trên lịch chọn ngày. */
+  /** Lịch hiện có của tài khoản đích (đã quy đổi theo múi giờ đang chọn) — chấm màu trên lịch. */
   accountSchedules: PostSchedule[];
   /** Giờ tường áp cho dòng (đã tính giờ chung) — null khi chưa đủ ngày + giờ hoặc không cần giờ. */
   wall: string | null;
   nowWall: string;
   error: RowError;
   todayISO: string;
+  /** Múi giờ đang chọn trong planner / múi giờ tài khoản. */
+  zone: string;
+  accountZone: string;
   onChange: (patch: Partial<PlannerRow>) => void;
   onConnect: () => void;
   /** Wizard: quay lại bước Hoàn thiện để sửa lý do khóa (thiếu media / chưa định dạng). */
   onFixInFinalize?: () => void;
 }
 
-/** "18:34 · Thứ Tư, 30/09/2026" từ giờ tường yyyy-MM-ddTHH:mm. */
-export function wallLabel(wall: string, lang: 'vi' | 'en'): { time: string; date: string } {
-  const [y, m, d] = [+wall.slice(0, 4), +wall.slice(5, 7), +wall.slice(8, 10)];
-  const weekday = WEEKDAYS_FULL[lang][(new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7];
-  return { time: wall.slice(11, 16), date: `${weekday}, ${wall.slice(8, 10)}/${wall.slice(5, 7)}/${wall.slice(0, 4)}` };
-}
+/** "20:00 · 30/09/2026" từ giờ tường yyyy-MM-ddTHH:mm. */
+export const wallShort = (wall: string) => `${wall.slice(11, 16)} · ${wall.slice(8, 10)}/${wall.slice(5, 7)}/${wall.slice(0, 4)}`;
 
 export default function SchedulePlatformRow({
-  row, accounts, sharedEnabled, goldenHours, conflicts, accountSchedules, wall, nowWall, error, todayISO,
+  row, accounts, shared, goldenHours, conflicts, accountSchedules, wall, nowWall, error, todayISO, zone, accountZone,
   onChange, onConnect, onFixInFinalize,
 }: SchedulePlatformRowProps) {
-  const { t, lang } = useApp();
-  const [slots, setSlots] = useState<SuggestedSlot[] | null>(null);
-  const [slotsLoading, setSlotsLoading] = useState(false);
-  const [slotsError, setSlotsError] = useState<string | null>(null);
+  const { t } = useApp();
   const [timeBad, setTimeBad] = useState(false);
+  const [dayFilter, setDayFilter] = useState<string | null>(null);
   const tag = PLATFORM_TO_TAG[row.platform] ?? row.platform.slice(0, 2);
   const name = PLATFORM_NAME[row.platform] ?? row.platform;
   const done = row.result?.ok === true;
   const locked = !!row.block || done;
-  const modeLabel: Record<RowMode, string> = { NOW: t.planModeNow, SCHEDULE: t.planModeSchedule, SUGGEST: t.planModeSuggest, NONE: t.planModeNone };
   const timeKind = error === 'PAST' || error === 'TOO_SOON' ? error : null;
   const timeError = timeKind && wall ? timeErrorText(t, timeKind, wall.slice(0, 10), nowWall) : null;
+  const suggesting = !locked && row.mode === 'SUGGEST';
+  const slots = useSuggestedSlots(row.accountId, zone, todayISO, suggesting);
 
-  const loadSlots = async () => {
-    if (!row.accountId || slotsLoading) return;
-    setSlotsLoading(true);
-    setSlotsError(null);
-    try {
-      setSlots(await getSuggestedSlots(row.accountId, 3));
-    } catch (e) {
-      setSlotsError((e as Error).message);
-    } finally {
-      setSlotsLoading(false);
+  // Đổi chế độ / tài khoản → bỏ lọc ngày của gợi ý.
+  useEffect(() => { setDayFilter(null); }, [row.mode, row.accountId]);
+
+  const cal = calendarStateFor(row, shared.enabled, todayISO);
+  const booked = useMemo(() => bookedDays(accountSchedules, new Set([row.accountId])), [accountSchedules, row.accountId]);
+  const suggestedDays = useMemo(() => (suggesting ? new Set((slots.walls ?? []).map((w) => w.slice(0, 10))) : undefined), [suggesting, slots.walls]);
+  const hours = useMemo(() => convertGoldenHours(goldenHours, row.date || todayISO, accountZone, zone), [goldenHours, row.date, todayISO, accountZone, zone]);
+
+  const setMode = (mode: RowMode) => onChange({ mode });
+
+  // Bấm ngày trên lịch: Chọn giờ → điền ô ngày; Gợi ý giờ → lọc chip theo ngày (chưa có gợi ý ngày đó → tải từ ngày đó).
+  const selectDay = (day: string) => {
+    if (row.mode === 'SCHEDULE') {
+      const patch = pickCalendarDay(day, todayISO);
+      if (patch) onChange(patch);
+      return;
+    }
+    if (row.mode === 'SUGGEST') {
+      setDayFilter(day);
+      if (!(slots.walls ?? []).some((w) => w.startsWith(day))) slots.loadDay(day);
     }
   };
 
-  const pickSlot = (slot: SuggestedSlot) => onChange({ date: slot.time.slice(0, 10), time: slot.time.slice(11, 16) });
-
-  const setMode = (mode: RowMode) => {
-    onChange({ mode });
-    if (mode === 'SUGGEST' && slots === null) void loadSlots();
-  };
-
-  // Tóm tắt bên phải header: nhìn là biết nền tảng này sẽ đăng lúc nào.
-  const summary = (() => {
-    if (row.block) return { text: t.planWhenBlocked, color: C.textFaint };
-    if (done) return null;
-    if (row.mode === 'NONE') return { text: t.planModeNone, color: C.textMuted };
-    if (row.mode === 'NOW') return { text: t.planModeNow, color: C.primaryStrong };
-    if (!wall) return { text: t.planWhenUnset, color: C.amberText };
-    const l = wallLabel(wall, lang);
-    return { text: t.planWhenAt.replace('{time}', l.time).replace('{date}', l.date), color: error ? C.rose : C.legacyText15803d };
-  })();
-
-  // "còn X phút/giờ nữa" dưới ô giờ khi giờ hợp lệ.
+  // "còn X phút/giờ nữa" dưới chip gợi ý khi giờ hợp lệ.
   const countdown = wall && !error ? relIn(wallDiffMinutes(wall, nowWall), t) : null;
-
   const fixLabel = row.block === 'UNSUPPORTED_MEDIA' ? t.planFixMedia : row.block === 'NOT_FORMATTED' ? t.planFixFormat : null;
+  const resultTime = row.result?.schedule ? rezone(row.result.schedule.scheduledTime, zone) : null;
+  const zoneSuffix = zone !== accountZone ? zone : null;
 
-  return (
-    <div style={{ border: `1px solid ${done ? C.legacyBorderbbf7d0 : row.result && !done ? C.inputErrorBorder : C.border}`, borderRadius: 16, padding: '14px 16px', background: row.block ? C.surfaceSubtle : C.surface, display: 'flex', flexDirection: 'column', gap: 12 }}>
+  const left = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', opacity: row.block ? 0.6 : 1 }}>
         <span style={{ display: 'inline-flex', filter: row.block ? 'grayscale(.6)' : undefined }}>
           <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={28} radius={8} fontSize={11} />
         </span>
-        <span style={{ fontWeight: 700, fontSize: 14.5, color: C.textStrong, flex: 1, minWidth: 100 }}>{name}</span>
-        {summary && <span style={{ fontSize: 12.5, fontWeight: 700, color: summary.color, textAlign: 'right' }}>{summary.text}</span>}
+        <span style={{ fontWeight: 700, fontSize: 14.5, color: C.textStrong, flex: 1, minWidth: 90 }}>{name}</span>
+        <StatusBadge badge={rowBadge(row, shared, error)} zone={zoneSuffix} />
       </div>
 
       {row.block && (
@@ -126,19 +120,7 @@ export default function SchedulePlatformRow({
         </div>
       )}
 
-      {!locked && (
-        <div role="group" aria-label={`${t.planModeLabel} — ${name}`} style={segmented}>
-          {MODES.map((m) => {
-            const on = row.mode === m;
-            return (
-              <button key={m} type="button" aria-pressed={on} onClick={() => setMode(m)}
-                style={{ ...segment, background: on ? C.surface : 'transparent', color: on ? C.primaryStrong : C.textSecondary, boxShadow: on ? `0 2px 8px -3px ${C.legacyShadowrgba8040140_35_}` : 'none' }}>
-                {modeLabel[m]}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {!locked && <ScheduleModeTabs value={row.mode} onChange={setMode} ariaLabel={`${t.planModeLabel} — ${name}`} />}
 
       {!locked && row.mode !== 'NONE' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -151,11 +133,11 @@ export default function SchedulePlatformRow({
           </label>
           {error === 'MISSING_ACCOUNT' && <div style={errText}>{t.planErrAccount}</div>}
 
-          {row.mode === 'SCHEDULE' && !sharedEnabled && (
+          {row.mode === 'SCHEDULE' && !shared.enabled && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={lbl}>{t.schTime}</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <div style={{ flex: '1 1 180px', minWidth: 0 }}>
+                <div style={{ flex: '1 1 160px', minWidth: 0 }}>
                   <ScheduleDateField value={row.date} min={todayISO} onChange={(v) => onChange({ date: v })} schedules={accountSchedules}
                     ariaLabel={`${t.schTime} — ${name}`} invalid={!!timeError} />
                 </div>
@@ -164,11 +146,11 @@ export default function SchedulePlatformRow({
                   minTime={earliestTimeOn(row.date || todayISO, nowWall)} />
               </div>
               <TimeExtras date={row.date} time={row.time} todayISO={todayISO} nowWall={nowWall} error={timeKind} formatError={timeBad}
-                hours={goldenHours} onPick={(start) => onChange({ time: start, date: row.date || todayISO })} />
+                hours={hours} onPick={(start) => onChange({ time: start, date: row.date || todayISO })} />
             </div>
           )}
 
-          {row.mode === 'SCHEDULE' && sharedEnabled && (
+          {row.mode === 'SCHEDULE' && shared.enabled && (
             <>
               <div style={note}>{t.planUsesShared}</div>
               <TimeFeedback error={timeError} countdown={null} />
@@ -176,34 +158,31 @@ export default function SchedulePlatformRow({
           )}
 
           {row.mode === 'SUGGEST' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {slotsLoading && <div style={{ ...note, display: 'flex', alignItems: 'center', gap: 6 }}><Loader2 size={13} className="icon-spin" aria-hidden="true" />{t.planSuggestLoading}</div>}
-              {slotsError && <div style={{ ...note, color: C.rose }}>{slotsError}</div>}
-              {slots && slots.length === 0 && <div style={note}>{t.planSuggestEmpty}</div>}
-              {slots && slots.length > 0 && (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {slots.map((s) => {
-                    const on = row.date === s.time.slice(0, 10) && row.time === s.time.slice(11, 16);
-                    return (
-                      <button key={s.time} type="button" aria-pressed={on} onClick={() => pickSlot(s)}
-                        style={{ ...chip, border: `1px solid ${on ? C.primaryStrong : C.legacyBordere3d9fb}`, background: on ? '#6d28d9' : C.surfaceMuted, color: on ? '#fff' : C.primaryStrong }}>
-                        {s.time.slice(8, 10)}/{s.time.slice(5, 7)} · {s.time.slice(11, 16)}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+            <>
+              <SuggestedSlots
+                walls={slots.walls}
+                loading={slots.loading}
+                error={slots.error}
+                selected={wall}
+                dayFilter={dayFilter}
+                canLoad={!!row.accountId}
+                onPick={(w) => onChange({ date: w.slice(0, 10), time: w.slice(11, 16) })}
+                onMore={slots.more}
+                onClearDay={() => setDayFilter(null)}
+                onPickDay={(day) => onChange({ mode: 'SCHEDULE', date: day })}
+              />
               <TimeFeedback error={timeError} countdown={countdown} />
-              {!slotsLoading && (
-                <button type="button" onClick={() => void loadSlots()} disabled={!row.accountId} className="link-underline"
-                  style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, fontSize: 12, fontWeight: 700, color: C.primary, cursor: row.accountId ? 'pointer' : 'default' }}>
-                  {t.planSuggestReload}
-                </button>
-              )}
-            </div>
+            </>
           )}
 
-          {row.mode === 'NOW' && <div style={note}>{t.planNowHint}</div>}
+          {row.mode === 'NOW' && (
+            <div style={{ ...note, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700, color: C.textStrong }}>
+                <Zap size={13} color={C.primary} aria-hidden="true" />{t.planNowConfirm}
+              </span>
+              <span>{t.planNowHint}</span>
+            </div>
+          )}
 
           {conflicts.length > 0 && (
             <div style={{ ...note, display: 'flex', alignItems: 'center', gap: 6, color: C.amberText, background: C.legacyBgfdf6e7 }}>
@@ -220,12 +199,51 @@ export default function SchedulePlatformRow({
           <span>
             {done
               ? (row.result.schedule?.status === 'ON_HOLD' ? t.planHeld : row.result.schedule?.status === 'POSTING' ? t.planPosting
-                : t.planOk.replace('{time}', row.result.schedule ? `${row.result.schedule.scheduledTime.slice(11, 16)} ${row.result.schedule.scheduledTime.slice(8, 10)}/${row.result.schedule.scheduledTime.slice(5, 7)}` : ''))
+                : t.planOk.replace('{time}', resultTime ? `${resultTime.slice(11, 16)} ${resultTime.slice(8, 10)}/${resultTime.slice(5, 7)}` : ''))
               : row.result.message}
           </span>
         </div>
       )}
     </div>
+  );
+
+  return (
+    <div className="sch-split-host" style={{ border: `1px solid ${done ? C.legacyBorderbbf7d0 : row.result && !done ? C.inputErrorBorder : C.border}`, borderRadius: 16, padding: '14px 16px', background: row.block ? C.surfaceSubtle : C.surface }}>
+      {cal.mode === 'hidden' ? left : (
+        <div className="sch-split">
+          {left}
+          <ScheduleCalendar
+            value={row.mode === 'SUGGEST' ? dayFilter ?? row.date : cal.value}
+            todayISO={todayISO}
+            mode={cal.mode}
+            onSelect={selectDay}
+            booked={booked}
+            suggested={suggestedDays}
+            label={t.planCalLabel.replace('{name}', name)}
+            notes={row.mode === 'SUGGEST' ? [t.planCalNote, t.planCalNoteSuggest] : [t.planCalNote]}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Badge trạng thái bên phải header: cam = chưa chọn giờ, màu chủ đạo = đã có giờ (kèm múi giờ nếu khác tài khoản). */
+export function StatusBadge({ badge, zone }: { badge: RowBadge | null; zone: string | null }) {
+  const { t } = useApp();
+  if (!badge) return null;
+  const tone = badge.kind === 'unset' ? { bg: C.amberSoft, fg: C.amberText }
+    : badge.kind === 'blocked' || badge.kind === 'none' ? { bg: C.graySoft, fg: C.textMuted }
+    : badge.kind === 'at' && badge.error ? { bg: C.roseSoft, fg: C.rose }
+    : { bg: C.primarySoft, fg: C.primaryStrong };
+  const text = badge.kind === 'at' ? `${wallShort(badge.wall)}${zone ? ` (${zone})` : ''}`
+    : badge.kind === 'now' ? t.planModeNow : badge.kind === 'none' ? t.planModeNone
+    : badge.kind === 'blocked' ? t.planWhenBlocked : t.planWhenUnset;
+  const IconCmp = badge.kind === 'at' ? CalendarClock : badge.kind === 'now' ? Zap : null;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: tone.fg, background: tone.bg, borderRadius: 999, padding: '4px 10px', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
+      {IconCmp && <IconCmp size={13} aria-hidden="true" />}{text}
+    </span>
   );
 }
 
@@ -252,6 +270,7 @@ export function TimeExtras({ date, time, todayISO, nowWall, error, formatError, 
   error: 'PAST' | 'TOO_SOON' | null;
   /** Chữ gõ trong ô giờ không phải HH:mm hợp lệ. */
   formatError: boolean;
+  /** Khung giờ vàng đã quy đổi theo múi giờ đang chọn. */
   hours: string[];
   onPick: (start: string) => void;
 }) {
@@ -288,11 +307,12 @@ export function TimeExtras({ date, time, todayISO, nowWall, error, formatError, 
                 title={past ? t.planSlotPast : undefined}
                 aria-label={past ? `${h} — ${t.planSlotPast}` : undefined}
                 onClick={() => { if (!past) onPick(start); }}
+                className={on || past ? undefined : 'btn-soft'}
                 style={{
                   ...chip,
-                  border: `1px solid ${on ? C.primaryStrong : past ? C.surfaceMuted : C.legacyBordere3d9fb}`,
-                  background: on ? '#6d28d9' : past ? C.bg : C.surfaceMuted,
-                  color: on ? '#fff' : past ? C.textFaint : C.primaryStrong,
+                  border: `1px solid ${on ? 'transparent' : past ? C.surfaceMuted : C.legacyBordere3d9fb}`,
+                  background: on ? 'var(--brand)' : past ? C.bg : C.surfaceMuted,
+                  color: on ? C.onBrand : past ? C.textFaint : C.primaryStrong,
                   cursor: past ? 'not-allowed' : 'pointer',
                   opacity: past ? 0.7 : 1,
                 }}>
@@ -327,8 +347,6 @@ export function relIn(minutes: number, t: { planIn: string; planUnitMin: string;
 }
 
 const chip: CSSProperties = { borderRadius: 999, padding: '5px 11px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontVariantNumeric: 'tabular-nums' };
-const segmented: CSSProperties = { display: 'flex', gap: 3, padding: 3, background: C.surfaceMuted, border: `1px solid ${C.border}`, borderRadius: 12, flexWrap: 'wrap' };
-const segment: CSSProperties = { flex: '1 1 0', minWidth: 88, border: 'none', borderRadius: 9, padding: '8px 10px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' };
 const lbl: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12.5, fontWeight: 700, color: C.ink650 };
 const inp: CSSProperties = { width: '100%', height: 42, border: `1px solid ${C.border}`, borderRadius: 10, padding: '0 12px', fontSize: 13.5, color: C.textStrong, background: C.surface, outline: 'none' };
 const note: CSSProperties = { fontSize: 12.5, color: C.textMuted, background: C.bg, borderRadius: 9, padding: '8px 11px', lineHeight: 1.5 };

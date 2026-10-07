@@ -1571,3 +1571,41 @@ html {
 .dm-hover-4529d5b:hover { border-color: var(--c-legacy-border-c4b5fd) !important; background: var(--c-shell) !important; box-shadow: 0 6px 16px -6px var(--c-legacy-shadow-rgba_124_58_237_0_15_) !important; transform: translateY(-1px) !important; }
 .dm-hover-1117888:hover { background: var(--c-legacy-bg-f4effe) !important; border-color: var(--c-legacy-border-c4b5fd) !important; }
 .dm-hover-3986d49:hover { background: var(--c-legacy-bg-f5f3ff) !important; border-color: var(--c-legacy-border-ddd6fe) !important; }
+
+/* ===== SchedulePlanner (bước 4 wizard + modal Lên lịch ở Lịch đăng) =====
+   Card nền tảng / box giờ chung chia 2 cột — thao tác | lịch tháng inline — chỉ trên desktop (> 1024px, cùng mốc
+   StepLayout) VÀ khi chính card đủ rộng (container query): hẹp hơn thì lịch xếp xuống dưới, không tràn ngang. */
+.sch-split-host {
+  container-type: inline-size;
+}
+.sch-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (min-width: 1025px) {
+  @container (min-width: 600px) {
+    .sch-split {
+      grid-template-columns: minmax(0, 1fr) minmax(248px, 272px);
+      gap: 20px;
+    }
+  }
+}
+/* Segmented chế độ đăng: 4 ô một hàng khi đủ rộng, 2 × 2 khi hẹp. */
+.sch-modes-host {
+  container-type: inline-size;
+}
+.sch-modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@container (min-width: 310px) {
+  .sch-modes {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+/* Ô ngày chọn được của lịch tháng + dropdown múi giờ: hover nền nhẹ (inline style giữ nền trong suốt). */
+.sch-hover:hover {
+  background: var(--c-hover) !important;
+}

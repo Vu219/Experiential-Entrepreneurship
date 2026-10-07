@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CalendarCheck2, List, Loader2, PlusCircle, RotateCcw } from 'lucide-react';
+import { ArrowLeft, CalendarCheck2, CalendarDays, List, Loader2, PlusCircle, RotateCcw } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import { Card, Icon } from '../../ui';
 import type { ContentVersion } from '../../../api/contentCreationService';
@@ -71,7 +71,9 @@ export default function ScheduleStep({
     </Card>
   ) : (
     <Card style={{ padding: 22 }}>
-      <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: C.textStrong, marginBottom: 4 }}>{t.cwScheduleTitle}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 17, color: C.textStrong, marginBottom: 4 }}>
+        <Icon icon={CalendarDays} size={19} stroke={C.primary} />{t.cwScheduleTitle}
+      </div>
       <div style={{ fontSize: 12.5, color: C.textMuted, marginBottom: 14, lineHeight: 1.5 }}>{t.cwScheduleSub}</div>
       <SchedulePlanner
         itemId={itemId}

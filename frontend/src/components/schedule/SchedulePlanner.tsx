@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Globe, Loader2, RotateCcw } from 'lucide-react';
+import { CalendarDays, Loader2, RotateCcw } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import Switch from '../admin/Switch.tsx';
-import { dateKey, nowLocal } from '../calendar/dateUtils.ts';
 import { PlatformTag } from '../ui.tsx';
 import { PLATFORM_BG } from '../../theme.ts';
 import { PLATFORM_TO_TAG, listConnections } from '../../api/connections.ts';
@@ -12,19 +11,24 @@ import {
   type PostSchedule, type ScheduleBatchResult,
 } from '../../api/schedules.ts';
 import type { Platform } from '../../api/brandProfile.ts';
-import { getPublishingTimezone, publishingToday } from '../../utils/publishingTime.ts';
+import { getPublishingTimezone } from '../../utils/publishingTime.ts';
 import SchedulePlatformRow, { PLATFORM_NAME, TimeExtras, timeErrorText } from './SchedulePlatformRow.tsx';
 import ScheduleDateField from './ScheduleDateField.tsx';
 import ScheduleTimeField from './ScheduleTimeField.tsx';
+import ScheduleCalendar from './ScheduleCalendar.tsx';
+import TimezoneSelect from './TimezoneSelect.tsx';
 import {
-  MIN_LEAD_MINUTES, applyBatchResult, earliestTimeOn, initialRows, localConflicts, submitSummary, toBatchRows, validateRow, wallDateTime, wallDiffMinutes,
+  MIN_LEAD_MINUTES, applyBatchResult, applySharedToggle, bookedDays, convertGoldenHours, earliestTimeOn, initialRows, localConflicts, nowWallIn,
+  pickCalendarDay, rezoneSchedules, submitSummary, toBatchRows, validateRow, wallDateTime, wallDiffMinutes,
   type PlannerAccount, type PlannerRow, type RowError, type SharedTime,
 } from './plannerLogic.ts';
 import { C } from '../../styles/colors';
 
 // SchedulePlanner dùng chung (Phase 4): bước 4 wizard, nút "Lên lịch" ở danh sách và modal tạo lịch của Calendar.
 // Một dòng mỗi nền tảng của bài; gửi một lần qua POST /schedules/batch — kết quả theo dòng, thử lại chỉ dòng lỗi
-// với CÙNG key idempotency. Mọi giờ là giờ tường theo múi giờ đăng (không theo giờ máy, không cắt chuỗi UTC).
+// với CÙNG key idempotency. Mọi giờ là giờ tường theo múi giờ đang chọn (không theo giờ máy, không cắt chuỗi UTC):
+// mặc định múi giờ tài khoản, đổi được cho riêng lần lên lịch này (TimezoneSelect) — lịch đã có, gợi ý, khung giờ
+// vàng và kiểm tra quá khứ đều quy đổi theo nó; lúc gửi quy ra UTC (toBatchRows).
 
 const newKey = () => crypto.randomUUID();
 
@@ -50,14 +54,19 @@ export interface SchedulePlannerProps {
   onActionChange?: (action: PlannerAction | null) => void;
   /** Wizard: link "Quay lại bước 3" trên card bị khóa vì thiếu media / chưa định dạng. */
   onFixInFinalize?: () => void;
+  /** Mở từ một ngày trên Lịch đăng (yyyy-MM-dd) → lịch mở đúng tháng đó và chọn sẵn ngày đó (bỏ qua nếu đã qua). */
+  initialDate?: string;
 }
 
 const hasSchedulable = (item: ContentItemResponse) =>
   item.versions.some((v) => v.status === 'FORMATTED' && !v.scheduleStatus && v.platformName !== 'INSTAGRAM');
 
-export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActionChange, onFixInFinalize }: SchedulePlannerProps) {
+export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActionChange, onFixInFinalize, initialDate }: SchedulePlannerProps) {
   const { t, brandGradient } = useApp();
   const [load, setLoad] = useState<'loading' | 'error' | 'ok'>('loading');
+  // Múi giờ tài khoản (cài đặt) và múi giờ đang dùng cho lần lên lịch này.
+  const [accountZone, setAccountZone] = useState(getPublishingTimezone);
+  const [zone, setZone] = useState(getPublishingTimezone);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<PlannerAccount[]>([]);
   const [windowMinutes, setWindowMinutes] = useState(60);
@@ -78,7 +87,8 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
   }, []);
   const [lastResult, setLastResult] = useState<ScheduleBatchResult | null>(null);
 
-  const todayISO = dateKey(publishingToday());
+  const nowWall = nowWallIn(zone);
+  const todayISO = nowWall.slice(0, 10);
 
   // Tải một lần: kết nối dùng được (ACTIVE; Facebook chỉ Trang), cửa sổ trùng lịch, lịch hiện có, danh sách bài.
   useEffect(() => {
@@ -94,6 +104,8 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
           .filter((c) => c.connectionStatus === 'ACTIVE' && !(c.platform === 'FACEBOOK' && c.accountType !== 'PAGE'))
           .map((c) => ({ id: c.id, platform: c.platform as Platform, accountName: c.accountName })));
         setWindowMinutes(settings.conflictWindowMinutes);
+        setAccountZone(settings.timezone);
+        setZone(settings.timezone);
         setSchedules(existing);
         if (list) setItems(list.content.filter(hasSchedulable));
         setLoad('ok');
@@ -112,7 +124,9 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
       try {
         const item = itemId ? await getContentItem(itemId) : items.find((i) => i.id === selectedItemId);
         if (!cancelled && item) {
-          setRows(initialRows(item.versions, accounts, newKey));
+          const day = initialDate && initialDate >= nowWallIn(accountZone).slice(0, 10) ? initialDate : '';
+          setRows(initialRows(item.versions, accounts, newKey, day));
+          if (day) setShared((s) => ({ ...s, date: s.date || day }));
           setLastResult(null);
         }
       } catch (e) {
@@ -120,7 +134,7 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
       }
     })();
     return () => { cancelled = true; };
-  }, [load, selectedItemId, itemId, items, accounts]);
+  }, [load, selectedItemId, itemId, items, accounts, initialDate, accountZone]);
 
   // FR-48: khung giờ vàng theo từng nền tảng có dòng đủ điều kiện.
   useEffect(() => {
@@ -134,15 +148,25 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
     setRows((prev) => prev.map((r) => (r.versionId === versionId ? { ...r, ...patch } : r)));
   }, []);
 
-  const nowWall = nowLocal();
+  // Bật/tắt giờ chung không làm mất giờ đã chọn (xem applySharedToggle).
+  const toggleShared = (enabled: boolean) => {
+    const next = applySharedToggle(enabled, shared, rows);
+    setShared(next.shared);
+    setRows(next.rows);
+  };
+
   const errors = useMemo(() => rows.map((r) => validateRow(r, shared, nowWall)), [rows, shared, nowWall]);
-  const sharedHours = useMemo(() => [...new Set(rows.filter((r) => !r.block).flatMap((r) => golden[r.platform] ?? []))], [rows, golden]);
-  // Chấm lịch trên lịch chọn ngày: giờ chung → mọi tài khoản đang chọn; từng card → tài khoản của card.
-  const selectedAccounts = new Set(rows.map((r) => r.accountId).filter(Boolean));
-  const sharedSchedules = useMemo(
-    () => schedules.filter((s) => selectedAccounts.has(s.platformAccountId)),
-    [schedules, rows], // eslint-disable-line react-hooks/exhaustive-deps
+  const sharedHours = useMemo(
+    () => convertGoldenHours([...new Set(rows.filter((r) => !r.block).flatMap((r) => golden[r.platform] ?? []))], shared.date || todayISO, accountZone, zone),
+    [rows, golden, shared.date, todayISO, accountZone, zone],
   );
+  // Lịch đã có hiển thị theo múi giờ đang chọn (ngày của chấm lịch, giờ trùng lịch).
+  const zonedSchedules = useMemo(() => rezoneSchedules(schedules, zone), [schedules, zone]);
+  // Chấm lịch trên lịch chọn ngày: giờ chung → mọi tài khoản đang chọn; từng card → tài khoản của card.
+  const selectedKey = rows.map((r) => r.accountId).filter(Boolean).join('|');
+  const selectedAccounts = useMemo(() => new Set(selectedKey.split('|').filter(Boolean)), [selectedKey]);
+  const sharedSchedules = useMemo(() => zonedSchedules.filter((s) => selectedAccounts.has(s.platformAccountId)), [zonedSchedules, selectedAccounts]);
+  const sharedBooked = useMemo(() => bookedDays(zonedSchedules, selectedAccounts), [zonedSchedules, selectedAccounts]);
   const sharedWall = shared.date && shared.time ? `${shared.date}T${shared.time}` : null;
   const sharedDiff = sharedWall ? wallDiffMinutes(sharedWall, nowWall) : null;
   const sharedKind = sharedDiff === null ? null : sharedDiff <= 0 ? 'PAST' as const : sharedDiff < MIN_LEAD_MINUTES ? 'TOO_SOON' as const : null;
@@ -158,7 +182,14 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
     if (submitting) return;
     setSubmitError(null);
     if (errors.some(Boolean)) return;
-    const { payload, rows: keyed } = toBatchRows(rows, shared, newKey);
+    let built: ReturnType<typeof toBatchRows>;
+    try {
+      built = toBatchRows(rows, shared, newKey, zone); // giờ tường theo múi giờ đang chọn → instant UTC
+    } catch (e) {
+      setSubmitError(e instanceof RangeError ? t.schTimeInvalid : (e as Error).message);
+      return;
+    }
+    const { payload, rows: keyed } = built;
     if (payload.length === 0) return;
     setRows(keyed); // giữ key đã gửi: lỗi mạng giữa chừng → gửi lại cùng key, server trả lại kết quả cũ
     setSubmitting(true);
@@ -181,12 +212,14 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
   const reason = summary.kind === 'none' ? t.planNothing
     : firstError >= 0 ? `${PLATFORM_NAME[rows[firstError].platform] ?? rows[firstError].platform}: ${errorLabel(rows[firstError], errors[firstError]!)}` : null;
   const at = summary.at ? `${summary.at.slice(11, 16)}, ${summary.at.slice(8, 10)}/${summary.at.slice(5, 7)}` : null;
+  // Đang dùng múi giờ khác tài khoản → nhãn nút ghi rõ múi giờ của giờ đăng.
+  const zoneNote = zone !== accountZone && (summary.kind === 'schedule' || summary.kind === 'retry') ? ` (${zone})` : '';
   const label = submitting ? t.schCreating
-    : summary.kind === 'retry' ? t.planRetry.replace('{n}', String(summary.count))
+    : summary.kind === 'retry' ? t.planRetry.replace('{n}', String(summary.count)) + zoneNote
     : summary.kind === 'now' ? (summary.count > 1 ? t.planPublishNowN.replace('{n}', String(summary.count)) : t.planPublishNow)
-    : at ? t.planSubmitAt.replace('{n}', String(summary.count)).replace('{time}', at)
+    : at ? t.planSubmitAt.replace('{n}', String(summary.count)).replace('{time}', at) + zoneNote
     : summary.kind === 'none' ? t.cwScheduleTitle
-    : t.planSubmit.replace('{n}', String(summary.count));
+    : t.planSubmit.replace('{n}', String(summary.count)) + zoneNote;
   const disabled = submitting || reason !== null;
   const submitRef = useRef(submit);
   submitRef.current = submit;
@@ -207,9 +240,7 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.textMuted }}>
-        <Globe size={13} aria-hidden="true" />{t.schTimezone}: {getPublishingTimezone()}
-      </div>
+      <TimezoneSelect value={zone} accountZone={accountZone} onChange={setZone} />
 
       {!itemId && (
         <div>
@@ -240,28 +271,42 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
       {rows.length > 0 && (
         <>
           {/* Giờ chung cho mọi nền tảng ở chế độ Chọn giờ */}
-          <div style={{ border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-              <div>
+          <div className="sch-split-host" style={{ border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span aria-hidden="true" style={{ width: 34, height: 34, borderRadius: 10, flex: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: C.primarySoft, color: C.primary }}>
+                <CalendarDays size={17} strokeWidth={1.8} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: C.textStrong }}>{t.planShared}</div>
                 <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{t.planSharedSub}</div>
               </div>
-              <Switch checked={shared.enabled} onChange={(v) => setShared((s) => ({ ...s, enabled: v }))} title={t.planShared} />
+              <Switch checked={shared.enabled} onChange={toggleShared} title={t.planShared} />
             </div>
             {shared.enabled && (
-              <>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <div style={{ flex: '1 1 180px', minWidth: 0 }}>
-                    <ScheduleDateField value={shared.date} min={todayISO} onChange={(v) => setShared((s) => ({ ...s, date: v }))} schedules={sharedSchedules}
-                      ariaLabel={`${t.schTime} — ${t.planShared}`} invalid={!!sharedKind} />
+              <div className="sch-split">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1 1 160px', minWidth: 0 }}>
+                      <ScheduleDateField value={shared.date} min={todayISO} onChange={(v) => setShared((s) => ({ ...s, date: v }))} schedules={sharedSchedules}
+                        ariaLabel={`${t.schTime} — ${t.planShared}`} invalid={!!sharedKind} />
+                    </div>
+                    <ScheduleTimeField value={shared.time} onChange={(v) => setShared((s) => ({ ...s, time: v, date: s.date || todayISO }))}
+                      ariaLabel={`${t.planTimeOfDay} — ${t.planShared}`} invalid={!!sharedKind} onInvalidChange={setSharedTimeBad}
+                      minTime={earliestTimeOn(shared.date || todayISO, nowWall)} />
                   </div>
-                  <ScheduleTimeField value={shared.time} onChange={(v) => setShared((s) => ({ ...s, time: v, date: s.date || todayISO }))}
-                    ariaLabel={`${t.planTimeOfDay} — ${t.planShared}`} invalid={!!sharedKind} onInvalidChange={setSharedTimeBad}
-                    minTime={earliestTimeOn(shared.date || todayISO, nowWall)} />
+                  <TimeExtras date={shared.date} time={shared.time} todayISO={todayISO} nowWall={nowWall} error={sharedKind} formatError={sharedTimeBad}
+                    hours={sharedHours} onPick={(start) => setShared((s) => ({ ...s, time: start, date: s.date || todayISO }))} />
                 </div>
-                <TimeExtras date={shared.date} time={shared.time} todayISO={todayISO} nowWall={nowWall} error={sharedKind} formatError={sharedTimeBad}
-                  hours={sharedHours} onPick={(start) => setShared((s) => ({ ...s, time: start, date: s.date || todayISO }))} />
-              </>
+                <ScheduleCalendar
+                  value={shared.date}
+                  todayISO={todayISO}
+                  mode="interactive"
+                  onSelect={(day) => { const patch = pickCalendarDay(day, todayISO); if (patch) setShared((s) => ({ ...s, ...patch })); }}
+                  booked={sharedBooked}
+                  label={t.planCalLabel.replace('{name}', t.planShared)}
+                  notes={[t.planCalNote]}
+                />
+              </div>
             )}
           </div>
 
@@ -274,14 +319,16 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
                   key={row.versionId}
                   row={row}
                   accounts={accounts.filter((a) => a.platform === row.platform)}
-                  sharedEnabled={shared.enabled}
+                  shared={shared}
                   goldenHours={golden[row.platform] ?? []}
-                  conflicts={localConflicts(row.accountId, wall, schedules, windowMinutes)}
-                  accountSchedules={row.accountId ? schedules.filter((s) => s.platformAccountId === row.accountId) : []}
+                  conflicts={localConflicts(row.accountId, wall, zonedSchedules, windowMinutes, zone)}
+                  accountSchedules={row.accountId ? zonedSchedules.filter((s) => s.platformAccountId === row.accountId) : []}
                   wall={wall}
                   nowWall={nowWall}
                   error={errors[i]}
                   todayISO={todayISO}
+                  zone={zone}
+                  accountZone={accountZone}
                   onChange={(patch) => patchRow(row.versionId, patch)}
                   onConnect={onConnect}
                   onFixInFinalize={onFixInFinalize}

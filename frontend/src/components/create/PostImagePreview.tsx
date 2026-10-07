@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import {
   Bookmark,
+  Eye,
   Globe,
   Heart,
   ImagePlus,
@@ -42,7 +43,9 @@ export default function PostImagePreview({
   return (
     <Card style={{ ...assistCardStyle, padding: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
-        <div style={{ fontWeight: 700, fontSize: 14.5, color: C.accentText }}>{t.cwPreviewTitle}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 700, fontSize: 14.5, color: C.accentText }}>
+          <Eye size={16} strokeWidth={1.8} aria-hidden="true" />{t.cwPreviewTitle}
+        </div>
         {version && onGenerateImage && (
           <button
             onClick={onGenerateImage}
