@@ -3,6 +3,7 @@ package com.aima.content;
 import com.aima.dto.request.ContentGenerationRequest;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.ContentGenerationJobResponse;
+import com.aima.entity.BrandProfile;
 import com.aima.entity.ContentGenerationJob;
 import com.aima.entity.ContentItem;
 import com.aima.entity.ContentStrategy;
@@ -66,6 +67,10 @@ class ContentGenerationDedupeTest {
         strategy = new ContentStrategy();
         strategy.setId(UUID.randomUUID());
         strategy.setStatus(StrategyStatus.ACTIVE);
+        BrandProfile brand = new BrandProfile();
+        brand.setId(UUID.randomUUID());
+        item.setBrandProfile(brand);
+        strategy.setBrandProfile(brand);
 
         when(userRepository.findByEmail("u@aima.test")).thenReturn(Optional.of(user));
         when(itemRepository.findOwnedForUpdate(item.getId(), user.getId())).thenReturn(Optional.of(item));
@@ -116,6 +121,33 @@ class ContentGenerationDedupeTest {
         verify(jobRepository).save(argThat(j -> "key-1".equals(j.getIdempotencyKey())));
         verify(worker).process(res.getResult().getId());
         verify(tokenUsageService).checkQuota(user);
+    }
+
+    /** BR-03: strategy của hồ sơ thương hiệu KHÁC với bài → chặn, không tạo job. */
+    @Test
+    void strategyOfAnotherBrand_isRejected() {
+        BrandProfile other = new BrandProfile();
+        other.setId(UUID.randomUUID());
+        strategy.setBrandProfile(other);
+
+        AppException e = assertThrows(AppException.class,
+                () -> service.startGeneration("u@aima.test", request(), null));
+
+        assertEquals(ErrorCode.STRATEGY_BRAND_MISMATCH, e.getErrorCode());
+        verify(jobRepository, never()).save(any());
+        verifyNoInteractions(worker);
+    }
+
+    /** Đã đủ số tác vụ AI chạy song song → chặn trước khi tạo job. */
+    @Test
+    void tooManyConcurrentAiJobs_isRejected() {
+        doThrow(new AppException(ErrorCode.AI_JOBS_LIMIT_REACHED)).when(tokenUsageService).checkConcurrentAiJobs(user);
+
+        AppException e = assertThrows(AppException.class,
+                () -> service.startGeneration("u@aima.test", request(), null));
+
+        assertEquals(ErrorCode.AI_JOBS_LIMIT_REACHED, e.getErrorCode());
+        verify(jobRepository, never()).save(any());
     }
 
     @Test

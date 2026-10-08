@@ -158,7 +158,7 @@ class AiModelHealthTest {
             sentConfigs.add(inv.getArgument(0));
             return inv.getArgument(0);
         });
-        return new AiServiceClientImpl(webClient, new AiServiceProperties("http://ai", 5, null),
+        return new AiServiceClientImpl(webClient, new AiServiceProperties("http://ai", 5, 0, null),
                 mock(SystemLogService.class), runtime, healthService, objectMapper);
     }
 

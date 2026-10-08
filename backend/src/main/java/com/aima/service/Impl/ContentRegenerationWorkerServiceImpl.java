@@ -23,7 +23,9 @@ import com.aima.repository.ContentRegenerationJobRepository;
 import com.aima.repository.ContentVersionRepository;
 import com.aima.service.AiServiceClient;
 import com.aima.service.AiUsageService;
+import com.aima.service.ContentItemStatusResolver;
 import com.aima.service.ContentRegenerationWorkerService;
+import com.aima.service.ScheduleHoldService;
 import com.aima.util.ScriptJson;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
@@ -61,6 +63,8 @@ public class ContentRegenerationWorkerServiceImpl implements ContentRegeneration
     AiUsageService aiUsageService;
     ObjectMapper objectMapper;
     TransactionTemplate transactionTemplate;
+    ContentItemStatusResolver statusResolver;
+    ScheduleHoldService holdService;
 
     /** Payload + ngữ cảnh event usage, dựng trong TX ngắn #1 để dùng ngoài transaction. */
     private record RegenerationTask(RegeneratePartPayload payload, AiUsageService.AiCallContext callContext) {
@@ -97,6 +101,11 @@ public class ContentRegenerationWorkerServiceImpl implements ContentRegeneration
             saveFailureOn(job, "Bản nội dung không còn tồn tại");
             return null;
         }
+        if (job.getStatus() != GenerationJobStatus.PENDING) {
+            // Đã bị job dọn kẹt chốt FAILED trong lúc chờ hàng đợi executor — không chạy lại.
+            log.warn("[ContentRegen] Job {} không còn PENDING ({}) — bỏ qua", jobId, job.getStatus());
+            return null;
+        }
         job.setStatus(GenerationJobStatus.RUNNING);
         jobRepository.save(job);
 
@@ -117,22 +126,38 @@ public class ContentRegenerationWorkerServiceImpl implements ContentRegeneration
     }
 
     // Patch đúng nhánh vào script HIỆN TẠI của version (đọc lại từ DB), lưu fragment vào job.
+    // Cùng quy tắc sửa tay (ContentItemServiceImpl.updateVersion): khóa bài trước (item → version → job),
+    // kiểm lại khóa đang đăng, đổi thật thì tăng revision + bỏ duyệt cũ / giữ lịch chờ duyệt lại.
     private void saveSuccess(UUID jobId, RegeneratePartResultPayload result) {
         ContentRegenerationJob job = jobRepository.findById(jobId).orElse(null);
         if (job == null) {
             return;
         }
+        // Khóa bài TRƯỚC khi nạp version (proxy lazy chỉ lộ id) → đọc đúng bản đã commit mới nhất.
+        UUID itemId = contentVersionRepository.findContentItemId(job.getContentVersion().getId()).orElse(null);
+        ContentItem item = itemId == null ? null : statusResolver.lock(itemId);
         ContentVersion version = job.getContentVersion();
-        if (version == null || version.getDeletedAt() != null) {
+        if (item == null || item.getDeletedAt() != null || version.getDeletedAt() != null) {
             saveFailureOn(job, "Bản nội dung không còn tồn tại");
             return;
         }
+        // Lịch chuyển POSTING trong lúc gọi AI → không ghi đè bản đang đăng (worker ghi FAILED với message này).
+        if (ContentItemServiceImpl.isPostingLocked(version)) {
+            throw new AppException(ErrorCode.CONTENT_VERSION_POSTING_LOCKED);
+        }
 
         VideoScriptDto script = parseOrEmpty(version.getScript());
+        String before = ScriptJson.toJson(script); // so trên cùng dạng chuẩn hoá — AI trả y nguyên = no-op như sửa tay
         ScriptPartPatch patch = applyPatch(job.getSection(), job.getField(), job.getStepIndex(), script, result);
 
-        version.setScript(ScriptJson.toJson(script));
-        contentVersionRepository.save(version);
+        String after = ScriptJson.toJson(script);
+        if (!Objects.equals(before, after)) {
+            version.setScript(after);
+            version.setRevision(version.getRevision() + 1); // format đang chạy trên revision cũ sẽ bỏ kết quả
+            contentVersionRepository.save(version);
+            // Nội dung đổi thật → bỏ duyệt cũ; policy bật thì giữ lịch chờ duyệt lại (tự tính lại trạng thái tổng).
+            holdService.onContentChanged(item);
+        }
 
         try {
             job.setResultPatch(objectMapper.writeValueAsString(patch));

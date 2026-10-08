@@ -51,6 +51,13 @@ public class PlanCreateRequest {
     @Schema(description = "Hạn mức token mô tả để hiển thị (chưa phải số dư thật). null = không giới hạn.", example = "500")
     Long tokenQuota;
 
+    // Hạn mức token LLM THẬT mỗi tháng (Plan.monthlyTokenLimit) — khác tokenQuota (chỉ hiển thị).
+    // Bắt buộc với gói đang bán (giá > 0 và đang bật) — kiểm tra trong PlanServiceImpl.
+    @Min(value = 1, message = "PLAN_TOKEN_LIMIT_INVALID")
+    @Schema(description = "Hạn mức token LLM THẬT mỗi tháng. Bắt buộc khi gói có giá > 0 và đang bật; "
+            + "null = không giới hạn (chỉ cho gói miễn phí/ẩn).", example = "100000")
+    Long monthlyTokenLimit;
+
     String descriptionVi;
     String descriptionEn;
 

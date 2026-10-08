@@ -43,7 +43,7 @@ class PublishingMigrationTest {
     }
 
     @Test void emptyDatabaseMigratesValidatesAndSecondRunDoesNothing() throws Exception {
-        assertEquals(10, flyway(null).migrate().migrationsExecuted);
+        assertEquals(12, flyway(null).migrate().migrationsExecuted);
         assertEquals(0, flyway(null).migrate().migrationsExecuted);
         flyway(null).validate();
         assertEquals("timestamp with time zone", scalar("select data_type from information_schema.columns where table_schema='" + schema + "' and table_name='post_schedules' and column_name='scheduled_time'"));
@@ -69,7 +69,7 @@ class PublishingMigrationTest {
         db.createStatement().execute("insert into post_schedules(id,created_at,deleted_at,content_version_id,platform_account_id,status,scheduled_time) values ('"+schedule+"',now(),now(),'"+version+"','"+account+"','CANCELLED','2026-09-30 00:30:00')");
         db.createStatement().execute("insert into posts(id,created_at,schedule_id,platform_name,status,published_at) values ('"+post+"',now(),'"+schedule+"','FACEBOOK','POSTED','2026-09-29 23:30:00')");
         db.createStatement().execute("insert into posting_jobs(id,created_at,post_id,status,retry_count,start_time,end_time,next_retry_at) values ('"+UUID.randomUUID()+"',now(),'"+post+"','RETRYING',1,'2026-09-29 23:30:00',null,'2026-09-30 00:30:00')");
-        assertEquals(9, flyway(null).migrate().migrationsExecuted);
+        assertEquals(11, flyway(null).migrate().migrationsExecuted);
         for (String zone : new String[]{"UTC", "America/New_York", "Asia/Tokyo"}) {
             db.createStatement().execute("set time zone '"+zone+"'");
             try (var rs = db.createStatement().executeQuery("select scheduled_time from post_schedules")) {
@@ -95,7 +95,7 @@ class PublishingMigrationTest {
         db.createStatement().execute("drop table flyway_schema_history");
         assertThrows(Exception.class, () -> flyway(null).migrate());
         flyway(null).baseline();
-        assertEquals(9, flyway(null).migrate().migrationsExecuted);
+        assertEquals(11, flyway(null).migrate().migrationsExecuted);
         validateHibernate();
     }
 

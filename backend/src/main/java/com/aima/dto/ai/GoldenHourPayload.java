@@ -8,10 +8,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
+
 /**
  * Mirrors ai/src/schemas.py GoldenHourRequest — body sent to POST {ai-service}/golden-hours (FR-48).
- * `posts` is omitted until analytics collection (FR-59) exists — the AI service then falls back to
- * platform defaults (data_driven = false).
+ * `posts` = the user's own published AIMA posts on this platform with a milestone snapshot; fewer than 10
+ * → the AI service falls back to platform defaults (data_driven = false).
  */
 @Data
 @Builder
@@ -21,6 +23,8 @@ import lombok.experimental.FieldDefaults;
 public class GoldenHourPayload implements LlmRoutedPayload {
 
     String platform;
+
+    List<AnalyzedPostPayload> posts;
 
     @JsonProperty("llm_config")
     LlmConfigPayload llmConfig;

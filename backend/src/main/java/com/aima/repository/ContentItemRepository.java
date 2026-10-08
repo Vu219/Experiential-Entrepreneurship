@@ -29,9 +29,15 @@ public interface ContentItemRepository extends JpaRepository<ContentItem, UUID> 
 
     // Như trên nhưng khoá row (SELECT ... FOR UPDATE) tới hết transaction: tuần tự hoá việc tạo job
     // generate trên CÙNG bài để kiểm tra chống trùng (idempotency key / job đang chạy) không bị race.
+    // Hồ sơ thương hiệu đã xóa mềm → bài của nó coi như không tồn tại (không tạo/định dạng/sửa tiếp).
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select c from ContentItem c where c.id = :id and c.brandProfile.user.id = :userId and c.deletedAt is null")
+    @Query("select c from ContentItem c where c.id = :id and c.brandProfile.user.id = :userId and c.deletedAt is null "
+            + "and c.brandProfile.deletedAt is null")
     Optional<ContentItem> findOwnedForUpdate(@Param("id") UUID id, @Param("userId") UUID userId);
+
+    // Xóa hồ sơ thương hiệu (cascade DATA_MODEL.md): id bài còn hiệu lực — caller khóa theo thứ tự id trước khi đổi.
+    @Query("select i.id from ContentItem i where i.brandProfile.id = :brandId and i.deletedAt is null")
+    List<UUID> findActiveIdsByBrandProfile(@Param("brandId") UUID brandId);
 
     // Job sửa trạng thái (Phase 6): duyệt bài chưa xóa theo keyset id, chia batch.
     @Query("select i.id from ContentItem i where i.deletedAt is null and i.id > :after order by i.id")

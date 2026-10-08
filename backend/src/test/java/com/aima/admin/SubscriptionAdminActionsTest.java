@@ -65,7 +65,9 @@ class SubscriptionAdminActionsTest {
         historyRepository = mock(SubscriptionHistoryRepository.class);
         service = new SubscriptionServiceImpl(subscriptionRepository, planRepository, userRepository,
                 new UsageMapperImpl(), mock(NotificationService.class), mock(ActivityLogService.class),
-                historyRepository);
+                historyRepository,
+                mock(jakarta.persistence.EntityManager.class),
+                mock(org.springframework.transaction.PlatformTransactionManager.class));
 
         freePlan = plan("FREE", 1_000L);
         plusPlan = plan("PLUS", 100_000L);

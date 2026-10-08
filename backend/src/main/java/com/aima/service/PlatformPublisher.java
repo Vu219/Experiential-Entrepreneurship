@@ -2,9 +2,7 @@ package com.aima.service;
 
 import com.aima.dto.publish.PublishTarget;
 import com.aima.enums.Platform;
-
-import java.util.Arrays;
-import java.util.stream.Collectors;
+import com.aima.util.PlatformTextLimits;
 
 /**
  * Adapter đăng bài theo nền tảng (NFR-09): mỗi nền tảng một implementation, worker chọn theo
@@ -27,15 +25,6 @@ public interface PlatformPublisher {
      * Worker truyền giá trị từ snapshot của Post (bài cũ chưa có snapshot: từ bản nền tảng).
      */
     default String buildMessage(String formattedCaption, String hashtagCsv) {
-        String caption = formattedCaption == null ? "" : formattedCaption.trim();
-        if (hashtagCsv == null || hashtagCsv.isBlank()) {
-            return caption;
-        }
-        String tags = Arrays.stream(hashtagCsv.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .map(s -> s.startsWith("#") ? s : "#" + s)
-                .collect(Collectors.joining(" "));
-        return tags.isEmpty() ? caption : caption + "\n\n" + tags;
+        return PlatformTextLimits.compose(formattedCaption, hashtagCsv);
     }
 }

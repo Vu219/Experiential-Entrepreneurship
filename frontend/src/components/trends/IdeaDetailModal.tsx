@@ -1,15 +1,17 @@
-import { Bookmark, BookmarkCheck, CalendarDays, Sparkles } from 'lucide-react';
+import { Bookmark, BookmarkCheck, CalendarDays, ExternalLink, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import Modal from '../Modal';
 import { Icon, PlatformTag } from '../ui';
 import { PLATFORMS, PLATFORM_BG } from '../../theme';
 import { IDEA_STATUS_COLORS, type ContentIdea, type IdeaStatus, type TrendItem } from '../../trendsData';
+import { sourceLabel } from '../../trendsLive';
 import { Pill } from './filters';
 import { C } from '../../styles/colors';
 
 const rowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 } as const;
 const labelStyle = { fontSize: 12.5, color: C.textMuted, fontWeight: 600 } as const;
 const valueStyle = { fontSize: 13, fontWeight: 700, color: C.ink750, textAlign: 'right' } as const;
+const sectionLabel = { fontSize: 11.5, fontWeight: 700, color: C.textMuted, letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 6 } as const;
 
 /**
  * Chi tiết một ý tưởng content: trend gốc + ngày ghi nhận trend, nền tảng (logo thật),
@@ -94,6 +96,38 @@ export default function IdeaDetailModal({
             {idea.desc ?? (trend ? `${t.trNoDesc} ${trend.desc}` : t.trNoDesc)}
           </div>
         </div>
+
+        {/* Gợi ý triển khai (dữ liệu thật) */}
+        {idea.suggestions && (
+          <div>
+            <div style={sectionLabel}>{t.trSuggestions}</div>
+            <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: C.ink650, lineHeight: 1.5 }}>
+              {idea.suggestions.map((s) => <li key={s}>{s}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {/* Nguồn bằng chứng của trend gốc — link thật do AI thu thập, không do model tự viết */}
+        {trend?.evidence && trend.evidence.length > 0 && (
+          <div>
+            <div style={sectionLabel}>{t.trEvidenceTitle}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {trend.evidence.slice(0, 6).map((e) => (
+                <div key={`${e.url}|${e.title}`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, minWidth: 0 }}>
+                  <span style={{ flex: 'none', fontSize: 10.5, fontWeight: 700, color: C.textSecondary, background: C.surfaceSubtle, border: `1px solid ${C.surfaceMuted}`, borderRadius: 6, padding: '1px 6px' }}>{sourceLabel(e.url, e.title)}</span>
+                  {e.url ? (
+                    <a href={e.url} target="_blank" rel="noopener noreferrer" className="link-underline" style={{ flex: 1, minWidth: 0, color: C.primary, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.title}</span>
+                      <Icon icon={ExternalLink} size={12} stroke={C.primary} />
+                    </a>
+                  ) : (
+                    <span style={{ flex: 1, minWidth: 0, color: C.ink650, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Hành động */}
         <div style={{ display: 'flex', gap: 8 }}>

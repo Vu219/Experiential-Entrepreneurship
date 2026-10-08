@@ -4,6 +4,7 @@ import type { Lang } from './types';
 import { getDict } from './i18n';
 import { Flame, Lightbulb, Target, Clock, type LucideIcon } from 'lucide-react';
 import { STATUS_COLORS, STATUS_NEUTRAL, STATUS_PENDING } from './statusTokens';
+import type { TrendEvidence, TrendMomentum } from './api/trendResearch';
 
 // ===== Types =====
 
@@ -32,6 +33,13 @@ export interface TrendItem {
   engagement: string;
   engagementDelta: string;
   ideaCount: number;
+  // ===== Chỉ có ở dữ liệu thật (nghiên cứu dựa trên bằng chứng) =====
+  momentum?: TrendMomentum;
+  /** yyyy-MM-dd — hạn đăng để bắt kịp trend. */
+  actBy?: string;
+  /** Độ tin cậy theo số nguồn độc lập. */
+  confidence?: FitLevel;
+  evidence?: TrendEvidence[];
 }
 
 export interface ContentIdea {
@@ -44,6 +52,8 @@ export interface ContentIdea {
   status: IdeaStatus;
   /** Mô tả chi tiết (dữ liệu thật: ideaDescription của AI; mock: không có → modal hiện fallback). */
   desc?: string;
+  /** Gợi ý triển khai (hook, định dạng, góc tiếp cận) — chỉ dữ liệu thật. */
+  suggestions?: string[];
 }
 
 export interface ResearchSession {

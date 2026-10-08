@@ -452,7 +452,20 @@ public enum ErrorCode {
     SCHEDULE_ROW_ID_REQUIRED(2143, "Mỗi dòng lên lịch cần clientRowId (tối đa 64 ký tự)", HttpStatus.BAD_REQUEST),
     REPAIR_PLAN_CHANGED(2144, "Dữ liệu đã thay đổi từ lần dry-run — chạy dry-run lại và kiểm tra kế hoạch mới trước khi áp dụng", HttpStatus.CONFLICT),
     REPAIR_PLAN_TOKEN_REQUIRED(2145, "Thiếu planToken của lần dry-run", HttpStatus.BAD_REQUEST),
+    // Giới hạn chữ của nền tảng (util/PlatformTextLimits) khi sửa tay bản nền tảng — 2160+
+    CONTENT_VERSION_TEXT_TOO_LONG(2160, "Caption + hashtag vượt giới hạn ký tự của nền tảng (Threads tối đa 500, Instagram 2200, Facebook 63206) — hãy rút gọn",
+            HttpStatus.BAD_REQUEST),
+    CONTENT_VERSION_TOO_MANY_HASHTAGS(2161, "Instagram cho phép tối đa 30 hashtag mỗi bài — hãy bớt hashtag", HttpStatus.BAD_REQUEST),
     CONTENT_CHANGED_DURING_FORMAT(2137, "Nội dung đã được sửa, lên lịch đăng hoặc đang đăng trong lúc định dạng — kết quả cũ bị bỏ, hãy định dạng lại",
+            HttpStatus.CONFLICT),
+    // Sửa lỗi nghiệp vụ gói / tác vụ AI (hạn mức gói, BR-03, chống trùng + giới hạn job song song) — 2170+
+    PLAN_TOKEN_LIMIT_REQUIRED(2170, "Gói đang bán (giá > 0 và đang bật) phải có hạn mức token mỗi tháng", HttpStatus.BAD_REQUEST),
+    PLAN_TOKEN_LIMIT_INVALID(2171, "Hạn mức token mỗi tháng phải lớn hơn 0", HttpStatus.BAD_REQUEST),
+    STRATEGY_BRAND_MISMATCH(2172, "Chiến lược không thuộc cùng hồ sơ thương hiệu với bài nội dung", HttpStatus.BAD_REQUEST),
+    AI_JOBS_LIMIT_REACHED(2173, "Bạn đang có quá nhiều tác vụ AI chạy cùng lúc — đợi tác vụ hiện tại hoàn tất rồi thử lại",
+            HttpStatus.TOO_MANY_REQUESTS),
+    AI_JOB_QUEUE_FULL(2174, "Hệ thống đang xử lý quá nhiều tác vụ AI — vui lòng thử lại sau ít phút", HttpStatus.SERVICE_UNAVAILABLE),
+    CONTENT_FORMATTING_IN_PROGRESS(2175, "Một số nền tảng đang được định dạng — đợi tác vụ hiện tại hoàn tất rồi thử lại",
             HttpStatus.CONFLICT),
     ;
 

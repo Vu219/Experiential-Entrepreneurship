@@ -22,10 +22,12 @@ import com.aima.repository.OptimizationInsightRepository;
 import com.aima.repository.PostAnalyticsRepository;
 import com.aima.repository.PostRepository;
 import com.aima.repository.StrategyOptimizationJobRepository;
+import com.aima.repository.UserPublishingSettingsRepository;
 import com.aima.service.AiServiceClient;
 import com.aima.service.AiUsageService;
 import com.aima.service.NotificationService;
 import com.aima.service.StrategyOptimizationWorkerService;
+import com.aima.util.PublishingTime;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -34,9 +36,10 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -51,6 +54,9 @@ public class StrategyOptimizationWorkerServiceImpl implements StrategyOptimizati
 
     // Đủ dữ liệu cho AI mà không phình payload — bài mới nhất trước.
     static final int MAX_POSTS = 50;
+    // Thứ tự ưu tiên mốc (số liệu đầy đủ nhất trước) và số bài tối thiểu để một mốc đủ dùng.
+    static final List<Integer> MILESTONE_PREFERENCE = List.of(168, 48, 24);
+    static final int MIN_POSTS_PER_MILESTONE = 3;
 
     StrategyOptimizationJobRepository jobRepository;
     PostRepository postRepository;
@@ -62,6 +68,7 @@ public class StrategyOptimizationWorkerServiceImpl implements StrategyOptimizati
     NotificationService notificationService;
     AiUsageService aiUsageService;
     TransactionTemplate transactionTemplate;
+    UserPublishingSettingsRepository publishingSettingsRepository;
 
     @Override
     @Async("strategyOptimizationExecutor")
@@ -76,13 +83,21 @@ public class StrategyOptimizationWorkerServiceImpl implements StrategyOptimizati
             // Hai cuộc gọi AI → recordCall ghi HAI event usage riêng (label phân biệt idempotency).
             AnalyzeResultPayload analysis = aiUsageService.recordCall(task.callContext().withLabel("analyze"),
                     () -> aiServiceClient.analyze(task.analyzePayload()));
-            OptimizePayload optimizePayload = strategyOptimizationMapper.toOptimizePayload(
-                    task.analyzePayload().getBrandProfile(), task.strategyPayload(), analysis.getInsights());
-            OptimizeResultPayload optimization = aiUsageService.recordCall(task.callContext().withLabel("optimize"),
-                    () -> aiServiceClient.optimize(optimizePayload));
+            // Không có insight thì đề xuất nào cũng bị bỏ (adjustment buộc có insight cha) → không gọi /optimize
+            // cho khỏi tính phí vô ích; job vẫn SUCCESS với 0 đề xuất.
+            OptimizeResultPayload optimization = null;
+            if (analysis.getInsights() != null && !analysis.getInsights().isEmpty()) {
+                OptimizePayload optimizePayload = strategyOptimizationMapper.toOptimizePayload(
+                        task.analyzePayload().getBrandProfile(), task.strategyPayload(), analysis.getInsights());
+                optimization = aiUsageService.recordCall(task.callContext().withLabel("optimize"),
+                        () -> aiServiceClient.optimize(optimizePayload));
+            } else {
+                log.info("[StrategyOpt] Job {}: /analyze không trả insight nào — bỏ qua /optimize", jobId);
+            }
+            OptimizeResultPayload finalOptimization = optimization;
 
             transactionTemplate.executeWithoutResult(tx ->
-                    saveSuccess(jobId, analysis, optimization, task.anchorAnalyticsId()));
+                    saveSuccess(jobId, analysis, finalOptimization, task.anchorAnalyticsId()));
         } catch (Exception e) {
             log.error("[StrategyOpt] Job {} thất bại: {}", jobId, e.getMessage());
             transactionTemplate.executeWithoutResult(tx -> saveFailure(jobId, e.getMessage()));
@@ -109,24 +124,24 @@ public class StrategyOptimizationWorkerServiceImpl implements StrategyOptimizati
                 .findBySchedule_ContentVersion_ContentItem_BrandProfile_IdAndStatusAndDeletedAtIsNullOrderByPublishedAtDesc(
                         brand.getId(), PostStatus.POSTED);
 
+        // Mọi bài gửi AI phải cùng MỘT mốc — số 7 ngày của bài cũ đặt cạnh số 24h của bài mới sẽ làm AI kết luận sai.
+        Integer milestone = chooseMilestone(posts);
+        ZoneId zone = publishingZone(brand.getUser().getId());
+
         List<AnalyzedPostPayload> postPayloads = new ArrayList<>();
         UUID anchorAnalyticsId = null;
         for (Post post : posts) {
-            if (postPayloads.size() >= MAX_POSTS) {
+            if (postPayloads.size() >= MAX_POSTS || milestone == null) {
                 break;
             }
-            // Snapshot mốc MUỘN nhất của bài = số liệu đầy đủ nhất.
-            PostAnalytics latest = post.getPostAnalytics().stream()
-                    .filter(a -> a.getDeletedAt() == null)
-                    .max(Comparator.comparing(PostAnalytics::getMilestoneHours))
-                    .orElse(null);
-            if (latest == null) {
-                continue;
+            PostAnalytics snapshot = milestoneOf(post, milestone);
+            if (snapshot == null) {
+                continue; // bài chưa tới mốc đã chọn → bỏ, không trộn mốc khác
             }
             postPayloads.add(strategyOptimizationMapper.toAnalyzedPostPayload(
-                    post, post.getSchedule().getContentVersion(), latest));
+                    post, post.getSchedule().getContentVersion(), snapshot, zone));
             if (anchorAnalyticsId == null) {
-                anchorAnalyticsId = latest.getId();
+                anchorAnalyticsId = snapshot.getId();
             }
         }
 
@@ -145,6 +160,40 @@ public class StrategyOptimizationWorkerServiceImpl implements StrategyOptimizati
                 anchorAnalyticsId, callContext);
     }
 
+    /**
+     * Mốc dùng chung cho cả lượt phân tích: mốc DÀI nhất (168h → 48h → 24h) có ít nhất {@value #MIN_POSTS_PER_MILESTONE}
+     * bài; không mốc nào đủ thì lấy mốc có nhiều bài nhất (hoà → mốc dài hơn). null = không bài nào có số liệu.
+     */
+    static Integer chooseMilestone(List<Post> posts) {
+        Integer best = null;
+        long bestCount = 0;
+        for (int milestone : MILESTONE_PREFERENCE) {
+            long count = posts.stream().filter(p -> milestoneOf(p, milestone) != null).count();
+            if (count >= MIN_POSTS_PER_MILESTONE) {
+                return milestone;
+            }
+            if (count > bestCount) {
+                best = milestone;
+                bestCount = count;
+            }
+        }
+        return best;
+    }
+
+    private static PostAnalytics milestoneOf(Post post, int milestone) {
+        return post.getPostAnalytics().stream()
+                .filter(a -> a.getDeletedAt() == null && Objects.equals(a.getMilestoneHours(), milestone))
+                .findFirst()
+                .orElse(null);
+    }
+
+    // Giờ đăng gửi AI tính theo múi giờ đăng bài của user (cài đặt đăng bài), mặc định giờ VN như cũ.
+    private ZoneId publishingZone(UUID userId) {
+        return publishingSettingsRepository.findById(userId)
+                .map(settings -> ZoneId.of(settings.getTimezone()))
+                .orElse(PublishingTime.LEGACY_ZONE);
+    }
+
     private void saveSuccess(UUID jobId, AnalyzeResultPayload analysis, OptimizeResultPayload optimization,
                              UUID anchorAnalyticsId) {
         StrategyOptimizationJob job = jobRepository.findById(jobId).orElseThrow();
@@ -161,14 +210,14 @@ public class StrategyOptimizationWorkerServiceImpl implements StrategyOptimizati
 
         // StrategyAdjustment buộc có insight cha (cascade từ insight) — các đề xuất đều rút từ cùng
         // bộ insight nên gắn chung insight đầu tiên; không có insight thì chỉ lưu future improvements.
-        if (!insights.isEmpty() && optimization.getStrategyAdjustments() != null) {
+        if (!insights.isEmpty() && optimization != null && optimization.getStrategyAdjustments() != null) {
             OptimizationInsight parent = insights.get(0);
             optimization.getStrategyAdjustments().forEach(payload -> parent.getStrategyAdjustments()
                     .add(strategyOptimizationMapper.toAdjustment(payload, strategy, parent)));
         }
         insightRepository.saveAll(insights);
 
-        List<String> improvements = optimization.getFutureImprovements() == null
+        List<String> improvements = optimization == null || optimization.getFutureImprovements() == null
                 ? List.of() : optimization.getFutureImprovements();
         job.setFutureImprovements(improvements.isEmpty() ? null : String.join("\n", improvements));
         job.setStatus(GenerationJobStatus.SUCCESS);
@@ -178,9 +227,12 @@ public class StrategyOptimizationWorkerServiceImpl implements StrategyOptimizati
         log.info("[StrategyOpt] Job {} xong: {} insight, {} đề xuất, {} cải tiến",
                 jobId, insights.size(), adjustmentCount, improvements.size());
 
-        // Usage (2 event /analyze + /optimize và cache hạn mức) đã được recordCall ghi
+        // Usage (event /analyze, + /optimize nếu có gọi, và cache hạn mức) đã được recordCall ghi
         // tại thời điểm gọi AI.
 
+        if (insights.isEmpty()) {
+            return; // không có insight/đề xuất mới → không báo NEW_INSIGHT sai sự thật
+        }
         // FR-79: báo có insight/đề xuất mới cho user.
         notificationService.notify(strategy.getBrandProfile().getUser(), NotificationType.NEW_INSIGHT,
                 "Có đề xuất tối ưu chiến lược mới",

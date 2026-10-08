@@ -25,10 +25,12 @@ from __future__ import annotations
 import logging
 import time
 import uuid
+import re
 from contextvars import ContextVar
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
-from typing import Any, List, Optional, TypeVar
+from typing import Any, Callable, List, Optional, TypeVar
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
@@ -42,6 +44,7 @@ from .schemas import LlmAttempt, LlmConfig, LlmSpec, TokenUsage
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
+R = TypeVar("R")
 
 # Per-request LLM config. FastAPI/Starlette copies the context per request (also for
 # sync endpoints in the threadpool), so a set() here never leaks across requests.
@@ -193,12 +196,51 @@ def invoke_structured(
     The whole chain is bounded by LLM_CHAIN_BUDGET_SECONDS. Raises :class:`LlmChainError`
     when no model succeeds; the attempt trace is returned in ``TokenUsage.attempts``.
     """
+    settings = get_settings()
+    return _run_chain(
+        lambda spec, timeout: _invoke_with(build_llm(spec, timeout=timeout), schema, prompt, variables),
+        budget_seconds=settings.llm_chain_budget_seconds,
+        call_timeout_seconds=settings.llm_call_timeout_seconds,
+    )
+
+
+@dataclass
+class GroundedResult:
+    """Free-text answer of a web-grounded call + the web sources the provider actually used."""
+
+    text: str
+    sources: List[dict] = field(default_factory=list)  # [{"title", "url"}], deduped by url
+    searches: int = 0                                  # web searches the provider ran
+
+
+def invoke_grounded(system: str, prompt: str) -> tuple[GroundedResult, TokenUsage]:
+    """Run ``prompt`` with the provider's NATIVE web search, through the same model chain.
+
+    Anthropic → server tool ``web_search`` (results + citations come back in the message);
+    Google → ``google_search`` grounding (sources in ``grounding_metadata``). Both run on
+    the provider's side, so the SOURCES are real pages, never invented by the model.
+    Same retry/fallback policy as :func:`invoke_structured`, with its own (longer) budget
+    TREND_SEARCH_BUDGET_SECONDS since a search turn takes several round-trips.
+    """
+    settings = get_settings()
+    return _run_chain(
+        lambda spec, timeout: _ground_with(spec, timeout, system, prompt),
+        budget_seconds=settings.trend_search_budget_seconds,
+        call_timeout_seconds=settings.trend_search_call_timeout_seconds,
+    )
+
+
+def _run_chain(
+    call: Callable[[LlmSpec, float], tuple[R, TokenUsage]],
+    budget_seconds: float,
+    call_timeout_seconds: float,
+) -> tuple[R, TokenUsage]:
+    """Walk the model chain with ``call(spec, timeout)`` — policy in :func:`invoke_structured`."""
     config = _current_llm_config.get()
     chain = config.chain() if config is not None else [_env_spec()]
-    settings = get_settings()
     request_id = uuid.uuid4().hex[:8]
     started = time.monotonic()
-    deadline = started + settings.llm_chain_budget_seconds
+    deadline = started + budget_seconds
     attempts: List[LlmAttempt] = []
     dead_providers: set[str] = set()
     bad_requests = 0
@@ -214,9 +256,8 @@ def invoke_structured(
                 raise LlmChainError(AI_TIMEOUT, attempts)
 
             t0 = time.monotonic()
-            try:
-                llm = build_llm(spec, timeout=min(settings.llm_call_timeout_seconds, remaining))
-            except ValueError:  # empty key in this spec — unusable provider, not a model failure
+            if not spec.api_key.get_secret_value():
+                # Empty key in this spec — unusable provider, not a model failure.
                 info = errors.ErrorInfo(errors.INVALID_KEY)
                 attempts.append(_attempt(spec, info, t0))
                 dead_providers.add(spec.provider)
@@ -224,7 +265,7 @@ def invoke_structured(
                           _next_spec(chain, i, dead_providers))
                 break
             try:
-                parsed, usage = _invoke_with(llm, schema, prompt, variables)
+                result, usage = call(spec, min(call_timeout_seconds, remaining))
             except Exception as e:  # noqa: BLE001 — every failure is classified below
                 info = errors.classify_error(e)
                 attempts.append(_attempt(spec, info, t0))
@@ -251,7 +292,7 @@ def invoke_structured(
                     latency_ms=_ms_since(t0)))
                 _log_step(request_id, spec, "ok", None, started)
                 usage.attempts = attempts
-                return parsed, usage
+                return result, usage
 
     raise LlmChainError(_final_error_code(attempts), attempts)
 
@@ -356,3 +397,166 @@ def _invoke_with(
         output_tokens=usage.get("output_tokens", 0),
         cached_tokens=input_details.get("cache_read", 0),
     )
+
+
+# ============================================================
+# Web-grounded calls (trend research) — provider-native search
+# ============================================================
+
+MAX_SEARCH_CONTINUATIONS = 3   # Anthropic pause_turn resumes per call
+MAX_GROUNDED_SOURCES = 25
+GROUNDED_MAX_TOKENS = 12000     # a research memo, not a long generation
+_SEARCH_COUNTRY = "VN"
+_SEARCH_TIMEZONE = "Asia/Ho_Chi_Minh"
+
+
+def _ground_with(spec: LlmSpec, timeout: float, system: str, prompt: str) -> tuple[GroundedResult, TokenUsage]:
+    if spec.provider == "anthropic":
+        return _ground_anthropic(spec, timeout, system, prompt)
+    if spec.provider == "google":
+        return _ground_google(spec, timeout, system, prompt)
+    raise ValueError(f"Unknown llm_config provider: {spec.provider!r}")
+
+
+def anthropic_web_search_tool(model: str, max_uses: int) -> dict:
+    """``web_search_20260209`` (dynamic filtering) on Opus/Sonnet ≥ 4.6, else the basic
+    ``web_search_20250305`` that every web-search-capable Claude model accepts."""
+    # Minor version is 1-2 digits so a dated id ("claude-opus-4-20250514") reads as 4.0.
+    m = re.match(r"claude-(opus|sonnet)-(\d+)(?:-(\d{1,2}))?(?:$|-)", model)
+    version = (int(m.group(2)), int(m.group(3) or 0)) if m else (0, 0)
+    tool_type = "web_search_20260209" if version >= (4, 6) else "web_search_20250305"
+    return {
+        "type": tool_type,
+        "name": "web_search",
+        "max_uses": max_uses,
+        "user_location": {"type": "approximate", "country": _SEARCH_COUNTRY, "timezone": _SEARCH_TIMEZONE},
+    }
+
+
+def _ground_anthropic(spec: LlmSpec, timeout: float, system: str, prompt: str) -> tuple[GroundedResult, TokenUsage]:
+    import anthropic
+
+    settings = get_settings()
+    client = anthropic.Anthropic(
+        api_key=spec.api_key.get_secret_value(), timeout=timeout, max_retries=0)
+    tools = [anthropic_web_search_tool(spec.model, settings.trend_search_max_uses)]
+    messages: List[dict] = [{"role": "user", "content": prompt}]
+    usage = TokenUsage()
+    searches = 0
+    blocks: List[Any] = []
+    deadline = time.monotonic() + timeout
+
+    for _ in range(MAX_SEARCH_CONTINUATIONS + 1):
+        response = client.messages.create(
+            model=spec.model,
+            max_tokens=min(spec.max_tokens or settings.llm_max_tokens, GROUNDED_MAX_TOKENS),
+            system=system,
+            messages=messages,
+            tools=tools,
+        )
+        _add_anthropic_usage(usage, response.usage)
+        server_use = getattr(response.usage, "server_tool_use", None)
+        searches += getattr(server_use, "web_search_requests", 0) or 0
+        blocks.extend(response.content)
+        # pause_turn = the server-side search loop hit its iteration cap; re-send the
+        # assistant turn as-is and the server resumes (no extra "continue" message).
+        if response.stop_reason != "pause_turn" or time.monotonic() > deadline - MIN_CALL_SECONDS:
+            break
+        messages = [{"role": "user", "content": prompt},
+                    {"role": "assistant", "content": response.content}]
+
+    text = "".join(b.text for b in blocks if getattr(b, "type", None) == "text").strip()
+    if not text:
+        raise ValueError("Grounded call returned no text")
+    return GroundedResult(text=text, sources=_anthropic_sources(blocks), searches=searches), usage
+
+
+def _add_anthropic_usage(total: TokenUsage, u: Any) -> None:
+    cache_read = getattr(u, "cache_read_input_tokens", 0) or 0
+    cache_write = getattr(u, "cache_creation_input_tokens", 0) or 0
+    input_tokens = (u.input_tokens or 0) + cache_read + cache_write
+    total.input_tokens += input_tokens
+    total.output_tokens += u.output_tokens or 0
+    total.cached_tokens += cache_read
+    total.total_tokens += input_tokens + (u.output_tokens or 0)
+
+
+def _anthropic_sources(blocks: List[Any]) -> List[dict]:
+    """Cited pages first (they back a claim in the answer), then the other search results."""
+    cited: List[dict] = []
+    found: List[dict] = []
+    for b in blocks:
+        kind = getattr(b, "type", None)
+        if kind == "text":
+            for c in getattr(b, "citations", None) or []:
+                if getattr(c, "url", None):
+                    cited.append({"title": getattr(c, "title", None) or "", "url": c.url})
+        elif kind == "web_search_tool_result":
+            content = getattr(b, "content", None)
+            if isinstance(content, list):  # an error result is a single object, not a list
+                for r in content:
+                    if getattr(r, "url", None):
+                        found.append({"title": getattr(r, "title", None) or "", "url": r.url})
+    return _dedupe_sources(cited + found)
+
+
+def _ground_google(spec: LlmSpec, timeout: float, system: str, prompt: str) -> tuple[GroundedResult, TokenUsage]:
+    from google import genai
+    from google.genai import types
+
+    settings = get_settings()
+    client = genai.Client(
+        api_key=spec.api_key.get_secret_value(),
+        http_options=types.HttpOptions(
+            timeout=int(timeout * 1000),
+            retry_options=types.HttpRetryOptions(attempts=1),  # the chain decides retries
+        ),
+    )
+    config_kwargs: dict[str, Any] = {}
+    if spec.temperature is not None:
+        config_kwargs["temperature"] = spec.temperature
+    response = client.models.generate_content(
+        model=spec.model,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            system_instruction=system,
+            tools=[types.Tool(google_search=types.GoogleSearch())],
+            max_output_tokens=min(spec.max_tokens or settings.llm_max_tokens, GROUNDED_MAX_TOKENS),
+            **config_kwargs,
+        ),
+    )
+    text = (response.text or "").strip()
+    if not text:
+        raise ValueError("Grounded call returned no text")
+
+    sources: List[dict] = []
+    searches = 0
+    for cand in response.candidates or []:
+        meta = cand.grounding_metadata
+        if meta is None:
+            continue
+        searches += len(meta.web_search_queries or [])
+        for chunk in meta.grounding_chunks or []:
+            web = chunk.web
+            if web is not None and web.uri:
+                # Gemini returns redirect URIs; title is the publisher domain.
+                sources.append({"title": web.title or web.domain or "", "url": web.uri})
+
+    u = response.usage_metadata
+    usage = TokenUsage(
+        total_tokens=(u.total_token_count or 0) if u else 0,
+        input_tokens=((u.prompt_token_count or 0) + (u.tool_use_prompt_token_count or 0)) if u else 0,
+        output_tokens=((u.candidates_token_count or 0) + (u.thoughts_token_count or 0)) if u else 0,
+        cached_tokens=(u.cached_content_token_count or 0) if u else 0,
+    )
+    return GroundedResult(text=text, sources=_dedupe_sources(sources), searches=searches), usage
+
+
+def _dedupe_sources(sources: List[dict]) -> List[dict]:
+    seen: set[str] = set()
+    out: List[dict] = []
+    for s in sources:
+        if s["url"] not in seen:
+            seen.add(s["url"])
+            out.append(s)
+    return out[:MAX_GROUNDED_SOURCES]

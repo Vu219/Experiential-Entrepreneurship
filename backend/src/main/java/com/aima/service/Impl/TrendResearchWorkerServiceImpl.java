@@ -1,6 +1,7 @@
 package com.aima.service.Impl;
 
 import com.aima.dto.ai.ContentIdeaPayload;
+import com.aima.dto.ai.PreviousTrendPayload;
 import com.aima.dto.ai.ResearchPayload;
 import com.aima.dto.ai.ResearchResultPayload;
 import com.aima.dto.ai.TrendPayload;
@@ -15,6 +16,7 @@ import com.aima.enums.StrategyStatus;
 import com.aima.mapper.AiContentMapper;
 import com.aima.mapper.TrendResearchMapper;
 import com.aima.repository.ContentStrategyRepository;
+import com.aima.repository.TrendRepository;
 import com.aima.repository.TrendResearchSessionRepository;
 import com.aima.service.AiServiceClient;
 import com.aima.service.AiUsageService;
@@ -23,11 +25,16 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -45,8 +52,12 @@ public class TrendResearchWorkerServiceImpl implements TrendResearchWorkerServic
 
     static final int MAX_TRENDS = 8;
     static final int MAX_IDEAS = 10;
+    // Trend các phiên trước gửi kèm AI (momentum, tránh lặp): trong 30 ngày, tối đa 40 tên.
+    static final int PREVIOUS_TRENDS_DAYS = 30;
+    static final int PREVIOUS_TRENDS_LIMIT = 40;
 
     TrendResearchSessionRepository sessionRepository;
+    TrendRepository trendRepository;
     ContentStrategyRepository contentStrategyRepository;
     AiServiceClient aiServiceClient;
     TrendResearchMapper trendResearchMapper;
@@ -61,6 +72,16 @@ public class TrendResearchWorkerServiceImpl implements TrendResearchWorkerServic
     @Async("trendResearchExecutor")
     @Override
     public void process(UUID sessionId) {
+        run(sessionId);
+    }
+
+    @Async("scheduledTrendResearchExecutor")
+    @Override
+    public void processScheduled(UUID sessionId) {
+        run(sessionId);
+    }
+
+    private void run(UUID sessionId) {
         ResearchTask task = transactionTemplate.execute(status -> markRunningAndBuildPayload(sessionId));
         if (task == null) {
             return; // phiên không tồn tại hoặc thiếu chiến lược ACTIVE (đã ghi FAILED)
@@ -83,6 +104,11 @@ public class TrendResearchWorkerServiceImpl implements TrendResearchWorkerServic
         TrendResearchSession session = sessionRepository.findById(sessionId).orElse(null);
         if (session == null) {
             log.warn("[TrendResearch] Phiên {} không tồn tại khi bắt đầu xử lý", sessionId);
+            return null;
+        }
+        if (session.getStatus() != ResearchStatus.PENDING) {
+            // Đã bị chốt FAILED (kẹt quá lâu / bị phiên thủ công thay thế) trước khi tới lượt — bỏ qua.
+            log.info("[TrendResearch] Phiên {} không còn PENDING ({}), bỏ qua", sessionId, session.getStatus());
             return null;
         }
 
@@ -115,6 +141,7 @@ public class TrendResearchWorkerServiceImpl implements TrendResearchWorkerServic
                 .brandProfile(aiContentMapper.toBrandProfilePayload(brand))
                 .strategy(aiContentMapper.toStrategyPayload(strategy))
                 .platform(session.getPlatform().name()) // nền tảng đích (AI chuẩn hoá case)
+                .previousTrends(previousTrends(brand, session))
                 .maxTrends(MAX_TRENDS)
                 .maxIdeas(maxIdeas)
                 .build();
@@ -122,6 +149,16 @@ public class TrendResearchWorkerServiceImpl implements TrendResearchWorkerServic
                 brand.getUser(), AiTaskCode.TREND_RESEARCH, sessionId,
                 session.getClientIp(), session.getUserAgent());
         return new ResearchTask(payload, callContext);
+    }
+
+    /** Trend đã gợi ý ở các phiên gần đây (cùng brand + nền tảng), mỗi tên một lần — bản mới nhất. */
+    private List<PreviousTrendPayload> previousTrends(BrandProfile brand, TrendResearchSession session) {
+        Map<String, PreviousTrendPayload> byName = new LinkedHashMap<>();
+        trendRepository.findRecentForBrand(brand.getId(), session.getPlatform(),
+                        LocalDateTime.now().minusDays(PREVIOUS_TRENDS_DAYS), PageRequest.of(0, PREVIOUS_TRENDS_LIMIT))
+                .forEach(view -> byName.putIfAbsent(view.getTrendName().trim().toLowerCase(Locale.ROOT),
+                        trendResearchMapper.toPreviousTrendPayload(view)));
+        return new ArrayList<>(byName.values());
     }
 
     private void saveSuccess(UUID sessionId, ResearchResultPayload result) {
@@ -156,8 +193,9 @@ public class TrendResearchWorkerServiceImpl implements TrendResearchWorkerServic
             }
         }
 
-        session.setSummary(result.getSummary());
+        trendResearchMapper.applyResult(result, session); // summary + grounded + nguồn dữ liệu đã dùng
         session.setStatus(ResearchStatus.COMPLETED);
+        session.setErrorMessage(null);
         sessionRepository.save(session); // cascade ALL: lưu luôn trends + content ideas
 
         // Usage (event + cache hạn mức) đã được recordCall ghi tại thời điểm gọi AI.

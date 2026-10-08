@@ -227,8 +227,8 @@ class AccountDeletionLifecycleTest {
         scheduleRepository.save(due);
 
         boolean picked = scheduleRepository
-                .findByStatusAndScheduledTimeLessThanEqualAndDeletedAtIsNullAndPlatformAccount_User_StatusNot(
-                        ScheduleStatus.SCHEDULED, java.time.Instant.now(), UserStatus.PENDING_DELETE)
+                .findByStatusAndScheduledTimeLessThanEqualAndDeletedAtIsNullAndPlatformAccount_User_StatusNotIn(
+                        ScheduleStatus.SCHEDULED, java.time.Instant.now(), java.util.List.of(UserStatus.PENDING_DELETE, UserStatus.LOCKED))
                 .stream().anyMatch(s -> s.getId().equals(due.getId()));
         assertFalse(picked);
 

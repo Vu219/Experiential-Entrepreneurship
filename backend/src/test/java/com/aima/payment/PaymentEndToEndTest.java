@@ -369,4 +369,22 @@ class PaymentEndToEndTest {
                 "admin@e2e.local", paymentId, PaymentActionRequest.builder().reason("bấm nhầm").build()));
         assertEquals(ErrorCode.PAYMENT_NOT_MARKABLE_PAID, e.getErrorCode());
     }
+
+    /** Đơn đã đóng (EXPIRED) mà admin xác nhận tiền về ngoài luồng → gói PHẢI được kích hoạt thật. */
+    @Test
+    void flow9b_adminMarkPaidOnExpiredOrder_activatesThePlan() {
+        User user = newUser("f9b");
+        UUID paymentId = createOrder(user, "PRO");
+        var payment = paymentRepository.findById(paymentId).orElseThrow();
+        payment.setStatus(PaymentStatus.EXPIRED);
+        paymentRepository.save(payment);
+
+        adminPaymentService.markPaid("admin@e2e.local", paymentId,
+                PaymentActionRequest.builder().reason("Tiền về sau khi đơn hết hạn, đối chiếu sao kê").build());
+
+        var after = paymentRepository.findById(paymentId).orElseThrow();
+        assertEquals(PaymentStatus.PAID, after.getStatus());
+        assertFalse(after.getReconcileRequired(), "admin đã đối soát xong thì không còn cờ");
+        assertEquals("PRO", billing(user).getPlanCode(), "đơn đã đóng vẫn phải KÍCH HOẠT gói khi admin xác nhận");
+    }
 }

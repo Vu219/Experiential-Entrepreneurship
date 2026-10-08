@@ -7,7 +7,7 @@ package com.aima.enums;
 public enum MetricsErrorType {
     /** Graph 100 + subcode 33: bài không còn (đã xoá) hoặc token không còn quyền đọc nó. */
     NOT_FOUND,
-    /** Graph 4/17/32/613/80001/80002: bị giới hạn tần suất — dừng cả lượt quét. */
+    /** Graph 4/17/32/613/80001/80002: bị giới hạn tần suất — lùi lịch cả tài khoản (đồng bộ bài: bỏ qua tài khoản đó; cấp kênh: dừng cả lượt quét). */
     RATE_LIMIT,
     /** Graph 10, 200–299: thiếu quyền (vd thiếu pages_read_engagement). */
     PERMISSION,

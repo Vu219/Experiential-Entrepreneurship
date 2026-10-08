@@ -1,11 +1,13 @@
 import { memo, useState, type ReactNode } from 'react';
-import { ArrowUpRight, ArrowDownRight, ChevronRight, Pin } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, ArrowRight, CalendarClock, ChevronRight, Pin, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Card, Icon, PlatformTag } from '../ui';
 import Pagination from '../admin/Pagination';
 import { PLATFORM_BG } from '../../theme';
 import { FIT_COLORS, type TrendItem } from '../../trendsData';
+import type { TrendMomentum } from '../../api/trendResearch';
+import { sourceLabel } from '../../trendsLive';
 import { Pill } from './filters';
 import { C } from '../../styles/colors';
 
@@ -36,6 +38,69 @@ function GrowthTag({ trend }: { trend: TrendItem }) {
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 12.5, fontWeight: 700, color, whiteSpace: 'nowrap' }}>
       <Icon icon={trend.up ? ArrowUpRight : ArrowDownRight} size={14} stroke={color} />
       {trend.growth}
+    </span>
+  );
+}
+
+const MOMENTUM_STYLE: Record<TrendMomentum, { icon: typeof ArrowUpRight; color: string }> = {
+  NEW: { icon: Sparkles, color: C.primary },
+  RISING: { icon: ArrowUpRight, color: C.success },
+  STABLE: { icon: ArrowRight, color: C.textSecondary },
+  FADING: { icon: ArrowDownRight, color: C.danger },
+};
+
+/** Đà của trend (dữ liệu thật) — thay cho sparkline/tăng trưởng ước đoán; mock giữ sparkline demo. */
+function MomentumCell({ trend }: { trend: TrendItem }) {
+  const { t } = useApp();
+  if (!trend.momentum) {
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+        <Sparkline points={trend.spark} color={trend.up ? C.success : C.danger} />
+        <GrowthTag trend={trend} />
+      </span>
+    );
+  }
+  const label = { NEW: t.trMomNew, RISING: t.trMomRising, STABLE: t.trMomStable, FADING: t.trMomFading }[trend.momentum];
+  const { icon, color } = MOMENTUM_STYLE[trend.momentum];
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12.5, fontWeight: 700, color, whiteSpace: 'nowrap' }}>
+      <Icon icon={icon} size={14} stroke={color} />
+      {label}
+    </span>
+  );
+}
+
+/** Số nguồn thật + độ tin cậy (dữ liệu thật); mock giữ con số tương tác demo. */
+function EvidenceCell({ trend }: { trend: TrendItem }) {
+  const { t } = useApp();
+  if (!trend.evidence) {
+    return (
+      <span style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>
+        <span style={{ fontWeight: 700, color: C.ink750 }}>{trend.engagement}</span>{' '}
+        <span style={{ fontWeight: 700, color: trend.engagementDelta.startsWith('-') ? C.danger : C.success }}>{trend.engagementDelta}</span>
+      </span>
+    );
+  }
+  const conf = trend.confidence ?? 'low';
+  const confLabel = { high: t.trFitHigh, medium: t.trFitMed, low: t.trFitLow }[conf];
+  const domains = trend.evidence.map((e) => sourceLabel(e.url, e.title)).join(' · ');
+  return (
+    <span title={domains} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+      <span style={{ fontSize: 12.5, fontWeight: 700, color: C.ink750 }}>{trend.evidence.length} {t.trSources}</span>
+      <Pill text={`${t.trConfidence}: ${confLabel}`} color={FIT_COLORS[conf].color} bg={FIT_COLORS[conf].bg} style={{ fontSize: 10.5, padding: '2px 7px' }} />
+    </span>
+  );
+}
+
+/** "Đăng trước dd/MM" khi trend có hạn (sự kiện, tin nóng). */
+function ActByChip({ actBy }: { actBy?: string }) {
+  const { t } = useApp();
+  if (!actBy) return null;
+  const [, m, d] = actBy.split('-');
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 700, color: C.warning, marginLeft: 6, whiteSpace: 'nowrap' }}>
+      <Icon icon={CalendarClock} size={11} stroke={C.warning} />
+      {t.trActBy} {d}/{m}
     </span>
   );
 }
@@ -149,7 +214,7 @@ export default memo(function TrendTable({
                   {pinnedIds.has(tr.id) && <Pin size={12} color={C.primary} fill={C.primary} style={{ marginRight: 4, verticalAlign: -1 }} />}
                   {tr.name} <span style={{ fontWeight: 600, color: C.primary }}>{tr.hashtag}</span>
                 </div>
-                <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{tr.desc}</div>
+                <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{tr.desc}<ActByChip actBy={tr.actBy} /></div>
               </div>
               <Pill text={fitLabel[tr.fit]} color={FIT_COLORS[tr.fit].color} bg={FIT_COLORS[tr.fit].bg} style={{ flex: 'none' }} />
             </div>
@@ -159,14 +224,8 @@ export default memo(function TrendTable({
                   <PlatformTag key={tag} tag={tag} bg={PLATFORM_BG[tag]} size={22} radius={7} fontSize={10} />
                 ))}
               </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <Sparkline points={tr.spark} color={tr.up ? C.success : C.danger} />
-                <GrowthTag trend={tr} />
-              </span>
-              <span style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>
-                <span style={{ fontWeight: 700, color: C.ink750 }}>{tr.engagement}</span>{' '}
-                <span style={{ fontWeight: 700, color: tr.engagementDelta.startsWith('-') ? C.danger : C.success }}>{tr.engagementDelta}</span>
-              </span>
+              <MomentumCell trend={tr} />
+              <EvidenceCell trend={tr} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderTop: `1px solid ${C.surfaceMuted}`, paddingTop: 9 }}>
               <span style={{ fontSize: 12.5, fontWeight: 700, color: C.ink750 }}>{tr.ideaCount} {t.trIdeaUnit}</span>
@@ -198,14 +257,13 @@ export default memo(function TrendTable({
         </colgroup>
         <thead>
           <tr style={{ textAlign: 'left' }}>
-            {[t.trColTopic, t.trColPlatform, t.trColFit, t.trColTrend, t.trColEngage, t.trColIdeas].map((h, i) => (
+            {[t.trColTopic, t.trColPlatform, t.trColFit, t.trColTrend, rows.some((r) => r.evidence) ? t.trColEvidence : t.trColEngage, t.trColIdeas].map((h, i) => (
               <th key={i} scope="col" style={{ fontSize: 12, fontWeight: 600, color: C.textSecondary, padding: '13px 8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderBottom: `1px solid ${C.surfaceMuted}`, ...(i === 0 ? { paddingLeft: 16 } : {}) }}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {visible.map((tr) => {
-            const trendColor = tr.up ? '#16a34a' : '#dc2626';
             return (
               <tr key={tr.id} style={{ borderTop: `1px solid ${C.surfaceMuted}`, background: selectMode && selectedIds.has(tr.id) ? C.bg : 'transparent' }}>
                 <td style={{ padding: '12px 8px 12px 16px' }}>
@@ -217,7 +275,7 @@ export default memo(function TrendTable({
                         {pinnedIds.has(tr.id) && <Pin size={12} color={C.primary} fill={C.primary} style={{ marginRight: 4, verticalAlign: -1 }} />}
                         {tr.name} <span style={{ fontWeight: 600, color: C.primary }}>{tr.hashtag}</span>
                       </div>
-                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tr.desc}</div>
+                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><ActByChip actBy={tr.actBy} />{tr.actBy ? ' ' : ''}{tr.desc}</div>
                     </div>
                   </div>
                 </td>
@@ -232,14 +290,10 @@ export default memo(function TrendTable({
                   <Pill text={fitLabel[tr.fit]} color={FIT_COLORS[tr.fit].color} bg={FIT_COLORS[tr.fit].bg} style={{ padding: '3px 9px' }} />
                 </td>
                 <td style={{ padding: '12px 8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
-                    <Sparkline points={tr.spark} color={trendColor} />
-                    <GrowthTag trend={tr} />
-                  </div>
+                  <MomentumCell trend={tr} />
                 </td>
                 <td style={{ padding: '12px 8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: C.ink750 }}>{tr.engagement}</span>{' '}
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: tr.engagementDelta.startsWith('-') ? C.danger : C.success }}>{tr.engagementDelta}</span>
+                  <EvidenceCell trend={tr} />
                 </td>
                 <td style={{ padding: '12px 8px', overflow: 'hidden' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>

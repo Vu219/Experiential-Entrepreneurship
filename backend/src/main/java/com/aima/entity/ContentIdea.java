@@ -5,6 +5,8 @@ import com.aima.enums.SuitabilityLevel;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +41,15 @@ public class ContentIdea extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "suitability_level", length = 20)
     SuitabilityLevel suitabilityLevel;
+
+    // Gợi ý triển khai + mục tiêu brand mà ý tưởng phục vụ (FR-22) — JSON ["...", ...].
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "execution_suggestions", columnDefinition = "jsonb")
+    String executionSuggestions;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "related_goals", columnDefinition = "jsonb")
+    String relatedGoals;
 
     // Cha phụ của ContentItem (cha sở hữu là BrandProfile): KHÔNG cascade ở đây.
     @OneToMany(mappedBy = "contentIdea")

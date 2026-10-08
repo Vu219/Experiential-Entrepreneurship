@@ -37,7 +37,7 @@ public interface PostScheduleService {
 
     ApiResponse<PostScheduleResponse> cancel(String email, UUID scheduleId);
 
-    ApiResponse<GoldenHourResponse> suggestGoldenHours(Platform platform);
+    ApiResponse<GoldenHourResponse> suggestGoldenHours(String email, Platform platform);
 
     // ---- Nội bộ (không trả ApiResponse) — vòng đời tài khoản chờ xoá ----
 

@@ -2,6 +2,7 @@ package com.aima.dto.response;
 
 import com.aima.enums.Platform;
 import com.aima.enums.ResearchStatus;
+import com.aima.enums.ResearchTrigger;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -46,11 +47,23 @@ public class TrendResearchSessionResponse {
     @Schema(description = "Session status.", example = "COMPLETED")
     ResearchStatus status;
 
+    @Schema(description = "MANUAL (\"Research now\") or SCHEDULED (daily 2:00 AM run).", example = "MANUAL")
+    ResearchTrigger triggerType;
+
+    @Schema(description = "True when live web search succeeded; false/null = limited sources.")
+    Boolean grounded;
+
     @Schema(description = "AI summary of the session, present when COMPLETED.")
     String summary;
 
     @Schema(description = "Error message, present only when FAILED.")
     String errorMessage;
+
+    @Schema(description = "Number of web searches the AI ran.")
+    Integer webSearches;
+
+    @Schema(description = "Data sources used by the session and what each returned.")
+    List<ResearchSourceResponse> dataSources;
 
     @Schema(description = "Trends found (each with its content ideas).")
     List<TrendResponse> trends;

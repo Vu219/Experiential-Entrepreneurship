@@ -24,9 +24,14 @@ import com.aima.service.SubscriptionService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import jakarta.persistence.EntityManager;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -46,6 +51,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     NotificationService notificationService;
     ActivityLogService activityLogService;
     SubscriptionHistoryRepository subscriptionHistoryRepository;
+    EntityManager entityManager;
+    PlatformTransactionManager transactionManager;
 
     @Override
     @Transactional
@@ -64,10 +71,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                         planCode, user.getId());
                 return null;
             }
-            YearMonth month = YearMonth.now();
-            subscription = usageMapper.toSubscription(user, plan, SubscriptionStatus.ACTIVE,
-                    periodStart(month), periodEnd(month));
-            return subscriptionRepository.save(subscription);
+            return createFirst(user, plan);
         }
 
         // Lăn kỳ TRƯỚC khi đồng bộ gói: hết currentPeriodEnd thì kỳ mới = tháng lịch hiện tại
@@ -111,9 +115,49 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         return subscriptionRepository.save(subscription);
     }
 
+    /**
+     * Tạo subscription đầu tiên của user trong transaction RIÊNG (REQUIRES_NEW): hai request đầu tiên
+     * song song cùng tạo thì unique {@code uk_subscriptions_one_active_per_user} (V12) chặn bản thứ
+     * hai. Vi phạm ràng buộc trong transaction của caller sẽ làm hỏng cả transaction đó (PG abort +
+     * rollback-only), nên insert tách riêng; thua race thì đọc lại bản request kia đã commit.
+     */
+    private Subscription createFirst(User user, Plan plan) {
+        TransactionTemplate requiresNew = new TransactionTemplate(transactionManager);
+        requiresNew.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        try {
+            requiresNew.executeWithoutResult(status -> subscriptionRepository.saveAndFlush(newSubscription(user, plan)));
+        } catch (DataIntegrityViolationException e) {
+            log.info("[Subscription] User {} vừa được request song song tạo subscription — đọc lại", user.getId());
+        }
+        Subscription existing = subscriptionRepository.findWithPlanByUserId(user.getId()).orElse(null);
+        if (existing != null) {
+            return existing;
+        }
+        // Không thấy bản nào đã commit (vd user mới tạo trong CHÍNH transaction của caller nên transaction
+        // riêng không thấy FK) → tạo trong transaction hiện tại như trước.
+        return subscriptionRepository.save(newSubscription(user, plan));
+    }
+
+    private Subscription newSubscription(User user, Plan plan) {
+        YearMonth month = YearMonth.now();
+        return usageMapper.toSubscription(user, plan, SubscriptionStatus.ACTIVE,
+                periodStart(month), periodEnd(month));
+    }
+
+    /**
+     * Khoá dòng subscription của user ({@code SELECT … FOR UPDATE}) rồi nạp lại trạng thái MỚI NHẤT:
+     * entity có thể đã nằm trong persistence context từ một lần đọc không khoá, khi đó query khoá trả
+     * lại đúng bản cũ đó. Kích hoạt gói (thanh toán) và hạ gói hết hạn (job/lazy) cùng khoá dòng này
+     * nên không ghi đè nhau (bug #10: tiền vừa về, gói mới vừa kích hoạt lại bị hạ về FREE).
+     */
+    private void lockFresh(UUID userId) {
+        subscriptionRepository.findForUpdateByUserId(userId).ifPresent(entityManager::refresh);
+    }
+
     @Override
     @Transactional
     public Subscription activatePaidPlan(User user, Plan plan, LocalDateTime now) {
+        lockFresh(user.getId()); // khoá TRƯỚC getOrCreate — cùng mẫu AdminSubscriptionServiceImpl
         Subscription subscription = getOrCreate(user);
         if (subscription == null) {
             log.error("[Subscription] Không tạo được subscription cho user {} — KHÔNG kích hoạt được gói {}",
@@ -253,6 +297,11 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     public boolean expireToFreePlan(Subscription subscription, LocalDateTime now) {
         if (subscription == null || subscription.getPlanExpiresAt() == null
                 || subscription.getPlanExpiresAt().isAfter(now)) {
+            return false;
+        }
+        // Khoá + đọc lại rồi kiểm LẠI: lần đọc ở trên không khoá, thanh toán có thể vừa gia hạn và commit.
+        lockFresh(subscription.getUser().getId());
+        if (subscription.getPlanExpiresAt() == null || subscription.getPlanExpiresAt().isAfter(now)) {
             return false;
         }
         Plan freePlan = planRepository.findByCodeAndDeletedAtIsNull(UserPlan.FREE.name()).orElse(null);

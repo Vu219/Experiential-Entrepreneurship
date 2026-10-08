@@ -1,159 +1,276 @@
-"""Trend Research agent (FR-19..FR-23).
+"""Trend Research agent (FR-19..FR-23) — evidence-grounded.
 
-Collects raw public social signal (via the Facebook connector plus the
-cross-platform Trends-MCP connector — YouTube / TikTok / Instagram Reels —
-each with a mock fallback), then uses the LLM to: filter trends by industry
-(FR-20), rate each trend's relevance High/Medium/Low (FR-21), and turn
-promising trends into actionable content ideas (FR-22).
+Pipeline for one session (scheduling, the no-overlap guard and persistence are owned by
+the backend):
 
-Scheduling (2:00 AM daily / "Research now" trigger) and the no-overlapping-session
-guarantee (FR-19) and session persistence (FR-23) are owned by the backend; this
-agent performs the analysis for a single session.
+1. Collect signal IN PARALLEL — every source is real, none is mocked:
+   - **Live web research** (``llm.invoke_grounded``): the model searches the web itself
+     (Claude ``web_search`` / Gemini Google Search grounding) for what is trending in the
+     brand's niche in the target market over the last ~2 weeks, and returns a research
+     memo + the pages it actually used.
+   - **Google Trends "Trending now"** for the market (free RSS): dated search spikes.
+   - **Marketing calendar**: holidays / sale days in the coming weeks (deterministic).
+   - **Platform keyword search** (optional, credential-gated): real YouTube / Instagram /
+     Threads posts for the brand keywords.
+   - **Previous sessions** (sent by the backend): trends already surfaced, for momentum.
+2. One structured LLM call turns the numbered evidence into rated trends (FR-20/21) and
+   content ideas (FR-22). Trends cite evidence by id ([S3]) — URLs are attached by code
+   from the collected list, so the model cannot invent a source.
+3. Post-processing: confidence from the number of independent sources, momentum checked
+   against previous sessions, target platform enforced, limits applied.
+
+If the web search step fails (provider/key without search, quota…) the session still
+completes on the other sources and reports ``grounded=false`` so the UI can say so.
 """
 
 from __future__ import annotations
 
-from langchain_core.prompts import ChatPromptTemplate
-
-from ..llm import invoke_structured
+import contextvars
+import logging
+import re
 from concurrent.futures import ThreadPoolExecutor
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional
+from urllib.parse import quote_plus, urlparse
+from zoneinfo import ZoneInfo
 
-from ..platform.facebook import FacebookTrendAnalyzer
-from ..platform.trends_mcp import TrendsMCPConnector
-from ..schemas import ResearchRequest, ResearchResponse, ResearchResult
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
+
+from ..config import get_settings
+from ..llm import GroundedResult, LlmChainError, invoke_grounded, invoke_structured
+from ..platform import google_trends, marketing_calendar
+from ..platform.social_search import SocialSearch
+from ..schemas import (
+    ContentIdea,
+    Evidence,
+    Momentum,
+    Relevance,
+    ResearchRequest,
+    ResearchResult,
+    SourceStatus,
+    TokenUsage,
+    Trend,
+    TrendType,
+)
+
+logger = logging.getLogger(__name__)
+
+_MARKET_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
+_CALENDAR_DAYS_AHEAD = 45
+_GOOGLE_TRENDS_LIMIT = 20
+_MAX_HASHTAGS = 5
+_MAX_ACT_BY_DAYS = 90
+
+# Canonical platform names as the schemas/prompt expect them (FR-19 target platform).
+_CANONICAL_PLATFORMS = {"facebook": "Facebook", "instagram": "Instagram", "threads": "Threads"}
 
 
-def _collect_signal(req: ResearchRequest) -> dict:
-    """Gather and aggregate raw engagement signal for the LLM to reason over.
+# ------------------------------------------------------------------
+# Structured output of the synthesis call (what the MODEL fills in)
+# ------------------------------------------------------------------
 
-    Falls back to mock data when no Facebook token / source ids are configured,
-    so research is demoable without live credentials. The independent sources
-    (Facebook, YouTube, TikTok, Reels roundup) are fetched IN PARALLEL so a slow
-    or failing external API (unregistered key, network error...) only costs the
-    time of the slowest source, not the sum of all of them.
-    """
-    analyzer = FacebookTrendAnalyzer(use_mock_fallback=True)
-    trends_connector = TrendsMCPConnector(use_mock_fallback=True)
+class _TrendDraft(BaseModel):
+    trend_name: str
+    platform: str
+    trend_type: TrendType
+    momentum: Momentum
+    relevance: Relevance
+    relevance_score: float = Field(..., ge=0.0, le=1.0)
+    description: str = Field(..., description="What the trend is, why it is hot now, why it fits the brand")
+    act_by: Optional[date] = Field(default=None, description="Latest date to publish to ride the trend (ISO)")
+    hashtags: List[str] = Field(default_factory=list)
+    evidence_ids: List[str] = Field(default_factory=list, description='Source ids backing it, e.g. ["S1","S4"]')
 
-    page_ids = req.sources.page_ids or ["industry_public_page"]
-    group_ids = req.sources.group_ids or ["industry_public_group"]
-    region = req.sources.youtube_region  # None → connector dùng TRENDS_DEFAULT_REGION
 
-    def fetch_facebook() -> list[dict]:
-        items: list[dict] = []
-        for pid in page_ids:
-            items.extend(analyzer.fetch_public_page_posts(pid, limit=25))
-            items.extend(analyzer.fetch_reels(pid, limit=15))
-        for gid in group_ids:
-            items.extend(analyzer.fetch_public_group_feed(gid, limit=25))
-        return items
+class _Synthesis(BaseModel):
+    trends: List[_TrendDraft]
+    content_ideas: List[ContentIdea]
+    summary: str
 
-    def fetch_youtube() -> list[dict]:
-        return trends_connector.fetch_youtube_trending(region=region, limit=10)
 
-    # FR-20: ngoài trending chung, search thẳng theo từ khóa thương hiệu + ngành để signal
-    # bám sát brand thay vì chỉ xu hướng đại chúng (từ khóa tiếng Việt → nội dung VN).
-    # Từng nguồn tự gate theo credential của nó: YouTube/Instagram cần RapidAPI key,
-    # Threads cần THREADS_ACCESS_TOKEN — thiếu thì trả [] (không mock, tránh nhân nhiễu).
-    search_keywords: list[str] = []
-    seen = set()
+# ------------------------------------------------------------------
+# Signal collection
+# ------------------------------------------------------------------
+
+class _Signal:
+    def __init__(self) -> None:
+        self.sources: List[Dict[str, str]] = []   # numbered evidence: id, kind, title, url, detail
+        self.memo: Optional[str] = None           # web research memo (grounded)
+        self.statuses: List[SourceStatus] = []
+        self.grounded = False
+        self.web_searches = 0
+        self.usage = TokenUsage()                 # tokens of the grounded call
+
+    def add(self, kind: str, title: str, url: str = "", detail: str = "") -> None:
+        self.sources.append({"id": f"S{len(self.sources) + 1}", "kind": kind,
+                             "title": title.strip()[:200], "url": url, "detail": detail.strip()[:240]})
+
+
+def _search_keywords(req: ResearchRequest) -> List[str]:
+    keywords: List[str] = []
     for kw in [*req.brand_profile.brand_keywords[:2], req.brand_profile.industry]:
-        normalized = (kw or "").strip()
-        if normalized and normalized.lower() not in seen:
-            seen.add(normalized.lower())
-            search_keywords.append(normalized)
-    search_keywords = search_keywords[:3]
+        kw = (kw or "").strip()
+        if kw and kw.lower() not in {k.lower() for k in keywords}:
+            keywords.append(kw)
+    return keywords[:3]
 
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        fb_future = pool.submit(fetch_facebook)
-        yt_future = pool.submit(fetch_youtube)
-        tiktok_future = pool.submit(trends_connector.fetch_tiktok_trending, 10, region)
-        reels_future = pool.submit(trends_connector.fetch_reels_trends)
-        search_futures = []
-        if trends_connector.has_rapidapi_key:
-            search_futures += [
-                pool.submit(trends_connector.fetch_youtube_search, kw, region, 5)
-                for kw in search_keywords
-            ]
-            search_futures += [
-                pool.submit(trends_connector.fetch_instagram_hashtag, kw, 5)
-                for kw in search_keywords
-            ]
-        if trends_connector.has_threads_token:
-            search_futures += [
-                pool.submit(trends_connector.fetch_threads_keyword, kw, 5)
-                for kw in search_keywords
-            ]
 
-        fb_items = fb_future.result()
-        youtube_items = yt_future.result()
+def _collect_signal(req: ResearchRequest, region: str, today: date, target: Optional[str]) -> _Signal:
+    signal = _Signal()
+    social = SocialSearch()
+    keywords = _search_keywords(req)
+    # ThreadPoolExecutor threads do not inherit contextvars — the grounded call must see
+    # this request's llm_config, so run it inside a copy of the current context.
+    ctx = contextvars.copy_context()
 
-        comment_futures = {
-            item["id"]: pool.submit(analyzer.fetch_comments, item["id"], 10)
-            for item in fb_items[:5]
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        web_future = pool.submit(ctx.run, _web_research, req, region, today, target, keywords)
+        gt_future = pool.submit(google_trends.fetch_trending_searches, region, _GOOGLE_TRENDS_LIMIT)
+        social_futures = {
+            "youtube": [pool.submit(social.youtube, kw, region, 5) for kw in keywords]
+            if social.has_rapidapi_key else None,
+            "instagram": [pool.submit(social.instagram_hashtag, kw, 5) for kw in keywords]
+            if social.has_rapidapi_key else None,
+            "threads": [pool.submit(social.threads, kw, 5) for kw in keywords]
+            if social.has_threads_token else None,
         }
-        # Comments for mock video ids don't exist on YouTube — skip the doomed live calls.
-        comment_futures.update({
-            item["id"]: pool.submit(
-                trends_connector.fetch_youtube_comments, item["video_id"], 10
-            )
-            for item in youtube_items[:2]
-            if not str(item["video_id"]).startswith("mock_")
-        })
 
-        content = fb_items + youtube_items + tiktok_future.result()
-        for future in search_futures:
-            content.extend(future.result())  # lỗi search đã được nuốt trong connector ([]).
-        comments_map = {item_id: f.result() for item_id, f in comment_futures.items()}
-        curated_reels = reels_future.result()
+        # 1. Web research (the core evidence).
+        try:
+            grounded, usage = web_future.result()
+            signal.memo, signal.grounded, signal.web_searches = grounded.text, True, grounded.searches
+            signal.usage = usage
+            for s in grounded.sources:
+                signal.add("web", s["title"] or _domain(s["url"]), s["url"])
+            signal.statuses.append(SourceStatus(name="web_search", status="ok" if grounded.sources else "empty",
+                                                items=len(grounded.sources)))
+        except LlmChainError as e:
+            logger.warning("trend research: web search unavailable (%s) — continuing without it", e.error_code)
+            signal.usage = TokenUsage(attempts=e.attempts)  # failed attempts still feed model health
+            signal.statuses.append(SourceStatus(name="web_search", status="failed"))
+        except ValueError as e:  # no model configured at all
+            logger.warning("trend research: web search skipped: %s", type(e).__name__)
+            signal.statuses.append(SourceStatus(name="web_search", status="failed"))
 
-    signal = analyzer.analyze_trends(content, comments=comments_map, top_n=15)
-    signal["curated_reels_trends"] = curated_reels
+        # 2. Google Trends — what the market searches right now.
+        trending = gt_future.result()
+        for t in trending:
+            news = t["news"][0] if t["news"] else None
+            url = news["url"] if news else (
+                f"https://trends.google.com/trends/explore?geo={region}&q={quote_plus(t['query'])}")
+            detail = f"{t['traffic']} lượt tìm; {t['published'][:10]}" + (f"; tin: {news['title']}" if news else "")
+            signal.add("google_trends", f"Google Trends {region}: {t['query']}", url, detail)
+        signal.statuses.append(SourceStatus(name="google_trends", status="ok" if trending else "empty",
+                                            items=len(trending)))
+
+        # 3. Platform samples (optional).
+        for name, futures in social_futures.items():
+            if futures is None:
+                signal.statuses.append(SourceStatus(name=name, status="skipped"))
+                continue
+            items = [item for f in futures for item in f.result()]
+            for item in items:
+                metrics = ", ".join(f"{k}={item[k]}" for k in ("views", "likes", "comments") if item[k])
+                signal.add(name, item["text"].replace("\n", " "), item["url"], metrics)
+            signal.statuses.append(SourceStatus(name=name, status="ok" if items else "empty", items=len(items)))
+
+    # 4. Marketing calendar (deterministic, no I/O).
+    moments = marketing_calendar.upcoming_moments(today, _CALENDAR_DAYS_AHEAD)
+    for m in moments:
+        signal.add("calendar", f"{m['name']} — {m['date']} (còn {m['days_until']} ngày)", "", str(m["note"]))
+    signal.statuses.append(SourceStatus(name="calendar", status="ok" if moments else "empty", items=len(moments)))
     return signal
 
 
-SYSTEM_PROMPT = """You are the Trend Research analyst for AIMA. You are given raw \
-engagement statistics (top hashtags, keywords, most-engaging posts) mined from public \
-social media, plus a brand's industry and strategy.
+WEB_SYSTEM_PROMPT = """You are a social-media trend researcher for small businesses. Use web \
+search to find what is trending RIGHT NOW (last ~14 days, plus clearly upcoming moments) \
+that a brand in the given niche could turn into content. Search in the market's language \
+(Vietnamese for Vietnam) and in English when useful. Prefer recent, dated sources: news, \
+platform trend reports, creator/marketing communities, viral posts and formats.
+
+Report only what your sources support, with dates. Skip tragedies, disasters, accidents, \
+deaths, politics, religion and other sensitive topics — they are not safe to market on."""
+
+WEB_USER_PROMPT = """Today is {today}. Market: {region}. Target platform: {platform}.
+Brand: {brand_name} — industry: {industry}.
+Keywords: {keywords}. Audience: {audience}.
+
+Find 5-10 candidate trends for this brand: niche topics gaining interest, viral content \
+formats/challenges/memes on {platform} and similar platforms, news people in the niche are \
+talking about, and seasonal moments in the next weeks. For each candidate write:
+- name
+- type: Event | News | Format | Niche
+- what it is and why it is hot now (with dates / numbers from the sources)
+- where it is happening (platforms) and how long it is likely to last
+- how this brand could use it
+Be concise."""
+
+
+def _web_research(req: ResearchRequest, region: str, today: date, target: Optional[str],
+                  keywords: List[str]) -> tuple[GroundedResult, TokenUsage]:
+    bp = req.brand_profile
+    prompt = WEB_USER_PROMPT.format(
+        today=today.isoformat(), region=region, platform=target or "Facebook / Instagram / Threads",
+        brand_name=bp.brand_name, industry=bp.industry, keywords=", ".join(keywords) or bp.industry,
+        audience=bp.target_audience,
+    )
+    return invoke_grounded(WEB_SYSTEM_PROMPT, prompt)
+
+
+# ------------------------------------------------------------------
+# Synthesis
+# ------------------------------------------------------------------
+
+SYSTEM_PROMPT = """You are the Trend Research analyst for AIMA, a marketing assistant for \
+small businesses. You receive a brand, its content strategy, and NUMBERED EVIDENCE collected \
+today: a live web-research memo with its sources, Google Trends search spikes for the market, \
+upcoming marketing-calendar moments, optional real platform posts, and the trends already \
+shown to this brand in earlier sessions.
 
 Your job:
-1. Identify real, current trends relevant to the brand's industry. Filter out noise and \
-generic engagement bait that does not fit the industry (FR-20).
-2. Rate each trend's relevance to THIS brand as High / Medium / Low, with a 0.0-1.0 \
-relevance_score (FR-21).
-3. Convert the most promising trends into concrete content ideas: a title, a description, \
-the most suitable platform, suitability level, execution suggestions, and which brand \
-goals it serves (FR-22).
+1. Select real, current trends this brand can credibly use (FR-20). Discard noise, generic \
+engagement bait and anything unrelated to the industry or audience. Trending searches \
+unrelated to the niche are only worth it if there is a natural, tasteful angle.
+2. For each trend: type (Event/News/Format/Niche), momentum (New/Rising/Stable/Fading), \
+relevance to THIS brand as High/Medium/Low with a 0.0-1.0 relevance_score (FR-21), the \
+latest date to publish (act_by) when timing matters, 2-5 hashtags people actually use, and \
+evidence_ids citing the source ids ([S#]) that support it.
+3. Turn the most promising trends into concrete content ideas: title, description, platform, \
+suitability, execution suggestions (hook, format, angle), and the brand goals served (FR-22). \
+Every idea's trend_name must equal the trend_name of a returned trend.
 
-The signal may include cross-platform trending content (YouTube, TikTok, curated \
-Instagram Reels trends). Items whose source starts with "youtube_search:", \
-"instagram_hashtag:" or "threads_search:" were fetched by searching the brand's OWN \
-keywords — treat them as strong evidence of what currently performs in the brand's \
-niche (instagram_hashtag and threads_search items come from platforms the brand \
-publishes to). Use all of it to spot trends early and note a trend's origin platform \
-in its description, but the `platform` field of every trend and content idea must be \
-exactly one of "Facebook", "Instagram", or "Threads" (platforms the brand actually uses).
+Rules:
+- Ground every trend in the evidence. Cite only ids that exist in the list; never invent \
+sources, numbers or dates. A trend with no supporting id must be rated Low.
+- Momentum: New = not among previous trends; Stable/Rising = continues a previous trend (say \
+what changed); Fading = past its peak. Do not repeat a previous trend unless it is still \
+clearly current, and never repeat its ideas.
+- Brand safety: never exploit tragedies, accidents, deaths, disasters, politics or religion; \
+respect the brand's don'ts.
+- Description: what it is, why it is hot now, and why it fits the brand — 2-4 sentences.
+- Write in the audience's language (Vietnamese for a Vietnamese audience)."""
 
-Every content idea must set `trend_name` to the exact trend_name of the returned trend \
-it derives from.
+USER_PROMPT = """TODAY: {today} — MARKET: {region}
 
-Be specific and grounded in the supplied signal — do not invent metrics. Respond in the \
-audience's language where natural."""
-
-USER_PROMPT = """BRAND PROFILE:
+BRAND PROFILE:
 {brand_profile}
 
 CONTENT STRATEGY:
 {strategy}
 {platform_instruction}
-RAW SOCIAL SIGNAL (aggregated):
-{signal}
+{data_quality}
+WEB RESEARCH MEMO:
+{memo}
 
-Return at most {max_trends} trends and at most {max_ideas} content ideas."""
+EVIDENCE (cite by id):
+{evidence}
 
+PREVIOUS TRENDS SHOWN TO THIS BRAND:
+{previous}
 
-# Canonical platform names as the schemas/prompt expect them (FR-19 target platform).
-_CANONICAL_PLATFORMS = {"facebook": "Facebook", "instagram": "Instagram", "threads": "Threads"}
+Return at most {max_trends} trends and at most {max_ideas} content ideas, best first, and a \
+2-3 sentence summary of the landscape."""
 
 
 def _target_platform(req: ResearchRequest) -> str | None:
@@ -163,72 +280,143 @@ def _target_platform(req: ResearchRequest) -> str | None:
 
 def research_trends(req: ResearchRequest) -> ResearchResult:
     """Run a single trend-research session and return trends + ideas (+ token usage)."""
-    signal = _collect_signal(req)
+    settings = get_settings()
+    today = datetime.now(_MARKET_TZ).date()
+    region = (req.region or settings.trends_default_region or "VN").strip().upper()
     target = _target_platform(req)
+    signal = _collect_signal(req, region, today, target)
 
     platform_instruction = (
-        "\nTARGET PLATFORM OF THIS SESSION: "
-        f"{target}. Focus the analysis on what works on {target}; the `platform` field "
-        f'of EVERY trend and EVERY content idea must be exactly "{target}", and idea '
-        f"formats must suit {target}.\n"
-        if target
-        else "\n"
+        f"\nTARGET PLATFORM OF THIS SESSION: {target}. Focus on what works on {target}; the "
+        f'`platform` of EVERY trend and EVERY content idea must be exactly "{target}", and '
+        f"idea formats must suit {target}.\n"
+        if target else
+        '\nThe `platform` of every trend and idea must be exactly "Facebook", "Instagram" or "Threads".\n'
     )
+    data_quality = "" if signal.grounded else (
+        "DATA QUALITY: live web search was unavailable for this session. Rely on the evidence "
+        "list only, keep relevance modest, and say in the summary that results are limited.\n")
 
-    prompt = ChatPromptTemplate.from_messages(
-        [("system", SYSTEM_PROMPT), ("user", USER_PROMPT)]
-    )
-    result, usage = invoke_structured(
-        ResearchResponse,
+    prompt = ChatPromptTemplate.from_messages([("system", SYSTEM_PROMPT), ("user", USER_PROMPT)])
+    draft, usage = invoke_structured(
+        _Synthesis,
         prompt,
         {
+            "today": today.isoformat(),
+            "region": region,
             "brand_profile": req.brand_profile.model_dump_json(indent=2),
             "strategy": req.strategy.model_dump_json(indent=2),
-            "signal": _format_signal(signal),
             "platform_instruction": platform_instruction,
+            "data_quality": data_quality,
+            "memo": signal.memo or "(none)",
+            "evidence": _format_evidence(signal.sources),
+            "previous": _format_previous(req, today),
             "max_trends": req.max_trends,
             "max_ideas": req.max_ideas,
         },
     )
-    # Enforce the industry on the response and trim to requested limits.
-    result.industry = req.brand_profile.industry
-    result.trends = result.trends[: req.max_trends]
-    result.content_ideas = result.content_ideas[: req.max_ideas]
-    # Belt-and-braces (FR-19): structured output may still stray — force the session's
-    # target platform on every trend/idea so the backend never stores a mismatched one.
-    if target:
-        for trend in result.trends:
-            trend.platform = target
-        for idea in result.content_ideas:
+
+    trends = [_finalize_trend(t, signal, req, target, today) for t in draft.trends[: req.max_trends]]
+    ideas = draft.content_ideas[: req.max_ideas]
+    if target:  # belt-and-braces (FR-19): structured output may still stray
+        for idea in ideas:
             idea.platform = target
-    return ResearchResult(**result.model_dump(), **usage.response_fields())
 
-
-def _format_signal(signal: dict) -> str:
-    """Compact the analyzer output into a readable block for the prompt."""
-    lines = []
-    summary = signal.get("summary", {})
-    lines.append(
-        f"Posts analyzed: {summary.get('total_posts_analyzed', 0)}, "
-        f"comments: {summary.get('total_comments_analyzed', 0)}, "
-        f"aggregate likes: {summary.get('aggregate_likes', 0)}, "
-        f"comments: {summary.get('aggregate_comments', 0)}, "
-        f"shares: {summary.get('aggregate_shares', 0)}"
+    return ResearchResult(
+        industry=req.brand_profile.industry,
+        trends=trends,
+        content_ideas=ideas,
+        summary=draft.summary,
+        grounded=signal.grounded,
+        web_searches=signal.web_searches,
+        sources_used=signal.statuses,
+        **_merge_usage(signal.usage, usage).response_fields(),
     )
-    lines.append("Top hashtags: " + ", ".join(
-        f"{h['hashtag']}({h['count']})" for h in signal.get("top_hashtags", [])
-    ))
-    lines.append("Top keywords: " + ", ".join(
-        f"{k['keyword']}({k['count']})" for k in signal.get("top_keywords", [])
-    ))
-    lines.append("Most engaging posts:")
-    for c in signal.get("most_engaging_content", [])[:8]:
-        lines.append(
-            f"  - [{c.get('type')}/{c.get('source')}] score={c.get('engagement_score', 0):.0f} :: {c.get('text', '')}"
-        )
-    reels_trends = signal.get("curated_reels_trends", [])
-    if reels_trends:
-        lines.append("This week's Instagram Reels trends (curated):")
-        for t in reels_trends[:6]:
-            lines.append(f"  - [{t.get('date')}] {t.get('trend')}: {t.get('description')}")
+
+
+def _finalize_trend(t: _TrendDraft, signal: _Signal, req: ResearchRequest,
+                    target: Optional[str], today: date) -> Trend:
+    by_id = {s["id"]: s for s in signal.sources}
+    cited = [by_id[i.strip().strip("[]").upper()] for i in t.evidence_ids
+             if i.strip().strip("[]").upper() in by_id]
+    cited = list({s["id"]: s for s in cited}.values())  # dedupe, keep order
+    evidence = [Evidence(title=s["title"], url=s["url"], source=s["kind"]) for s in cited]
+
+    momentum = t.momentum
+    if momentum == Momentum.NEW and _norm(t.trend_name) in {
+            _norm(p.trend_name) for p in req.previous_trends if not p.rejected}:
+        momentum = Momentum.STABLE  # the model missed that it was already shown before
+
+    act_by = t.act_by if t.act_by and today <= t.act_by <= today + timedelta(days=_MAX_ACT_BY_DAYS) else None
+    relevance = t.relevance if evidence else Relevance.LOW
+    return Trend(
+        trend_name=t.trend_name.strip(),
+        platform=target or t.platform,
+        relevance=relevance,
+        relevance_score=t.relevance_score if evidence else min(t.relevance_score, 0.39),
+        description=t.description.strip(),
+        trend_type=t.trend_type,
+        momentum=momentum,
+        act_by=act_by,
+        hashtags=_clean_hashtags(t.hashtags),
+        evidence=evidence,
+        confidence=_confidence(cited),
+    )
+
+
+def _confidence(cited: List[Dict[str, str]]) -> Relevance:
+    """Independent origins: each web domain counts once, other source kinds count once each."""
+    origins = {_domain(s["url"]) if s["kind"] == "web" else s["kind"] for s in cited}
+    return Relevance.HIGH if len(origins) >= 2 else Relevance.MEDIUM if origins else Relevance.LOW
+
+
+def _clean_hashtags(tags: List[str]) -> List[str]:
+    out: List[str] = []
+    for tag in tags:
+        tag = "#" + re.sub(r"[^\w]", "", tag.lstrip("#"))
+        if len(tag) > 1 and tag.lower() not in {t.lower() for t in out}:
+            out.append(tag)
+    return out[:_MAX_HASHTAGS]
+
+
+def _merge_usage(a: TokenUsage, b: TokenUsage) -> TokenUsage:
+    """Both calls are billed; the backend bills the LAST ok attempt's model (synthesis)."""
+    return TokenUsage(
+        total_tokens=a.total_tokens + b.total_tokens,
+        input_tokens=a.input_tokens + b.input_tokens,
+        output_tokens=a.output_tokens + b.output_tokens,
+        cached_tokens=a.cached_tokens + b.cached_tokens,
+        attempts=[*a.attempts, *b.attempts],
+    )
+
+
+def _format_evidence(sources: List[Dict[str, str]]) -> str:
+    if not sources:
+        return "(no evidence collected)"
+    lines = []
+    for s in sources:
+        line = f"[{s['id']}] ({s['kind']}) {s['title']}"
+        if s["detail"]:
+            line += f" — {s['detail']}"
+        if s["url"]:
+            line += f" <{s['url']}>"
+        lines.append(line)
     return "\n".join(lines)
+
+
+def _format_previous(req: ResearchRequest, today: date) -> str:
+    if not req.previous_trends:
+        return "(none — first session)"
+    return "\n".join(
+        f"- {p.trend_name} (shown {(today - p.researched_at).days} days ago"
+        + ("; REJECTED by the user as unsuitable — do not suggest it again)" if p.rejected else ")")
+        for p in req.previous_trends)
+
+
+def _norm(name: str) -> str:
+    return re.sub(r"\s+", " ", name).strip().casefold()
+
+
+def _domain(url: str) -> str:
+    host = urlparse(url).netloc.lower()
+    return host[4:] if host.startswith("www.") else host

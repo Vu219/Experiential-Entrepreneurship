@@ -258,12 +258,30 @@ class AnalyticsSyncServiceIntegrationTest {
         UUID mediaId = trackedMedia(f.postId());
         META.enqueue(graphError(80001, null));
 
-        assertFalse(syncService.syncAccount(f.accountId(), List.of(mediaId)), "rate limit → job dừng cả lượt quét");
+        assertFalse(syncService.syncAccount(f.accountId(), List.of(mediaId)), "rate limit → job bỏ qua tài khoản này");
 
         PlatformMedia media = media(f.postId());
         assertEquals(0, media.getConsecutiveFailures());
         assertFalse(isDue(mediaId, Instant.now().plus(Duration.ofMinutes(50))));
         assertTrue(isDue(mediaId, Instant.now().plus(Duration.ofMinutes(70))));
+    }
+
+    @Test
+    void rateLimited_alsoPausesRemainingPostsOfAccountThatWereNotCalled() {
+        Fixture f1 = newPostedPost(Duration.ofHours(25));
+        Fixture f2 = newPostedPost(Duration.ofHours(25));
+        UUID first = trackedMedia(f1.postId());
+        UUID second = trackedMedia(f2.postId());
+        // Chỉ MỘT lời gọi tới Meta: provider dừng ngay sau rate limit, bài còn lại không được gọi.
+        META.enqueue(graphError(80001, null));
+
+        assertFalse(syncService.syncAccount(f1.accountId(), List.of(first, second)));
+
+        for (UUID mediaId : List.of(first, second)) {
+            assertFalse(isDue(mediaId, Instant.now().plus(Duration.ofMinutes(50))),
+                    "bài chưa gọi cũng phải lùi lịch, không bị quét lại sau 5 phút");
+            assertTrue(isDue(mediaId, Instant.now().plus(Duration.ofMinutes(70))));
+        }
     }
 
     @Test

@@ -158,6 +158,8 @@ meta:
 ai-service:
   base-url: ${AI_SERVICE_BASE_URL:http://localhost:8000}
   timeout-seconds: ${AI_SERVICE_TIMEOUT_SECONDS:100}  # > LLM_CHAIN_BUDGET_SECONDS (80) của AI service
+  # Trend research: tìm kiếm web (TREND_SEARCH_BUDGET_SECONDS 90) + tổng hợp (80) → cần > 170s.
+  research-timeout-seconds: ${AI_RESEARCH_TIMEOUT_SECONDS:200}
   # Shared secret với AI service (header X-Internal-Token) — cùng giá trị AI_INTERNAL_TOKEN
   # trong ai/.env. Cần cho test-connection + request mang llm_config (AI_CONFIG_FROM_DB=true).
   internal-token: ${AI_INTERNAL_TOKEN:}

@@ -37,6 +37,9 @@ public class PostingDispatchJob {
     // Job PENDING quá lâu = dispatch bị mất (crash giữa tạo job và chạy worker) — vớt lại.
     static final Duration STALE_PENDING_AGE = Duration.ofMinutes(5);
 
+    // User không được đăng bài: chờ xoá (tài khoản sắp bị xoá) hoặc bị khoá (admin).
+    static final List<UserStatus> EXCLUDED_USER_STATUSES = List.of(UserStatus.PENDING_DELETE, UserStatus.LOCKED);
+
     // Job RUNNING quá lâu = worker chết giữa chừng (Meta WebClient có timeout nên job sống không kéo dài tới mức này).
     static final Duration STUCK_RUNNING_AGE = Duration.ofMinutes(10);
 
@@ -58,8 +61,8 @@ public class PostingDispatchJob {
 
     private void dispatchDueSchedules(Instant now) {
         List<PostSchedule> due = scheduleRepository
-                .findByStatusAndScheduledTimeLessThanEqualAndDeletedAtIsNullAndPlatformAccount_User_StatusNot(
-                        ScheduleStatus.SCHEDULED, now, UserStatus.PENDING_DELETE); // tài khoản chờ xoá: không đăng
+                .findByStatusAndScheduledTimeLessThanEqualAndDeletedAtIsNullAndPlatformAccount_User_StatusNotIn(
+                        ScheduleStatus.SCHEDULED, now, EXCLUDED_USER_STATUSES); // tài khoản chờ xoá/bị khoá: không đăng
         for (PostSchedule schedule : due) {
             try {
                 // Transaction ngắn tạo Post + Job; dispatch worker SAU khi commit (rule #28).
@@ -76,8 +79,8 @@ public class PostingDispatchJob {
 
     private void dispatchDueRetries(Instant now) {
         List<PostingJob> retries = jobRepository
-                .findByStatusAndNextRetryAtLessThanEqualAndDeletedAtIsNullAndPost_Schedule_PlatformAccount_User_StatusNot(
-                        PostingJobStatus.RETRYING, now, UserStatus.PENDING_DELETE);
+                .findByStatusAndNextRetryAtLessThanEqualAndDeletedAtIsNullAndPost_Schedule_PlatformAccount_User_StatusNotIn(
+                        PostingJobStatus.RETRYING, now, EXCLUDED_USER_STATUSES);
         for (PostingJob job : retries) {
             try {
                 postPublishWorkerService.process(job.getId()); // claim nguyên tử chống dispatch trùng
@@ -101,8 +104,8 @@ public class PostingDispatchJob {
 
     private void redispatchStalePending(Instant now) {
         List<PostingJob> stale = jobRepository
-                .findByStatusAndCreatedAtLessThanEqualAndDeletedAtIsNullAndPost_Schedule_PlatformAccount_User_StatusNot(
-                        PostingJobStatus.PENDING, com.aima.util.PublishingTime.toLegacy(now.minus(STALE_PENDING_AGE)), UserStatus.PENDING_DELETE);
+                .findByStatusAndCreatedAtLessThanEqualAndDeletedAtIsNullAndPost_Schedule_PlatformAccount_User_StatusNotIn(
+                        PostingJobStatus.PENDING, com.aima.util.PublishingTime.toLegacy(now.minus(STALE_PENDING_AGE)), EXCLUDED_USER_STATUSES);
         for (PostingJob job : stale) {
             try {
                 log.info("[PostingDispatch] Vớt lại job PENDING {} (mất dispatch)", job.getId());

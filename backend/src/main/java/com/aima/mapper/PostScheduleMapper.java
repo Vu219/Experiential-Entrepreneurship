@@ -1,5 +1,6 @@
 package com.aima.mapper;
 
+import com.aima.dto.ai.AnalyzedPostPayload;
 import com.aima.dto.ai.GoldenHourPayload;
 import com.aima.dto.ai.GoldenHourResultPayload;
 import com.aima.dto.request.PublishingSettingsRequest;
@@ -108,8 +109,8 @@ public interface PostScheduleMapper {
 
     // ===== Golden hours (FR-48) =====
 
-    default GoldenHourPayload toGoldenHourPayload(Platform platform) {
-        return GoldenHourPayload.builder().platform(platform.name()).build();
+    default GoldenHourPayload toGoldenHourPayload(Platform platform, List<AnalyzedPostPayload> posts) {
+        return GoldenHourPayload.builder().platform(platform.name()).posts(posts).build();
     }
 
     @Mapping(target = "platform", source = "platform", qualifiedByName = "parsePlatform")

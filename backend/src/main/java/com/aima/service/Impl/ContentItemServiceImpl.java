@@ -36,6 +36,7 @@ import com.aima.service.ActivityLogService;
 import com.aima.service.ContentItemService;
 import com.aima.service.ContentItemStatusResolver;
 import com.aima.service.ScheduleHoldService;
+import com.aima.util.PlatformTextLimits;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -220,6 +221,14 @@ public class ContentItemServiceImpl implements ContentItemService {
         if (before.equals(versionContent(version))) {
             ContentItemResponse unchanged = contentItemMapper.toResponse(item);
             return ApiResponse.success("Nội dung không đổi", unchanged);
+        }
+        // Nội dung đăng thật (caption + hashtag) phải vừa giới hạn nền tảng — để lọt thì tới giờ đăng mới FAILED.
+        String message = PlatformTextLimits.compose(version.getFormattedCaption(), version.getFormattedHashtag());
+        if (PlatformTextLimits.exceedsChars(version.getPlatformName(), message)) {
+            throw new AppException(ErrorCode.CONTENT_VERSION_TEXT_TOO_LONG);
+        }
+        if (PlatformTextLimits.exceedsHashtags(version.getPlatformName(), message)) {
+            throw new AppException(ErrorCode.CONTENT_VERSION_TOO_MANY_HASHTAGS);
         }
         version.setRevision(version.getRevision() + 1);
         holdService.onContentChanged(item);

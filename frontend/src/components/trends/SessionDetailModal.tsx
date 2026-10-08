@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import Modal from '../Modal';
 import { Icon, PlatformTag } from '../ui';
@@ -15,6 +15,12 @@ const labelStyle = { fontSize: 12.5, color: C.textMuted, fontWeight: 600 } as co
 const valueStyle = { fontSize: 13, fontWeight: 700, color: C.ink750, textAlign: 'right' } as const;
 
 const MAX_TREND_ROWS = 6;
+
+/** Tên nguồn dữ liệu (BE: SourceStatus.name) → khoá i18n. */
+const SOURCE_NAME: Record<string, 'trSrcWeb' | 'trSrcGoogleTrends' | 'trSrcCalendar' | 'trSrcYoutube' | 'trSrcInstagram' | 'trSrcThreads'> = {
+  web_search: 'trSrcWeb', google_trends: 'trSrcGoogleTrends', calendar: 'trSrcCalendar',
+  youtube: 'trSrcYoutube', instagram: 'trSrcInstagram', threads: 'trSrcThreads',
+};
 
 /**
  * Chi tiết một phiên research (FR-23): thông tin phiên + danh sách trend tìm được.
@@ -107,6 +113,35 @@ export default function SessionDetailModal({
               <div style={rowStyle}>
                 <span style={labelStyle}>{t.trArticleCount}</span>
                 <span style={valueStyle}>{detail.articleCount}</span>
+              </div>
+            )}
+            {detail.triggerType === 'SCHEDULED' && (
+              <div style={rowStyle}>
+                <span style={labelStyle}>{t.trStatus}</span>
+                <span style={valueStyle}>{t.trAutoSession}</span>
+              </div>
+            )}
+            {detail.dataSources && detail.dataSources.length > 0 && (
+              <div>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: C.textMuted, letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 6 }}>{t.trDataSources}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {detail.dataSources.map((src) => {
+                    const name = SOURCE_NAME[src.name] ? t[SOURCE_NAME[src.name]] : src.name;
+                    const ok = src.status === 'ok';
+                    const statusText = { ok: `${src.items}`, empty: t.trSrcEmpty, skipped: t.trSrcSkipped, failed: t.trSrcFailed }[src.status];
+                    return (
+                      <span key={src.name} style={{ fontSize: 11.5, fontWeight: 600, borderRadius: 8, padding: '3px 8px', color: ok ? C.success : C.textSecondary, background: ok ? C.successSoft : C.surfaceSubtle, border: `1px solid ${C.surfaceMuted}` }}>
+                        {name}: {statusText}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {detail.status === 'COMPLETED' && detail.grounded === false && (
+              <div role="note" style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12.5, lineHeight: 1.5, color: C.ink650, background: C.warningSoft, borderRadius: 10, padding: '8px 10px' }}>
+                <Icon icon={AlertTriangle} size={15} stroke={C.warning} />
+                <span>{t.trNotGrounded}</span>
               </div>
             )}
             {detail.summary && (

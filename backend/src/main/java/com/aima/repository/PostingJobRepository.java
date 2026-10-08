@@ -61,11 +61,11 @@ public interface PostingJobRepository extends JpaRepository<PostingJob, UUID> {
     @Query("select j.post.schedule.contentVersion.contentItem.id from PostingJob j where j.id = :id")
     Optional<UUID> findContentItemId(@Param("id") UUID id);
 
-    // Retry đến hạn — bỏ user đang ở trạng thái loại trừ (PENDING_DELETE).
-    List<PostingJob> findByStatusAndNextRetryAtLessThanEqualAndDeletedAtIsNullAndPost_Schedule_PlatformAccount_User_StatusNot(
-            PostingJobStatus status, Instant threshold, UserStatus excludedUserStatus);
+    // Retry đến hạn — bỏ user đang ở trạng thái loại trừ (PENDING_DELETE, LOCKED).
+    List<PostingJob> findByStatusAndNextRetryAtLessThanEqualAndDeletedAtIsNullAndPost_Schedule_PlatformAccount_User_StatusNotIn(
+            PostingJobStatus status, Instant threshold, Collection<UserStatus> excludedUserStatuses);
 
-    // Job PENDING mất dispatch — bỏ user đang ở trạng thái loại trừ (PENDING_DELETE).
-    List<PostingJob> findByStatusAndCreatedAtLessThanEqualAndDeletedAtIsNullAndPost_Schedule_PlatformAccount_User_StatusNot(
-            PostingJobStatus status, LocalDateTime threshold, UserStatus excludedUserStatus);
+    // Job PENDING mất dispatch — bỏ user đang ở trạng thái loại trừ (PENDING_DELETE, LOCKED).
+    List<PostingJob> findByStatusAndCreatedAtLessThanEqualAndDeletedAtIsNullAndPost_Schedule_PlatformAccount_User_StatusNotIn(
+            PostingJobStatus status, LocalDateTime threshold, Collection<UserStatus> excludedUserStatuses);
 }

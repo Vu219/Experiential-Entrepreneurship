@@ -6,12 +6,16 @@ import com.aima.entity.Plan;
 import com.aima.entity.Subscription;
 import com.aima.entity.UsageAdjustment;
 import com.aima.entity.User;
+import com.aima.enums.GenerationJobStatus;
 import com.aima.enums.UsageAdjustmentType;
 import com.aima.enums.UserPlan;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.mapper.UserMapper;
 import com.aima.repository.AiUsageRepository;
+import com.aima.repository.ContentFormattingJobRepository;
+import com.aima.repository.ContentGenerationJobRepository;
+import com.aima.repository.ContentRegenerationJobRepository;
 import com.aima.repository.PlanRepository;
 import com.aima.repository.UsageAdjustmentRepository;
 import com.aima.repository.UserRepository;
@@ -27,6 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +47,12 @@ public class TokenUsageServiceImpl implements TokenUsageService {
     UsageAdjustmentRepository usageAdjustmentRepository;
     TokenCreditService tokenCreditService;
     UserMapper userMapper;
+    ContentGenerationJobRepository generationJobRepository;
+    ContentFormattingJobRepository formattingJobRepository;
+    ContentRegenerationJobRepository regenerationJobRepository;
+
+    private static final List<GenerationJobStatus> IN_FLIGHT =
+            List.of(GenerationJobStatus.PENDING, GenerationJobStatus.RUNNING);
 
     @Override
     @Transactional // không readOnly: getOrCreate có thể tạo subscription / lăn kỳ
@@ -106,6 +118,18 @@ public class TokenUsageServiceImpl implements TokenUsageService {
             throw new AppException(ErrorCode.TOKEN_QUOTA_EXCEEDED);
         }
         return state;
+    }
+
+    @Override
+    public void checkConcurrentAiJobs(User user) {
+        UUID userId = user.getId();
+        long inFlight = generationJobRepository.countByContentStrategy_BrandProfile_User_IdAndStatusInAndDeletedAtIsNull(userId, IN_FLIGHT)
+                + formattingJobRepository.countByContentItem_BrandProfile_User_IdAndStatusInAndDeletedAtIsNull(userId, IN_FLIGHT)
+                + regenerationJobRepository.countByContentVersion_ContentItem_BrandProfile_User_IdAndStatusInAndDeletedAtIsNull(userId, IN_FLIGHT);
+        if (inFlight >= MAX_CONCURRENT_AI_JOBS) {
+            log.info("[TokenUsage] User {} đã có {} tác vụ AI đang chạy — chặn tác vụ mới", userId, inFlight);
+            throw new AppException(ErrorCode.AI_JOBS_LIMIT_REACHED);
+        }
     }
 
     @Override

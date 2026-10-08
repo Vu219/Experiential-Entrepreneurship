@@ -124,6 +124,12 @@ public class ContentFormattingWorkerServiceImpl implements ContentFormattingWork
                 FormatResultPayload result = aiUsageService.recordCall(
                         ctx.callContext().withLabel(platform.name()),
                         () -> aiServiceClient.format(payload));
+                if (result == null || result.getVersions() == null || result.getVersions().isEmpty()) {
+                    // AI không trả bản nào cho nền tảng này → nền tảng THẤT BẠI (không tính là đã định dạng).
+                    log.warn("[ContentFormatting] Job {} nền tảng {}: AI không trả bản định dạng nào", jobId, platform);
+                    failures.add(platform + ": AI không trả bản định dạng nào");
+                    continue;
+                }
                 transactionTemplate.executeWithoutResult(s -> savePlatformResult(jobId, platform, source, result));
                 anySuccess = true;
             } catch (Exception e) {
@@ -142,6 +148,11 @@ public class ContentFormattingWorkerServiceImpl implements ContentFormattingWork
         ContentFormattingJob job = jobRepository.findById(jobId).orElse(null);
         if (job == null) {
             log.warn("[ContentFormatting] Job {} không tồn tại khi bắt đầu xử lý", jobId);
+            return null;
+        }
+        if (job.getStatus() != GenerationJobStatus.PENDING) {
+            // Đã bị job dọn kẹt chốt FAILED trong lúc chờ hàng đợi executor — không chạy lại.
+            log.warn("[ContentFormatting] Job {} không còn PENDING ({}) — bỏ qua", jobId, job.getStatus());
             return null;
         }
         job.setStatus(GenerationJobStatus.RUNNING);

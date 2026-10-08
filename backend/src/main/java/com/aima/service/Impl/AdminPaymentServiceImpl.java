@@ -8,7 +8,6 @@ import com.aima.dto.response.PageResponse;
 import com.aima.entity.Payment;
 import com.aima.enums.ActivityAction;
 import com.aima.enums.ActivityResult;
-import com.aima.enums.GatewayLinkStatus;
 import com.aima.enums.PaymentGateway;
 import com.aima.enums.PaymentStatus;
 import com.aima.exception.AppException;
@@ -147,19 +146,16 @@ public class AdminPaymentServiceImpl implements AdminPaymentService {
     public ApiResponse<AdminPaymentResponse> markPaid(String actorEmail, UUID paymentId,
                                                       PaymentActionRequest request) {
         Payment before = requirePayment(paymentId);
-        if (before.getStatus() == PaymentStatus.PAID
-                || before.getStatus() == PaymentStatus.REFUNDED
-                || before.getStatus() == PaymentStatus.PARTIALLY_REFUNDED) {
-            // Chặn ở đây thay vì để applyGatewayResult im lặng bỏ qua: admin phải BIẾT là thao
-            // tác không có tác dụng, chứ không phải tưởng đã cộng hạn rồi bấm lại lần nữa.
+        if (!PaymentServiceImpl.isAdminMarkable(before)) {
+            // Chặn ở đây thay vì im lặng bỏ qua: admin phải BIẾT là thao tác không có tác dụng
+            // (đơn đã kích hoạt gói / đã hoàn tiền), chứ không phải tưởng đã cộng hạn rồi bấm lại.
             throw new AppException(ErrorCode.PAYMENT_NOT_MARKABLE_PAID);
         }
 
-        // Số tiền truyền vào = ĐÚNG số tiền của đơn: "đánh dấu đã trả tiền" nghĩa là xác nhận
-        // khách đã trả đủ. Lệch một đồng thì applyGatewayResult sẽ bật cờ đối soát thay vì
-        // kích hoạt gói — không có đường tắt nào ở đây.
-        paymentService.applyGatewayResult(paymentId, GatewayLinkStatus.PAID, before.getAmount(),
-                null, "ADMIN_MARKED_PAID: " + request.getReason());
+        // "Đánh dấu đã trả tiền" = admin xác nhận khách đã trả ĐỦ → kích hoạt gói THẬT, kể cả đơn
+        // đã đóng hoặc PAID-treo-đối-soát (applyGatewayResult cố ý không tự kích hoạt các ca này,
+        // nên đi qua nó thì gói không bao giờ được bật). Kiểm lại trong khoá ở markPaidByAdmin.
+        paymentService.markPaidByAdmin(paymentId);
         noteReason(paymentId, actorEmail, request.getReason());
 
         Payment after = requirePayment(paymentId);

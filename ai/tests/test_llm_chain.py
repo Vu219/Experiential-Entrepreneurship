@@ -275,6 +275,15 @@ def test_timeout_tiers_are_ordered():
     assert (s.llm_call_timeout_seconds, s.llm_chain_budget_seconds, backend) == (40, 80, 100)
     assert s.llm_call_timeout_seconds < s.llm_chain_budget_seconds < backend < fe_poll
 
+    # Trend research = grounded search + synthesis, sequential → its own, longer backend timeout,
+    # still below how long the Trends page polls (POLL_MAX_TRIES × POLL_INTERVAL_MS).
+    research = int(re.search(r"AI_RESEARCH_TIMEOUT_SECONDS:(\d+)", yml).group(1))
+    trends = (root / "frontend/src/pages/app/Trends.tsx").read_text(encoding="utf-8")
+    trends_poll = (int(re.search(r"POLL_INTERVAL_MS = (\d+)", trends).group(1))
+                   * int(re.search(r"POLL_MAX_TRIES = (\d+)", trends).group(1)) // 1000)
+    assert s.trend_search_call_timeout_seconds <= s.trend_search_budget_seconds
+    assert s.trend_search_budget_seconds + s.llm_chain_budget_seconds < research < trends_poll
+
 
 # ---------- multi-model fallback chain (C) ----------
 

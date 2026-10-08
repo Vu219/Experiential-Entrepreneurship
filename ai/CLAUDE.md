@@ -36,23 +36,21 @@ ai/
     ├── model_catalog.py     — list provider models for admin "Cấu hình AI" sync
     ├── api/routes.py        — one endpoint per capability; internal-token guard
     ├── agents/
-    │   ├── trend_research.py    — FR-19..23: collect signal (parallel) → LLM filters/rates
-    │   │                           trends + creates ideas; enforces the session's TARGET
-    │   │                           platform on every trend/idea (see §4)
+    │   ├── trend_research.py    — FR-19..23: evidence-grounded research — web search +
+    │   │                           Google Trends + calendar + platform search (parallel) →
+    │   │                           LLM rates trends citing evidence ids; enforces the
+    │   │                           session's TARGET platform on every trend/idea (see §4)
     │   ├── content_generator.py — FR-24..30, FR-32: one ContentItem (structured VideoScript
     │   │                           hook/steps/cta, caption, hashtags, media prompt)
     │   ├── content_regenerator.py — regenerate ONE script part (hook/body/cta × content/scene)
     │   ├── platform_formatter.py  — FR-40..46: one ContentVersion per requested platform
     │   └── optimizer.py         — /analyze (FR-63..64), /optimize (FR-65..66),
     │                               /golden-hours (FR-48: defaults until ≥10 posts)
-    └── platform/            — data connectors for trend research (each with graceful fallback)
-        ├── facebook.py      — FacebookTrendAnalyzer: public page/group posts, reels, comments
-        │                       (Graph API; no token → mock data) + analyze_trends() aggregation
-        │                       (VN-aware keywords: bigram phrases, stopwords)
-        └── trends_mcp.py    — TrendsMCPConnector (adapted from Trends-MCP): YouTube trending/
-                                search (RapidAPI yt-api), TikTok trending, Instagram hashtag
-                                (RapidAPI, host swappable), Threads keyword search (official
-                                Meta API), curated IG-Reels list
+    └── platform/            — REAL data sources for trend research (never mock; failure → [])
+        ├── google_trends.py — "Trending now" RSS per country (free, no key): query, traffic, news
+        ├── marketing_calendar.py — VN holidays / sale days / Tết & Trung thu in the next N days
+        └── social_search.py — keyword search: YouTube (RapidAPI yt-api), Instagram hashtag
+                                (RapidAPI, host swappable), Threads (official Meta API)
 ```
 
 ## 3. Endpoints
@@ -111,13 +109,28 @@ attempts}` with `error_code` ∈ AI_PROVIDER_OVERLOADED / AI_QUOTA_EXHAUSTED / A
 AI_BAD_REQUEST / AI_UNAVAILABLE. Model health (circuit breaker) is the BACKEND's job (Redis),
 fed by `attempts[].cooldown_until` — this service stays stateless.
 
-**Trend research pipeline** (`agents/trend_research.py`):
-1. `_collect_signal` fetches ALL sources **in parallel** (ThreadPoolExecutor): Facebook
-   pages/groups/reels + comments, YouTube trending, TikTok trending, curated Reels trends,
-   and per-keyword searches (YouTube/Instagram-hashtag/Threads) built from
-   `brand_keywords[:2] + industry` (max 3 keywords).
-2. `analyze_trends` aggregates to top hashtags/keywords/most-engaging posts (VN-aware).
-3. One structured LLM call → trends (rated High/Medium/Low, FR-20/21) + content ideas (FR-22).
+**Trend research pipeline — evidence-grounded (2026-10-08)** (`agents/trend_research.py`):
+1. `_collect_signal` fetches ALL sources **in parallel** — every one real, none mocked:
+   - **Web research** `llm.invoke_grounded(system, prompt)` — provider-NATIVE search through the
+     SAME retry/fallback chain as `invoke_structured` (own budget `TREND_SEARCH_BUDGET_SECONDS`
+     90 / per call `TREND_SEARCH_CALL_TIMEOUT_SECONDS` 75): Anthropic server tool `web_search`
+     (`web_search_20260209` on Opus/Sonnet ≥ 4.6, else `web_search_20250305`; `max_uses` =
+     `TREND_SEARCH_MAX_USES`, location VN; `pause_turn` resumed ≤ 3×) via the official `anthropic`
+     SDK, Gemini `google_search` grounding via `google-genai` (SDK retries off). Returns a memo +
+     the pages the provider actually used. Runs inside `contextvars.copy_context()` — pool threads
+     don't inherit the request's `llm_config` otherwise. Failure → `grounded=false`, session goes on.
+   - **Google Trends** "Trending now" for the market (`region` or `TRENDS_DEFAULT_REGION`).
+   - **Marketing calendar** (next 45 days) and optional **platform keyword search** from
+     `brand_keywords[:2] + industry` (credential-gated → `skipped`).
+   - **`previous_trends`** sent by the backend (30 days, same brand + platform; `rejected` = the
+     user deleted it) → momentum + no repeats.
+2. Sources are numbered `[S1]…`; one structured LLM call (`_Synthesis`) returns trends citing
+   `evidence_ids` + content ideas. Code maps ids → `Evidence{title,url,source}` (unknown ids dropped,
+   so URLs can't be invented), computes `confidence` from independent origins (web domain / source
+   kind: ≥2 High, 1 Medium, 0 Low), forces Low relevance (score < 0.4) when nothing is cited, fixes
+   `momentum` New→Stable for already-shown trends, drops `act_by` outside [today, +90d], cleans hashtags.
+3. Response adds `grounded`, `web_searches`, `sources_used[{name,status,items}]`; tokens of both
+   calls are summed, `llm_attempts` = search attempts + synthesis attempts.
 4. **Target platform (FR-19, fix 2026-07-19):** `ResearchRequest.platform` (backend sends the
    session's platform, e.g. `"FACEBOOK"`, normalized case-insensitively) is injected into the
    prompt AND enforced post-hoc — `platform` of every returned trend/idea is overwritten with
@@ -125,10 +138,10 @@ fed by `attempts[].cooldown_until` — this service stays stateless.
    legacy behavior: model chooses among Facebook/Instagram/Threads.
 5. `max_trends` / `max_ideas` (1–20) trim the result; backend maps `articleCount` → `max_ideas`.
 
-**Fallback philosophy per source:** core sources (Facebook, YouTube trending, TikTok) return
-**mock data** when credentials are missing so research stays demoable; keyword-search sources
-(YouTube search, Instagram hashtag, Threads) return **`[]`** instead — never mock — to avoid
-amplifying noise. A failing/unsubscribed API is swallowed inside the connector (logged, `[]`).
+**Source philosophy:** NO mock data in research, ever — the model must not reason over fabricated
+posts. A missing credential → source `skipped`; a failing API → `[]` (logged); the UI shows
+`sources_used` so thin results are visible. Web search costs extra (Anthropic bills per search,
+Gemini grounding has its own quota) — `TREND_SEARCH_MAX_USES` caps it.
 
 ## 5. Rules (binding)
 
@@ -164,8 +177,9 @@ GOOGLE_API_KEY, GOOGLE_MODEL (gemini-2.5-pro)
 AI_SERVICE_HOST (0.0.0.0), AI_SERVICE_PORT (8000)
 AI_INTERNAL_TOKEN                  # shared secret with backend/.env — REQUIRED for llm_config,
                                    # /test-connection, /list-models (fail-closed when unset)
-# Trend-research signal sources (all optional — see fallback philosophy in §4):
-FACEBOOK_PAGE_ACCESS_TOKEN / FACEBOOK_USER_ACCESS_TOKEN
+# Trend research — web search step (llm.invoke_grounded) + optional signal sources (§4):
+TREND_SEARCH_CALL_TIMEOUT_SECONDS (75), TREND_SEARCH_BUDGET_SECONDS (90), TREND_SEARCH_MAX_USES (5)
+# keep TREND_SEARCH_BUDGET + LLM_CHAIN_BUDGET < backend AI_RESEARCH_TIMEOUT_SECONDS (200)
 RAPIDAPI_KEY                       # ONE key for all subscribed RapidAPI APIs
                                    # (TIKTOK_RAPIDAPI_KEY legacy, still read as fallback)
 YOUTUBE_RAPIDAPI_HOST (yt-api.p.rapidapi.com)
@@ -173,7 +187,7 @@ INSTAGRAM_RAPIDAPI_HOST (instagram-social-api.p.rapidapi.com)   # swappable; unk
 INSTAGRAM_RAPIDAPI_PATH / INSTAGRAM_RAPIDAPI_PARAM              # declare these two as well
 THREADS_ACCESS_TOKEN               # official Meta API, needs threads_keyword_search scope
 THREADS_API_BASE (https://graph.threads.net/v1.0)
-TRENDS_DEFAULT_REGION (VN)         # ISO region for trending/search when request has none
+TRENDS_DEFAULT_REGION (VN)         # ISO region for Google Trends / search when request has none
 ```
 
 ## 7. Commands

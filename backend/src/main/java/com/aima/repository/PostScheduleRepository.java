@@ -98,7 +98,7 @@ public interface PostScheduleRepository extends JpaRepository<PostSchedule, UUID
     // FR-81: số lịch đang chờ đăng trên toàn hệ thống (trang System status của admin).
     long countByStatusAndDeletedAtIsNull(ScheduleStatus status);
 
-    // FR-52 + tài khoản chờ xoá: lịch đến hạn, BỎ user đang ở trạng thái loại trừ (PENDING_DELETE).
-    List<PostSchedule> findByStatusAndScheduledTimeLessThanEqualAndDeletedAtIsNullAndPlatformAccount_User_StatusNot(
-            ScheduleStatus status, Instant threshold, UserStatus excludedUserStatus);
+    // FR-52 + tài khoản chờ xoá/bị khoá: lịch đến hạn, BỎ user đang ở trạng thái loại trừ (PENDING_DELETE, LOCKED).
+    List<PostSchedule> findByStatusAndScheduledTimeLessThanEqualAndDeletedAtIsNullAndPlatformAccount_User_StatusNotIn(
+            ScheduleStatus status, Instant threshold, Collection<UserStatus> excludedUserStatuses);
 }

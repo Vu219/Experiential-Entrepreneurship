@@ -87,13 +87,28 @@ public class AsyncConfig implements AsyncConfigurer {
         return executor;
     }
 
+    // "Research ngay" của user: một phiên có tìm kiếm web mất ~1-3 phút, nên chạy song song ngay
+    // (core = max — ThreadPoolTaskExecutor chỉ thêm luồng vượt core khi hàng đợi ĐẦY).
     @Bean(name = "trendResearchExecutor")
     public Executor trendResearchExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(1);
+        executor.setCorePoolSize(3);
         executor.setMaxPoolSize(3);
         executor.setQueueCapacity(20);
         executor.setThreadNamePrefix("trend-research-");
+        executor.initialize();
+        return executor;
+    }
+
+    // Lượt tự động 2:00 AM (FR-19): hàng đợi riêng, dài — mọi brand xếp hàng chạy dần, không chiếm
+    // luồng của "Research ngay" và không bị từ chối khi có nhiều brand.
+    @Bean(name = "scheduledTrendResearchExecutor")
+    public Executor scheduledTrendResearchExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(5000);
+        executor.setThreadNamePrefix("trend-research-daily-");
         executor.initialize();
         return executor;
     }

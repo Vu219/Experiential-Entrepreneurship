@@ -37,6 +37,9 @@ public class PlanResponse {
     @Schema(description = "Hạn mức token mô tả để hiển thị. null = không giới hạn.", example = "100")
     Long tokenQuota;
 
+    @Schema(description = "Hạn mức token LLM THẬT mỗi tháng. null = không giới hạn.", example = "100000")
+    Long monthlyTokenLimit;
+
     String descriptionVi;
     String descriptionEn;
 

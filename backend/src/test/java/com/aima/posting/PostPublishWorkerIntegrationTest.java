@@ -189,6 +189,49 @@ class PostPublishWorkerIntegrationTest {
         });
     }
 
+    @Test
+    void accountDisconnectedAfterDispatch_jobStopped_scheduleHeld_metaNotCalled() {
+        Fixture f = newFixture(PlatformAccountType.PAGE);
+        transactionTemplate.executeWithoutResult(tx -> {
+            PlatformAccount page = postRepository.findById(f.postId()).orElseThrow().getSchedule().getPlatformAccount();
+            page.setDeletedAt(java.time.LocalDateTime.now());
+            page.setConnectionStatus(ConnectionStatus.DISCONNECTED);
+        });
+        int before = META.getRequestCount();
+
+        worker.process(f.jobId());
+        PostingJob job = awaitFinished(f.jobId());
+
+        assertEquals(PostingJobStatus.FAILED, job.getStatus());
+        assertEquals(before, META.getRequestCount(), "tài khoản đã ngắt kết nối: KHÔNG được gọi Meta");
+        assertEquals(1, jobsOf(f.postId()).size(), "không tạo retry");
+        transactionTemplate.executeWithoutResult(tx -> {
+            PostSchedule schedule = postRepository.findById(f.postId()).orElseThrow().getSchedule();
+            assertEquals(ScheduleStatus.ON_HOLD, schedule.getStatus());
+            assertTrue(schedule.getHolds().stream().anyMatch(h -> h.getReason() == com.aima.enums.HoldReason.ACCOUNT_REMOVED));
+            assertEquals(ConnectionStatus.DISCONNECTED, schedule.getPlatformAccount().getConnectionStatus());
+        });
+    }
+
+    @Test
+    void ownerPendingDelete_temporaryError_noRetry_scheduleHeld() {
+        Fixture f = newFixture(PlatformAccountType.PAGE);
+        transactionTemplate.executeWithoutResult(tx -> postRepository.findById(f.postId()).orElseThrow()
+                .getSchedule().getPlatformAccount().getUser().setStatus(UserStatus.PENDING_DELETE));
+        META.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST));
+
+        worker.process(f.jobId());
+        PostingJob job = awaitFinished(f.jobId());
+
+        assertEquals(PublishErrorType.TEMPORARY, job.getErrorType(), job.getErrorMessage());
+        assertEquals(1, jobsOf(f.postId()).size(), "chủ tài khoản chờ xoá: KHÔNG tạo job retry");
+        transactionTemplate.executeWithoutResult(tx -> {
+            PostSchedule schedule = postRepository.findById(f.postId()).orElseThrow().getSchedule();
+            assertEquals(ScheduleStatus.ON_HOLD, schedule.getStatus());
+            assertTrue(schedule.getHolds().stream().anyMatch(h -> h.getReason() == com.aima.enums.HoldReason.USER_PENDING_DELETE));
+        });
+    }
+
     // ===== Phase 1: hai nền tảng của CÙNG bài chạy song song — trạng thái tổng không phụ thuộc bên nào xong sau
 
     @Test
@@ -321,6 +364,23 @@ class PostPublishWorkerIntegrationTest {
         assertEquals(1, jobsOf(f.postId()).size(), "lỗi vĩnh viễn: KHÔNG tạo job retry");
         transactionTemplate.executeWithoutResult(tx -> assertEquals(ScheduleStatus.FAILED,
                 postRepository.findById(f.postId()).orElseThrow().getSchedule().getStatus()));
+    }
+
+    @Test
+    void textOverPlatformLimit_failsPermanently_withoutCallingMeta() {
+        Fixture f = newFixture(PlatformAccountType.PAGE);
+        transactionTemplate.executeWithoutResult(tx -> postRepository.findById(f.postId()).orElseThrow()
+                .getSchedule().getContentVersion().setFormattedCaption("x".repeat(63_300)));
+        int before = META.getRequestCount();
+
+        worker.process(f.jobId());
+        PostingJob job = awaitFinished(f.jobId());
+
+        assertEquals(PostingJobStatus.FAILED, job.getStatus());
+        assertEquals(PublishErrorType.PERMANENT, job.getErrorType());
+        assertTrue(job.getErrorMessage().contains("63206"), job.getErrorMessage());
+        assertEquals(before, META.getRequestCount(), "vượt giới hạn: không được gọi Graph API");
+        assertEquals(1, jobsOf(f.postId()).size(), "lỗi vĩnh viễn: KHÔNG tạo job retry");
     }
 
     // ================================================================== dựng dữ liệu

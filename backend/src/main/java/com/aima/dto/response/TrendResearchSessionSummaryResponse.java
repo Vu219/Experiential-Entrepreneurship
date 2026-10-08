@@ -2,6 +2,7 @@ package com.aima.dto.response;
 
 import com.aima.enums.Platform;
 import com.aima.enums.ResearchStatus;
+import com.aima.enums.ResearchTrigger;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -38,6 +39,12 @@ public class TrendResearchSessionSummaryResponse {
 
     @Schema(description = "Session status.", example = "COMPLETED")
     ResearchStatus status;
+
+    @Schema(description = "MANUAL (\"Research now\") or SCHEDULED (daily 2:00 AM run).", example = "MANUAL")
+    ResearchTrigger triggerType;
+
+    @Schema(description = "True when live web search succeeded; false/null = limited sources.")
+    Boolean grounded;
 
     @Schema(description = "Number of trends found.")
     int trendsFound;

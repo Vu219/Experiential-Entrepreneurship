@@ -22,7 +22,10 @@ public interface AnalyticsSyncService {
     /** Bài đến hạn đồng bộ, gom theo tài khoản (giữ thứ tự). */
     Map<UUID, List<UUID>> findDue(Instant now, int limit);
 
-    /** Đồng bộ các bài của MỘT tài khoản. {@code false} = bị nền tảng giới hạn tần suất → dừng cả lượt quét. */
+    /**
+     * Đồng bộ các bài của MỘT tài khoản. {@code false} = bị nền tảng giới hạn tần suất (mọi bài còn lại của tài khoản
+     * đã được lùi lịch) → lượt quét bỏ qua tài khoản này, tiếp tục tài khoản khác.
+     */
     boolean syncAccount(UUID accountId, List<UUID> mediaIds);
 
     /**

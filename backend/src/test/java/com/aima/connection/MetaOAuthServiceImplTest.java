@@ -427,4 +427,57 @@ class MetaOAuthServiceImplTest {
         assertEquals(ErrorCode.CONNECTION_VALIDATION_FAILED, ex.getErrorCode());
         assertEquals(ConnectionStatus.ACTIVE, t.page().getConnectionStatus());
     }
+
+    @Test
+    void validate_graphCode190_holdsSchedulesAndNotifiesReconnect() {
+        Tree t = stubTree("fb-v4");
+        when(metaApiClient.getMe(any(), any())).thenThrow(new AppException(ErrorCode.META_TOKEN_INVALID));
+
+        service.validate(t.page().getId());
+
+        t.pageSchedules().forEach(s -> assertEquals(ScheduleStatus.ON_HOLD, s.getStatus()));
+        verify(notificationService).notify(eq(t.page().getUser()), eq(com.aima.enums.NotificationType.RECONNECT_NEEDED),
+                any(), any(), any());
+    }
+
+    // ---------- refresh ----------
+
+    @Test
+    void refresh_usesRefreshEndpointNotShortLivedExchange() {
+        Tree t = stubTree("fb-r1");
+        when(metaApiClient.refreshLongLivedToken(any(), any()))
+                .thenReturn(new MetaApiClient.MetaTokenResult("new-token", 5_184_000L));
+
+        PlatformAccount result = service.refresh(t.page().getId());
+
+        assertEquals(ConnectionStatus.ACTIVE, result.getConnectionStatus());
+        assertEquals("new-token", result.getAccessToken());
+        verify(metaApiClient, never()).getLongLivedUserToken(any(), any());
+    }
+
+    @Test
+    void refresh_graphCode190_marksExpiredHoldsAndNotifies() {
+        Tree t = stubTree("fb-r2");
+        when(metaApiClient.refreshLongLivedToken(any(), any())).thenThrow(new AppException(ErrorCode.META_TOKEN_INVALID));
+
+        PlatformAccount result = service.refresh(t.page().getId());
+
+        assertEquals(ConnectionStatus.EXPIRED, result.getConnectionStatus());
+        t.pageSchedules().forEach(s -> assertEquals(ScheduleStatus.ON_HOLD, s.getStatus()));
+        verify(notificationService).notify(eq(t.page().getUser()), eq(com.aima.enums.NotificationType.RECONNECT_NEEDED),
+                any(), any(), any());
+    }
+
+    @Test
+    void refresh_transientError_keepsStatusAndThrows() {
+        Tree t = stubTree("fb-r3");
+        when(metaApiClient.refreshLongLivedToken(any(), any())).thenThrow(new AppException(ErrorCode.META_API_ERROR));
+
+        AppException ex = assertThrows(AppException.class, () -> service.refresh(t.page().getId()));
+
+        assertEquals(ErrorCode.TOKEN_REFRESH_FAILED, ex.getErrorCode());
+        assertEquals(ConnectionStatus.ACTIVE, t.page().getConnectionStatus());
+        verify(accountRepository, never()).save(t.page());
+        verifyNoInteractions(notificationService);
+    }
 }

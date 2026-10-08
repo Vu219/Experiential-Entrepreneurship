@@ -20,6 +20,8 @@ export interface PlanDto {
   billingIntervalMonths: number;
   /** Hạn mức token MÔ TẢ để hiển thị (chưa phải số dư thật). null = không giới hạn. */
   tokenQuota: number | null;
+  /** Hạn mức token THẬT mỗi tháng (dùng chặn quota). null = không giới hạn. */
+  monthlyTokenLimit: number | null;
   descriptionVi: string | null;
   descriptionEn: string | null;
   featuresVi: string[];
@@ -79,6 +81,8 @@ export interface PlanSaveInput {
   billingCycleEn: string | null;
   billingIntervalMonths: number;
   tokenQuota: number | null;
+  /** BE: gói ĐANG BÁN (active, giá > 0) bắt buộc có; null khi sửa = giữ nguyên giá trị cũ. */
+  monthlyTokenLimit: number | null;
   descriptionVi: string | null;
   descriptionEn: string | null;
   featuresVi: string[];

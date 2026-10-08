@@ -118,6 +118,15 @@ public interface PaymentService {
                             String rawPayload, String failedReason);
 
     /**
+     * Admin xác nhận đã thu ĐỦ tiền ngoài luồng cổng → đơn PAID + kích hoạt gói THẬT, kể cả khi
+     * đơn đã đóng (EXPIRED/CANCELLED/FAILED) hoặc đã PAID nhưng treo đối soát mà chưa kích hoạt
+     * (lệch tiền, tiền về sau khi đóng) — đúng các ca {@link #applyGatewayResult} cố ý không tự
+     * kích hoạt. Khoá dòng đơn như applyGatewayResult; đơn đã kích hoạt / đã hoàn tiền →
+     * {@code PAYMENT_NOT_MARKABLE_PAID}.
+     */
+    void markPaidByAdmin(UUID paymentId);
+
+    /**
      * Đóng đơn AN TOÀN (điểm C §5). Dùng chung cho cả ba chỗ huỷ link: job hết hạn, user tự
      * huỷ, và Q2 huỷ đơn cũ.
      *

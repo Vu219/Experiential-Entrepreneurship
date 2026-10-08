@@ -313,7 +313,7 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
         }
         try {
             MetaApiClient.MetaTokenResult refreshed =
-                    metaApiClient.getLongLivedUserToken(account.getPlatformName(), account.getAccessToken());
+                    metaApiClient.refreshLongLivedToken(account.getPlatformName(), account.getAccessToken());
             account.setAccessToken(refreshed.accessToken());
             account.setTokenIssuedAt(LocalDateTime.now());
             account.setTokenExpiredAt(expiry(refreshed.expiresInSeconds()));
@@ -322,10 +322,25 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
             PlatformAccount saved = accountRepository.save(account);
             syncAccountIssueHolds(saved);
             return saved;
+        } catch (AppException e) {
+            if (e.getErrorCode() != ErrorCode.META_TOKEN_INVALID) {
+                throw refreshFailed(account, e);
+            }
+            // Chỉ Graph code 190 mới là bằng chứng token đã chết → EXPIRED + tạm giữ lịch (như validate).
+            log.warn("[OAuth] Kết nối {} bị nền tảng từ chối token (190) khi refresh → EXPIRED", account.getId());
+            account.setConnectionStatus(ConnectionStatus.EXPIRED);
+            PlatformAccount saved = accountRepository.save(account);
+            syncAccountIssueHolds(saved);
+            return saved;
         } catch (Exception e) {
-            log.warn("[OAuth] Refresh token kết nối {} thất bại: {}", account.getId(), e.getMessage());
-            throw new AppException(ErrorCode.TOKEN_REFRESH_FAILED);
+            throw refreshFailed(account, e);
         }
+    }
+
+    // Lỗi mạng/timeout/5xx/rate limit: KHÔNG đổi trạng thái kết nối — lượt sau thử lại.
+    private AppException refreshFailed(PlatformAccount account, Exception cause) {
+        log.warn("[OAuth] Refresh token kết nối {} thất bại: {}", account.getId(), cause.getMessage());
+        return new AppException(ErrorCode.TOKEN_REFRESH_FAILED);
     }
 
     @Override
@@ -482,13 +497,15 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
         return held;
     }
 
-    // Xác thực/làm mới xong: ACTIVE → gỡ ACCOUNT_ISSUE; REVOKED → thêm ACCOUNT_ISSUE cho lịch chưa đăng.
+    // Xác thực/làm mới xong: ACTIVE → gỡ ACCOUNT_ISSUE; REVOKED/EXPIRED → thêm ACCOUNT_ISSUE cho lịch chưa đăng
+    // và nhắc kết nối lại (FR-78) — chỉ khi có lịch MỚI bị giữ, gọi lại nhiều lần không báo trùng.
     private void syncAccountIssueHolds(PlatformAccount account) {
         List<UUID> ids = List.of(account.getId());
         if (account.getConnectionStatus() == ConnectionStatus.ACTIVE) {
             holdService.releaseForAccounts(ids, HoldReason.ACCOUNT_ISSUE);
         } else {
-            holdService.holdForAccounts(ids, HoldReason.ACCOUNT_ISSUE);
+            holdSchedules(account.getUser(), List.of(account), HoldReason.ACCOUNT_ISSUE,
+                    "Kết nối " + account.getAccountName() + " trên " + account.getPlatformName() + " không còn hiệu lực.");
         }
     }
 

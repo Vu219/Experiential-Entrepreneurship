@@ -706,11 +706,13 @@ public class PaymentServiceImpl implements PaymentService {
             }
 
             GatewayLinkStatus status = view.order().status();
-            // Khi cổng xác nhận PAID thì so bằng số tiền của CHÍNH webhook (đã ký), không lấy số
-            // cổng tự thuật lại — đó mới là giá trị ta xác thực được.
-            Long amountPaid = status == GatewayLinkStatus.PAID
-                    ? data.amount()
-                    : view.order().amountPaid();
+            // So bằng tổng tiền ĐÃ NHẬN LUỸ KẾ của link (amountPaid, đọc qua API tra cứu có xác
+            // thực) — KHÔNG phải data.amount của riêng lệnh chuyển này: khách chuyển thiếu rồi
+            // chuyển bù thì webhook cuối chỉ mang phần bù, so với nó sẽ lệch oan và không kích
+            // hoạt gói. Cổng không trả amountPaid → rơi về số tiền đã ký trong webhook.
+            Long amountPaid = view.order().amountPaid() != null
+                    ? view.order().amountPaid()
+                    : (status == GatewayLinkStatus.PAID ? Long.valueOf(data.amount()) : null);
             applyGatewayResult(paymentId, status, amountPaid, rawBody, data.desc());
         } catch (Exception e) {
             // payOS RETRY mọi response khác 200 → tuyệt đối không để lỗi nội bộ thoát ra ngoài.
@@ -922,15 +924,32 @@ public class PaymentServiceImpl implements PaymentService {
      */
     private void applyLocked(UUID paymentId, GatewayLinkStatus status, Long amountPaid,
                              String rawPayload, String failedReason) {
+        applyLocked(paymentId, status, amountPaid, rawPayload, failedReason, false);
+    }
+
+    /**
+     * {@code adminConfirmed} = admin "đánh dấu đã trả" (đối soát tay xong): số tiền coi như ĐỦ
+     * ({@code payment.amount}) và được kích hoạt gói cả với đơn đã đóng hoặc PAID-treo-đối-soát
+     * chưa kích hoạt — đúng các ca luồng cổng cố ý không tự kích hoạt.
+     */
+    private void applyLocked(UUID paymentId, GatewayLinkStatus status, Long amountPaid,
+                             String rawPayload, String failedReason, boolean adminConfirmed) {
         // Khoá dòng TRƯỚC khi đọc trạng thái: webhook, job đối soát và nút "kiểm tra lại" của
         // user có thể ập tới cùng lúc. Kiểm tra ngoài khoá rồi mới mở transaction là sai.
         Payment payment = paymentRepository.findByIdForUpdate(paymentId)
                 .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
 
+        if (adminConfirmed) {
+            // Kiểm lại TRONG khoá: bấm đúp không được cộng hạn hai lần.
+            if (!isAdminMarkable(payment)) {
+                throw new AppException(ErrorCode.PAYMENT_NOT_MARKABLE_PAID);
+            }
+            amountPaid = payment.getAmount();
+        }
         if (rawPayload != null) {
             payment.setRawPayload(rawPayload);
         }
-        if (payment.getStatus() == PaymentStatus.PAID) {
+        if (payment.getStatus() == PaymentStatus.PAID && !adminConfirmed) {
             log.info("[Payment] Đơn {} đã PAID từ trước — bỏ qua (idempotent)", paymentId);
             paymentRepository.save(payment);
             return;
@@ -945,8 +964,10 @@ public class PaymentServiceImpl implements PaymentService {
             case PAID -> {
                 boolean amountMatches = amountPaid != null
                         && amountPaid.longValue() == payment.getAmount().longValue();
-                payment.setStatus(PaymentStatus.PAID);
-                payment.setPaidAt(now);
+                if (payment.getStatus() != PaymentStatus.PAID) { // admin xác nhận đơn PAID-treo: giữ paidAt gốc
+                    payment.setStatus(PaymentStatus.PAID);
+                    payment.setPaidAt(now);
+                }
                 payment.setInvoiceNo(buildInvoiceNo(payment, now));
 
                 if (!amountMatches) {
@@ -955,11 +976,15 @@ public class PaymentServiceImpl implements PaymentService {
                     payment.setReconcileRequired(true);
                     log.error("[Payment] Đơn {} tiền lệch: cổng {} vs đơn {} — KHÔNG kích hoạt gói",
                             paymentId, amountPaid, payment.getAmount());
-                } else if (alreadyClosed) {
+                } else if (alreadyClosed && !adminConfirmed) {
                     payment.setReconcileRequired(true);
                     log.error("[Payment] Đơn {} đã đóng nhưng tiền vẫn về — KHÔNG tự kích hoạt gói, cần admin",
                             paymentId);
                 } else {
+                    if (adminConfirmed) {
+                        // Admin đã đối soát xong → tắt cờ; activate tự bật lại nếu kích hoạt gói thất bại.
+                        payment.setReconcileRequired(false);
+                    }
                     activate(payment, now);
                 }
             }
@@ -978,6 +1003,27 @@ public class PaymentServiceImpl implements PaymentService {
             }
         }
         paymentRepository.save(payment);
+    }
+
+    @Override
+    public void markPaidByAdmin(UUID paymentId) {
+        // Vẫn đi qua applyLocked (đường duy nhất đổi trạng thái đơn + khoá dòng), chỉ bật cờ "admin xác nhận".
+        inTransaction(() -> {
+            applyLocked(paymentId, GatewayLinkStatus.PAID, null, null, null, true);
+            return null;
+        });
+    }
+
+    /**
+     * Đơn admin còn "đánh dấu đã trả" được: chưa thu tiền (PENDING/đã đóng), hoặc đã PAID nhưng
+     * treo đối soát và CHƯA kích hoạt gói ({@link #activate} chưa chạy nên periodEnd còn null).
+     */
+    static boolean isAdminMarkable(Payment payment) {
+        return switch (payment.getStatus()) {
+            case PENDING, EXPIRED, CANCELLED, FAILED -> true;
+            case PAID -> Boolean.TRUE.equals(payment.getReconcileRequired()) && payment.getPeriodEnd() == null;
+            case REFUNDED, PARTIALLY_REFUNDED -> false;
+        };
     }
 
     private void activate(Payment payment, LocalDateTime now) {

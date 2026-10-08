@@ -128,6 +128,22 @@ public class MetaApiClientImpl implements MetaApiClient {
         return new MetaTokenResult(text(body, "access_token"), longValue(body, "expires_in"));
     }
 
+    @Override
+    public MetaTokenResult refreshLongLivedToken(Platform platform, String longLivedToken) {
+        if (platform != Platform.THREADS) {
+            // Facebook: fb_exchange_token nhận cả token dài hạn còn hạn → trả token dài hạn mới.
+            return getLongLivedUserToken(platform, longLivedToken);
+        }
+        // Threads: th_exchange_token CHỈ nhận token ngắn hạn — token dài hạn phải làm mới bằng th_refresh_token.
+        String url = UriComponentsBuilder.fromUriString(metaProperties.threadsBaseUrl())
+                .path("/refresh_access_token")
+                .queryParam("grant_type", "th_refresh_token")
+                .queryParam("access_token", longLivedToken)
+                .toUriString();
+        JsonNode body = get(url, platform);
+        return new MetaTokenResult(text(body, "access_token"), longValue(body, "expires_in"));
+    }
+
     // ---------- Accounts ----------
 
     @Override
@@ -792,6 +808,10 @@ public class MetaApiClientImpl implements MetaApiClient {
     // Mã lỗi Graph tạm thời: 1/2 (unknown/service), 4/17/32/613 (rate limit), 341 (application limit).
     private static final Set<Integer> TEMPORARY_GRAPH_CODES = Set.of(1, 2, 4, 17, 32, 341, 613);
 
+    // Business Use Case rate limit (80001 Pages, 80002 Instagram, ... 80014) — tạm thời, retry theo FR-56.
+    private static final int BUC_RATE_LIMIT_MIN = 80001;
+    private static final int BUC_RATE_LIMIT_MAX = 80014;
+
     /** Body lỗi Graph/Threads: {"error":{message,type,code,error_subcode,...}} — giữ nguyên mã + message gốc (FR-35). */
     private PublishException toPublishException(WebClientResponseException e) {
         JsonNode error = null;
@@ -806,17 +826,21 @@ public class MetaApiClientImpl implements MetaApiClient {
                 : error.path("message").asText();
         String responseCode = code >= 0 ? String.valueOf(code) : String.valueOf(e.getStatusCode().value());
 
-        PublishErrorType type = classifyPublishError(e.getStatusCode().is5xxServerError(), code, message);
+        // HTTP 429 (Too Many Requests) và cờ Graph error.is_transient=true đều là lỗi tự hết → tạm thời.
+        boolean transientError = e.getStatusCode().is5xxServerError() || e.getStatusCode().value() == 429
+                || (error != null && error.path("is_transient").asBoolean(false));
+        PublishErrorType type = classifyPublishError(transientError, code, message);
         return new PublishException(type, responseCode, message);
     }
 
-    // FR-37: policy (368/message chứa "policy") > tạm thời (5xx/rate limit) > còn lại vĩnh viễn
-    // (190 token hết hạn, 100 tham số sai, 200-299 thiếu quyền, ...).
-    private static PublishErrorType classifyPublishError(boolean serverError, int code, String message) {
+    // FR-37: policy (368/message chứa "policy") > tạm thời (5xx/429/is_transient/rate limit kể cả BUC 80001-80014)
+    // > còn lại vĩnh viễn (190 token hết hạn, 100 tham số sai, 200-299 thiếu quyền, ...).
+    static PublishErrorType classifyPublishError(boolean transientError, int code, String message) {
         if (code == 368 || (message != null && message.toLowerCase().contains("policy"))) {
             return PublishErrorType.POLICY_VIOLATION;
         }
-        if (serverError || TEMPORARY_GRAPH_CODES.contains(code)) {
+        if (transientError || TEMPORARY_GRAPH_CODES.contains(code)
+                || (code >= BUC_RATE_LIMIT_MIN && code <= BUC_RATE_LIMIT_MAX)) {
             return PublishErrorType.TEMPORARY;
         }
         return PublishErrorType.PERMANENT;

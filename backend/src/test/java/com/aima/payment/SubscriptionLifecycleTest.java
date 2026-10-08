@@ -42,6 +42,7 @@ class SubscriptionLifecycleTest {
     private NotificationService notificationService;
     private ActivityLogService activityLogService;
     private SubscriptionServiceImpl service;
+    private jakarta.persistence.EntityManager entityManager;
 
     private Plan freePlan;
     private Plan proPlan;
@@ -56,7 +57,9 @@ class SubscriptionLifecycleTest {
         activityLogService = mock(ActivityLogService.class);
         service = new SubscriptionServiceImpl(subscriptionRepository, planRepository,
                 userRepository, mock(UsageMapper.class), notificationService, activityLogService,
-                mock(SubscriptionHistoryRepository.class));
+                mock(SubscriptionHistoryRepository.class),
+                entityManager = mock(jakarta.persistence.EntityManager.class),
+                mock(org.springframework.transaction.PlatformTransactionManager.class));
 
         freePlan = plan("FREE", 0L, 100_000L);
         plusPlan = plan("PLUS", 99_000L, 500_000L);
@@ -204,6 +207,40 @@ class SubscriptionLifecycleTest {
 
         assertFalse(service.expireToFreePlan(sub, NOW));
         assertEquals("PRO", sub.getPlan().getCode());
+    }
+
+    /**
+     * Bug #10: lần đọc không khoá thấy gói đã hết hạn, nhưng thanh toán vừa gia hạn + commit trước khi
+     * kịp khoá. Sau khi khoá và nạp lại thì KHÔNG được hạ gói (nếu không tiền vừa trả là mất).
+     */
+    @Test
+    void expireToFreePlan_renewedBeforeLock_doesNotDowngrade() {
+        User user = user(UserPlan.PRO);
+        Subscription sub = subscription(user, proPlan, PlanSource.PAYMENT, NOW.minusMinutes(1));
+        when(subscriptionRepository.findForUpdateByUserId(user.getId())).thenReturn(Optional.of(sub));
+        doAnswer(inv -> {
+            sub.setPlanExpiresAt(NOW.plusMonths(1)); // trạng thái đã commit của activatePaidPlan
+            return null;
+        }).when(entityManager).refresh(sub);
+
+        assertFalse(service.expireToFreePlan(sub, NOW));
+        assertEquals("PRO", sub.getPlan().getCode());
+        verify(notificationService, never()).notify(any(), any(), anyString(), anyString(), any());
+    }
+
+    /** activatePaidPlan khoá dòng subscription TRƯỚC khi đọc/ghi (cùng khoá với job hạ gói). */
+    @Test
+    void activatePaidPlan_locksSubscriptionRowFirst() {
+        User user = user(UserPlan.FREE);
+        Subscription sub = subscription(user, freePlan, PlanSource.FREE, null);
+        when(subscriptionRepository.findForUpdateByUserId(user.getId())).thenReturn(Optional.of(sub));
+
+        service.activatePaidPlan(user, proPlan, NOW);
+
+        var order = inOrder(subscriptionRepository, entityManager);
+        order.verify(subscriptionRepository).findForUpdateByUserId(user.getId());
+        order.verify(entityManager).refresh(sub);
+        order.verify(subscriptionRepository).findWithPlanByUserId(user.getId());
     }
 
     // ------------------------------------------------------------------ BẪY §6

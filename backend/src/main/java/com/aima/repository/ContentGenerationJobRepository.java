@@ -26,6 +26,10 @@ public interface ContentGenerationJobRepository extends JpaRepository<ContentGen
     Optional<ContentGenerationJob> findFirstByContentItem_IdAndPlatformAndStatusInAndDeletedAtIsNullOrderByCreatedAtDesc(
             UUID contentItemId, Platform platform, Collection<GenerationJobStatus> statuses);
 
+    // Giới hạn số tác vụ AI chạy song song của một user (TokenUsageService.checkConcurrentAiJobs).
+    long countByContentStrategy_BrandProfile_User_IdAndStatusInAndDeletedAtIsNull(
+            UUID userId, Collection<GenerationJobStatus> statuses);
+
     // Nguồn sinh bài cho màn xem chi tiết: job thành công gần nhất của bài.
     Optional<ContentGenerationJob> findFirstByContentItem_IdAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(
             UUID contentItemId, GenerationJobStatus status);

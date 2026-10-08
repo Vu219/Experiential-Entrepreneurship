@@ -1,11 +1,13 @@
 package com.aima.service.Impl;
 
 import com.aima.entity.ContentItem;
+import com.aima.entity.PlatformAccount;
 import com.aima.entity.Post;
 import com.aima.entity.PostSchedule;
 import com.aima.entity.PostingJob;
 import com.aima.enums.ConnectionStatus;
 import com.aima.enums.HoldReason;
+import com.aima.enums.NotificationType;
 import com.aima.enums.Platform;
 import com.aima.enums.PostStatus;
 import com.aima.enums.PostingJobStatus;
@@ -16,6 +18,7 @@ import com.aima.repository.PostRepository;
 import com.aima.repository.PostScheduleRepository;
 import com.aima.repository.PostingJobRepository;
 import com.aima.service.ContentItemStatusResolver;
+import com.aima.service.NotificationService;
 import com.aima.service.PostingDispatchService;
 import com.aima.service.ScheduleHoldService;
 import lombok.AccessLevel;
@@ -42,6 +45,7 @@ public class PostingDispatchServiceImpl implements PostingDispatchService {
     PostPublishMapper postPublishMapper;
     ContentItemStatusResolver statusResolver;
     ScheduleHoldService holdService;
+    NotificationService notificationService;
 
     @Override
     public Outcome dispatch(UUID scheduleId) {
@@ -58,8 +62,11 @@ public class PostingDispatchServiceImpl implements PostingDispatchService {
         }
         HoldReason blocker = blockerOf(due, item);
         if (blocker != null) {
-            holdService.hold(due, blocker);
+            boolean newlyHeld = holdService.hold(due, blocker);
             statusResolver.refresh(itemId);
+            if (newlyHeld && (blocker == HoldReason.ACCOUNT_ISSUE || blocker == HoldReason.ACCOUNT_REMOVED)) {
+                notifyReconnect(due);
+            }
             log.warn("[PostingDispatch] Lịch {} đến hạn nhưng bị tạm giữ ({}) — không đăng", scheduleId, blocker);
             return new Outcome(null, blocker);
         }
@@ -91,6 +98,17 @@ public class PostingDispatchServiceImpl implements PostingDispatchService {
         PostingJob savedJob = jobRepository.save(job);
         statusResolver.refresh(itemId); // lịch POSTING → bài POSTING
         return new Outcome(savedJob.getId(), null);
+    }
+
+    // FR-78: lịch bị giữ vì tài khoản đã xoá/không ACTIVE → nhắc kết nối lại (chỉ khi lý do mới được thêm).
+    private void notifyReconnect(PostSchedule schedule) {
+        PlatformAccount account = schedule.getPlatformAccount();
+        notificationService.notify(account.getUser(), NotificationType.RECONNECT_NEEDED,
+                "Bài đã lên lịch được tạm giữ",
+                "Kết nối " + account.getAccountName() + " trên " + account.getPlatformName()
+                        + " không còn hiệu lực nên bài đến giờ đăng được chuyển sang Tạm giữ (On Hold) — hãy kết nối lại"
+                        + " hoặc đổi tài khoản đăng trong Lịch đăng.",
+                account.getId());
     }
 
     private HoldReason blockerOf(PostSchedule schedule, ContentItem item) {

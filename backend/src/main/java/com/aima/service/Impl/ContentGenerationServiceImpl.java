@@ -81,12 +81,18 @@ public class ContentGenerationServiceImpl implements ContentGenerationService {
         }
 
         tokenUsageService.checkQuota(user); // hết hạn mức token tháng → chặn tạo job mới
+        tokenUsageService.checkConcurrentAiJobs(user); // quá số tác vụ AI chạy song song → chặn
         ContentStrategy strategy = contentStrategyRepository
                 .findByIdAndBrandProfile_User_IdAndDeletedAtIsNull(request.getStrategyId(), user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.CONTENT_STRATEGY_NOT_FOUND));
 
         if (strategy.getStatus() != StrategyStatus.ACTIVE) {
             throw new AppException(ErrorCode.STRATEGY_NOT_ACTIVE);
+        }
+        // BR-03: nội dung sinh theo brand profile + strategy CỦA CHÍNH bài — strategy của hồ sơ khác sẽ
+        // trộn giọng/đối tượng hai thương hiệu. (Bài của hồ sơ đã xóa đã bị findOwnedForUpdate loại.)
+        if (!strategy.getBrandProfile().getId().equals(item.getBrandProfile().getId())) {
+            throw new AppException(ErrorCode.STRATEGY_BRAND_MISMATCH);
         }
 
         // B2: job ghi version vào MỘT bài có sẵn — bài phải thuộc user và còn trong wizard.

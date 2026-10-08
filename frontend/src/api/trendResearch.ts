@@ -9,6 +9,23 @@ import client, { type ApiResponse } from "./apiClient";
 export type ResearchStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
 export type ResearchSuitability = "LOW" | "MEDIUM" | "HIGH";
 export type ResearchPlatform = "FACEBOOK" | "INSTAGRAM" | "THREADS";
+export type TrendType = "EVENT" | "NEWS" | "FORMAT" | "NICHE";
+export type TrendMomentum = "NEW" | "RISING" | "STABLE" | "FADING";
+export type ResearchTrigger = "MANUAL" | "SCHEDULED";
+
+/** Nguồn thật đứng sau một trend (AI không tự viết URL — code gắn từ dữ liệu đã thu thập). */
+export interface TrendEvidence {
+  title: string;
+  url: string; // rỗng với mốc lịch marketing
+  source: "web" | "google_trends" | "calendar" | "youtube" | "instagram" | "threads" | string;
+}
+
+/** Một nguồn dữ liệu của phiên và kết quả của nó — minh bạch chất lượng research. */
+export interface ResearchDataSource {
+  name: string; // web_search | google_trends | calendar | youtube | instagram | threads
+  status: "ok" | "empty" | "skipped" | "failed";
+  items: number;
+}
 
 export interface ResearchContentIdea {
   id: string;
@@ -16,6 +33,8 @@ export interface ResearchContentIdea {
   ideaDescription: string | null;
   platform: ResearchPlatform;
   suitabilityLevel: ResearchSuitability | null;
+  executionSuggestions?: string[];
+  relatedGoals?: string[];
 }
 
 export interface ResearchTrend {
@@ -24,6 +43,14 @@ export interface ResearchTrend {
   platform: ResearchPlatform;
   relevanceScore: number | null;
   description: string | null;
+  // Nghiên cứu dựa trên bằng chứng — phiên cũ trả null/[].
+  relevance?: ResearchSuitability | null;
+  trendType?: TrendType | null;
+  momentum?: TrendMomentum | null;
+  actBy?: string | null; // yyyy-MM-dd
+  confidence?: ResearchSuitability | null;
+  hashtags?: string[];
+  evidence?: TrendEvidence[];
   contentIdeas: ResearchContentIdea[];
 }
 
@@ -37,6 +64,10 @@ export interface ResearchSessionDetail {
   status: ResearchStatus;
   summary: string | null;
   errorMessage: string | null;
+  triggerType?: ResearchTrigger;
+  grounded?: boolean | null; // true = AI đã tìm kiếm web thật; false/null = nguồn hạn chế
+  webSearches?: number | null;
+  dataSources?: ResearchDataSource[];
   trends: ResearchTrend[];
 }
 
@@ -48,6 +79,8 @@ export interface ResearchSessionSummary {
   status: ResearchStatus;
   trendsFound: number;
   ideasCreated: number;
+  triggerType?: ResearchTrigger;
+  grounded?: boolean | null;
 }
 
 export interface TrendResearchInput {

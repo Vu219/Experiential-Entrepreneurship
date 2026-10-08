@@ -38,7 +38,7 @@ const toSaveInput = (p: PlanDto): PlanSaveInput => ({
   nameVi: p.nameVi, nameEn: p.nameEn, price: p.price,
   billingCycleVi: p.billingCycleVi, billingCycleEn: p.billingCycleEn,
   billingIntervalMonths: p.billingIntervalMonths,
-  tokenQuota: p.tokenQuota, descriptionVi: p.descriptionVi, descriptionEn: p.descriptionEn,
+  tokenQuota: p.tokenQuota, monthlyTokenLimit: p.monthlyTokenLimit, descriptionVi: p.descriptionVi, descriptionEn: p.descriptionEn,
   featuresVi: p.featuresVi, featuresEn: p.featuresEn,
   teaserFeaturesVi: p.teaserFeaturesVi, teaserFeaturesEn: p.teaserFeaturesEn,
   ctaVi: p.ctaVi, ctaEn: p.ctaEn,
@@ -192,6 +192,8 @@ export default function Plans() {
               <div style={{ fontSize: 12.5, color: C.textSecondary, lineHeight: 1.5, minHeight: 36 }}>{lang === 'en' ? p.descriptionEn : p.descriptionVi}</div>
               <div style={{ fontSize: 12, color: C.accentTextMuted }}>
                 {t.plTokenQuota}: <b>{p.tokenQuota === null ? '∞' : p.tokenQuota.toLocaleString('vi-VN')}</b>
+                <span style={{ margin: '0 8px', color: C.legacyTexte3ddf2 }}>|</span>
+                {t.plTokenLimit}: <b>{p.monthlyTokenLimit == null ? '∞' : p.monthlyTokenLimit.toLocaleString('vi-VN')}</b>
                 <span style={{ margin: '0 8px', color: C.legacyTexte3ddf2 }}>|</span>
                 {t.plOrder}: <b>{p.displayOrder}</b>
               </div>
@@ -412,6 +414,7 @@ function PlanFormModal({ plan, onClose, onSaved }: {
   const [cycleEn, setCycleEn] = useState(plan?.billingCycleEn ?? '/month');
   const [interval, setInterval] = useState(String(plan?.billingIntervalMonths ?? 1));
   const [tokenQuota, setTokenQuota] = useState(plan?.tokenQuota === null || plan?.tokenQuota === undefined ? '' : String(plan.tokenQuota));
+  const [tokenLimit, setTokenLimit] = useState(plan?.monthlyTokenLimit == null ? '' : String(plan.monthlyTokenLimit));
   const [descVi, setDescVi] = useState(plan?.descriptionVi ?? '');
   const [descEn, setDescEn] = useState(plan?.descriptionEn ?? '');
   const [featuresVi, setFeaturesVi] = useState((plan?.featuresVi ?? []).join('\n'));
@@ -425,7 +428,9 @@ function PlanFormModal({ plan, onClose, onSaved }: {
   const [isActive, setIsActive] = useState(plan?.isActive ?? true);
 
   const codeOk = !isNew || /^[A-Z0-9_]{2,20}$/.test(code.trim().toUpperCase());
-  const canSave = !!nameVi.trim() && !!nameEn.trim() && (!isNew || (!!code.trim() && codeOk));
+  // Gói đang bán (có giá) phải có hạn mức token thật — nếu không user mua gói sẽ dùng AI không giới hạn.
+  const tokenLimitMissing = isActive && (Number(price) || 0) > 0 && tokenLimit.trim() === '';
+  const canSave = !!nameVi.trim() && !!nameEn.trim() && (!isNew || (!!code.trim() && codeOk)) && !tokenLimitMissing;
 
   const lines = (s: string) => s.split('\n').map((x) => x.trim()).filter(Boolean);
 
@@ -439,6 +444,7 @@ function PlanFormModal({ plan, onClose, onSaved }: {
       // BE chặn 1..60; ô rỗng coi như gói tháng để không gửi 0 xuống.
       billingIntervalMonths: Number(interval) || 1,
       tokenQuota: tokenQuota.trim() === '' ? null : Number(tokenQuota) || 0,
+      monthlyTokenLimit: tokenLimit.trim() === '' ? null : Number(tokenLimit) || null,
       descriptionVi: descVi.trim() || null, descriptionEn: descEn.trim() || null,
       featuresVi: lines(featuresVi), featuresEn: lines(featuresEn),
       teaserFeaturesVi: lines(teaserVi), teaserFeaturesEn: lines(teaserEn),
@@ -511,6 +517,13 @@ function PlanFormModal({ plan, onClose, onSaved }: {
               <input value={tokenQuota} onChange={(e) => setTokenQuota(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" style={fieldStyle} placeholder="100" />
               <div style={hintStyle}>{t.plTokenQuotaHint}</div>
             </div>
+            <div>
+              <label style={labelStyle}>{t.plTokenLimit}</label>
+              <input value={tokenLimit} onChange={(e) => setTokenLimit(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" style={fieldStyle} placeholder="100000" aria-invalid={tokenLimitMissing} />
+              <div style={{ ...hintStyle, ...(tokenLimitMissing ? { color: C.danger } : {}) }}>{tokenLimitMissing ? t.plTokenLimitRequired : t.plTokenLimitHint}</div>
+            </div>
+          </div>
+          <div style={two}>
             <div>
               <label style={labelStyle}>{t.plOrder}</label>
               <input value={order} onChange={(e) => setOrder(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" style={fieldStyle} />

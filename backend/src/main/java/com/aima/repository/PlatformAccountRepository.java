@@ -43,9 +43,10 @@ public interface PlatformAccountRepository extends JpaRepository<PlatformAccount
 
     long countByUser_IdAndConnectionStatusAndDeletedAtIsNull(UUID userId, ConnectionStatus status);
 
-    // TokenHealthCheckJob: token sắp hết hạn trong khoảng [now, threshold].
-    List<PlatformAccount> findByConnectionStatusAndTokenExpiredAtBetweenAndDeletedAtIsNull(
-            ConnectionStatus status, LocalDateTime from, LocalDateTime to);
+    // TokenHealthCheckJob: token sắp hết hạn (≤ threshold) — gồm cả token đã quá hạn mà vẫn ACTIVE
+    // (các lượt trước refresh lỗi tạm thời) để được đánh dấu EXPIRED.
+    List<PlatformAccount> findByConnectionStatusAndTokenExpiredAtLessThanEqualAndDeletedAtIsNull(
+            ConnectionStatus status, LocalDateTime threshold);
 
     // TokenValidationJob: mẫu các kết nối đang ACTIVE để ping /me.
     List<PlatformAccount> findByConnectionStatusAndDeletedAtIsNull(ConnectionStatus status);

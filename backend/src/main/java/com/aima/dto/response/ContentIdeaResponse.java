@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -34,4 +35,10 @@ public class ContentIdeaResponse {
 
     @Schema(description = "Suitability level.", example = "HIGH")
     SuitabilityLevel suitabilityLevel;
+
+    @Schema(description = "How to execute the idea (hook, format, angle).")
+    List<String> executionSuggestions;
+
+    @Schema(description = "Brand goals the idea serves.")
+    List<String> relatedGoals;
 }

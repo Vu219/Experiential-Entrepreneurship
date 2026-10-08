@@ -1,5 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { Search, Play, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { AlertTriangle, Search, Play, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
 import { Card, Icon } from '../../components/ui.tsx';
@@ -210,6 +210,11 @@ export default function Trends() {
 
   const liveSessions = useMemo(() => live?.sessions ?? [], [live]);
   const hasLiveResults = liveSessions.length > 0;
+  // Phiên mới nhất không tìm kiếm web được → nói rõ kết quả có độ tin cậy thấp hơn (không giấu chất lượng).
+  const latestNotGrounded = useMemo(() => {
+    const latest = [...liveSessions].sort((a, b) => b.researchTime.localeCompare(a.researchTime))[0];
+    return latest?.grounded === false;
+  }, [liveSessions]);
   const isLiveData = !!(live && live.summaries.length > 0);
   // Gộp phiên + khử trùng lặp; sau đó ẨN các trend user đã xóa (deletedIds) khỏi mọi nơi
   // (bảng, ý tưởng, thẻ thống kê, sidebar) — dữ liệu thật còn được soft delete ở backend.
@@ -524,11 +529,17 @@ export default function Trends() {
               {advOpen && (
                 <div style={filterRowStyle}>
                   <FilterSelect fullWidth={isMobile} label={t.trMinFit} value={minFitF} onChange={(v) => setMinFitF(v as 'all' | 'high' | 'medium')} options={[{ value: 'all', label: t.trAll }, { value: 'medium', label: t.trFitMed }, { value: 'high', label: t.trFitHigh }]} />
-                  <FilterSelect fullWidth={isMobile} label={t.trSortBy} value={sortBy} onChange={(v) => setSortBy(v as typeof sortBy)} options={[{ value: 'none', label: t.trAll }, { value: 'growth', label: t.trSortGrowth }, { value: 'engagement', label: t.trColEngage }, { value: 'ideas', label: t.trColIdeas }]} />
+                  <FilterSelect fullWidth={isMobile} label={t.trSortBy} value={sortBy} onChange={(v) => setSortBy(v as typeof sortBy)} options={[{ value: 'none', label: t.trAll }, { value: 'growth', label: hasLiveResults ? t.trColFit : t.trSortGrowth }, { value: 'engagement', label: hasLiveResults ? t.trColEvidence : t.trColEngage }, { value: 'ideas', label: t.trColIdeas }]} />
                   <label style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 12px', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: C.ink650 }}>
                     <input type="checkbox" checked={onlyWithIdeas} onChange={(e) => setOnlyWithIdeas(e.target.checked)} style={{ accentColor: '#8b5cf6', cursor: 'pointer' }} />
                     {t.trOnlyWithIdeas}
                   </label>
+                </div>
+              )}
+              {latestNotGrounded && (
+                <div role="note" style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12.5, lineHeight: 1.5, color: C.ink650, background: C.warningSoft, borderRadius: 12, padding: '9px 12px' }}>
+                  <Icon icon={AlertTriangle} size={15} stroke={C.warning} />
+                  <span>{t.trNotGrounded}</span>
                 </div>
               )}
               <TrendTable

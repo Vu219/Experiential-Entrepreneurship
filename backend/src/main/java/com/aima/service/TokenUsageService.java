@@ -24,6 +24,16 @@ public interface TokenUsageService {
      */
     QuotaState checkQuota(User user);
 
+    /** Số tác vụ AI (tạo + định dạng + tạo lại) PENDING/RUNNING tối đa của một user cùng lúc. */
+    int MAX_CONCURRENT_AI_JOBS = 3;
+
+    /**
+     * Chặn tác vụ AI mới khi user đã có {@link #MAX_CONCURRENT_AI_JOBS} job đang chạy
+     * (AI_JOBS_LIMIT_REACHED). {@link #checkQuota} chỉ đọc mức đã dùng nên N job khởi động cùng lúc
+     * đều lọt và cùng vượt hạn mức — giới hạn này chặn trên phần vượt đó.
+     */
+    void checkConcurrentAiJobs(User user);
+
     /**
      * Cộng đơn vị quy đổi vào cache users.tokens_used; gọi trong transaction đang mở.
      * Từ pha 2: nguồn gọi DUY NHẤT là AiUsageServiceImpl.saveEvent với lượng

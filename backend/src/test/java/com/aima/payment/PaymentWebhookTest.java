@@ -232,8 +232,8 @@ class PaymentWebhookTest {
     @Test
     void webhook_linkPaidButAmountMismatch_doesNotActivate() {
         Payment payment = seedOrder(PaymentStatus.PENDING);
-        gatewaySaysSignatureValid(150_000L);   // số tiền ĐÃ KÝ lệch với đơn
-        gatewayLinkIs(GatewayLinkStatus.PAID, AMOUNT);
+        gatewaySaysSignatureValid(AMOUNT);
+        gatewayLinkIs(GatewayLinkStatus.PAID, AMOUNT + 50_000L);   // tổng tiền luỹ kế lệch với đơn
 
         service.handleWebhook(body(""));
 
@@ -241,6 +241,21 @@ class PaymentWebhookTest {
         assertEquals(PaymentStatus.PAID, saved.getStatus(), "tiền đã về thì vẫn phải ghi nhận");
         assertTrue(saved.getReconcileRequired(), "nhưng lệch tiền thì phải để admin đối soát");
         verify(subscriptionService, never()).activatePaidPlan(any(), any(), any());
+    }
+
+    /** Khách chuyển thiếu rồi chuyển bù: webhook cuối chỉ mang phần bù, nhưng tổng luỹ kế đủ → kích hoạt. */
+    @Test
+    void webhook_splitTransfers_cumulativeAmountMatches_activatesPlan() {
+        Payment payment = seedOrder(PaymentStatus.PENDING);
+        gatewaySaysSignatureValid(150_000L);   // chỉ là lệnh chuyển bù
+        gatewayLinkIs(GatewayLinkStatus.PAID, AMOUNT);
+
+        service.handleWebhook(body(""));
+
+        Payment saved = store.get(payment.getId());
+        assertEquals(PaymentStatus.PAID, saved.getStatus());
+        assertFalse(saved.getReconcileRequired());
+        verify(subscriptionService, times(1)).activatePaidPlan(any(), eq(proPlan), any());
     }
 
     // ------------------------------------------------------------------ nhánh từ chối

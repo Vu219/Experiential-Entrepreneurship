@@ -21,6 +21,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
@@ -55,14 +57,20 @@ public interface StrategyOptimizationMapper {
     // hook không tách được từ script đã làm phẳng → bỏ (Optional phía Python).
     @Mapping(target = "postId", source = "post.id")
     @Mapping(target = "platform", source = "post.platformName")
-    @Mapping(target = "scheduledHour", expression = "java(post.getSchedule().getScheduledTime() == null ? null : post.getSchedule().getScheduledTime().atZone(com.aima.util.PublishingTime.LEGACY_ZONE).getHour())")
+    @Mapping(target = "scheduledHour", expression = "java(publishedHour(post, zone))")
     @Mapping(target = "hook", ignore = true)
     @Mapping(target = "caption", source = "version.formattedCaption")
     @Mapping(target = "hashtags", source = "version.formattedHashtag", qualifiedByName = "csvToList")
     @Mapping(target = "cta", source = "version.cta")
     @Mapping(target = "mediaFormat", source = "version.mediaFormat")
     @Mapping(target = "metrics", source = "metrics")
-    AnalyzedPostPayload toAnalyzedPostPayload(Post post, ContentVersion version, PostAnalytics metrics);
+    AnalyzedPostPayload toAnalyzedPostPayload(Post post, ContentVersion version, PostAnalytics metrics, ZoneId zone);
+
+    /** Giờ ĐĂNG THỰC TẾ theo múi giờ đăng bài của user (đăng ngay / retry lệch giờ hẹn); thiếu thì dùng giờ hẹn. */
+    default Integer publishedHour(Post post, ZoneId zone) {
+        Instant time = post.getPublishedAt() != null ? post.getPublishedAt() : post.getSchedule().getScheduledTime();
+        return time == null ? null : time.atZone(zone).getHour();
+    }
 
     AnalyzePayload toAnalyzePayload(BrandProfileInputPayload brandProfile, List<AnalyzedPostPayload> posts);
 

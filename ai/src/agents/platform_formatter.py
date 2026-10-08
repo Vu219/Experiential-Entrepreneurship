@@ -7,6 +7,8 @@ TikTok / YouTube Shorts / LinkedIn are intentionally out of scope.
 
 from __future__ import annotations
 
+import re
+
 from langchain_core.prompts import ChatPromptTemplate
 
 from ..llm import invoke_structured
@@ -36,11 +38,31 @@ PLATFORM_RULES = {
         "Wording: short, natural, conversational sentences with a fast rhythm that invites replies. "
         "CTA phrased as a light conversational nudge. "
         "Layout: tight — single line breaks, lines sitting close together, NO blank-line padding. "
-        "If the message is genuinely too long for one post, it may be split into a short thread "
-        "(separate the parts with a blank line). "
+        "It is published as ONE single post (never a thread): condense rather than split. "
         "Few or NO hashtags. media_format is usually 'text' or a single 'image'."
     ),
 }
+
+# Hard limits of what is actually published: caption + "\n\n" + "#a #b" (backend
+# PlatformTextLimits / PlatformPublisher.buildMessage). (max characters, max hashtags or None).
+PLATFORM_LIMITS: dict[str, tuple[int, int | None]] = {
+    "facebook": (63206, None),
+    "instagram": (2200, 30),
+    "threads": (500, None),
+}
+
+# Spellings the LLM may echo back for a requested platform (compared lowercase, letters only).
+PLATFORM_ALIASES = {
+    "fb": "facebook",
+    "facebookpage": "facebook",
+    "ig": "instagram",
+    "insta": "instagram",
+    "thread": "threads",
+}
+
+# '#tag' starting a word, with at least one letter ("#1" is not a hashtag) — Unicode, so
+# Vietnamese tags match. Same rule as backend PlatformTextLimits.HASHTAG.
+_HASHTAG_RE = re.compile(r"(?<![\w#])#[\d_]*[^\W\d_]\w*")
 
 SYSTEM_PROMPT = """You are the Platform Formatter for AIMA. You ADAPT one already-approved \
 content item into platform-native versions — one version per requested platform. You RE-EXPRESS \
@@ -81,7 +103,11 @@ For each: adapt the caption, adapt the hashtags, rewrite the CTA to fit the plat
 and set media_format.
 
 Per-platform presentation rules:
-{rules}"""
+{rules}
+
+HARD LIMITS (count characters of caption + a blank line + the hashtags rendered as "#a #b"):
+{limits}
+Stay well inside them — anything over the limit is cut automatically."""
 
 
 def format_content(req: FormatRequest) -> FormatResult:
@@ -90,6 +116,10 @@ def format_content(req: FormatRequest) -> FormatResult:
         f"- {p}: {PLATFORM_RULES.get(p.lower(), 'Use sensible native defaults for this platform.')}"
         for p in req.platforms
     )
+
+    limits_text = "\n".join(
+        f"- {p}: {_limit_text(p.lower())}" for p in req.platforms if p.lower() in PLATFORM_LIMITS
+    ) or "- (none)"
 
     # Structured output as a list wrapper so the model returns all versions at once.
     prompt = ChatPromptTemplate.from_messages(
@@ -103,16 +133,94 @@ def format_content(req: FormatRequest) -> FormatResult:
             "content": req.content.model_dump_json(indent=2),
             "platforms": ", ".join(req.platforms),
             "rules": rules_text,
+            "limits": limits_text,
         },
     )
 
-    # Guard: keep only requested platforms, dedupe, and ensure each is covered.
-    wanted = {p.lower() for p in req.platforms}
+    # Guard: map each version back to a requested platform (the LLM may answer "fb" or
+    # "Facebook Page"), dedupe, then enforce the hard limits on what will be published.
     seen: set[str] = set()
     versions: list[ContentVersion] = []
     for v in result.versions:
-        key = v.platform_name.lower()
-        if key in wanted and key not in seen:
-            versions.append(v)
-            seen.add(key)
+        requested = _match_platform(v.platform_name, req.platforms)
+        if requested is None or requested.lower() in seen:
+            continue
+        v.platform_name = requested
+        _clean_hashtags(v)
+        _enforce_limits(v, requested.lower())
+        versions.append(v)
+        seen.add(requested.lower())
     return FormatResult(versions=versions, **usage.response_fields())
+
+
+def _limit_text(key: str) -> str:
+    max_chars, max_tags = PLATFORM_LIMITS[key]
+    text = f"at most {max_chars} characters in total"
+    if max_tags is not None:
+        text += f", at most {max_tags} hashtags"
+    return text
+
+
+def _match_platform(name: str, requested: list[str]) -> str | None:
+    """Requested platform (its original spelling) that ``name`` refers to, or None."""
+    key = re.sub(r"[^a-z]", "", (name or "").lower())
+    key = PLATFORM_ALIASES.get(key, key)
+    for platform in requested:
+        canonical = re.sub(r"[^a-z]", "", platform.lower())
+        if key == canonical or (canonical and canonical in key):
+            return platform
+    return None
+
+
+def _tag_key(tag: str) -> str:
+    return tag.strip().lstrip("#").lower()
+
+
+def _clean_hashtags(v: ContentVersion) -> None:
+    """Move '#tag' tokens left in the caption into formatted_hashtags (buildMessage appends the
+    hashtags after the caption, so leaving them in would publish them twice); dedupe tags."""
+    found = _HASHTAG_RE.findall(v.formatted_caption)
+    caption = _HASHTAG_RE.sub("", v.formatted_caption)
+    caption = re.sub(r"[ \t]{2,}", " ", caption)
+    caption = re.sub(r"[ \t]+(?=\n|$)", "", caption)
+    v.formatted_caption = re.sub(r"\n{3,}", "\n\n", caption).strip()
+
+    tags: list[str] = []
+    keys: set[str] = set()
+    for tag in [*v.formatted_hashtags, *found]:
+        key = _tag_key(tag)
+        if key and key not in keys:
+            tags.append(tag.strip())
+            keys.add(key)
+    v.formatted_hashtags = tags
+
+
+def _compose(caption: str, tags: list[str]) -> str:
+    """Mirror of backend PlatformTextLimits.compose (caption + blank line + "#a #b")."""
+    rendered = " ".join(t if t.startswith("#") else f"#{t}" for t in (t.strip() for t in tags) if t)
+    caption = caption.strip()
+    return f"{caption}\n\n{rendered}" if rendered else caption
+
+
+def _enforce_limits(v: ContentVersion, key: str) -> None:
+    """Fit the published message into the platform limits: drop hashtags first (from the end),
+    then cut the caption at a word boundary."""
+    if key not in PLATFORM_LIMITS:
+        return
+    max_chars, max_tags = PLATFORM_LIMITS[key]
+    tags = v.formatted_hashtags[:max_tags] if max_tags is not None else list(v.formatted_hashtags)
+    while tags and len(_compose(v.formatted_caption, tags)) > max_chars:
+        tags.pop()
+    v.formatted_hashtags = tags
+    if len(_compose(v.formatted_caption, tags)) > max_chars:
+        v.formatted_caption = _truncate(v.formatted_caption.strip(), max_chars)
+
+
+def _truncate(text: str, max_chars: int) -> str:
+    """Cut to at most ``max_chars`` (ellipsis included), at the last whitespace when possible."""
+    budget = max_chars - 1  # room for the ellipsis
+    cut = text[:budget]
+    space = max(cut.rfind(" "), cut.rfind("\n"))
+    if space > budget // 2:
+        cut = cut[:space]
+    return cut.rstrip(" \n\t,.;:-–—") + "…"

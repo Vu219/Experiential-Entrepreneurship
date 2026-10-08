@@ -21,6 +21,16 @@ class Settings(BaseSettings):
     llm_call_timeout_seconds: float = 40
     llm_chain_budget_seconds: float = 80
 
+    # Trend research — web-grounded search step (llm.invoke_grounded). A search turn makes
+    # several round-trips, so it has its own limits; search budget + llm_chain_budget must
+    # stay < backend AI_RESEARCH_TIMEOUT_SECONDS (200). max_uses caps Claude web searches
+    # per session (each search is billed by Anthropic on top of tokens).
+    trend_search_call_timeout_seconds: float = 75
+    trend_search_budget_seconds: float = 90
+    trend_search_max_uses: int = 5
+    # ISO 3166 region for Google Trends / platform search when the request has none.
+    trends_default_region: str = "VN"
+
     # Anthropic (Claude)
     anthropic_api_key: str | None = None
     anthropic_model: str = "claude-sonnet-4-6"

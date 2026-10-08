@@ -496,4 +496,51 @@ class MetaApiClientImplTest {
         server.enqueue(json("{\"id\":\"400\"}"));                          // id trần → thêm tiền tố Trang
         assertEquals("1_400", client.publishPagePost("1", "page-tok", "hi").platformPostId());
     }
+
+    @Test
+    void refreshLongLivedToken_threads_usesThRefreshTokenGrant() throws InterruptedException {
+        server.enqueue(json("{\"access_token\":\"new-long\",\"expires_in\":5184000}"));
+
+        MetaApiClient.MetaTokenResult result = client.refreshLongLivedToken(Platform.THREADS, "old-long");
+
+        assertEquals("new-long", result.accessToken());
+        String path = server.takeRequest().getPath();
+        assertTrue(path.startsWith("/refresh_access_token?"), path);
+        assertTrue(path.contains("grant_type=th_refresh_token"), path);
+        assertTrue(path.contains("access_token=old-long"), path);
+        assertFalse(path.contains("th_exchange_token"), path);
+    }
+
+    @Test
+    void refreshLongLivedToken_facebook_keepsFbExchangeToken() throws InterruptedException {
+        server.enqueue(json("{\"access_token\":\"new-long\",\"expires_in\":5184000}"));
+
+        client.refreshLongLivedToken(Platform.FACEBOOK, "old-long");
+
+        assertTrue(server.takeRequest().getPath().contains("grant_type=fb_exchange_token"));
+    }
+
+    private com.aima.exception.PublishException publishError(int status, String body) {
+        server.enqueue(new MockResponse().setResponseCode(status).setBody(body)
+                .addHeader("Content-Type", "application/json"));
+        return assertThrows(com.aima.exception.PublishException.class,
+                () -> client.publishPagePost("1", "page-tok", "hi"));
+    }
+
+    @Test
+    void publish_rateLimitAndTransientErrors_areTemporary() {
+        assertEquals(com.aima.enums.PublishErrorType.TEMPORARY,
+                publishError(400, "{\"error\":{\"message\":\"BUC limit\",\"code\":80001}}").getErrorType());
+        assertEquals(com.aima.enums.PublishErrorType.TEMPORARY,
+                publishError(400, "{\"error\":{\"message\":\"BUC limit\",\"code\":80014}}").getErrorType());
+        assertEquals(com.aima.enums.PublishErrorType.TEMPORARY,
+                publishError(429, "{\"error\":{\"message\":\"Too many\",\"code\":9999}}").getErrorType());
+        assertEquals(com.aima.enums.PublishErrorType.TEMPORARY,
+                publishError(400, "{\"error\":{\"message\":\"Try later\",\"code\":9007,\"is_transient\":true}}").getErrorType());
+        // Không phải tạm thời: 80015 nằm ngoài dải BUC, 190 token hết hạn.
+        assertEquals(com.aima.enums.PublishErrorType.PERMANENT,
+                publishError(400, "{\"error\":{\"message\":\"x\",\"code\":80015}}").getErrorType());
+        assertEquals(com.aima.enums.PublishErrorType.PERMANENT,
+                publishError(400, "{\"error\":{\"message\":\"Session expired\",\"code\":190,\"is_transient\":false}}").getErrorType());
+    }
 }

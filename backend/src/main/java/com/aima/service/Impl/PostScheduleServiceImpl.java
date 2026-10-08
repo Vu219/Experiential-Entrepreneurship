@@ -1,5 +1,6 @@
 package com.aima.service.Impl;
 
+import com.aima.dto.ai.AnalyzedPostPayload;
 import com.aima.dto.ai.GoldenHourPayload;
 import com.aima.dto.ai.GoldenHourResultPayload;
 import com.aima.dto.request.PostScheduleRequest;
@@ -17,6 +18,8 @@ import com.aima.entity.ContentItem;
 import com.aima.entity.ContentVersion;
 import com.aima.entity.IdempotencyRecord;
 import com.aima.entity.PlatformAccount;
+import com.aima.entity.Post;
+import com.aima.entity.PostAnalytics;
 import com.aima.entity.PostSchedule;
 import com.aima.entity.PostingJob;
 import com.aima.entity.User;
@@ -28,6 +31,7 @@ import com.aima.enums.HoldReason;
 import com.aima.enums.IdempotencyOperation;
 import com.aima.enums.Platform;
 import com.aima.enums.PlatformAccountType;
+import com.aima.enums.PostStatus;
 import com.aima.enums.PostingJobStatus;
 import com.aima.enums.ReviewStatus;
 import com.aima.enums.ScheduleMode;
@@ -36,9 +40,11 @@ import com.aima.enums.UserStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.mapper.PostScheduleMapper;
+import com.aima.mapper.StrategyOptimizationMapper;
 import com.aima.repository.ContentVersionRepository;
 import com.aima.repository.IdempotencyRecordRepository;
 import com.aima.repository.PlatformAccountRepository;
+import com.aima.repository.PostRepository;
 import com.aima.repository.PostScheduleRepository;
 import com.aima.repository.PostingJobRepository;
 import com.aima.repository.UserPublishingSettingsRepository;
@@ -50,10 +56,12 @@ import com.aima.service.PostPublishWorkerService;
 import com.aima.service.PostScheduleService;
 import com.aima.service.PostingDispatchService;
 import com.aima.service.ScheduleHoldService;
+import com.aima.util.PublishingTime;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -117,9 +125,13 @@ public class PostScheduleServiceImpl implements PostScheduleService {
     static final int SUGGESTION_HORIZON_DAYS = 30;
     static final Pattern HOUR_MINUTE = Pattern.compile("(\\d{1,2}):(\\d{2})");
 
-    // Cache khung giờ vàng (xem suggestGoldenHours).
+    // Cache khung giờ vàng (xem goldenHours) — theo (user, nền tảng): kết quả data-driven là riêng của từng user.
     static final Duration GOLDEN_HOURS_TTL = Duration.ofHours(1);
-    Map<Platform, CachedGoldenHours> goldenHoursCache = new ConcurrentHashMap<>();
+    Map<GoldenHourKey, CachedGoldenHours> goldenHoursCache = new ConcurrentHashMap<>();
+    // FR-48: AI chỉ dùng dữ liệu khi có ≥ 10 bài (ai/src/agents/optimizer.py) — chọn mốc số liệu có đủ ngần ấy bài.
+    static final int GOLDEN_HOURS_MIN_POSTS = 10;
+    static final int GOLDEN_HOURS_MAX_POSTS = 100;
+    static final List<Integer> GOLDEN_HOURS_MILESTONES = List.of(168, 48, 24);
 
     PostScheduleRepository postScheduleRepository;
     ContentVersionRepository contentVersionRepository;
@@ -135,6 +147,8 @@ public class PostScheduleServiceImpl implements PostScheduleService {
     PostingDispatchService dispatchService;
     PostPublishWorkerService postPublishWorkerService;
     TransactionTemplate transactionTemplate;
+    PostRepository postRepository;
+    StrategyOptimizationMapper strategyOptimizationMapper;
 
     /** Đầu vào chuẩn hoá của MỘT dòng tạo lịch (đơn hay batch). */
     private record RowInput(UUID contentVersionId, UUID platformAccountId, ScheduleMode mode, Instant scheduledTime) {
@@ -435,6 +449,9 @@ public class PostScheduleServiceImpl implements PostScheduleService {
     @Override
     @Transactional
     public int releasePendingDeletionHolds(UUID userId) {
+        // Job PENDING/RETRYING còn sót (worker ghi retry đúng lúc user yêu cầu xoá) phải dừng TRƯỚC khi gỡ lý do,
+        // nếu không dispatcher sẽ tự đăng lại ngay khi tài khoản được khôi phục.
+        holdAllForPendingDeletion(userId);
         return holdService.releaseForUser(userId, HoldReason.USER_PENDING_DELETE, false);
     }
 
@@ -529,25 +546,79 @@ public class PostScheduleServiceImpl implements PostScheduleService {
 
     // ===================================================================== gợi ý giờ
 
-    // FR-48: không mở transaction — gọi HTTP sang AI service (rule #24), chưa có dữ liệu analytics
-    // (FR-59) nên AI trả khung giờ mặc định theo nền tảng (data_driven = false).
-    //
-    // Hiệu năng: kết quả hiện là MẶC ĐỊNH theo nền tảng → cache in-process 1h mỗi nền tảng
-    // (mẫu cache thủ công như PlatformVersionServiceImpl), tránh một round-trip AI service
-    // mỗi lần user mở modal lên lịch. Khi nào payload gửi kèm `posts` (nhánh data-driven
-    // của FR-48) thì bỏ hoặc thu ngắn cache này.
+    // FR-48: mặc định theo nền tảng tới khi user có ≥ 10 bài AIMA có số liệu trên nền tảng đó, sau đó theo dữ liệu.
     @Override
-    public ApiResponse<GoldenHourResponse> suggestGoldenHours(Platform platform) {
-        CachedGoldenHours cached = goldenHoursCache.get(platform);
+    public ApiResponse<GoldenHourResponse> suggestGoldenHours(String email, Platform platform) {
+        User user = currentUser(email);
+        GoldenHourResponse response = goldenHours(user.getId(), platform);
+        return ApiResponse.success("Lấy gợi ý khung giờ vàng thành công", response);
+    }
+
+    // Không giữ transaction quanh lời gọi AI (rule #24): dựng `posts` trong transaction ngắn rồi gọi HTTP ở ngoài.
+    // Cache in-process 1h theo (user, nền tảng) (mẫu cache thủ công như PlatformVersionServiceImpl), tránh một
+    // round-trip AI service mỗi lần user mở modal lên lịch.
+    private GoldenHourResponse goldenHours(UUID userId, Platform platform) {
+        GoldenHourKey key = new GoldenHourKey(userId, platform);
+        CachedGoldenHours cached = goldenHoursCache.get(key);
         if (cached != null && cached.expiresAt().isAfter(Instant.now())) {
-            return ApiResponse.success("Lấy gợi ý khung giờ vàng thành công", cached.response());
+            return cached.response();
         }
 
-        GoldenHourPayload payload = postScheduleMapper.toGoldenHourPayload(platform);
+        List<AnalyzedPostPayload> posts = transactionTemplate.execute(tx -> goldenHourPosts(userId, platform));
+        GoldenHourPayload payload = postScheduleMapper.toGoldenHourPayload(platform, posts == null ? List.of() : posts);
         GoldenHourResultPayload result = aiServiceClient.goldenHours(payload);
         GoldenHourResponse response = postScheduleMapper.toGoldenHourResponse(result);
-        goldenHoursCache.put(platform, new CachedGoldenHours(response, Instant.now().plus(GOLDEN_HOURS_TTL)));
-        return ApiResponse.success("Lấy gợi ý khung giờ vàng thành công", response);
+        goldenHoursCache.put(key, new CachedGoldenHours(response, Instant.now().plus(GOLDEN_HOURS_TTL)));
+        return response;
+    }
+
+    // Bài AIMA đã đăng của user trên nền tảng, mỗi bài một snapshot ở CÙNG một mốc (24/48/168h — trộn mốc làm
+    // bài cũ trông "tốt" hơn); giờ đăng tính theo múi giờ đăng bài của user như khung giờ gợi ý.
+    private List<AnalyzedPostPayload> goldenHourPosts(UUID userId, Platform platform) {
+        List<Post> posts = postRepository
+                .findBySchedule_PlatformAccount_User_IdAndPlatformNameAndStatusAndDeletedAtIsNullOrderByPublishedAtDesc(
+                        userId, platform, PostStatus.POSTED,
+                        PageRequest.of(0, GOLDEN_HOURS_MAX_POSTS));
+        Integer milestone = goldenHourMilestone(posts);
+        if (milestone == null) {
+            return List.of();
+        }
+        ZoneId zone = settingsRepository.findById(userId)
+                .map(settings -> ZoneId.of(settings.getTimezone()))
+                .orElse(PublishingTime.LEGACY_ZONE);
+        List<AnalyzedPostPayload> payloads = new ArrayList<>();
+        for (Post post : posts) {
+            PostAnalytics snapshot = milestoneOf(post, milestone);
+            if (snapshot != null) {
+                payloads.add(strategyOptimizationMapper.toAnalyzedPostPayload(
+                        post, post.getSchedule().getContentVersion(), snapshot, zone));
+            }
+        }
+        return payloads;
+    }
+
+    // Mốc DÀI nhất có ≥ GOLDEN_HOURS_MIN_POSTS bài; không mốc nào đủ → mốc nhiều bài nhất (AI sẽ trả mặc định).
+    static Integer goldenHourMilestone(List<Post> posts) {
+        Integer best = null;
+        long bestCount = 0;
+        for (int milestone : GOLDEN_HOURS_MILESTONES) {
+            long count = posts.stream().filter(p -> milestoneOf(p, milestone) != null).count();
+            if (count >= GOLDEN_HOURS_MIN_POSTS) {
+                return milestone;
+            }
+            if (count > bestCount) {
+                best = milestone;
+                bestCount = count;
+            }
+        }
+        return best;
+    }
+
+    private static PostAnalytics milestoneOf(Post post, int milestone) {
+        return post.getPostAnalytics().stream()
+                .filter(a -> a.getDeletedAt() == null && Integer.valueOf(milestone).equals(a.getMilestoneHours()))
+                .findFirst()
+                .orElse(null);
     }
 
     // Khung giờ vàng còn trống của MỘT tài khoản theo múi giờ đăng của user: bỏ giờ đã qua và giờ nằm trong
@@ -571,7 +642,7 @@ public class PostScheduleServiceImpl implements PostScheduleService {
                 .findByPlatformAccount_IdAndStatusInAndDeletedAtIsNull(accountId, OCCUPYING_STATUSES).stream()
                 .map(PostSchedule::getScheduledTime).toList();
 
-        List<String> windows = suggestGoldenHours(account.getPlatformName()).getResult().getSuggestedHours();
+        List<String> windows = goldenHours(user.getId(), account.getPlatformName()).getSuggestedHours();
         Instant earliest = from != null && from.isAfter(Instant.now()) ? from : Instant.now();
         List<SuggestedSlotResponse> slots = new ArrayList<>();
         LocalDate day = earliest.atZone(zone).toLocalDate();
@@ -602,6 +673,9 @@ public class PostScheduleServiceImpl implements PostScheduleService {
     }
 
     private record CachedGoldenHours(GoldenHourResponse response, Instant expiresAt) {
+    }
+
+    private record GoldenHourKey(UUID userId, Platform platform) {
     }
 
     // ===================================================================== helpers

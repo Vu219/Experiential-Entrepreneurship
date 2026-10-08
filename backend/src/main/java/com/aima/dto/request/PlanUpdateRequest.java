@@ -44,6 +44,12 @@ public class PlanUpdateRequest {
 
     Long tokenQuota;
 
+    // Hạn mức token LLM THẬT mỗi tháng. null = GIỮ NGUYÊN giá trị hiện tại (FE cũ chưa gửi field này) —
+    // gói đang bán (giá > 0, đang bật) mà vẫn null sau khi cập nhật sẽ bị chặn trong PlanServiceImpl.
+    @Min(value = 1, message = "PLAN_TOKEN_LIMIT_INVALID")
+    @Schema(description = "Hạn mức token LLM THẬT mỗi tháng. null = giữ nguyên hạn mức hiện tại.", example = "100000")
+    Long monthlyTokenLimit;
+
     String descriptionVi;
     String descriptionEn;
 

@@ -7,7 +7,7 @@ Field names use snake_case; map to the DB columns on the backend side.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from typing import List, Literal, Optional
 
@@ -171,27 +171,26 @@ class ContentStrategyInput(BaseModel):
 # ============================================================
 
 
-class TrendSource(BaseModel):
-    """Facebook pages/groups to mine for trends (empty list -> mock fallback),
-    plus options for the cross-platform trend sources."""
+class PreviousTrend(BaseModel):
+    """A trend from an earlier session of the same brand + platform — lets research tell
+    NEW from continuing trends (momentum) and avoid serving the same ideas again."""
 
-    page_ids: List[str] = Field(default_factory=list)
-    group_ids: List[str] = Field(default_factory=list)
-    youtube_region: Optional[str] = Field(
-        default=None,
-        description="ISO region code for YouTube trending (e.g. 'VN'); None = global",
-    )
+    trend_name: str
+    researched_at: date
+    rejected: bool = False  # the user deleted it as unsuitable — never suggest it again
 
 
 class ResearchRequest(BaseModel):
     brand_profile: BrandProfileInput
     strategy: ContentStrategyInput
-    sources: TrendSource = Field(default_factory=TrendSource)
     # Target platform of the session (FR-19): every returned trend/idea targets it.
     # None = legacy payload without a platform -> agent behaves as before (any of the 3).
     platform: Optional[str] = Field(
         default=None, description="Facebook | Instagram | Threads (case-insensitive)"
     )
+    # ISO 3166 market (Google Trends geo, search location); None = TRENDS_DEFAULT_REGION.
+    region: Optional[str] = None
+    previous_trends: List[PreviousTrend] = Field(default_factory=list)
     max_trends: int = Field(default=8, ge=1, le=20)
     max_ideas: int = Field(default=5, ge=1, le=20)
     llm_config: Optional[LlmConfig] = None
@@ -211,6 +210,28 @@ class ContentIdea(BaseModel):
     related_goals: List[str] = Field(default_factory=list)
 
 
+class TrendType(str, Enum):
+    EVENT = "Event"      # holiday / sale day / season — known date
+    NEWS = "News"        # topic in the news / search spikes right now
+    FORMAT = "Format"    # content format, meme, challenge, audio
+    NICHE = "Niche"      # rising interest inside the brand's own niche
+
+
+class Momentum(str, Enum):
+    NEW = "New"          # first seen in this session
+    RISING = "Rising"    # growing (recent evidence, or seen before and stronger now)
+    STABLE = "Stable"    # seen in earlier sessions, still current
+    FADING = "Fading"    # past its peak — use only if still relevant
+
+
+class Evidence(BaseModel):
+    """A real source behind a trend — always from the collected signal, never model-written."""
+
+    title: str
+    url: str = ""
+    source: str = Field(..., description="web | google_trends | calendar | youtube | instagram | threads")
+
+
 class Trend(BaseModel):
     """A detected trend rated by industry relevance (FR-20, FR-21)."""
 
@@ -219,6 +240,14 @@ class Trend(BaseModel):
     relevance: Relevance
     relevance_score: float = Field(..., ge=0.0, le=1.0)
     description: str
+    # Evidence-grounded research (2026-10). Optional so older payloads stay valid.
+    trend_type: Optional[TrendType] = None
+    momentum: Optional[Momentum] = None
+    act_by: Optional[date] = Field(default=None, description="Publish before this date to ride the trend")
+    hashtags: List[str] = Field(default_factory=list)
+    evidence: List[Evidence] = Field(default_factory=list)
+    # Strength of the evidence (computed from distinct sources, not by the model).
+    confidence: Optional[Relevance] = None
 
 
 class ResearchResponse(BaseModel):
@@ -228,9 +257,23 @@ class ResearchResponse(BaseModel):
     summary: str
 
 
+class SourceStatus(BaseModel):
+    """What each signal source contributed to a session — shown to the user so a thin or
+    ungrounded result is visible, never silently presented as solid research."""
+
+    name: str = Field(..., description="web_search | google_trends | calendar | youtube | instagram | threads")
+    status: Literal["ok", "empty", "skipped", "failed"]
+    items: int = 0
+
+
 class ResearchResult(ResearchResponse, TokenAccounting):
     """HTTP response of /research — ResearchResponse plus real LLM token usage
     (fields from TokenAccounting) for backend quota accounting."""
+
+    # True when the provider's live web search succeeded (sources are real pages).
+    grounded: bool = False
+    web_searches: int = 0
+    sources_used: List[SourceStatus] = Field(default_factory=list)
 
 
 # ============================================================

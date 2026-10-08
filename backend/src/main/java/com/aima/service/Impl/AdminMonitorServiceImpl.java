@@ -131,7 +131,8 @@ public class AdminMonitorServiceImpl implements AdminMonitorService {
         long postedLast24h = safeCount(() ->
                 postRepository.countByStatusAndPublishedAtAfterAndDeletedAtIsNull(PostStatus.POSTED, com.aima.util.PublishingTime.fromLegacy(last24h)));
         long failedLast24h = safeCount(() ->
-                postRepository.countByStatusAndUpdatedAtAfterAndDeletedAtIsNull(PostStatus.FAILED, last24h));
+                postRepository.countByStatusAndSchedule_StatusAndUpdatedAtAfterAndDeletedAtIsNull(
+                        PostStatus.FAILED, ScheduleStatus.FAILED, last24h));
         long pendingSchedules = safeCount(() ->
                 postScheduleRepository.countByStatusAndDeletedAtIsNull(ScheduleStatus.SCHEDULED));
 

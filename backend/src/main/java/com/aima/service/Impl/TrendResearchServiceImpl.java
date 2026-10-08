@@ -12,6 +12,7 @@ import com.aima.entity.TrendResearchSession;
 import com.aima.entity.User;
 import com.aima.enums.Platform;
 import com.aima.enums.ResearchStatus;
+import com.aima.enums.ResearchTrigger;
 import com.aima.enums.StrategyStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
@@ -29,6 +30,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -54,6 +56,9 @@ public class TrendResearchServiceImpl implements TrendResearchService {
     TrendResearchWorkerService trendResearchWorkerService;
     TokenUsageService tokenUsageService;
 
+    static final String SUPERSEDED_MESSAGE = "Đã thay bằng phiên nghiên cứu bạn chủ động bắt đầu";
+    static final String QUEUE_FULL_MESSAGE = "Hệ thống đang bận, vui lòng thử lại sau ít phút";
+
     // FR-19: "Research now" — cần brand profile đang hoạt động + chiến lược ACTIVE (BR-01, BR-03),
     // và không cho phép 2 phiên chạy song song.
     @Override
@@ -78,6 +83,8 @@ public class TrendResearchServiceImpl implements TrendResearchService {
             throw new AppException(ErrorCode.STRATEGY_NOT_ACTIVE);
         }
 
+        // Phiên tự động 2:00 AM còn xếp hàng (chưa chạy) không được chặn user chủ động research.
+        sessionRepository.supersedeQueuedScheduled(user.getId(), LocalDateTime.now(), SUPERSEDED_MESSAGE);
         if (sessionRepository.existsByBrandProfile_User_IdAndStatusInAndDeletedAtIsNull(
                 user.getId(), List.of(ResearchStatus.PENDING, ResearchStatus.RUNNING))) {
             throw new AppException(ErrorCode.RESEARCH_ALREADY_RUNNING);
@@ -85,7 +92,8 @@ public class TrendResearchServiceImpl implements TrendResearchService {
 
         Platform platform = (request != null && request.getPlatform() != null) ? request.getPlatform() : Platform.FACEBOOK;
         Integer articleCount = request != null ? request.getArticleCount() : null;
-        TrendResearchSession session = trendResearchMapper.toSession(brand, platform, strategy, articleCount);
+        TrendResearchSession session = trendResearchMapper.toSession(brand, platform, strategy, articleCount,
+                ResearchTrigger.MANUAL);
         session.setClientIp(RequestMeta.clientIp());
         session.setUserAgent(RequestMeta.userAgent());
         TrendResearchSession saved = sessionRepository.save(session);
@@ -96,11 +104,11 @@ public class TrendResearchServiceImpl implements TrendResearchService {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    trendResearchWorkerService.process(sessionId);
+                    dispatch(sessionId);
                 }
             });
         } else {
-            trendResearchWorkerService.process(sessionId);
+            dispatch(sessionId);
         }
 
         TrendResearchSessionResponse response = trendResearchMapper.toSessionResponse(saved);
@@ -150,6 +158,16 @@ public class TrendResearchServiceImpl implements TrendResearchService {
                 .map(trendResearchMapper::toSessionSummaryResponse)
                 .toList();
         return ApiResponse.success("Lấy lịch sử nghiên cứu xu hướng thành công", sessions);
+    }
+
+    // Hàng đợi đầy → executor từ chối: chốt FAILED ngay (thay vì để PENDING chặn user tới khi bị quét kẹt).
+    private void dispatch(UUID sessionId) {
+        try {
+            trendResearchWorkerService.process(sessionId);
+        } catch (TaskRejectedException e) {
+            log.warn("[TrendResearch] Hàng đợi đầy, phiên {} không được nhận", sessionId);
+            sessionRepository.failPending(sessionId, LocalDateTime.now(), QUEUE_FULL_MESSAGE);
+        }
     }
 
     private User currentUser(String email) {

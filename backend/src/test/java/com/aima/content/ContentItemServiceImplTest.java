@@ -135,6 +135,16 @@ class ContentItemServiceImplTest {
     }
 
     @Test
+    void versionEditOverPlatformTextLimitIsRejected() {
+        ContentItem item = item(ContentItemStatus.FORMATTED, ReviewStatus.NONE);
+        ContentVersion version = version(item);
+
+        assertEquals(ErrorCode.CONTENT_VERSION_TEXT_TOO_LONG, assertThrows(AppException.class,
+                () -> service.updateVersion(email, item.getId(), version.getId(),
+                        ContentVersionUpdateRequest.builder().caption("x".repeat(63_300)).build())).getErrorCode());
+    }
+
+    @Test
     void wizardAutosaveAndDeleteOnlyBeforeReviewAndScheduling() {
         ContentItem formatted = item(ContentItemStatus.FORMATTED, ReviewStatus.NONE);
         assertEquals(2, service.updateWizardState(email, formatted.getId(),

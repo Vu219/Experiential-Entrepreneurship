@@ -82,6 +82,7 @@ public class PlanServiceImpl implements PlanService {
         Plan plan = planMapper.toPlan(request);
         plan.setCode(code);
         applyDefaults(plan);
+        requireTokenLimitWhenSellable(plan);
         Plan saved = planRepository.save(plan);
 
         logPlanConfig("PLAN_CREATED", "Plan", saved.getId().toString(), Map.of("code", saved.getCode()));
@@ -97,6 +98,18 @@ public class PlanServiceImpl implements PlanService {
         if (plan.getIsActive() == null) plan.setIsActive(true);
     }
 
+    /**
+     * Gói đang bán (giá > 0 và đang bật — cùng điều kiện PaymentServiceImpl.requirePurchasable)
+     * bắt buộc có hạn mức token THẬT: monthlyTokenLimit null = không giới hạn trong
+     * TokenUsageService, nên gói admin tạo mà quên hạn mức sẽ thành gói "vô hạn" ngoài ý muốn.
+     */
+    private void requireTokenLimitWhenSellable(Plan plan) {
+        boolean sellable = Boolean.TRUE.equals(plan.getIsActive()) && plan.getPrice() != null && plan.getPrice() > 0;
+        if (sellable && plan.getMonthlyTokenLimit() == null) {
+            throw new AppException(ErrorCode.PLAN_TOKEN_LIMIT_REQUIRED);
+        }
+    }
+
     @Override
     @Transactional
     public ApiResponse<PlanResponse> update(UUID id, PlanUpdateRequest request) {
@@ -104,6 +117,7 @@ public class PlanServiceImpl implements PlanService {
                 .orElseThrow(() -> new AppException(ErrorCode.PLAN_NOT_FOUND));
 
         planMapper.update(request, plan);
+        requireTokenLimitWhenSellable(plan);
         Plan saved = planRepository.save(plan);
 
         logPlanConfig("PLAN_UPDATED", "Plan", saved.getId().toString(), Map.of("code", saved.getCode()));

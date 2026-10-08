@@ -24,6 +24,10 @@ public interface ContentVersionRepository extends JpaRepository<ContentVersion, 
             + "where v.id = :id and v.contentItem.brandProfile.user.id = :userId and v.deletedAt is null")
     Optional<UUID> findOwnedContentItemId(@Param("id") UUID id, @Param("userId") UUID userId);
 
+    // Worker nền: id bài của bản (scalar — chưa nạp version) để khóa bài TRƯỚC khi đọc/ghi version.
+    @Query("select v.contentItem.id from ContentVersion v where v.id = :id")
+    Optional<UUID> findContentItemId(@Param("id") UUID id);
+
     // B2: các bản còn hiệu lực của (bài, nền tảng) — retry/tạo lại thay bản cũ bằng xóa mềm.
     List<ContentVersion> findAllByContentItem_IdAndPlatformNameAndDeletedAtIsNull(UUID contentItemId, Platform platformName);
 

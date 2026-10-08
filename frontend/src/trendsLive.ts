@@ -2,8 +2,8 @@
 // Trang giữ nguyên các component hiện có; khi có phiên COMPLETED thì dữ liệu thật thay mock
 // (trendsData.ts chỉ còn là fallback demo khi backend chưa chạy / chưa có phiên nào).
 //
-// Lưu ý: growth/engagement của bảng trend hiển thị ĐIỂM PHÙ HỢP (relevance score) do AI chấm —
-// chưa có analytics tương tác thật ở giai đoạn này (FR-58+ chưa build).
+// Bảng trend của dữ liệu thật hiển thị ĐÀ (momentum so với các phiên trước) và BẰNG CHỨNG (số nguồn
+// thật + độ tin cậy) — không bịa số tăng trưởng/tương tác. `growth` giữ điểm phù hợp để sắp xếp.
 import { Flame, Lightbulb, Target, Clock } from 'lucide-react';
 import type { Lang } from './types';
 import { getDict } from './i18n';
@@ -17,6 +17,7 @@ import {
   type TrendStat,
 } from './trendsData';
 import type {
+  ResearchSuitability,
   ResearchPlatform,
   ResearchSessionDetail,
   ResearchSessionSummary,
@@ -39,6 +40,8 @@ const FORMAT_KEYWORDS: [RegExp, string][] = [
 
 const fitOf = (score: number | null): FitLevel =>
   (score ?? 0) >= 0.7 ? 'high' : (score ?? 0) >= 0.4 ? 'medium' : 'low';
+
+const LEVEL_FIT: Record<ResearchSuitability, FitLevel> = { HIGH: 'high', MEDIUM: 'medium', LOW: 'low' };
 
 /** '#TenTrend' từ tên trend (tối đa 3 từ đầu, bỏ ký tự đặc biệt). */
 const hashtagOf = (name: string): string =>
@@ -63,23 +66,28 @@ export function liveTrendItems(session: ResearchSessionDetail, _lang: Lang, star
   return session.trends.map((tr, i) => {
     const score = tr.relevanceScore ?? 0;
     const pct = Math.round(score * 100);
-    const up = score >= 0.4;
+    const up = tr.momentum ? tr.momentum !== 'FADING' : score >= 0.4;
+    const evidence = tr.evidence ?? [];
     return {
       id: tr.id,
       name: tr.trendName,
-      hashtag: hashtagOf(tr.trendName),
+      hashtag: tr.hashtags?.[0] ?? hashtagOf(tr.trendName),
       desc: tr.description ?? '',
       emoji: EMOJIS[(startIndex + i) % EMOJIS.length],
       tint: TINTS[(startIndex + i) % TINTS.length],
       industry: session.industry,
       platforms: [PLATFORM_TAG[tr.platform] ?? 'FB'],
-      fit: fitOf(tr.relevanceScore),
+      fit: tr.relevance ? LEVEL_FIT[tr.relevance] : fitOf(tr.relevanceScore),
       spark: up ? spark(24, 40 + pct / 2) : spark(40 + pct / 2, 24),
       growth: `${pct}%`,
       up,
-      engagement: `${pct}/100`,
+      engagement: `${evidence.length}`,
       engagementDelta: '',
       ideaCount: tr.contentIdeas.length,
+      momentum: tr.momentum ?? undefined,
+      actBy: tr.actBy ?? undefined,
+      confidence: tr.confidence ? LEVEL_FIT[tr.confidence] : undefined,
+      evidence: tr.momentum || evidence.length ? evidence : undefined,
     };
   });
 }
@@ -136,6 +144,7 @@ export function liveContentIdeas(session: ResearchSessionDetail, lang: Lang): Co
       score: IDEA_SCORE[idea.suitabilityLevel ?? 'MEDIUM'] ?? 75,
       status: 'new' as const,
       desc: idea.ideaDescription ?? undefined,
+      suggestions: idea.executionSuggestions?.length ? idea.executionSuggestions : undefined,
     })),
   );
 }
@@ -184,4 +193,14 @@ export function liveTrendStats(sessions: ResearchSessionDetail[], trends: TrendI
     { value: `${highCount}`, label: d.trStatHigh, delta: `${highPct}%`, deltaLabel: d.trOfTotal, deltaColor: '#7c3aed', icon: Target, iconBg: 'linear-gradient(135deg,#e7fff4,#e9f7ff)', iconColor: '#10b981' },
     { value: whenLabel, label: d.trStatLast, badge: d.trDone, icon: Clock, iconBg: 'linear-gradient(135deg,#e7f6ff,#eef2ff)', iconColor: '#3b82f6' },
   ];
+}
+
+/** Tên miền của nguồn (link Gemini là redirect — tiêu đề đã là tên miền), lỗi URL → tiêu đề. */
+export function sourceLabel(url: string, title: string): string {
+  if (!url || url.includes('grounding-api-redirect')) return title;
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return title;
+  }
 }

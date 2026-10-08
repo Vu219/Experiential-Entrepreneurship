@@ -21,7 +21,8 @@ import java.util.UUID;
  * ngoài AIMA + insights theo ngày của Trang) — chạy trước để bài vừa import được đồng bộ ngay trong lượt;
  * (3) đồng bộ các bài ĐẾN HẠN, gom theo tài khoản. Lịch đến hạn thưa dần nên phần lớn lượt quét không gọi Meta
  * lần nào. Logic nằm ở {@link AnalyticsSyncService} / {@link AnalyticsAccountSyncService}; job chỉ điều phối.
- * Bị nền tảng giới hạn tần suất → dừng cả lượt quét, lượt sau thử lại.
+ * Bị giới hạn tần suất ở bước cấp tài khoản → dừng cả lượt quét; ở bước đồng bộ bài → các bài của tài khoản đó được lùi
+ * lịch, lượt quét đi tiếp tài khoản khác.
  */
 @Component
 @RequiredArgsConstructor
@@ -52,8 +53,8 @@ public class AnalyticsCollectionJob {
         Map<UUID, List<UUID>> due = analyticsSyncService.findDue(Instant.now(), SYNC_BATCH);
         for (Map.Entry<UUID, List<UUID>> account : due.entrySet()) {
             if (!analyticsSyncService.syncAccount(account.getKey(), account.getValue())) {
-                log.warn("[AnalyticsCollection] Bị nền tảng giới hạn tần suất — dừng lượt quét, thử lại lượt sau");
-                return;
+                log.warn("[AnalyticsCollection] Tài khoản {} bị nền tảng giới hạn tần suất — đã lùi lịch, tiếp tục tài khoản khác",
+                        account.getKey());
             }
         }
     }

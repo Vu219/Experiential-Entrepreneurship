@@ -20,7 +20,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * FR-18a: tự làm mới token sắp hết hạn (trong 7 ngày tới). Nếu không refresh được → đánh dấu EXPIRED.
+ * FR-18a: tự làm mới token sắp hết hạn (trong 7 ngày tới). Chỉ đánh dấu EXPIRED khi token thật sự chết
+ * (Graph 190 — {@link MetaOAuthService#refresh} tự xử lý) hoặc đã quá {@code tokenExpiredAt}; lỗi tạm thời
+ * (timeout, 5xx, rate limit) chỉ log, lượt chạy sau thử lại.
  * Chạy lúc 02:00 mỗi ngày. Resilient: mọi lỗi đều được nuốt + log, không làm crash app.
  */
 @Component
@@ -39,8 +41,8 @@ public class TokenHealthCheckJob {
     public void run() {
         LocalDateTime now = LocalDateTime.now();
         List<PlatformAccount> expiring = accountRepository
-                .findByConnectionStatusAndTokenExpiredAtBetweenAndDeletedAtIsNull(
-                        ConnectionStatus.ACTIVE, now, now.plusDays(7));
+                .findByConnectionStatusAndTokenExpiredAtLessThanEqualAndDeletedAtIsNull(
+                        ConnectionStatus.ACTIVE, now.plusDays(7));
 
         if (expiring.isEmpty()) {
             log.info("[TokenHealthCheck] Không có token nào sắp hết hạn.");
@@ -50,11 +52,24 @@ public class TokenHealthCheckJob {
 
         for (PlatformAccount account : expiring) {
             try {
-                metaOAuthService.refresh(account.getId());
-                log.info("[TokenHealthCheck] Đã refresh token kết nối {}", account.getId());
+                PlatformAccount refreshed = metaOAuthService.refresh(account.getId());
+                if (refreshed.getConnectionStatus() == ConnectionStatus.ACTIVE) {
+                    log.info("[TokenHealthCheck] Đã refresh token kết nối {}", account.getId());
+                } else {
+                    // Graph 190: refresh đã đánh dấu EXPIRED + tạm giữ lịch + nhắc kết nối lại.
+                    log.warn("[TokenHealthCheck] Token kết nối {} không còn hợp lệ -> {}",
+                            account.getId(), refreshed.getConnectionStatus());
+                }
             } catch (Exception e) {
-                log.warn("[TokenHealthCheck] Refresh thất bại cho {} -> EXPIRED: {}", account.getId(), e.getMessage());
-                markExpired(account);
+                if (account.getTokenExpiredAt() != null && !account.getTokenExpiredAt().isAfter(LocalDateTime.now())) {
+                    log.warn("[TokenHealthCheck] Refresh thất bại và token {} đã quá hạn -> EXPIRED: {}",
+                            account.getId(), e.getMessage());
+                    markExpired(account);
+                } else {
+                    // Lỗi tạm thời (timeout/5xx/rate limit): giữ ACTIVE, lượt sau thử lại.
+                    log.warn("[TokenHealthCheck] Refresh thất bại cho {} (thử lại lượt sau): {}",
+                            account.getId(), e.getMessage());
+                }
             }
         }
     }

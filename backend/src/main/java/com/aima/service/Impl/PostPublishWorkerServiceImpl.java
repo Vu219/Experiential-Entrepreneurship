@@ -18,6 +18,7 @@ import com.aima.enums.PostStatus;
 import com.aima.enums.PostingJobStatus;
 import com.aima.enums.PublishErrorType;
 import com.aima.enums.ScheduleStatus;
+import com.aima.enums.UserStatus;
 import com.aima.exception.PublishException;
 import com.aima.mapper.PostPublishMapper;
 import com.aima.repository.PostingJobRepository;
@@ -29,6 +30,7 @@ import com.aima.service.PlatformPublisher;
 import com.aima.service.PostPublishWorkerService;
 import com.aima.service.ScheduleHoldService;
 import com.aima.service.SystemLogService;
+import com.aima.util.PlatformTextLimits;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -65,11 +67,18 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
     // FR-71: mã lỗi media của chính hệ thống (InstagramPublisherImpl) — MVP chỉ đăng text.
     static final String MEDIA_REQUIRED_CODE = "IG_MEDIA_REQUIRED";
 
+    // Nội dung vượt giới hạn ký tự/hashtag của nền tảng (PlatformTextLimits) — chặn trước khi gọi Meta, không retry.
+    static final String TEXT_LIMIT_CODE = "TEXT_LIMIT_EXCEEDED";
+
     // Mã lỗi của job bị PostingDispatchJob vớt vì kẹt RUNNING quá lâu.
     static final String STUCK_RUNNING_CODE = "STUCK_RUNNING";
 
     // Mã lỗi của lỗi nội bộ (không đến từ nền tảng) — PublishErrorType.INTERNAL, không retry.
     static final String INTERNAL_ERROR_CODE = "INTERNAL";
+
+    // Lý do dừng job khi tài khoản đích đã ngắt kết nối / không còn ACTIVE lúc worker nhận job.
+    static final String ACCOUNT_UNAVAILABLE_STOP_REASON =
+            "Tài khoản đăng bài đã bị ngắt kết nối hoặc không còn hiệu lực — lịch được tạm giữ";
 
     PostingJobRepository jobRepository;
     PostPublishMapper postPublishMapper;
@@ -223,11 +232,34 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         Post post = job.getPost();
         PostSchedule schedule = post.getSchedule();
 
+        // Tài khoản đích bị ngắt kết nối / mất hiệu lực sau lúc dispatch (job PENDING, chu kỳ retry) → KHÔNG đăng:
+        // dừng job, đưa lịch về ON_HOLD với lý do tương ứng (như holdAllForPendingDeletion).
+        HoldReason accountBlocker = accountBlockerOf(schedule.getPlatformAccount());
+        if (accountBlocker != null) {
+            job.setStatus(PostingJobStatus.FAILED);
+            job.setEndTime(Instant.now());
+            job.setErrorMessage(ACCOUNT_UNAVAILABLE_STOP_REASON);
+            schedule.setStatus(ScheduleStatus.ON_HOLD);
+            holdService.hold(schedule, accountBlocker);
+            statusResolver.refresh(itemId);
+            log.warn("[PostPublish] Job {} dừng — tài khoản {} không khả dụng ({}), lịch {} → ON_HOLD",
+                    jobId, schedule.getPlatformAccount().getId(), accountBlocker, schedule.getId());
+            return false;
+        }
+
         // FR-55: Scheduled/Retrying → Posting; trạng thái tổng của bài suy ra từ lịch.
         post.setStatus(PostStatus.POSTING);
         schedule.setStatus(ScheduleStatus.POSTING);
         statusResolver.refresh(itemId);
         return true;
+    }
+
+    // Cùng chốt chặn tài khoản với PostingDispatchServiceImpl.blockerOf.
+    private static HoldReason accountBlockerOf(PlatformAccount account) {
+        if (account.getDeletedAt() != null) {
+            return HoldReason.ACCOUNT_REMOVED;
+        }
+        return account.getConnectionStatus() != ConnectionStatus.ACTIVE ? HoldReason.ACCOUNT_ISSUE : null;
     }
 
     // Chạy trong transaction read-only: token được EncryptedStringConverter giải mã lúc nạp,
@@ -242,6 +274,11 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         String message = post.getSnapshotState() == PostSnapshotState.CAPTURED
                 ? publisher.buildMessage(post.getSnapshotCaption(), post.getSnapshotHashtag())
                 : publisher.buildMessage(version.getFormattedCaption(), version.getFormattedHashtag());
+        // Gửi nội dung quá dài thì nền tảng từ chối / cắt — đăng lại vẫn y nguyên nên PERMANENT, không retry.
+        String violation = PlatformTextLimits.violation(version.getPlatformName(), message);
+        if (violation != null) {
+            throw new PublishException(PublishErrorType.PERMANENT, TEXT_LIMIT_CODE, violation);
+        }
         return postPublishMapper.toPublishTarget(job, schedule.getPlatformAccount(), version, message);
     }
 
@@ -308,6 +345,17 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         post.getPublishResults().add(publishResult);
 
         boolean retryable = e.getErrorType() == PublishErrorType.TEMPORARY && job.getRetryCount() < MAX_RETRIES;
+        PostSchedule heldSchedule = post.getSchedule();
+        if (retryable && heldSchedule.getPlatformAccount().getUser().getStatus() == UserStatus.PENDING_DELETE) {
+            // Chủ tài khoản đang chờ xoá: không tạo retry (khôi phục tài khoản sẽ tự đăng lại) — tạm giữ như
+            // holdAllForPendingDeletion, user tự kích hoạt lại sau khi khôi phục.
+            heldSchedule.setStatus(ScheduleStatus.ON_HOLD);
+            holdService.hold(heldSchedule, HoldReason.USER_PENDING_DELETE);
+            statusResolver.refresh(itemId);
+            log.info("[PostPublish] Job {} lỗi tạm thời nhưng chủ tài khoản chờ xoá — không retry, lịch {} → ON_HOLD",
+                    jobId, heldSchedule.getId());
+            return null;
+        }
         if (retryable) {
             // FR-56: đặt lịch retry — schedule/version/item giữ POSTING (Failed → Retrying → Posted).
             Duration delay = RETRY_DELAYS.get(Math.min(job.getRetryCount(), RETRY_DELAYS.size() - 1));
@@ -334,6 +382,9 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         notifyFailure(account, post, e);
 
         // FR-70 (khớp FR-18b): token hết hạn → tài khoản EXPIRED, các lịch SCHEDULED khác → ON_HOLD (sau commit).
+        if (account.getDeletedAt() != null) {
+            return null; // kết nối đã ngắt (DISCONNECTED, lịch đã được giữ lúc ngắt) — không ghi đè trạng thái
+        }
         if (TOKEN_EXPIRED_CODE.equals(e.getResponseCode())) {
             account.setConnectionStatus(ConnectionStatus.EXPIRED);
             log.warn("[PostPublish] Token {} hết hạn — tạm giữ các lịch chờ của tài khoản {}",
@@ -390,6 +441,14 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
                     platform + " yêu cầu ảnh/video khi đăng bài. Hãy dùng media prompt của bài để tự tạo"
                             + " ảnh/video và đăng thủ công trên nền tảng, hoặc lên lịch bài này cho"
                             + " Facebook/Threads (đăng dạng chữ).",
+                    post.getId());
+            return;
+        }
+        if (TEXT_LIMIT_CODE.equals(e.getResponseCode())) {
+            notificationService.notify(account.getUser(), NotificationType.POST_FAILED,
+                    "Nội dung vượt giới hạn của nền tảng",
+                    e.getMessage() + ". Hãy rút gọn caption/bớt hashtag của bản " + platform
+                            + " rồi lên lịch đăng lại.",
                     post.getId());
             return;
         }

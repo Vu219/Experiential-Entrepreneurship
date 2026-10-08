@@ -29,6 +29,15 @@ public class ResearchResultPayload implements TokenAccountedPayload {
 
     String summary;
 
+    /** true = AI service đã tìm kiếm web thật thành công (nguồn trend là trang thật). */
+    Boolean grounded;
+
+    @JsonProperty("web_searches")
+    Integer webSearches;
+
+    @JsonProperty("sources_used")
+    List<SourceStatusPayload> sourcesUsed;
+
     /** Token LLM thật của lần gọi (usage_metadata) — cộng vào quota tháng của user. */
     @JsonProperty("tokens_used")
     Long tokensUsed;

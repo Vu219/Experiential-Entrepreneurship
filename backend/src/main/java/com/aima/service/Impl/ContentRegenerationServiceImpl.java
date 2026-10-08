@@ -27,10 +27,14 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.UUID;
 
@@ -48,18 +52,22 @@ public class ContentRegenerationServiceImpl implements ContentRegenerationServic
     ContentRegenerationWorkerService workerService;
     TokenUsageService tokenUsageService;
     ObjectMapper objectMapper;
+    PlatformTransactionManager transactionManager;
 
     @Override
     public ApiResponse<ContentRegenerationJobResponse> startRegeneration(String email, UUID itemId, UUID versionId,
                                                                          RegeneratePartRequest request) {
         User user = currentUser(email);
         tokenUsageService.checkQuota(user); // hết hạn mức token tháng → chặn tạo job mới
+        tokenUsageService.checkConcurrentAiJobs(user); // quá số tác vụ AI chạy song song → chặn
         // Version phải thuộc user (qua item → brand profile → user) và đúng bài trên path.
         ContentVersion version = contentVersionRepository
                 .findByIdAndContentItem_BrandProfile_User_IdAndDeletedAtIsNull(versionId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.CONTENT_VERSION_NOT_FOUND));
         ContentItem item = version.getContentItem();
-        if (item == null || !item.getId().equals(itemId)) {
+        // Bài / hồ sơ thương hiệu đã xóa mềm → bản coi như không tồn tại.
+        if (item == null || !item.getId().equals(itemId) || item.getDeletedAt() != null
+                || item.getBrandProfile().getDeletedAt() != null) {
             throw new AppException(ErrorCode.CONTENT_VERSION_NOT_FOUND);
         }
         // Chỉ tạo lại được khi bản còn sửa được (khớp FR-33: chỉ lúc đang đăng mới khóa).
@@ -88,11 +96,11 @@ public class ContentRegenerationServiceImpl implements ContentRegenerationServic
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    workerService.process(jobId);
+                    dispatch(jobId);
                 }
             });
         } else {
-            workerService.process(jobId);
+            dispatch(jobId);
         }
 
         ContentRegenerationJobResponse response = jobMapper.toResponse(saved);
@@ -112,6 +120,25 @@ public class ContentRegenerationServiceImpl implements ContentRegenerationServic
             response.setPatch(parsePatch(job.getResultPatch()));
         }
         return ApiResponse.success("Lấy trạng thái tác vụ tạo lại thành công", response);
+    }
+
+    /**
+     * Giao job cho worker. Hàng đợi executor đầy → {@link TaskRejectedException}: chốt FAILED ngay thay vì để
+     * PENDING + lỗi 500. Đang ở afterCommit nên ghi trong transaction RIÊNG (REQUIRES_NEW).
+     */
+    private void dispatch(UUID jobId) {
+        try {
+            workerService.process(jobId);
+        } catch (TaskRejectedException e) {
+            log.error("[ContentRegen] Hàng đợi worker đầy — chốt FAILED job {}", jobId, e);
+            TransactionTemplate requiresNew = new TransactionTemplate(transactionManager);
+            requiresNew.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            requiresNew.executeWithoutResult(status -> jobRepository.findById(jobId).ifPresent(job -> {
+                job.setStatus(GenerationJobStatus.FAILED);
+                job.setErrorMessage(ErrorCode.AI_JOB_QUEUE_FULL.getMessage());
+                jobRepository.save(job);
+            }));
+        }
     }
 
     private ScriptPartPatch parsePatch(String raw) {

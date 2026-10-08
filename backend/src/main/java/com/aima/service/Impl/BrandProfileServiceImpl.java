@@ -6,14 +6,20 @@ import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.BrandProfileResponse;
 import com.aima.dto.response.PageResponse;
 import com.aima.entity.BrandProfile;
+import com.aima.entity.ContentItem;
+import com.aima.entity.ContentVersion;
+import com.aima.entity.PostSchedule;
 import com.aima.entity.User;
+import com.aima.enums.ScheduleStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.mapper.BrandProfileMapper;
 import com.aima.repository.BrandProfileRepository;
+import com.aima.repository.ContentItemRepository;
 import com.aima.repository.ContentStrategyRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.BrandProfileService;
+import com.aima.service.ContentItemStatusResolver;
 import com.aima.service.StorageService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +35,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -40,10 +49,16 @@ public class BrandProfileServiceImpl implements BrandProfileService {
 
     BrandProfileRepository brandProfileRepository;
     ContentStrategyRepository contentStrategyRepository;
+    ContentItemRepository contentItemRepository;
+    ContentItemStatusResolver statusResolver;
     UserRepository userRepository;
     BrandProfileMapper brandProfileMapper;
     StorageService storageService;
     TransactionTemplate transactionTemplate;
+
+    // Lịch CHƯA đăng của hồ sơ bị xóa → CANCELLED (cùng tập với hủy lịch FR-51) để không bao giờ được dispatch.
+    private static final Set<ScheduleStatus> UNPUBLISHED_SCHEDULE_STATUSES =
+            EnumSet.of(ScheduleStatus.SCHEDULED, ScheduleStatus.ON_HOLD, ScheduleStatus.FAILED);
 
     // Logo nằm trong bucket private → trả về cho FE bằng signed URL (giống documents).
     private static final int LOGO_URL_TTL_SECONDS = 24 * 60 * 60; // 1 ngày
@@ -169,9 +184,62 @@ public class BrandProfileServiceImpl implements BrandProfileService {
         // luôn commit trọn vẹn trước; xóa file thất bại chỉ log warn, không rollback record.
         deleteStorageFileIfPresent(profile.getLogoUrl());
         profile.setLogoUrl(null);
-        profile.setDeletedAt(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        cascadeSoftDelete(profile, now);
+        profile.setDeletedAt(now);
         brandProfileRepository.save(profile);
         return ApiResponse.success("Xóa hồ sơ thương hiệu thành công");
+    }
+
+    /**
+     * Cascade xóa hồ sơ (DATA_MODEL.md): xóa mềm ContentStrategy, ContentItem + ContentVersion/MediaAsset, hủy
+     * lịch CHƯA đăng. Bài đã/đang đăng (có lịch POSTED/POSTING) được GIỮ để còn lịch sử bài đăng + analytics —
+     * chỉ hủy lịch chưa đăng còn lại của nó. Khóa bài theo thứ tự id TRƯỚC khi đổi (item → version → schedule)
+     * để không đua với worker đăng bài/định dạng.
+     */
+    private void cascadeSoftDelete(BrandProfile profile, LocalDateTime now) {
+        List<UUID> itemIds = contentItemRepository.findActiveIdsByBrandProfile(profile.getId());
+        statusResolver.lockAll(itemIds);
+
+        List<UUID> keptItemIds = new ArrayList<>();
+        for (ContentItem item : profile.getContentItems()) {
+            if (item.getDeletedAt() != null) {
+                continue;
+            }
+            boolean hasPublishHistory = false;
+            for (ContentVersion version : item.getContentVersions()) {
+                PostSchedule schedule = version.getPostSchedule();
+                if (schedule == null || schedule.getDeletedAt() != null) {
+                    continue;
+                }
+                if (UNPUBLISHED_SCHEDULE_STATUSES.contains(schedule.getStatus())) {
+                    // Cùng cách hủy lịch FR-51 (giữ bản ghi, không xóa mềm — content_version_id unique thật).
+                    schedule.setStatus(ScheduleStatus.CANCELLED);
+                    schedule.getHolds().clear();
+                } else if (schedule.getStatus() == ScheduleStatus.POSTING
+                        || schedule.getStatus() == ScheduleStatus.POSTED) {
+                    hasPublishHistory = true;
+                }
+            }
+            if (hasPublishHistory) {
+                keptItemIds.add(item.getId());
+                continue;
+            }
+            item.setDeletedAt(now);
+            item.getContentVersions().stream()
+                    .filter(v -> v.getDeletedAt() == null)
+                    .forEach(v -> v.setDeletedAt(now));
+            item.getMediaAssets().stream()
+                    .filter(m -> m.getDeletedAt() == null)
+                    .forEach(m -> m.setDeletedAt(now));
+        }
+        profile.getContentStrategies().stream()
+                .filter(st -> st.getDeletedAt() == null)
+                .forEach(st -> st.setDeletedAt(now));
+        // Bài giữ lại có thể vừa mất lịch chưa đăng → tính lại trạng thái tổng (writer duy nhất là resolver).
+        statusResolver.refreshAll(keptItemIds);
+        log.info("[BrandProfile] Xóa hồ sơ {}: {} bài xóa mềm, {} bài giữ lại (đã/đang đăng)",
+                profile.getId(), itemIds.size() - keptItemIds.size(), keptItemIds.size());
     }
 
     // Rule #24: không gọi I/O Supabase trong khi transaction DB còn mở → defer tới sau commit

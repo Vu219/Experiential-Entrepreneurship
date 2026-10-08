@@ -13,6 +13,7 @@ import com.aima.entity.PlanFeatureValue;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,6 +27,8 @@ public interface PlanMapper {
 
     Plan toPlan(PlanCreateRequest request);
 
+    // monthlyTokenLimit null = giữ nguyên (FE cũ chưa gửi) — các field khác vẫn FULL update.
+    @Mapping(target = "monthlyTokenLimit", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void update(PlanUpdateRequest request, @MappingTarget Plan plan);
 
     @Mapping(target = "core", expression = "java(Plan.CORE_CODES.contains(plan.getCode()))")

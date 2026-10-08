@@ -18,6 +18,12 @@ public interface MetaApiClient {
 
     MetaTokenResult getLongLivedUserToken(Platform platform, String shortLivedToken);
 
+    /**
+     * Làm mới token dài hạn còn hạn (FR-18a). Threads: {@code GET /refresh_access_token?grant_type=th_refresh_token};
+     * Facebook: đổi lại qua {@code fb_exchange_token} như {@link #getLongLivedUserToken}.
+     */
+    MetaTokenResult refreshLongLivedToken(Platform platform, String longLivedToken);
+
     /** Danh sách Facebook Page mà user quản lý (mỗi Page kèm page access token). */
     List<MetaPage> getMyAccounts(String userToken);
 

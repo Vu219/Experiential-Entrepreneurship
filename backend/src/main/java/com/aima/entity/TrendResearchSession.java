@@ -2,9 +2,12 @@ package com.aima.entity;
 
 import com.aima.enums.Platform;
 import com.aima.enums.ResearchStatus;
+import com.aima.enums.ResearchTrigger;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -58,6 +61,23 @@ public class TrendResearchSession extends BaseEntity {
 
     @Column(name = "error_message", columnDefinition = "text")
     String errorMessage;
+
+    // Phiên do user bấm hay do job 2:00 AM tạo — quyết định hàng đợi + ngưỡng "kẹt".
+    @Enumerated(EnumType.STRING)
+    @Column(name = "trigger_type", nullable = false, length = 20)
+    ResearchTrigger triggerType = ResearchTrigger.MANUAL;
+
+    // true = AI đã tìm kiếm web thật (Claude web search / Google Search grounding) thành công.
+    @Column(name = "grounded")
+    Boolean grounded;
+
+    @Column(name = "web_searches")
+    Integer webSearches;
+
+    // JSON [{name, status, items}] — nguồn dữ liệu đã dùng, FE hiển thị để minh bạch chất lượng.
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "data_sources", columnDefinition = "jsonb")
+    String dataSources;
 
     /** IP/User-Agent client lúc user tạo job (X-Forwarded-For aware qua util RequestMeta) —
      *  null với job do hệ thống/scheduler tạo. Nguồn copy sang event usage (điều tra bất thường). */

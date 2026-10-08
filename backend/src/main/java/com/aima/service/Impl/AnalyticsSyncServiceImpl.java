@@ -12,6 +12,7 @@ import com.aima.enums.MetricsErrorType;
 import com.aima.enums.MetricsSyncStatus;
 import com.aima.enums.Platform;
 import com.aima.enums.PlatformMediaStatus;
+import com.aima.exception.MetricsFetchException;
 import com.aima.mapper.PostAnalyticsMapper;
 import com.aima.repository.PlatformMediaRepository;
 import com.aima.repository.PostAnalyticsRepository;
@@ -36,6 +37,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +57,8 @@ import java.util.stream.Collectors;
  *
  * <p>Lỗi (mục D.1): NOT_FOUND hai lần cách 24h → DELETED + STOPPED; UNSUPPORTED → STOPPED; PERMISSION /
  * TOKEN_INVALID → 24h; lỗi tạm → 1h·2^(n−1) tối đa 24h; {@value #MAX_CONSECUTIVE_FAILURES} lỗi liên tiếp →
- * STOPPED; RATE_LIMIT → chờ 1h, không tính lỗi, dừng cả lượt quét.</p>
+ * STOPPED; RATE_LIMIT → chờ 1h, không tính lỗi. RATE_LIMIT / TOKEN_INVALID là lỗi cả tài khoản: các bài còn lại
+ * của tài khoản lùi lịch theo cùng lỗi, lượt quét bỏ qua tài khoản đó và đi tiếp tài khoản khác.</p>
  */
 @Service
 @RequiredArgsConstructor
@@ -181,11 +184,15 @@ public class AnalyticsSyncServiceImpl implements AnalyticsSyncService {
 
         boolean rateLimited = false;
         int synced = 0;
+        // Lỗi cấp tài khoản (RATE_LIMIT / TOKEN_INVALID): provider dừng sớm, các bài chưa gọi phải lùi lịch theo cùng lỗi.
+        MetricsFetchException accountError = null;
+        Set<UUID> handled = new HashSet<>();
         for (PostMetricsResult result : results) {
             UUID mediaId = target.mediaByPlatformId().get(result.platformMediaId());
             if (mediaId == null) {
                 continue;
             }
+            handled.add(mediaId);
             if (result.error() == null) {
                 Instant now = Instant.now();
                 int saved = runSafely("lưu số liệu media " + mediaId, () -> ingest(mediaId, result.metrics(), now));
@@ -199,7 +206,22 @@ public class AnalyticsSyncServiceImpl implements AnalyticsSyncService {
                         result.error().getResponseCode(), result.error().getMessage());
                 recordFailureSafely(mediaId, type, result.error().getResponseCode());
                 rateLimited |= type == MetricsErrorType.RATE_LIMIT;
+                if (type == MetricsErrorType.RATE_LIMIT || type == MetricsErrorType.TOKEN_INVALID) {
+                    accountError = result.error();
+                }
             }
+        }
+        if (accountError != null) {
+            // Không lùi thì các bài còn lại vẫn đến hạn → lượt quét 5 phút sau lại gọi đúng tài khoản đang lỗi.
+            int skipped = 0;
+            for (UUID mediaId : target.mediaByPlatformId().values()) {
+                if (!handled.contains(mediaId)) {
+                    recordFailureSafely(mediaId, accountError.getErrorType(), accountError.getResponseCode());
+                    skipped++;
+                }
+            }
+            log.warn("[AnalyticsSync] Tài khoản {} lỗi {} — lùi lịch {} bài còn lại chưa gọi", accountId,
+                    accountError.getErrorType(), skipped);
         }
         log.info("[AnalyticsSync] Tài khoản {} ({}): {}/{} bài đã cập nhật", accountId, target.platform(),
                 synced, mediaIds.size());

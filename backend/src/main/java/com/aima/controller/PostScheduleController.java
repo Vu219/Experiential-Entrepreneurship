@@ -100,8 +100,9 @@ public class PostScheduleController {
     @Operation(summary = "Golden-hour suggestions for a platform (FR-48)",
             description = "Suggested posting time slots from the AI service — platform defaults until ≥10 analyzed "
                     + "posts exist, then data-driven.")
-    public ApiResponse<GoldenHourResponse> suggestGoldenHours(@RequestParam Platform platform) {
-        return postScheduleService.suggestGoldenHours(platform);
+    public ApiResponse<GoldenHourResponse> suggestGoldenHours(@AuthenticationPrincipal UserDetails principal,
+                                                              @RequestParam Platform platform) {
+        return postScheduleService.suggestGoldenHours(principal.getUsername(), platform);
     }
 
     @GetMapping("/{scheduleId}")

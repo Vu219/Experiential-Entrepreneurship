@@ -73,7 +73,7 @@ public class AiServiceClientImpl implements AiServiceClient {
     @Override
     public ResearchResultPayload research(ResearchPayload payload) {
         applyRouting(payload, AiTaskCode.TREND_RESEARCH);
-        return post("/research", payload, ResearchResultPayload.class);
+        return post("/research", payload, ResearchResultPayload.class, properties.effectiveResearchTimeoutSeconds());
     }
 
     @Override
@@ -130,13 +130,17 @@ public class AiServiceClientImpl implements AiServiceClient {
     }
 
     private <T> T post(String uri, Object payload, Class<T> resultType) {
+        return post(uri, payload, resultType, properties.timeoutSeconds());
+    }
+
+    private <T> T post(String uri, Object payload, Class<T> resultType, long timeoutSeconds) {
         try {
             T result = webClient.post()
                     .uri(uri)
                     .bodyValue(payload)
                     .retrieve()
                     .bodyToMono(resultType)
-                    .block(Duration.ofSeconds(properties.timeoutSeconds()));
+                    .block(Duration.ofSeconds(timeoutSeconds));
             if (result instanceof TokenAccountedPayload accounted) {
                 modelHealthService.record(accounted.getLlmAttempts());
             }

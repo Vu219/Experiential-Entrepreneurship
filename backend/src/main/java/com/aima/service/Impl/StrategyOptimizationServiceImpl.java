@@ -9,6 +9,7 @@ import com.aima.entity.StrategyAdjustment;
 import com.aima.entity.StrategyOptimizationJob;
 import com.aima.entity.User;
 import com.aima.enums.AppliedStatus;
+import com.aima.enums.GenerationJobStatus;
 import com.aima.enums.PostStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
@@ -31,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -46,6 +48,11 @@ import java.util.UUID;
 @Slf4j
 @Transactional
 public class StrategyOptimizationServiceImpl implements StrategyOptimizationService {
+
+    // Hai lời gọi AI (/analyze + /optimize) mỗi lời ≤ timeout AI service (~100s) → quá 10 phút chắc chắn là job chết.
+    static final Duration IN_PROGRESS_WINDOW = Duration.ofMinutes(10);
+    static final List<GenerationJobStatus> IN_PROGRESS_STATUSES =
+            List.of(GenerationJobStatus.PENDING, GenerationJobStatus.RUNNING);
 
     StrategyOptimizationJobRepository jobRepository;
     StrategyAdjustmentRepository adjustmentRepository;
@@ -68,6 +75,17 @@ public class StrategyOptimizationServiceImpl implements StrategyOptimizationServ
                         strategy.getBrandProfile().getId(), PostStatus.POSTED);
         if (!hasAnalyzedPosts) {
             throw new AppException(ErrorCode.NO_ANALYZED_POSTS);
+        }
+
+        // Đã có job PENDING/RUNNING cho chiến lược này → trả lại job đó (FE poll tiếp), không gọi AI lần hai.
+        // Job quá IN_PROGRESS_WINDOW coi như chết (không có job vớt) — không chặn user mãi.
+        StrategyOptimizationJob running = jobRepository
+                .findFirstByContentStrategy_IdAndStatusInAndCreatedAtAfterAndDeletedAtIsNullOrderByCreatedAtDesc(
+                        strategy.getId(), IN_PROGRESS_STATUSES, LocalDateTime.now().minus(IN_PROGRESS_WINDOW))
+                .orElse(null);
+        if (running != null) {
+            StrategyOptimizationJobResponse existing = strategyOptimizationMapper.toJobResponse(running, List.of());
+            return ApiResponse.success("Chiến lược này đang được tối ưu — trả về tác vụ đang chạy", existing);
         }
 
         StrategyOptimizationJob job = strategyOptimizationMapper.toJob(strategy);

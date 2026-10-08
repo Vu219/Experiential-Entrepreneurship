@@ -128,7 +128,10 @@ def suggest_golden_hours(req: GoldenHourRequest) -> GoldenHourResponse:
     platform = req.platform.lower()
     defaults = DEFAULT_GOLDEN_HOURS.get(platform, ["09:00-10:00", "12:00-13:00", "19:00-21:00"])
 
-    posts_with_hour = [p for p in req.posts if p.scheduled_hour is not None]
+    # Only posts of the requested platform count — another platform's audience peaks at other hours.
+    posts_with_hour = [
+        p for p in req.posts if p.scheduled_hour is not None and p.platform.lower() == platform
+    ]
     if len(posts_with_hour) < _MIN_POSTS_FOR_DATA_DRIVEN:
         return GoldenHourResponse(
             platform=req.platform,

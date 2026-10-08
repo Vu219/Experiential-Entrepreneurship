@@ -17,7 +17,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * Job chỉ điều phối: chuẩn bị → đồng bộ cấp tài khoản (import bài ngoài AIMA + insights) → đồng bộ từng tài khoản
- * có bài đến hạn → dừng cả lượt khi bị rate limit.
+ * có bài đến hạn; rate limit cấp kênh → dừng cả lượt, rate limit khi đồng bộ bài → bỏ qua tài khoản đó, đi tiếp.
  */
 class AnalyticsCollectionJobTest {
 
@@ -45,7 +45,7 @@ class AnalyticsCollectionJobTest {
     }
 
     @Test
-    void run_rateLimited_stopsBeforeNextAccount() {
+    void run_rateLimited_skipsThatAccountAndContinues() {
         AnalyticsSyncService service = mock(AnalyticsSyncService.class);
         AnalyticsAccountSyncService accountService = mock(AnalyticsAccountSyncService.class);
         UUID a = UUID.randomUUID(), b = UUID.randomUUID();
@@ -58,7 +58,8 @@ class AnalyticsCollectionJobTest {
 
         new AnalyticsCollectionJob(service, accountService).run();
 
-        verify(service, never()).syncAccount(eq(b), any());
+        // Tài khoản a đã tự lùi lịch các bài của nó — không lý do gì bỏ đói tài khoản b.
+        verify(service).syncAccount(eq(b), any());
     }
 
     @Test

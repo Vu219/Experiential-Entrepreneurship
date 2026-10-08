@@ -8,10 +8,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
+
 /**
  * Mirrors ai/src/schemas.py ResearchRequest — sent as the body of POST {ai-service}/research.
- * `sources` is omitted (no page/group ids configured yet); the Python side defaults to an
- * empty TrendSource and falls back to mock/cross-platform signal.
  */
 @Data
 @Builder
@@ -30,6 +30,13 @@ public class ResearchPayload implements LlmRoutedPayload {
 
     // Nền tảng đích của phiên (FR-19) — AI chỉ trả trend/idea cho đúng nền tảng này.
     String platform;
+
+    // Thị trường (ISO 3166) cho Google Trends / vị trí tìm kiếm; null = mặc định của AI service (VN).
+    String region;
+
+    // Trend các phiên gần đây cùng brand + nền tảng — momentum + tránh lặp (rejected = user đã xóa).
+    @JsonProperty("previous_trends")
+    List<PreviousTrendPayload> previousTrends;
 
     @JsonProperty("max_trends")
     Integer maxTrends;

@@ -1,7 +1,9 @@
 package com.aima.repository;
 
 import com.aima.entity.Post;
+import com.aima.enums.Platform;
 import com.aima.enums.PostStatus;
+import com.aima.enums.ScheduleStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -40,13 +42,22 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     List<Post> findBySchedule_ContentVersion_ContentItem_BrandProfile_IdAndStatusAndDeletedAtIsNullOrderByPublishedAtDesc(
             UUID brandProfileId, PostStatus status);
 
+    // FR-48: bài AIMA đã đăng của user trên MỘT nền tảng (mới nhất trước) — nguồn số liệu cho khung giờ vàng.
+    List<Post> findBySchedule_PlatformAccount_User_IdAndPlatformNameAndStatusAndDeletedAtIsNullOrderByPublishedAtDesc(
+            UUID userId, Platform platform, PostStatus status, Pageable pageable);
+
     boolean existsBySchedule_ContentVersion_ContentItem_BrandProfile_IdAndStatusAndDeletedAtIsNullAndPostAnalyticsIsNotEmpty(
             UUID brandProfileId, PostStatus status);
 
-    // FR-82/FR-83: admin xem bài thất bại; violationOnly = true → chỉ bài bị từ chối do vi phạm chính sách.
+    // FR-82/FR-83: admin xem bài thất bại CHUNG CUỘC (lịch FAILED — bài chờ retry không tính);
+    // violationOnly = true → chỉ bài mà job FAILED MỚI NHẤT (chu kỳ hiện tại) bị từ chối do vi phạm chính sách.
     @Query("select p from Post p where p.status = com.aima.enums.PostStatus.FAILED and p.deletedAt is null "
+            + "and p.schedule.status = com.aima.enums.ScheduleStatus.FAILED "
             + "and (:violationOnly = false or exists (select j from PostingJob j where j.post = p "
-            + "and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION)) "
+            + "and j.status = com.aima.enums.PostingJobStatus.FAILED "
+            + "and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION "
+            + "and not exists (select j2 from PostingJob j2 where j2.post = p "
+            + "and j2.status = com.aima.enums.PostingJobStatus.FAILED and j2.endTime > j.endTime))) "
             + "order by p.updatedAt desc")
     Page<Post> findFailedForAdmin(@Param("violationOnly") boolean violationOnly, Pageable pageable);
 
@@ -59,6 +70,14 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
      * Mọi tham số optional đều CAST(:x AS ...) trước khi so sánh với NULL — PostgreSQL không suy được
      * kiểu của bind parameter trần trong biểu thức `is null`.
      */
+    /*
+     * error_type của job FAILED MỚI NHẤT của bài — chu kỳ đăng hiện tại (Post được tái sử dụng khi lên lịch
+     * lại nên còn job của chu kỳ cũ). Phân loại POLICY/TECHNICAL theo job này, không theo "bất kỳ job nào".
+     */
+    String LAST_FAILED_ERROR_TYPE = """
+            (select jl.error_type from posting_jobs jl where jl.post_id = p.id and jl.status = 'FAILED'
+             order by jl.end_time desc nulls last, jl.created_at desc limit 1)""";
+
     String FAILED_ADMIN_FROM = """
             from posts p
             join post_schedules ps on ps.id = p.schedule_id and ps.deleted_at is null
@@ -72,17 +91,15 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             ) lj
             where p.deleted_at is null
               and p.status = 'FAILED'
+              and ps.status = 'FAILED'
               and (cast(:mode as text) = 'ALL'
-                   or (cast(:mode as text) = 'POLICY' and exists (
-                        select 1 from posting_jobs j where j.post_id = p.id
-                          and j.error_type = 'POLICY_VIOLATION'))
-                   or (cast(:mode as text) = 'TECHNICAL' and not exists (
-                        select 1 from posting_jobs j where j.post_id = p.id
-                          and j.error_type = 'POLICY_VIOLATION')))
+                   or (cast(:mode as text) = 'POLICY' and coalesce(""" + LAST_FAILED_ERROR_TYPE + """
+                        , '') = 'POLICY_VIOLATION')
+                   or (cast(:mode as text) = 'TECHNICAL' and coalesce(""" + LAST_FAILED_ERROR_TYPE + """
+                        , '') <> 'POLICY_VIOLATION'))
               and (cast(:platform as text) is null or p.platform_name = cast(:platform as text))
-              and (cast(:errorType as text) is null or exists (
-                    select 1 from posting_jobs j where j.post_id = p.id
-                      and j.error_type = cast(:errorType as text)))
+              and (cast(:errorType as text) is null or """ + LAST_FAILED_ERROR_TYPE + """
+                    = cast(:errorType as text))
               and (cast(:q as text) is null
                    or lower(coalesce(cv.formatted_caption, '')) like lower(concat('%', cast(:q as text), '%'))
                    or lower(u.email) like lower(concat('%', cast(:q as text), '%'))
@@ -141,15 +158,15 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
                        pa.user_id as user_id,
                        coalesce((select max((j.end_time AT TIME ZONE 'Asia/Ho_Chi_Minh')) from posting_jobs j
                                  where j.post_id = p.id and j.status = 'FAILED'), p.updated_at) as failed_at,
-                       exists (select 1 from posting_jobs j2 where j2.post_id = p.id
-                               and j2.error_type = 'POLICY_VIOLATION') as is_policy,
+                       coalesce(""" + LAST_FAILED_ERROR_TYPE + """
+                       , '') = 'POLICY_VIOLATION' as is_policy,
                        (select j3.error_type from posting_jobs j3
                         where j3.post_id = p.id and j3.status = 'FAILED'
                         order by (j3.end_time AT TIME ZONE 'Asia/Ho_Chi_Minh') desc nulls last limit 1) as last_error_type
                 from posts p
                 join post_schedules ps on ps.id = p.schedule_id and ps.deleted_at is null
                 join platform_accounts pa on pa.id = ps.platform_account_id and pa.deleted_at is null
-                where p.deleted_at is null and p.status = 'FAILED'
+                where p.deleted_at is null and p.status = 'FAILED' and ps.status = 'FAILED'
             ) x
             where x.failed_at >= :from and x.failed_at < :to
             group by cast(x.failed_at as date)
@@ -166,10 +183,9 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             from posts p
             join post_schedules ps on ps.id = p.schedule_id and ps.deleted_at is null
             join platform_accounts pa on pa.id = ps.platform_account_id and pa.deleted_at is null
-            where p.deleted_at is null and p.status = 'FAILED'
-              and (:technicalOnly = false or not exists (
-                    select 1 from posting_jobs j0 where j0.post_id = p.id
-                      and j0.error_type = 'POLICY_VIOLATION'))
+            where p.deleted_at is null and p.status = 'FAILED' and ps.status = 'FAILED'
+              and (:technicalOnly = false or coalesce(""" + LAST_FAILED_ERROR_TYPE + """
+                    , '') <> 'POLICY_VIOLATION')
               and coalesce((select max((j.end_time AT TIME ZONE 'Asia/Ho_Chi_Minh')) from posting_jobs j
                             where j.post_id = p.id and j.status = 'FAILED'), p.updated_at) >= :from
               and coalesce((select max((j.end_time AT TIME ZONE 'Asia/Ho_Chi_Minh')) from posting_jobs j
@@ -186,9 +202,15 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             + "and p.schedule.platformAccount.user.id = :userId "
             + "and (:mode = 'ALL' "
             + "  or (:mode = 'POLICY' and exists (select j from PostingJob j where j.post = p "
-            + "      and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION)) "
+            + "and j.status = com.aima.enums.PostingJobStatus.FAILED "
+            + "and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION "
+            + "and not exists (select j2 from PostingJob j2 where j2.post = p "
+            + "and j2.status = com.aima.enums.PostingJobStatus.FAILED and j2.endTime > j.endTime))) "
             + "  or (:mode = 'TECHNICAL' and not exists (select j from PostingJob j where j.post = p "
-            + "      and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION))) "
+            + "and j.status = com.aima.enums.PostingJobStatus.FAILED "
+            + "and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION "
+            + "and not exists (select j2 from PostingJob j2 where j2.post = p "
+            + "and j2.status = com.aima.enums.PostingJobStatus.FAILED and j2.endTime > j.endTime)))) "
             + "order by p.updatedAt desc")
     Page<Post> findFailedForUser(@Param("userId") UUID userId, @Param("mode") String mode, Pageable pageable);
 
@@ -202,7 +224,10 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             + "and p.schedule.status = com.aima.enums.ScheduleStatus.FAILED "
             + "and p.schedule.platformAccount.user.id = :userId "
             + "and exists (select j from PostingJob j where j.post = p "
-            + "and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION)")
+            + "and j.status = com.aima.enums.PostingJobStatus.FAILED "
+            + "and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION "
+            + "and not exists (select j2 from PostingJob j2 where j2.post = p "
+            + "and j2.status = com.aima.enums.PostingJobStatus.FAILED and j2.endTime > j.endTime))")
     long countPolicyFailedForUser(@Param("userId") UUID userId);
 
     // Trang Phân tích, ô "Bài lỗi & cần xử lý" (khối H): cùng tập bài với findFailedForUser nhưng
@@ -241,6 +266,8 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
     long countByStatusAndPublishedAtAfterAndDeletedAtIsNull(PostStatus status, Instant after);
 
-    long countByStatusAndUpdatedAtAfterAndDeletedAtIsNull(PostStatus status, LocalDateTime after);
+    // Trạng thái hệ thống (admin): bài lỗi CHUNG CUỘC trong 24h — truyền ScheduleStatus.FAILED để không đếm bài chờ retry.
+    long countByStatusAndSchedule_StatusAndUpdatedAtAfterAndDeletedAtIsNull(PostStatus status, ScheduleStatus scheduleStatus,
+                                                                         LocalDateTime after);
 
 }
