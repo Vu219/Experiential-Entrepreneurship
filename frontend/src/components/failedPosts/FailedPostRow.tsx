@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { memo, type CSSProperties, type KeyboardEvent } from 'react';
 import { FileText } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { PlatformTag } from '../ui.tsx';
@@ -6,16 +6,17 @@ import { PLATFORM_BG } from '../../theme.ts';
 import { TONE_COLORS } from '../../statusTokens.ts';
 import { PLATFORM_TO_TAG } from '../../api/connections.ts';
 import type { FailedPost } from '../../api/failedPosts.ts';
-import { fmtDate, fmtTime, toneOf, typeLabel } from './shared.ts';
+import {
+  platformDisplayName, publishErrorCategoryLabel, publishErrorCopy,
+} from '../../api/publishErrorCatalog.ts';
+import { fmtDate, fmtTime, STATE_TONE, stateLabel, toneOf } from './shared.ts';
 import { C } from '../../styles/colors';
 
-// Một bài lỗi trong danh sách master: variant 'row' (hàng bảng desktop/tablet) hoặc
-// 'card' (thẻ dọc trên mobile).
+// Một bài lỗi trong danh sách master: variant 'row' (hàng bảng desktop) hoặc 'card' (thẻ dọc trên mobile/tablet).
+// Lý do hiển thị = TIÊU ĐỀ THÂN THIỆN theo mã chuẩn (catalog) — không bao giờ là message gốc của nền tảng.
+// Callback nhận id (dùng chung cho mọi dòng) để React.memo không bị phá bởi closure mới.
 
-const tdStyle: CSSProperties = { padding: '12px 16px', fontSize: 13, color: C.ink650, verticalAlign: 'middle' };
-
-/** Shadow mép trái cũ — đã bỏ để giao diện sạch sẽ, không có đường mờ phân cách. */
-export const STICKY_TH_SHADOW = undefined;
+const tdStyle: CSSProperties = { padding: '12px 14px', fontSize: 13, color: C.ink650, verticalAlign: 'middle' };
 
 /** Thumbnail placeholder — MVP không sinh ảnh (FR-29) nên dùng ô icon trung tính. */
 function Thumb() {
@@ -26,54 +27,70 @@ function Thumb() {
   );
 }
 
-function TypeBadges({ post }: { post: FailedPost }) {
+function StateBadge({ post }: { post: FailedPost }) {
   const { t } = useApp();
-  const tone = toneOf(post);
-  const failed = TONE_COLORS.danger;
+  const tone = TONE_COLORS[STATE_TONE[post.state]];
+  const progress = post.state === 'AUTO_RETRYING' && post.maxAttempts
+    ? ` · ${post.attempt}/${post.maxAttempts}` : '';
   return (
-    <span style={{ display: 'inline-flex', gap: 5, whiteSpace: 'nowrap' }}>
-      <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 999, color: failed.color, background: failed.bg, whiteSpace: 'nowrap' }}>
-        {t.fpStatusFailed}
-      </span>
-      <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 999, color: tone.color, background: tone.bg, whiteSpace: 'nowrap' }}>
-        {typeLabel(post, t)}
-      </span>
+    <span style={{ fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 999, color: tone.color, background: tone.bg, whiteSpace: 'nowrap' }}>
+      {stateLabel(post.state, t)}{progress}
     </span>
   );
 }
 
-function CodeBadge({ code }: { code: string | null }) {
-  if (!code) return <span style={{ color: C.textFaint }}>—</span>;
+function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
   return (
-    <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: C.textSecondary, background: C.surfaceMuted, borderRadius: 6, padding: '3px 8px' }}>
-      #{code}
-    </span>
+    <input
+      type="checkbox"
+      checked={checked}
+      aria-label={label}
+      onClick={(e) => e.stopPropagation()}
+      onChange={onChange}
+      style={{ width: 16, height: 16, accentColor: C.primary, cursor: 'pointer', flex: 'none' }}
+    />
   );
 }
 
-export default function FailedPostRow({
+function FailedPostRow({
   post,
   selected,
+  checked,
+  selectable,
   onSelect,
+  onToggle,
   variant,
 }: {
   post: FailedPost;
+  /** Đang mở trong modal chi tiết. */
   selected: boolean;
-  onSelect: () => void;
+  /** Đã chọn cho thao tác hàng loạt. */
+  checked: boolean;
+  selectable: boolean;
+  onSelect: (id: string) => void;
+  onToggle: (id: string) => void;
   variant: 'row' | 'card';
 }) {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const tag = PLATFORM_TO_TAG[post.platformName] ?? post.platformName.slice(0, 2);
   const caption = post.caption || t.fpNoCaption;
   const tone = toneOf(post);
+  const reason = publishErrorCopy(lang, post.code, {
+    platform: platformDisplayName(post.platformName), account: post.accountName,
+  }).title;
+  const category = publishErrorCategoryLabel(lang, post.category);
+  const open = () => onSelect(post.id);
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+  };
 
   if (variant === 'card') {
     return (
       <div
         role="button"
         tabIndex={0}
-        onClick={onSelect}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
+        onClick={open}
+        onKeyDown={onKey}
         className="row-hover"
         style={{
           border: `1px solid ${selected ? C.legacyBorderc4b5fd : C.border}`,
@@ -85,69 +102,64 @@ export default function FailedPostRow({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          {selectable && <Checkbox checked={checked} onChange={() => onToggle(post.id)} label={caption} />}
           <Thumb />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.ink750, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{caption}</div>
-            <div style={{ fontSize: 11, color: C.textFaint, marginTop: 3 }}>{t.fpTypePost} · {post.accountName ?? '—'}</div>
+            <div style={{ fontSize: 11, color: C.textFaint, marginTop: 3 }}>{post.accountName ?? '—'}</div>
           </div>
-          <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={26} radius={8} />
+          <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? C.gray} size={26} radius={8} />
         </div>
-        <div style={{ fontSize: 12, color: C.textSecondary, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-          {post.errorMessage ?? '—'}
-        </div>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: tone.color, lineHeight: 1.45 }}>{reason}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <TypeBadges post={post} />
-          <CodeBadge code={post.errorCode} />
+          <StateBadge post={post} />
+          <span style={{ fontSize: 11, color: C.textMuted }}>{category}</span>
           <span style={{ fontSize: 11, color: C.textFaint, marginLeft: 'auto' }}>{fmtDate(post.failedAt)} {fmtTime(post.failedAt)}</span>
         </div>
       </div>
     );
   }
 
-  const rowBg = selected ? '#f7f3ff' : undefined;
   const td: CSSProperties = { ...tdStyle, borderTop: `1px solid ${C.surfaceMuted}` };
-  const firstTd: CSSProperties = {
-    ...td,
-    borderLeft: `4px solid ${tone.color}`,
-  };
-
   return (
     <tr
-      onClick={onSelect}
+      onClick={open}
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
+      onKeyDown={onKey}
       className="row-hover"
-      style={{
-        cursor: 'pointer',
-        background: rowBg,
-        transition: 'background-color 0.15s ease',
-      }}
+      aria-selected={selected}
+      style={{ cursor: 'pointer', background: selected ? C.surfaceMuted : undefined, transition: 'background-color 0.15s ease' }}
     >
-      <td style={firstTd}>
+      <td style={{ ...td, borderLeft: `4px solid ${tone.color}`, width: selectable ? 44 : 0, paddingRight: 0 }}>
+        {selectable && <Checkbox checked={checked} onChange={() => onToggle(post.id)} label={caption} />}
+      </td>
+      <td style={td}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           <Thumb />
           <div style={{ minWidth: 0, flex: 1 }}>
             <div title={caption} style={{ fontSize: 13, fontWeight: 700, color: C.ink750, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{caption}</div>
-            <div style={{ fontSize: 11, color: C.textFaint, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.fpTypePost} · {post.accountName ?? '—'}</div>
+            <div style={{ fontSize: 11, color: C.textFaint, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.accountName ?? '—'}</div>
           </div>
         </div>
       </td>
       <td style={td}>
-        <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? '#6b7280'} size={26} radius={8} />
+        <PlatformTag tag={tag} bg={PLATFORM_BG[tag] ?? C.gray} size={26} radius={8} />
       </td>
       <td style={td}>
-        <div title={post.errorMessage ?? undefined} style={{ fontSize: 12, lineHeight: 1.5, color: C.textSecondary, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-          {post.errorMessage ?? '—'}
+        <div title={reason} style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1.45, color: C.ink750, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          {reason}
         </div>
+        <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{category}</div>
       </td>
-      <td style={td}><CodeBadge code={post.errorCode} /></td>
       <td style={{ ...td, whiteSpace: 'nowrap' }}>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: C.ink650 }}>{fmtDate(post.failedAt)}</div>
         <div style={{ fontSize: 11, color: C.textFaint, marginTop: 2 }}>{fmtTime(post.failedAt)}</div>
       </td>
       <td style={td}>
-        <TypeBadges post={post} />
+        <StateBadge post={post} />
       </td>
     </tr>
   );
 }
+
+export default memo(FailedPostRow);

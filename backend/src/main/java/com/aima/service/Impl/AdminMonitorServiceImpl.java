@@ -12,8 +12,11 @@ import com.aima.entity.PublishResult;
 import com.aima.enums.ConnectionStatus;
 import com.aima.enums.FailedPostFilter;
 import com.aima.enums.LogLevel;
+import com.aima.enums.Platform;
 import com.aima.enums.PostStatus;
 import com.aima.enums.PostingJobStatus;
+import com.aima.enums.PublishErrorCode;
+import com.aima.enums.PublishErrorType;
 import com.aima.enums.ScheduleStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
@@ -22,10 +25,16 @@ import com.aima.mapper.SystemLogMapper;
 import com.aima.repository.PlatformAccountRepository;
 import com.aima.repository.PostRepository;
 import com.aima.repository.PostScheduleRepository;
+import com.aima.repository.PostingJobRepository;
 import com.aima.repository.SystemLogRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.AdminMonitorService;
+import com.aima.service.PlatformIncidentService;
+import com.aima.service.PublishErrorNormalizer;
+import com.aima.service.PublishRecoveryService;
 import com.aima.util.CsvUtil;
+import com.aima.util.PublishReference;
+import com.aima.util.PublishingTime;
 import com.aima.util.SqlTemporalUtil;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
@@ -48,11 +57,13 @@ import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -78,6 +89,8 @@ public class AdminMonitorServiceImpl implements AdminMonitorService {
     static final int MAX_RANGE_DAYS = 366;
     /** Ngày không có bài lỗi nào — 6 cột đếm của countFailedForAdminByDay đều 0. */
     static final long[] EMPTY_DAY = {0L, 0L, 0L, 0L, 0L, 0L};
+    /** Số mã lỗi hàng đầu trả về cho khối "Mã lỗi phổ biến" của trang admin. */
+    static final int TOP_CODES = 8;
 
     UserRepository userRepository;
     PlatformAccountRepository platformAccountRepository;
@@ -90,6 +103,10 @@ public class AdminMonitorServiceImpl implements AdminMonitorService {
     WebClient aiServiceWebClient;
     JdbcTemplate jdbcTemplate;
     DataSource dataSource;
+    PublishErrorNormalizer errorNormalizer;
+    PostingJobRepository postingJobRepository;
+    PublishRecoveryService recoveryService;
+    PlatformIncidentService incidentService;
 
     public AdminMonitorServiceImpl(UserRepository userRepository,
                                    PlatformAccountRepository platformAccountRepository,
@@ -101,7 +118,11 @@ public class AdminMonitorServiceImpl implements AdminMonitorService {
                                    StringRedisTemplate stringRedisTemplate,
                                    @Qualifier("aiServiceWebClient") WebClient aiServiceWebClient,
                                    JdbcTemplate jdbcTemplate,
-                                   DataSource dataSource) {
+                                   DataSource dataSource,
+                                   PublishErrorNormalizer errorNormalizer,
+                                   PostingJobRepository postingJobRepository,
+                                   PublishRecoveryService recoveryService,
+                                   PlatformIncidentService incidentService) {
         this.userRepository = userRepository;
         this.platformAccountRepository = platformAccountRepository;
         this.postRepository = postRepository;
@@ -113,6 +134,10 @@ public class AdminMonitorServiceImpl implements AdminMonitorService {
         this.aiServiceWebClient = aiServiceWebClient;
         this.jdbcTemplate = jdbcTemplate;
         this.dataSource = dataSource;
+        this.errorNormalizer = errorNormalizer;
+        this.postingJobRepository = postingJobRepository;
+        this.recoveryService = recoveryService;
+        this.incidentService = incidentService;
     }
 
     // Không @Transactional bao ngoài: health check AI service là HTTP (rule #24);
@@ -151,9 +176,10 @@ public class AdminMonitorServiceImpl implements AdminMonitorService {
                                                                               boolean ascending, int page, int size) {
         validateRange(query.from(), query.to());
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
+        String ref = PublishReference.toIdPrefix(query.q());
         Page<Post> posts = postRepository.searchFailedForAdmin(mode(query), name(query.platform()),
-                name(query.errorType()), blankToNull(query.q()), startOf(query.from()), endOf(query.to()),
-                ascending, pageable);
+                name(query.errorType()), ref != null ? null : blankToNull(query.q()), startOf(query.from()),
+                endOf(query.to()), ref, ascending, pageable);
 
         List<AdminFailedPostResponse> content = posts.getContent().stream()
                 .map(this::toFailedPost)
@@ -186,6 +212,31 @@ public class AdminMonitorServiceImpl implements AdminMonitorService {
         long affectedPrev = postRepository.countAffectedUsersForAdmin(startOf(prevFrom), endOf(prevTo), technicalOnly);
         List<Long> affectedSeries = technicalOnly ? current.affectedTechnical().series() : current.affectedAll().series();
 
+        // Mã lỗi hàng đầu + phân bố nền tảng: lần lỗi CUỐI của bài thất bại chung cuộc trong kỳ (phạm vi theo tab).
+        Instant rangeStart = from.atStartOfDay(PublishingTime.LEGACY_ZONE).toInstant();
+        Instant rangeEnd = to.plusDays(1).atStartOfDay(PublishingTime.LEGACY_ZONE).toInstant();
+        Map<PublishErrorCode, Long> codeCounts = new EnumMap<>(PublishErrorCode.class);
+        Map<Platform, Long> platformCounts = new EnumMap<>(Platform.class);
+        for (PostingJob job : postingJobRepository.findFinalFailuresBetween(rangeStart, rangeEnd)) {
+            Post post = job.getPost();
+            PublishErrorCode code = errorNormalizer.resolve(post.getPlatformName(), job, recoveryService.lastErrorResult(post));
+            if (technicalOnly && code.legacyType() == PublishErrorType.POLICY_VIOLATION) {
+                continue;
+            }
+            codeCounts.merge(code, 1L, Long::sum);
+            platformCounts.merge(post.getPlatformName(), 1L, Long::sum);
+        }
+        List<AdminFailedPostSummaryResponse.CodeCount> topCodes = codeCounts.entrySet().stream()
+                .sorted(Map.Entry.<PublishErrorCode, Long>comparingByValue().reversed())
+                .limit(TOP_CODES)
+                .map(e -> adminMonitorMapper.toCodeCount(e.getKey(), e.getKey().category(), e.getValue()))
+                .toList();
+        List<AdminFailedPostSummaryResponse.PlatformCount> byPlatform = platformCounts.entrySet().stream()
+                .map(e -> adminMonitorMapper.toPlatformCount(e.getKey(), e.getValue()))
+                .toList();
+        long postedTotal = postRepository.countByStatusAndPublishedAtGreaterThanEqualAndPublishedAtLessThanAndDeletedAtIsNull(
+                PostStatus.POSTED, rangeStart, rangeEnd);
+
         AdminFailedPostSummaryResponse response = adminMonitorMapper.toFailedPostSummary(
                 kind,
                 kpi(totalNow, totalPrev),
@@ -195,7 +246,7 @@ public class AdminMonitorServiceImpl implements AdminMonitorService {
                 kpi(current.permanent(), previous.permanent()),
                 kpi(new MetricSeries(affectedNow, affectedSeries),
                         new MetricSeries(affectedPrev, List.of())),
-                prevFrom, prevTo);
+                prevFrom, prevTo, topCodes, byPlatform, postedTotal, incidentService.activeIncidents());
         return ApiResponse.success("Lấy tổng quan bài lỗi thành công", response);
     }
 
@@ -206,11 +257,13 @@ public class AdminMonitorServiceImpl implements AdminMonitorService {
         String mode = mode(query);
         String platform = name(query.platform());
         String errorType = name(query.errorType());
-        String q = blankToNull(query.q());
+        // Ô tìm kiếm nhận mã tham chiếu ERR-XXXXXX người dùng gửi → tra theo job thay vì tìm chữ.
+        String ref = PublishReference.toIdPrefix(query.q());
+        String q = ref != null ? null : blankToNull(query.q());
         LocalDateTime from = startOf(query.from());
         LocalDateTime to = endOf(query.to());
 
-        long count = postRepository.countFailedForAdmin(mode, platform, errorType, q, from, to);
+        long count = postRepository.countFailedForAdmin(mode, platform, errorType, q, from, to, ref);
         if (count > EXPORT_MAX_ROWS) {
             // KHÔNG cắt cụt im lặng — admin thu hẹp filter rồi export lại (như export log/doanh thu).
             throw new AppException(ErrorCode.FAILED_POST_EXPORT_TOO_LARGE);
@@ -218,9 +271,9 @@ public class AdminMonitorServiceImpl implements AdminMonitorService {
 
         StringBuilder csv = new StringBuilder(
                 "failed_at,platform,owner_email,account_name,error_type,error_code,error_message,"
-                        + "retry_count,next_retry_at,caption\n");
+                        + "retry_count,next_retry_at,caption,aima_code,reference_code\n");
         for (int chunk = 0; chunk * EXPORT_CHUNK < count; chunk++) {
-            postRepository.searchFailedForAdmin(mode, platform, errorType, q, from, to, false,
+            postRepository.searchFailedForAdmin(mode, platform, errorType, q, from, to, ref, false,
                             PageRequest.of(chunk, EXPORT_CHUNK))
                     .getContent().stream()
                     .map(this::toFailedPost)
@@ -363,7 +416,9 @@ public class AdminMonitorServiceImpl implements AdminMonitorService {
                 .append(CsvUtil.field(row.getErrorMessage())).append(',')
                 .append(CsvUtil.nullToEmpty(row.getRetryCount())).append(',')
                 .append(CsvUtil.nullToEmpty(row.getNextRetryAt())).append(',')
-                .append(CsvUtil.field(row.getCaption())).append('\n');
+                .append(CsvUtil.field(row.getCaption())).append(',')
+                .append(CsvUtil.nullToEmpty(row.getCode())).append(',')
+                .append(CsvUtil.field(row.getReferenceCode())).append('\n');
     }
 
     // Job FAILED cuối = nguồn errorType/thời điểm; PublishResult lỗi cuối = mã + message gốc (FR-35).
@@ -378,7 +433,8 @@ public class AdminMonitorServiceImpl implements AdminMonitorService {
                 .max(Comparator.comparing(PublishResult::getCreatedAt,
                         Comparator.nullsFirst(Comparator.naturalOrder())))
                 .orElse(null);
-        return adminMonitorMapper.toFailedPost(post, lastFailedJob, lastError);
+        PublishErrorCode code = errorNormalizer.resolve(post.getPlatformName(), lastFailedJob, lastError);
+        return adminMonitorMapper.toFailedPost(post, lastFailedJob, lastError, code);
     }
 
     // Latency = thời gian 'SELECT 1'; activeConnections = pool HikariCP đang dùng.

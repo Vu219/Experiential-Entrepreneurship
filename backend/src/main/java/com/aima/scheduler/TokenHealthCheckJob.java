@@ -7,6 +7,7 @@ import com.aima.enums.NotificationType;
 import com.aima.repository.PlatformAccountRepository;
 import com.aima.service.MetaOAuthService;
 import com.aima.service.NotificationService;
+import com.aima.service.PublishFailureNotifier;
 import com.aima.service.ScheduleHoldService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -31,10 +32,14 @@ import java.util.List;
 @Slf4j
 public class TokenHealthCheckJob {
 
+    /** Nhắc kết nối lại khi token còn ≤ N ngày mà tự gia hạn thất bại. */
+    static final int EXPIRY_REMINDER_DAYS = 3;
+
     PlatformAccountRepository accountRepository;
     ScheduleHoldService holdService;
     MetaOAuthService metaOAuthService;
     NotificationService notificationService;
+    PublishFailureNotifier failureNotifier;
 
     @Scheduled(cron = "0 0 2 * * *")
     @SchedulerLock(name = "token-health-check", lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
@@ -69,9 +74,20 @@ public class TokenHealthCheckJob {
                     // Lỗi tạm thời (timeout/5xx/rate limit): giữ ACTIVE, lượt sau thử lại.
                     log.warn("[TokenHealthCheck] Refresh thất bại cho {} (thử lại lượt sau): {}",
                             account.getId(), e.getMessage());
+                    remindIfExpiringSoon(account);
                 }
             }
         }
+    }
+
+    // Còn ≤ EXPIRY_REMINDER_DAYS mà vẫn chưa tự gia hạn được → nhắc người dùng kết nối lại TRƯỚC khi bài bị lỗi.
+    private void remindIfExpiringSoon(PlatformAccount account) {
+        LocalDateTime expiresAt = account.getTokenExpiredAt();
+        if (expiresAt == null || expiresAt.isAfter(LocalDateTime.now().plusDays(EXPIRY_REMINDER_DAYS))) {
+            return;
+        }
+        failureNotifier.notifyTokenExpiring(account.getUser().getId(), account.getId(), account.getAccountName(),
+                account.getPlatformName(), expiresAt);
     }
 
     private void markExpired(PlatformAccount account) {

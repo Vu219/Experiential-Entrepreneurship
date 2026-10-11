@@ -50,6 +50,19 @@ public class PlanUpdateRequest {
     @Schema(description = "Hạn mức token LLM THẬT mỗi tháng. null = giữ nguyên hạn mức hiện tại.", example = "100000")
     Long monthlyTokenLimit;
 
+    // Hai giới hạn AI dưới đây là FULL update như các field khác: null = về MẶC ĐỊNH hệ thống (không phải giữ nguyên).
+    @Min(value = -1, message = "PLAN_AI_LIMIT_INVALID")
+    @Max(value = 100_000, message = "PLAN_AI_LIMIT_INVALID")
+    @Schema(description = "Lượt AI kiểm tra chính sách mỗi tháng. null = mặc định hệ thống, -1 = không giới hạn, "
+            + "0 = tắt (chỉ bộ lọc tự động).", example = "30")
+    Integer policyCheckAiMonthlyLimit;
+
+    @Min(value = -1, message = "PLAN_AI_LIMIT_INVALID")
+    @Max(value = 100_000, message = "PLAN_AI_LIMIT_INVALID")
+    @Schema(description = "Số lần AI sửa bài tối đa mỗi bản nền tảng. null = mặc định hệ thống, -1 = không giới hạn, "
+            + "0 = tắt.", example = "3")
+    Integer aiFixMaxPerVersion;
+
     String descriptionVi;
     String descriptionEn;
 

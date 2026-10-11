@@ -28,6 +28,7 @@ import com.aima.service.AiUsageService;
 import com.aima.service.NotificationService;
 import com.aima.service.StrategyOptimizationWorkerService;
 import com.aima.util.PublishingTime;
+import com.aima.util.UserFacingErrors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -100,7 +101,7 @@ public class StrategyOptimizationWorkerServiceImpl implements StrategyOptimizati
                     saveSuccess(jobId, analysis, finalOptimization, task.anchorAnalyticsId()));
         } catch (Exception e) {
             log.error("[StrategyOpt] Job {} thất bại: {}", jobId, e.getMessage());
-            transactionTemplate.executeWithoutResult(tx -> saveFailure(jobId, e.getMessage()));
+            transactionTemplate.executeWithoutResult(tx -> saveFailure(jobId, UserFacingErrors.messageOf(e)));
         }
     }
 

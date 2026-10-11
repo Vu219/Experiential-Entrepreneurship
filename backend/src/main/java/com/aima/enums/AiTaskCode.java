@@ -10,5 +10,9 @@ public enum AiTaskCode {
     TREND_RESEARCH,
     GOLDEN_HOURS,
     STRATEGY_OPTIMIZATION,
-    CONTENT_REGENERATION
+    CONTENT_REGENERATION,
+    /** AI sửa bài vi phạm chính sách / nội dung bị từ chối (đợt 2 — A1). */
+    POLICY_FIX,
+    /** AI kiểm tra chính sách trước khi đăng — chỉ khi bộ luật miễn phí có nghi vấn (A2). */
+    POLICY_CHECK
 }

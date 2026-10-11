@@ -27,6 +27,7 @@ import com.aima.service.ContentItemStatusResolver;
 import com.aima.service.ContentRegenerationWorkerService;
 import com.aima.service.ScheduleHoldService;
 import com.aima.util.ScriptJson;
+import com.aima.util.UserFacingErrors;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -84,7 +85,7 @@ public class ContentRegenerationWorkerServiceImpl implements ContentRegeneration
                     () -> aiServiceClient.regeneratePart(task.payload()));
             transactionTemplate.executeWithoutResult(status -> saveSuccess(jobId, result));
         } catch (Exception e) {
-            String message = e.getMessage();
+            String message = UserFacingErrors.messageOf(e); // chuỗi kỹ thuật không lộ ra người dùng — e vẫn được log đủ
             log.warn("[ContentRegen] Job {} thất bại: {}", jobId, message, e);
             transactionTemplate.executeWithoutResult(status -> saveFailure(jobId, message));
         }

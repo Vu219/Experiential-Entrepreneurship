@@ -543,4 +543,64 @@ class MetaApiClientImplTest {
         assertEquals(com.aima.enums.PublishErrorType.PERMANENT,
                 publishError(400, "{\"error\":{\"message\":\"Session expired\",\"code\":190,\"is_transient\":false}}").getErrorType());
     }
+
+    @Test
+    void publish_errorDetailCarriesSubcodeUserMessageTraceAndRedactedMessage() {
+        com.aima.exception.PublishException e = publishError(400, "{\"error\":{\"message\":"
+                + "\"Error validating access token: access_token=EAABsecret999 has expired\",\"type\":\"OAuthException\","
+                + "\"code\":190,\"error_subcode\":463,\"error_user_title\":\"Phiên hết hạn\","
+                + "\"error_user_msg\":\"Vui lòng đăng nhập lại\",\"fbtrace_id\":\"AbCdEf\"}}");
+
+        assertEquals("190", e.getResponseCode());
+        assertFalse(e.getMessage().contains("EAABsecret999"), "message lưu cho admin phải đã redact");
+        com.aima.dto.publish.PlatformErrorDetail d = e.getDetail();
+        assertEquals(Platform.FACEBOOK, d.platform());
+        assertEquals(400, d.httpStatus());
+        assertEquals(190, d.code());
+        assertEquals(463, d.subcode());
+        assertEquals("OAuthException", d.type());
+        assertEquals("Phiên hết hạn", d.userTitle());
+        assertEquals("AbCdEf", d.fbtraceId());
+        assertNull(d.retryAfterSeconds());
+    }
+
+    @Test
+    void publish_rateLimitHeaders_becomeRetryAfter() {
+        server.enqueue(new MockResponse().setResponseCode(400)
+                .addHeader("Content-Type", "application/json")
+                .addHeader("X-Business-Use-Case-Usage",
+                        "{\"1\":[{\"type\":\"pages\",\"call_count\":100,\"estimated_time_to_regain_access\":42}]}")
+                .setBody("{\"error\":{\"message\":\"Page request limit reached\",\"code\":32}}"));
+        com.aima.exception.PublishException buc = assertThrows(com.aima.exception.PublishException.class,
+                () -> client.publishPagePost("1", "page-tok", "hi"));
+        assertEquals(42L * 60, buc.getDetail().retryAfterSeconds());
+
+        server.enqueue(new MockResponse().setResponseCode(429).addHeader("Retry-After", "120").setBody("busy"));
+        com.aima.exception.PublishException http = assertThrows(com.aima.exception.PublishException.class,
+                () -> client.publishPagePost("1", "page-tok", "hi"));
+        assertEquals("429", http.getResponseCode());
+        assertEquals(120L, http.getDetail().retryAfterSeconds());
+        assertEquals(com.aima.enums.PublishErrorType.TEMPORARY, http.getErrorType());
+    }
+
+    @Test
+    void publish_networkError_messageHasNoUrl() {
+        // Cổng 1 không ai nghe → lỗi kết nối (không có response).
+        MetaProperties props = new MetaProperties(
+                new MetaProperties.App("fbid", "fbsecret", "http://localhost/cb", "scope", null),
+                new MetaProperties.App("thid", "thsecret", "http://localhost/thcb", "thscope", null),
+                "http://127.0.0.1:1", "http://127.0.0.1:1", false, new MetaProperties.Webhook("verify-token"));
+        PlatformVersionService versionService = mock(PlatformVersionService.class);
+        lenient().when(versionService.getCurrentVersion(Platform.FACEBOOK)).thenReturn("v25.0");
+        MetaApiClientImpl offline = new MetaApiClientImpl(
+                org.springframework.web.reactive.function.client.WebClient.builder().build(),
+                props, versionService, new com.fasterxml.jackson.databind.ObjectMapper());
+
+        com.aima.exception.PublishException e = assertThrows(com.aima.exception.PublishException.class,
+                () -> offline.publishPagePost("123456", "page-tok", "hi"));
+        assertEquals(com.aima.util.PublishErrorRules.CODE_NETWORK, e.getResponseCode());
+        assertEquals(com.aima.enums.PublishErrorType.TEMPORARY, e.getErrorType());
+        assertFalse(e.getMessage().contains("http"), e.getMessage());
+        assertTrue(e.getDetail().transientError());
+    }
 }

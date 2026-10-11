@@ -25,6 +25,7 @@ import com.aima.service.ContentItemStatusResolver;
 import com.aima.service.ContentGenerationWorkerService;
 import com.aima.service.NotificationService;
 import com.aima.service.AiUsageService;
+import com.aima.util.UserFacingErrors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -82,7 +83,7 @@ public class ContentGenerationWorkerServiceImpl implements ContentGenerationWork
             transactionTemplate.executeWithoutResult(status -> saveSuccess(jobId, result));
         } catch (Exception e) {
             // AppException giờ truyền message của ErrorCode vào super(...) nên getMessage() luôn có nghĩa.
-            String message = e.getMessage();
+            String message = UserFacingErrors.messageOf(e); // chuỗi kỹ thuật không lộ ra người dùng — e vẫn được log đủ
             ErrorCode code = e instanceof AppException app && app.getErrorCode() != null
                     ? app.getErrorCode() : ErrorCode.AI_SERVICE_ERROR;
             log.warn("[ContentGeneration] Job {} thất bại ({}): {}", jobId, code, message, e);

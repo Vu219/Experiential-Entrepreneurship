@@ -32,6 +32,8 @@ export const actionLabel = (lang: Lang, action: ActivityAction): string =>
     SCHEDULE_CANCELLED: P(lang, 'Hủy lịch đăng', 'Schedule cancelled'),
     POST_PUBLISHED: P(lang, 'Đăng bài thành công', 'Post published'),
     POST_FAILED: P(lang, 'Đăng bài thất bại', 'Post failed'),
+    POST_RETRIED: P(lang, 'Thử lại bài lỗi', 'Failed post retried'),
+    POST_FAILURE_DISMISSED: P(lang, 'Bỏ qua bài lỗi', 'Failed post dismissed'),
 
     PLAN_CHANGED: P(lang, 'Đổi gói dịch vụ', 'Plan changed'),
     PAYMENT_SUCCEEDED: P(lang, 'Thanh toán thành công', 'Payment succeeded'),
@@ -60,6 +62,7 @@ export const actionLabel = (lang: Lang, action: ActivityAction): string =>
     USER_SESSIONS_VIEWED: P(lang, 'Xem phiên & thiết bị', 'Viewed sessions & devices'),
     DEV_CREDIT_GRANTED: P(lang, 'Cấp credit (dev-tool)', 'Credit granted (dev tool)'),
     DATA_EXPORTED: P(lang, 'Export dữ liệu', 'Data exported'),
+    PUBLISH_ERROR_MAPPING_UPDATED: P(lang, 'Sửa ánh xạ lỗi đăng bài', 'Publish error mapping updated'),
   })[action] ?? action;
 
 export const actionGroupLabel = (lang: Lang, group: ActivityActionGroup): string =>

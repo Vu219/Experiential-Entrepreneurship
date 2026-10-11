@@ -24,6 +24,11 @@ public interface NotificationService {
      */
     void notify(User user, NotificationType type, String title, String message, UUID refId);
 
-    /** Như {@link #notify} nhưng chỉ gửi MỘT lần cho mỗi {@code dedupeKey} (unique index chặn cả khi chạy trùng). */
-    void notifyOnce(User user, NotificationType type, String title, String message, UUID refId, String dedupeKey);
+    /**
+     * Như {@link #notify} nhưng chỉ gửi MỘT lần cho mỗi {@code dedupeKey} (unique index chặn cả khi chạy trùng).
+     *
+     * @return true nếu lần gọi này vừa tạo thông báo (false = đã có từ trước / lỗi) — caller dùng để chỉ gửi kèm
+     *         email một lần
+     */
+    boolean notifyOnce(User user, NotificationType type, String title, String message, UUID refId, String dedupeKey);
 }

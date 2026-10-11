@@ -21,6 +21,7 @@ import com.aima.repository.TrendResearchSessionRepository;
 import com.aima.service.AiServiceClient;
 import com.aima.service.AiUsageService;
 import com.aima.service.TrendResearchWorkerService;
+import com.aima.util.UserFacingErrors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -94,7 +95,7 @@ public class TrendResearchWorkerServiceImpl implements TrendResearchWorkerServic
             transactionTemplate.executeWithoutResult(status -> saveSuccess(sessionId, result));
         } catch (Exception e) {
             // AppException giờ truyền message của ErrorCode vào super(...) nên getMessage() luôn có nghĩa.
-            String message = e.getMessage();
+            String message = UserFacingErrors.messageOf(e); // chuỗi kỹ thuật không lộ ra người dùng — e vẫn được log đủ
             log.warn("[TrendResearch] Phiên {} thất bại: {}", sessionId, message, e);
             transactionTemplate.executeWithoutResult(status -> saveFailure(sessionId, message));
         }

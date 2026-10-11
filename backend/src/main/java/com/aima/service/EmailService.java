@@ -10,4 +10,11 @@ public interface EmailService {
     void sendAccountSetupSuccessEmail(String toEmail, String fullName, LocalDateTime setupTime);
     /** Cảnh báo tài khoản còn `daysRemaining` ngày trước khi bị xóa vĩnh viễn (FR-80). */
     void sendAccountDeletionWarningEmail(String toEmail, String fullName, LocalDateTime deletionDate, long daysRemaining);
+    /**
+     * Một kết nối mạng xã hội cần người dùng xử lý (token hết hạn / sắp hết hạn, thiếu quyền, tài khoản bị chặn) —
+     * bài đăng của tài khoản đó đang/sẽ thất bại. {@code actionPath} là đường dẫn FE (vd "/settings?tab=connections").
+     * Nội dung là câu đã soạn sẵn (không message gốc của nền tảng); được escape HTML khi dựng email.
+     */
+    void sendPublishActionRequiredEmail(String toEmail, String fullName, String title, String message,
+                                        String actionLabel, String actionPath, String unsubscribeToken);
 }

@@ -10,6 +10,7 @@ import com.aima.exception.ErrorCode;
 import com.aima.repository.PlatformAccountRepository;
 import com.aima.service.MetaOAuthService;
 import com.aima.service.NotificationService;
+import com.aima.service.PublishFailureNotifier;
 import com.aima.service.ScheduleHoldService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,7 @@ class TokenHealthCheckJobTest {
     private ScheduleHoldService holdService;
     private MetaOAuthService metaOAuthService;
     private NotificationService notificationService;
+    private PublishFailureNotifier failureNotifier;
     private TokenHealthCheckJob job;
 
     @BeforeEach
@@ -38,7 +40,8 @@ class TokenHealthCheckJobTest {
         holdService = mock(ScheduleHoldService.class);
         metaOAuthService = mock(MetaOAuthService.class);
         notificationService = mock(NotificationService.class);
-        job = new TokenHealthCheckJob(accountRepository, holdService, metaOAuthService, notificationService);
+        failureNotifier = mock(PublishFailureNotifier.class);
+        job = new TokenHealthCheckJob(accountRepository, holdService, metaOAuthService, notificationService, failureNotifier);
     }
 
     private PlatformAccount account(LocalDateTime expiresAt) {
@@ -63,6 +66,18 @@ class TokenHealthCheckJobTest {
         assertEquals(ConnectionStatus.ACTIVE, a.getConnectionStatus());
         verify(accountRepository, never()).save(any());
         verifyNoInteractions(holdService, notificationService);
+        // Còn ≤ 3 ngày mà chưa gia hạn được → nhắc kết nối lại trước khi bài đăng bị lỗi.
+        verify(failureNotifier).notifyTokenExpiring(any(), eq(a.getId()), eq("acc"), any(), eq(a.getTokenExpiredAt()));
+    }
+
+    @Test
+    void transientFailure_expiryStillFarAway_noReminderYet() {
+        PlatformAccount a = account(LocalDateTime.now().plusDays(6));
+        when(metaOAuthService.refresh(a.getId())).thenThrow(new AppException(ErrorCode.TOKEN_REFRESH_FAILED));
+
+        job.run();
+
+        verifyNoInteractions(failureNotifier);
     }
 
     @Test

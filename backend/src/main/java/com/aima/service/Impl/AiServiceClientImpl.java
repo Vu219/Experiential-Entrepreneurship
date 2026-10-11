@@ -11,6 +11,10 @@ import com.aima.dto.ai.GoldenHourPayload;
 import com.aima.dto.ai.GoldenHourResultPayload;
 import com.aima.dto.ai.OptimizePayload;
 import com.aima.dto.ai.OptimizeResultPayload;
+import com.aima.dto.ai.PolicyCheckPayload;
+import com.aima.dto.ai.PolicyCheckResultPayload;
+import com.aima.dto.ai.PolicyFixPayload;
+import com.aima.dto.ai.PolicyFixResultPayload;
 import com.aima.dto.ai.RegeneratePartPayload;
 import com.aima.dto.ai.RegeneratePartResultPayload;
 import com.aima.dto.ai.ResearchPayload;
@@ -104,6 +108,18 @@ public class AiServiceClientImpl implements AiServiceClient {
     public OptimizeResultPayload optimize(OptimizePayload payload) {
         applyRouting(payload, AiTaskCode.STRATEGY_OPTIMIZATION);
         return post("/optimize", payload, OptimizeResultPayload.class);
+    }
+
+    @Override
+    public PolicyFixResultPayload policyFix(PolicyFixPayload payload) {
+        applyRouting(payload, AiTaskCode.POLICY_FIX);
+        return post("/policy-fix", payload, PolicyFixResultPayload.class);
+    }
+
+    @Override
+    public PolicyCheckResultPayload policyCheck(PolicyCheckPayload payload) {
+        applyRouting(payload, AiTaskCode.POLICY_CHECK);
+        return post("/policy-check", payload, PolicyCheckResultPayload.class);
     }
 
     /**

@@ -3,6 +3,9 @@ import type { Lang } from '../types';
 import type { Tone } from '../components/admin/StatusBadge';
 import client, { type ApiError, type ApiResponse, type PageResponse } from './apiClient';
 import type { PlanSource } from './payments';
+import {
+  toPublishErrorCategory, toPublishErrorCode, type PublishErrorCategory, type PublishErrorCode,
+} from './publishErrorCatalog';
 
 // 2026-07-12: Quản lý người dùng (FR-80) nối BE thật hoàn toàn — list/stats/detail/create/update/
 // đổi gói/khoá-mở/đặt lại mật khẩu. Lọc/tìm/phân trang server-side. Các module khác (bài lỗi,
@@ -339,6 +342,12 @@ export interface AdminPostProblem {
   /** Mã lỗi GỐC từ nền tảng (FR-35), vd '368' / '190'. */
   errorCode: string | null;
   errorMessage: string | null;
+  /** Mã lỗi chuẩn AIMA (catalog) + nhóm — nguồn của câu "lý do" hiển thị, KHÔNG suy từ message thô. */
+  code: PublishErrorCode;
+  category: PublishErrorCategory;
+  platformSubcode: string | null;
+  /** Mã tham chiếu người dùng thấy (ERR-XXXXXX) — gõ vào ô tìm kiếm để tra. */
+  referenceCode: string | null;
   /** Số lần đã thử lại (FR-56) — chỉ có ý nghĩa ở tab lỗi hệ thống. */
   retryCount: number | null;
   /** 'YYYY-MM-DD HH:mm' — lần thử lại kế tiếp, null khi đã hết lượt. */
@@ -386,6 +395,10 @@ interface BeFailedPost {
   retryCount: number | null;
   nextRetryAt: string | null;
   failedAt: string | null;
+  code: PublishErrorCode | null;
+  category: PublishErrorCategory | null;
+  platformSubcode: string | null;
+  referenceCode: string | null;
 }
 
 const BE_PLATFORM_TAG: Record<BeFailedPost['platformName'], AdminPostPlatform> =
@@ -421,6 +434,10 @@ const toProblem = (p: BeFailedPost): AdminPostProblem => ({
   nextRetryAt: beDateTime(p.nextRetryAt),
   content: p.caption ?? '',
   date: beDateTime(p.failedAt) ?? '—',
+  code: toPublishErrorCode(p.code),
+  category: toPublishErrorCategory(p.category),
+  platformSubcode: p.platformSubcode,
+  referenceCode: p.referenceCode,
 });
 
 // GET /admin/posts/failed (ADMIN, FR-82/FR-83).
@@ -465,6 +482,140 @@ export interface PostProblemSummary {
   /** Khoảng kỳ trước liền kề ('YYYY-MM-DD') — dựng nhãn "so với 06/07 - 12/07". */
   comparisonFrom: string;
   comparisonTo: string;
+  /** Mã lỗi chuẩn hàng đầu (lần lỗi cuối của bài thất bại chung cuộc trong kỳ, phạm vi theo tab). */
+  topCodes: { code: PublishErrorCode; category: PublishErrorCategory; count: number }[];
+  byPlatform: { platform: BeFailedPost['platformName']; count: number }[];
+  /** Bài đăng THÀNH CÔNG trong kỳ — tỷ lệ lỗi = total / (total + postedTotal). */
+  postedTotal: number;
+  /** Nền tảng đang có sự cố diện rộng (retry đang được hoãn). */
+  incidents: PlatformIncident[];
+}
+
+/** Nền tảng có nhiều lỗi tạm thời từ nhiều tài khoản trong thời gian ngắn (PlatformIncidentService). */
+export interface PlatformIncident {
+  platform: 'FACEBOOK' | 'INSTAGRAM' | 'THREADS';
+  since: string;
+  failures: number;
+  accounts: number;
+}
+
+// ===== Chuẩn hoá lỗi đăng bài — góc nhìn admin (docs/failed-posts-error-handling-plan.md Phase 4) =====
+
+export interface AdminPostAttempt {
+  retryCount: number;
+  status: 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED' | 'RETRYING';
+  code: PublishErrorCode | null;
+  platformCode: string | null;
+  platformSubcode: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  nextRetryAt: string | null;
+  referenceCode: string | null;
+  resolution: 'DISMISSED' | 'RETRIED' | 'CANCELLED' | null;
+  resolvedAt: string | null;
+  /** Message kỹ thuật ĐÃ REDACT (chỉ admin). */
+  errorMessage: string | null;
+  /** Lỗi thô dạng JSON ĐÃ REDACT (chỉ admin). */
+  errorDetail: string | null;
+}
+
+export interface AdminPostProblemDetail {
+  post: AdminPostProblem;
+  scheduleId: string;
+  contentItemId: string;
+  state: 'AUTO_RETRYING' | 'NEEDS_ACTION' | 'DISMISSED' | 'RESOLVED';
+  /** Lỗi thô của lần cuối (JSON đã redact). */
+  rawError: string | null;
+  attempts: AdminPostAttempt[];
+}
+
+interface BeAdminPostProblemDetail extends Omit<AdminPostProblemDetail, 'post'> {
+  post: BeFailedPost;
+}
+
+// GET /admin/posts/failed/{postId} — chi tiết + lỗi thô đã redact + timeline.
+export async function getPostProblemDetail(postId: string): Promise<AdminPostProblemDetail> {
+  const { data } = await client.get<ApiResponse<BeAdminPostProblemDetail>>(`/admin/posts/failed/${postId}`);
+  const d = data.result;
+  return {
+    ...d,
+    post: toProblem(d.post),
+    attempts: d.attempts.map((a) => ({
+      ...a,
+      startedAt: beDateTime(a.startedAt),
+      finishedAt: beDateTime(a.finishedAt),
+      nextRetryAt: beDateTime(a.nextRetryAt),
+      resolvedAt: beDateTime(a.resolvedAt),
+    })),
+  };
+}
+
+// POST /admin/posts/failed/{postId}/retry — thử lại thay người dùng, BẮT BUỘC lý do (activity log).
+export async function retryPostProblem(postId: string, reason: string): Promise<{ jobId: string | null; heldReason: string | null }> {
+  const { data } = await client.post<ApiResponse<{ jobId: string | null; heldReason: string | null }>>(
+    `/admin/posts/failed/${postId}/retry`, { reason },
+  );
+  return data.result;
+}
+
+export interface UnclassifiedErrorGroup {
+  platform: 'FACEBOOK' | 'INSTAGRAM' | 'THREADS';
+  platformCode: string | null;
+  platformSubcode: string | null;
+  /** Message mẫu mới nhất của nhóm (đã redact). */
+  messageSample: string | null;
+  count: number;
+  affectedUsers: number;
+  firstSeen: string | null;
+  lastSeen: string | null;
+  sampleReferenceCode: string | null;
+  sampleDetail: string | null;
+}
+
+// GET /admin/posts/failed/unclassified?from&to — lỗi UNKNOWN gom theo chữ ký.
+export async function getUnclassifiedErrors(range: { from: string; to: string }): Promise<UnclassifiedErrorGroup[]> {
+  const { data } = await client.get<ApiResponse<UnclassifiedErrorGroup[]>>('/admin/posts/failed/unclassified', {
+    params: range,
+  });
+  return data.result.map((g) => ({ ...g, firstSeen: beDateTime(g.firstSeen), lastSeen: beDateTime(g.lastSeen) }));
+}
+
+export interface PublishErrorMapping {
+  id: string;
+  platform: 'FACEBOOK' | 'INSTAGRAM' | 'THREADS';
+  platformCode: string;
+  platformSubcode: string | null;
+  messagePattern: string | null;
+  errorCode: PublishErrorCode;
+  note: string | null;
+  updatedByEmail: string | null;
+  createdAt: string | null;
+  appliedCount: number;
+}
+
+export interface PublishErrorMappingInput {
+  platform: PublishErrorMapping['platform'];
+  platformCode: string;
+  platformSubcode?: string;
+  messagePattern?: string;
+  errorCode: PublishErrorCode;
+  note?: string;
+  applyToExisting: boolean;
+}
+
+// GET/POST/DELETE /admin/publish-error-mappings — ánh xạ chữ ký lỗi → mã AIMA có sẵn.
+export async function listErrorMappings(): Promise<PublishErrorMapping[]> {
+  const { data } = await client.get<ApiResponse<PublishErrorMapping[]>>('/admin/publish-error-mappings');
+  return data.result;
+}
+
+export async function createErrorMapping(input: PublishErrorMappingInput): Promise<PublishErrorMapping> {
+  const { data } = await client.post<ApiResponse<PublishErrorMapping>>('/admin/publish-error-mappings', input);
+  return data.result;
+}
+
+export async function deleteErrorMapping(id: string): Promise<void> {
+  await client.delete<ApiResponse<PublishErrorMapping>>(`/admin/publish-error-mappings/${id}`);
 }
 
 // GET /admin/posts/failed/summary — 4 thẻ KPI + badge số lượng tab.
@@ -655,13 +806,14 @@ export type ActivityAction =
   | 'SOCIAL_CONNECTED' | 'SOCIAL_DISCONNECTED'
   | 'CONTENT_CREATED' | 'CONTENT_UPDATED' | 'CONTENT_DELETED' | 'CONTENT_STATUS_CHANGED'
   | 'SCHEDULE_CREATED' | 'SCHEDULE_UPDATED' | 'SCHEDULE_CANCELLED' | 'POST_PUBLISHED' | 'POST_FAILED'
+  | 'POST_RETRIED' | 'POST_FAILURE_DISMISSED'
   | 'PLAN_CHANGED' | 'PAYMENT_SUCCEEDED' | 'PAYMENT_FAILED' | 'PAYMENT_WEBHOOK_REJECTED'
   | 'PAYMENT_CANCELLED' | 'PAYMENT_MARKED_PAID' | 'SUBSCRIPTION_ADJUSTED'
   | 'USER_CREATED' | 'USER_UPDATED' | 'USER_STATUS_CHANGED' | 'USER_DELETED' | 'USER_PASSWORD_RESET'
   | 'PLAN_CONFIG_UPDATED' | 'LANDING_CONTENT_UPDATED' | 'LANDING_CONTENT_PUBLISHED' | 'AI_CONFIG_UPDATED' | 'API_VERSION_UPDATED'
   | 'TOKENS_GRANTED' | 'USAGE_RESET' | 'BILLING_RATE_CREATED'
   | 'ALERT_ACKED' | 'ALERT_CONFIG_UPDATED' | 'USAGE_META_VIEWED' | 'USER_SESSIONS_VIEWED'
-  | 'DEV_CREDIT_GRANTED' | 'DATA_EXPORTED';
+  | 'DEV_CREDIT_GRANTED' | 'DATA_EXPORTED' | 'PUBLISH_ERROR_MAPPING_UPDATED';
 
 export type ActivityResult = 'SUCCESS' | 'FAILURE';
 
@@ -671,13 +823,14 @@ export const ACTIONS_BY_GROUP: Record<ActivityActionGroup, ActivityAction[]> = {
   ACCOUNT: ['ACCOUNT_REGISTERED', 'PROFILE_UPDATED', 'ACCOUNT_DELETE_REQUESTED', 'ACCOUNT_RESTORED',
     'SOCIAL_CONNECTED', 'SOCIAL_DISCONNECTED'],
   CONTENT: ['CONTENT_CREATED', 'CONTENT_UPDATED', 'CONTENT_DELETED', 'CONTENT_STATUS_CHANGED',
-    'SCHEDULE_CREATED', 'SCHEDULE_UPDATED', 'SCHEDULE_CANCELLED', 'POST_PUBLISHED', 'POST_FAILED'],
+    'SCHEDULE_CREATED', 'SCHEDULE_UPDATED', 'SCHEDULE_CANCELLED', 'POST_PUBLISHED', 'POST_FAILED',
+    'POST_RETRIED', 'POST_FAILURE_DISMISSED'],
   BILLING: ['PLAN_CHANGED', 'PAYMENT_SUCCEEDED', 'PAYMENT_FAILED', 'PAYMENT_WEBHOOK_REJECTED',
     'PAYMENT_CANCELLED', 'PAYMENT_MARKED_PAID', 'SUBSCRIPTION_ADJUSTED'],
   ADMIN: ['USER_CREATED', 'USER_UPDATED', 'USER_STATUS_CHANGED', 'USER_DELETED', 'USER_PASSWORD_RESET',
     'PLAN_CONFIG_UPDATED', 'LANDING_CONTENT_UPDATED', 'LANDING_CONTENT_PUBLISHED', 'AI_CONFIG_UPDATED', 'API_VERSION_UPDATED', 'TOKENS_GRANTED', 'USAGE_RESET',
     'BILLING_RATE_CREATED', 'ALERT_ACKED', 'ALERT_CONFIG_UPDATED', 'USAGE_META_VIEWED',
-    'USER_SESSIONS_VIEWED', 'DEV_CREDIT_GRANTED', 'DATA_EXPORTED'],
+    'USER_SESSIONS_VIEWED', 'DEV_CREDIT_GRANTED', 'DATA_EXPORTED', 'PUBLISH_ERROR_MAPPING_UPDATED'],
 };
 
 export interface ActivityLog {

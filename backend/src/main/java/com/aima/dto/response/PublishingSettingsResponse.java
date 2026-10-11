@@ -20,4 +20,5 @@ public class PublishingSettingsResponse {
     int conflictWindowMinutes;
     boolean brandVoiceBlockingEnabled;
     Integer brandVoiceThreshold;
+    boolean policyCheckEnabled;
 }

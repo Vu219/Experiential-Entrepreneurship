@@ -66,6 +66,21 @@ src/
 │   │                       hooks/useLandingContent cache 1 lần gọi/phiên, fallback config/landingDefaults.ts
 │   │                       (dựng từ chuỗi i18n) khi API lỗi. Admin: pages/admin/Landing.tsx +
 │   │                       components/admin/landing/*; validate ở validations/landingValidation.ts.
+│   ├── publishErrorCatalog.ts — NGUỒN DUY NHẤT câu chữ lỗi đăng bài (vi/en): theo mã chuẩn backend
+│   │                       `PublishErrorCode` → tiêu đề / chuyện gì / vì sao / các bước + nhãn nhóm & hành động.
+│   │                       Backend KHÔNG gửi message gốc cho user; thêm mã mới ở BE → thêm vào catalog
+│   │                       (test tests/publishErrorCatalog.test.ts so đúng danh sách mã).
+│   ├── failedPosts.ts    — trang "Bài lỗi & cần xử lý" (/me/failed-posts): danh sách theo vòng đời, chi tiết
+│   │                       + timeline, thử lại / bỏ qua / hàng loạt, sự cố nền tảng. UI: pages/app/FailedPosts.tsx +
+│   │                       components/failedPosts/* (gom nguyên nhân chung ở rootCause.ts). Demo failedPostsMock chỉ ở DEV.
+│   │                       Admin (components/admin/posts/*): chi tiết có phản hồi gốc đã redact, thử lại thay user,
+│   │                       hàng đợi "Chưa phân loại" + ánh xạ mã — dùng chung catalog, KHÔNG tự đoán lý do từ message.
+│   ├── aiAssist.ts       — AI sửa bài vi phạm + kiểm tra chính sách (/me/ai-assist): job chạy nền, FE poll.
+│   │                       components/aiAssist/{AiFixModal (diff textDiff.ts + sửa + áp dụng), PolicyCheckNotice
+│   │                       (dưới mỗi nền tảng ở SchedulePlanner — chỉ cảnh báo)}. Effect gọi AI có ref chống gọi đôi
+│   │                       (StrictMode) — mỗi lần bấm chỉ MỘT job (tốn token + lượt).
+│   ├── notificationPreferences.ts — email lỗi đăng bài (opt-in): banner hỏi 1 lần ở /failed-posts
+│   │                       (EmailOptInBanner), Cài đặt → Thông báo (PublishErrorEmailCard), trang công khai /unsubscribe.
 │   └── trendResearch.ts  — start/poll/list/deleteTrends phiên Trend Research (async job, NFR-04);
 │                           input có `strategyId` + `articleCount` (1–20) ngoài brand/platform.
 │                           Trang Trends GỘP tối đa 3 phiên COMPLETED gần nhất MỖI nền tảng

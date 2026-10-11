@@ -4,6 +4,8 @@ import com.aima.dto.publish.PublishTarget;
 import com.aima.enums.Platform;
 import com.aima.util.PlatformTextLimits;
 
+import java.util.Optional;
+
 /**
  * Adapter đăng bài theo nền tảng (NFR-09): mỗi nền tảng một implementation, worker chọn theo
  * {@link #platform()}. Thêm nền tảng mới = thêm một bean mới, không sửa worker.
@@ -26,5 +28,27 @@ public interface PlatformPublisher {
      */
     default String buildMessage(String formattedCaption, String hashtagCsv) {
         return PlatformTextLimits.compose(formattedCaption, hashtagCsv);
+    }
+
+    /**
+     * Chống đăng trùng khi đăng lại sau lỗi MƠ HỒ (timeout, gián đoạn, 5xx — nền tảng có thể đã nhận bài):
+     * tìm bài đã đăng của tài khoản đích từ {@link PublishTarget#verifySince()} có nội dung khớp
+     * {@link PublishTarget#message()}. Trả id bài trên nền tảng nếu đã có. Mặc định không kiểm tra được → rỗng.
+     * Lỗi gọi nền tảng được phép ném ra — worker coi như "không kiểm tra được" và vẫn đăng.
+     */
+    default Optional<String> findPublished(PublishTarget target) {
+        return Optional.empty();
+    }
+
+    /** So nội dung bài: bỏ khoảng trắng đầu/cuối và gộp khoảng trắng liên tiếp (nền tảng có thể chuẩn hoá xuống dòng). */
+    static boolean sameMessage(String published, String expected) {
+        if (published == null || expected == null) {
+            return false;
+        }
+        return normalize(published).equals(normalize(expected));
+    }
+
+    private static String normalize(String value) {
+        return value.strip().replaceAll("\\s+", " ");
     }
 }

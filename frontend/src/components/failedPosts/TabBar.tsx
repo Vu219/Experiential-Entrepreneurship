@@ -1,14 +1,17 @@
 import { useApp } from '../../context/AppContext.tsx';
-import type { FailedPostFilter } from '../../api/failedPosts.ts';
+import type { FailureState } from '../../api/failedPosts.ts';
 import { C } from '../../styles/colors';
 
-// Hàng tab lọc theo loại lỗi, kèm badge số lượng: [Tất cả] [Vi phạm chính sách (n)] [Lỗi kỹ thuật (n)].
+// Hàng tab theo VÒNG ĐỜI lỗi, kèm badge số lượng: [Cần xử lý (n)] [Đang tự thử lại (n)] [Đã bỏ qua (n)].
+// Nhóm lỗi (chính sách / tài khoản / nội dung…) chuyển thành bộ lọc ở FilterBar.
 // Đổi tab → trang FailedPosts reset selection + về trang 1 (xử lý ở page, không ở đây).
 
-const TABS: { key: FailedPostFilter; labelKey: 'fpTabAll' | 'fpTabPolicy' | 'fpTabTechnical' }[] = [
-  { key: 'ALL', labelKey: 'fpTabAll' },
-  { key: 'POLICY', labelKey: 'fpTabPolicy' },
-  { key: 'TECHNICAL', labelKey: 'fpTabTechnical' },
+export type FpTab = Exclude<FailureState, 'RESOLVED'>;
+
+const TABS: { key: FpTab; labelKey: 'fpTabNeedsAction' | 'fpTabAutoRetrying' | 'fpTabDismissed' }[] = [
+  { key: 'NEEDS_ACTION', labelKey: 'fpTabNeedsAction' },
+  { key: 'AUTO_RETRYING', labelKey: 'fpTabAutoRetrying' },
+  { key: 'DISMISSED', labelKey: 'fpTabDismissed' },
 ];
 
 export default function TabBar({
@@ -16,18 +19,20 @@ export default function TabBar({
   counts,
   onChange,
 }: {
-  tab: FailedPostFilter;
-  counts: Record<FailedPostFilter, number>;
-  onChange: (tab: FailedPostFilter) => void;
+  tab: FpTab;
+  counts: Record<FpTab, number>;
+  onChange: (tab: FpTab) => void;
 }) {
   const { t } = useApp();
   return (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+    <div role="tablist" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
       {TABS.map(({ key, labelKey }) => {
         const active = tab === key;
         return (
           <button
             key={key}
+            role="tab"
+            aria-selected={active}
             onClick={() => onChange(key)}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 7,
@@ -40,7 +45,7 @@ export default function TabBar({
             <span
               style={{
                 fontSize: 10.5, fontWeight: 800, minWidth: 20, padding: '1px 6px', borderRadius: 999,
-                background: active ? '#7c3aed' : C.surfaceMuted, color: active ? '#fff' : C.textMuted,
+                background: active ? C.primary : C.surfaceMuted, color: active ? C.onBrand : C.textMuted,
               }}
             >
               {counts[key]}

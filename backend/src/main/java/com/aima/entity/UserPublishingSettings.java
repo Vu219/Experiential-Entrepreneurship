@@ -31,4 +31,8 @@ public class UserPublishingSettings {
 
     @Column(name = "brand_voice_threshold")
     private Integer brandVoiceThreshold;
+
+    /** Kiểm tra chính sách trước khi đăng (bộ luật miễn phí + AI theo gói) — chỉ cảnh báo, không chặn. */
+    @Column(name = "policy_check_enabled", nullable = false)
+    private boolean policyCheckEnabled = true;
 }

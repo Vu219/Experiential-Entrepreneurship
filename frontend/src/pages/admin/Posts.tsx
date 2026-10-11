@@ -14,7 +14,10 @@ import PostProblemKpis from '../../components/admin/posts/PostProblemKpis';
 import PostProblemFilterBar from '../../components/admin/posts/PostProblemFilterBar';
 import PostProblemTable from '../../components/admin/posts/PostProblemTable';
 import PostProblemDetail from '../../components/admin/posts/PostProblemDetail';
-import type { AdminPostProblem } from '../../api/admin';
+import PostProblemInsights, { IncidentBanner } from '../../components/admin/posts/PostProblemInsights';
+import UnclassifiedQueue from '../../components/admin/posts/UnclassifiedQueue';
+import { retryPostProblem, type AdminPostProblem } from '../../api/admin';
+import type { ApiError } from '../../api/apiClient';
 
 // Trang admin "Bài đăng lỗi & bị từ chối" (FR-82 + FR-83).
 //
@@ -56,6 +59,29 @@ export default function Posts() {
     const text = post.content.trim();
     if (!text) return;
     navigator.clipboard?.writeText(text).then(() => toast.success(t.apCopied));
+  };
+
+  const copyReference = (reference: string) => {
+    navigator.clipboard?.writeText(reference).then(() => toast.success(t.apReferenceCopied));
+  };
+
+  // Thử lại thay người dùng (lý do bắt buộc, backend ghi activity log) — cùng luật chặn với nút của người dùng.
+  const [retrying, setRetrying] = useState(false);
+  const retryOnBehalf = async (post: AdminPostProblem, reason: string): Promise<boolean> => {
+    setRetrying(true);
+    try {
+      const result = await retryPostProblem(post.id, reason);
+      if (result.jobId) toast.success(t.apRetryDone);
+      else toast.warning(t.apRetryHeldToast);
+      s.reloadList();
+      s.reloadSummary();
+      return true;
+    } catch (e) {
+      toast.error((e as ApiError).message);
+      return false;
+    } finally {
+      setRetrying(false);
+    }
   };
 
   const doExport = async () => {
@@ -125,8 +151,11 @@ export default function Posts() {
       width={docked ? DETAIL_WIDTH : undefined}
       stickyTop={docked ? DETAIL_STICKY_TOP : undefined}
       stickyMaxHeight={docked ? DETAIL_STICKY_MAX_HEIGHT : undefined}
+      busy={retrying}
       onClose={() => s.setSelectedId(null)}
       onCopyContent={copyContent}
+      onCopyReference={copyReference}
+      onRetry={retryOnBehalf}
     />
   );
 
@@ -134,24 +163,33 @@ export default function Posts() {
     <PageContainer>
       {/* B — tab + khoảng ngày + bộ lọc + xuất báo cáo */}
       <PostProblemToolbar
-        kind={s.kind}
+        view={s.view}
         summary={s.summary}
         range={s.range}
         activeFilters={s.activeFilters}
         filtersOpen={filtersOpen}
         exporting={s.exporting}
-        onKindChange={s.setKind}
+        onViewChange={s.setView}
         onRangeChange={s.setRange}
         onToggleFilters={() => setFiltersOpen((v) => !v)}
         onExport={doExport}
       />
 
+      {/* Banner sự cố nền tảng đang mở (retry của nền tảng đó đang được hoãn) */}
+      {s.summary && <IncidentBanner incidents={s.summary.incidents ?? []} />}
+
+      {s.view === 'unclassified' ? (
+        <UnclassifiedQueue range={s.range} />
+      ) : (
+        <>
       {/* C — 4 thẻ KPI, đổi bộ theo tab (ẩn hoàn toàn khi chưa có số thật) */}
       {s.summaryLoad === 'loading' && <KpiRowSkeleton columns={kpiColumns} />}
       {s.summaryLoad === 'error' && (
         <Card style={{ borderRadius: 18 }}><BlockError onRetry={s.reloadSummary} /></Card>
       )}
       {s.summaryLoad === 'ok' && s.summary && <PostProblemKpis kind={s.kind} summary={s.summary} />}
+      {/* Xu hướng: mã lỗi chuẩn hàng đầu + phân bố nền tảng + tỷ lệ lỗi */}
+      {s.summaryLoad === 'ok' && s.summary && <PostProblemInsights summary={s.summary} />}
 
       {/*
         D + E + F — bảng và panel chi tiết nằm CÙNG MỘT HÀNG khi màn đủ rộng: bảng co lại,
@@ -165,6 +203,8 @@ export default function Posts() {
       </div>
 
       {!docked && detailPanel}
+        </>
+      )}
     </PageContainer>
   );
 }

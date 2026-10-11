@@ -38,6 +38,16 @@ public class PlanDataInitializer implements CommandLineRunner {
             "PRO", 1_000_000L
     );
 
+    /**
+     * Lượt AI kiểm tra chính sách/tháng của 3 gói lõi khi DB mới seed — cùng giá trị Flyway V15 backfill cho DB
+     * cũ (V15 chạy TRƯỚC initializer nên DB mới không có dòng nào để backfill). Admin chỉnh sau ở "Quản lý gói".
+     */
+    static final Map<String, Integer> CORE_POLICY_CHECK_AI_LIMITS = Map.of(
+            "FREE", 0,
+            "PLUS", 30,
+            "PRO", 200
+    );
+
     @Override
     public void run(String... args) {
         seedPlans();
@@ -69,6 +79,7 @@ public class PlanDataInitializer implements CommandLineRunner {
                 .price(0L).billingCycleVi("trọn đời").billingCycleEn("forever")
                 .tokenQuota(5L)
                 .monthlyTokenLimit(CORE_MONTHLY_TOKEN_LIMITS.get("FREE"))
+                .policyCheckAiMonthlyLimit(CORE_POLICY_CHECK_AI_LIMITS.get("FREE"))
                 .descriptionVi("Trải nghiệm quy trình AI với một thương hiệu.")
                 .descriptionEn("Try the AI pipeline with one brand.")
                 .featuresVi("1 hồ sơ thương hiệu\n5 bài viết AI mỗi tháng\nKết nối 1 nền tảng\nNghiên cứu xu hướng cơ bản")
@@ -84,6 +95,7 @@ public class PlanDataInitializer implements CommandLineRunner {
                 .price(499_000L).billingCycleVi("/tháng").billingCycleEn("/month")
                 .tokenQuota(100L)
                 .monthlyTokenLimit(CORE_MONTHLY_TOKEN_LIMITS.get("PLUS"))
+                .policyCheckAiMonthlyLimit(CORE_POLICY_CHECK_AI_LIMITS.get("PLUS"))
                 .descriptionVi("Cho creator & shop cần nội dung đều đặn mỗi ngày.")
                 .descriptionEn("For creators & shops posting every day.")
                 .featuresVi("3 hồ sơ thương hiệu\n100 bài viết AI mỗi tháng\nĐủ 3 nền tảng: Facebook · Instagram · Threads\nLên lịch & tự động đăng bài\nPhân tích hiệu quả sau đăng")
@@ -99,6 +111,7 @@ public class PlanDataInitializer implements CommandLineRunner {
                 .price(1_990_000L).billingCycleVi("/tháng").billingCycleEn("/month")
                 .tokenQuota(null) // không giới hạn (hiển thị)
                 .monthlyTokenLimit(CORE_MONTHLY_TOKEN_LIMITS.get("PRO"))
+                .policyCheckAiMonthlyLimit(CORE_POLICY_CHECK_AI_LIMITS.get("PRO"))
                 .descriptionVi("Cho doanh nghiệp nhỏ chạy nhiều thương hiệu cùng lúc.")
                 .descriptionEn("For small businesses running multiple brands.")
                 .featuresVi("Không giới hạn hồ sơ thương hiệu\nKhông giới hạn bài viết AI\nAI tối ưu chiến lược từ dữ liệu\nBáo cáo hiệu quả chuyên sâu\nHỗ trợ ưu tiên")

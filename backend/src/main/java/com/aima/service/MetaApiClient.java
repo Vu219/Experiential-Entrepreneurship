@@ -67,6 +67,13 @@ public interface MetaApiClient {
     List<MetaPublishedPost> getPagePublishedPosts(String pageId, String pageToken, Instant since);
 
     /**
+     * Bài Threads gần đây của chủ token từ {@code since} ({@code GET /me/threads?fields=id,text,timestamp}, một trang
+     * 25 bài) — dùng để kiểm tra bài đã lên nền tảng chưa trước khi đăng lại sau lỗi mơ hồ (chống đăng trùng).
+     * Lỗi ném {@code AppException} (caller coi như "không kiểm tra được").
+     */
+    List<MetaPublishedPost> getThreadsPosts(String token, Instant since);
+
+    /**
      * Insights theo NGÀY của Trang trong [{@code since}, {@code until}] (tối đa 90 ngày, ngày theo giờ Thái Bình
      * Dương như Meta tính): {@code GET /{page-id}/insights?period=day}. Metric bị Meta từ chối (đã khai tử) được bỏ
      * qua kèm log ERROR, không làm mất các metric còn lại. Cần read_insights.

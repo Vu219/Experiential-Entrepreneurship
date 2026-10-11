@@ -13,7 +13,8 @@ import {
   createFeature, updateFeature, deleteFeature,
   toPricingPlans, toComparisonGroups,
   type PlansPayload, type PlanDto, type PlanFeatureDto, type PlanSaveInput,
-  type FeatureSaveInput, type PlanFeatureValueDto,
+  type FeatureSaveInput, type PlanFeatureValueDto, type PlanAiLimit, type PlanLimitDefaults,
+  PLAN_AI_UNLIMITED, PLAN_AI_LIMIT_MAX,
 } from '../../api/plans';
 import type { ApiError } from '../../api/apiClient';
 import type { Lang } from '../../types';
@@ -33,17 +34,39 @@ export const PLANS_INTENT_KEY = 'aima.plansIntent';
 export type PlansIntent = { action: 'create' } | { action: 'edit'; id: string };
 
 const ERR_PLAN_CODE_EXISTED = 1982;
+const ERR_PLAN_AI_LIMIT_INVALID = 2176;
 
 const toSaveInput = (p: PlanDto): PlanSaveInput => ({
   nameVi: p.nameVi, nameEn: p.nameEn, price: p.price,
   billingCycleVi: p.billingCycleVi, billingCycleEn: p.billingCycleEn,
   billingIntervalMonths: p.billingIntervalMonths,
-  tokenQuota: p.tokenQuota, monthlyTokenLimit: p.monthlyTokenLimit, descriptionVi: p.descriptionVi, descriptionEn: p.descriptionEn,
+  tokenQuota: p.tokenQuota, monthlyTokenLimit: p.monthlyTokenLimit,
+  policyCheckAiMonthlyLimit: p.policyCheckAiMonthlyLimit, aiFixMaxPerVersion: p.aiFixMaxPerVersion,
+  descriptionVi: p.descriptionVi, descriptionEn: p.descriptionEn,
   featuresVi: p.featuresVi, featuresEn: p.featuresEn,
   teaserFeaturesVi: p.teaserFeaturesVi, teaserFeaturesEn: p.teaserFeaturesEn,
   ctaVi: p.ctaVi, ctaEn: p.ctaEn,
   highlight: p.highlight, displayOrder: p.displayOrder, isActive: p.isActive,
 });
+
+// Giới hạn AI theo gói (BE V15): một cột số, admin chọn chế độ — null = mặc định hệ thống, -1 = không giới hạn,
+// 0 = tắt, > 0 = số lượt. Không thêm cờ bật/tắt riêng: "Tắt" (0) chính là tắt — một nguồn sự thật.
+type AiLimitMode = 'default' | 'unlimited' | 'off' | 'limit';
+type AiLimitDraft = { mode: AiLimitMode; n: string };
+
+const toAiLimitDraft = (v: PlanAiLimit): AiLimitDraft =>
+  v == null ? { mode: 'default', n: '' }
+    : v === PLAN_AI_UNLIMITED ? { mode: 'unlimited', n: '' }
+      : v === 0 ? { mode: 'off', n: '' } : { mode: 'limit', n: String(v) };
+
+const fromAiLimitDraft = (d: AiLimitDraft): PlanAiLimit =>
+  d.mode === 'default' ? null : d.mode === 'unlimited' ? PLAN_AI_UNLIMITED : d.mode === 'off' ? 0 : Number(d.n);
+
+const aiLimitDraftValid = (d: AiLimitDraft) => {
+  if (d.mode !== 'limit') return true;
+  const n = Number(d.n);
+  return /^\d+$/.test(d.n) && n >= 1 && n <= PLAN_AI_LIMIT_MAX;
+};
 
 const fieldStyle = { width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 12px', fontSize: 13.5, color: C.textStrong, outline: 'none', background: C.surface } as const;
 const labelStyle = { fontSize: 11.5, fontWeight: 700, letterSpacing: '.04em', color: C.textFaint, marginBottom: 5, display: 'block' } as const;
@@ -52,6 +75,7 @@ const hintStyle = { fontSize: 11, color: C.textFaint, marginTop: 3 } as const;
 export default function Plans() {
   const { t, lang, brandGradient } = useApp();
   const { isMobile } = useBreakpoint();
+  const aiLimitLabel = useAiLimitLabel();
   const [load, setLoad] = useState<'loading' | 'error' | 'ok'>('loading');
   const [payload, setPayload] = useState<PlansPayload | null>(null);
   const [tab, setTab] = useState<Tab>('plans');
@@ -197,6 +221,11 @@ export default function Plans() {
                 <span style={{ margin: '0 8px', color: C.legacyTexte3ddf2 }}>|</span>
                 {t.plOrder}: <b>{p.displayOrder}</b>
               </div>
+              <div style={{ fontSize: 12, color: C.accentTextMuted }}>
+                {t.plAiCheckLimit}: <b>{aiLimitLabel(p.policyCheckAiMonthlyLimit, payload.limitDefaults?.policyCheckAiMonthlyLimit)}</b>
+                <span style={{ margin: '0 8px', color: C.legacyTexte3ddf2 }}>|</span>
+                {t.plAiFixLimit}: <b>{aiLimitLabel(p.aiFixMaxPerVersion, payload.limitDefaults?.aiFixMaxPerVersion)}</b>
+              </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 6 }}>
                 <button onClick={() => setEditingPlan(p)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '7px 0', fontSize: 12.5, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>
                   <Icon icon={Pencil} size={14} stroke={C.violetLight} /> {t.plEditPlan}
@@ -276,6 +305,7 @@ export default function Plans() {
       {editingPlan && (
         <PlanFormModal
           plan={editingPlan === 'new' ? null : editingPlan}
+          limitDefaults={payload?.limitDefaults}
           onClose={() => setEditingPlan(null)}
           onSaved={(saved, isNew) => { replacePlan(saved, isNew); setEditingPlan(null); toast.success(t.plSaved); }}
         />
@@ -395,8 +425,9 @@ function PreviewTab({ payload }: { payload: PlansPayload }) {
 // ===== Modal Sửa/Tạo gói =====
 type PlanFormSection = 'basic' | 'content' | 'features' | 'display';
 
-function PlanFormModal({ plan, onClose, onSaved }: {
+function PlanFormModal({ plan, limitDefaults, onClose, onSaved }: {
   plan: PlanDto | null;
+  limitDefaults?: PlanLimitDefaults;
   onClose: () => void;
   onSaved: (saved: PlanDto, isNew: boolean) => void;
 }) {
@@ -426,11 +457,14 @@ function PlanFormModal({ plan, onClose, onSaved }: {
   const [highlight, setHighlight] = useState(plan?.highlight ?? false);
   const [order, setOrder] = useState(String(plan?.displayOrder ?? 0));
   const [isActive, setIsActive] = useState(plan?.isActive ?? true);
+  const [aiCheck, setAiCheck] = useState<AiLimitDraft>(toAiLimitDraft(plan?.policyCheckAiMonthlyLimit ?? null));
+  const [aiFix, setAiFix] = useState<AiLimitDraft>(toAiLimitDraft(plan?.aiFixMaxPerVersion ?? null));
 
   const codeOk = !isNew || /^[A-Z0-9_]{2,20}$/.test(code.trim().toUpperCase());
   // Gói đang bán (có giá) phải có hạn mức token thật — nếu không user mua gói sẽ dùng AI không giới hạn.
   const tokenLimitMissing = isActive && (Number(price) || 0) > 0 && tokenLimit.trim() === '';
-  const canSave = !!nameVi.trim() && !!nameEn.trim() && (!isNew || (!!code.trim() && codeOk)) && !tokenLimitMissing;
+  const aiLimitsOk = aiLimitDraftValid(aiCheck) && aiLimitDraftValid(aiFix);
+  const canSave = !!nameVi.trim() && !!nameEn.trim() && (!isNew || (!!code.trim() && codeOk)) && !tokenLimitMissing && aiLimitsOk;
 
   const lines = (s: string) => s.split('\n').map((x) => x.trim()).filter(Boolean);
 
@@ -445,6 +479,8 @@ function PlanFormModal({ plan, onClose, onSaved }: {
       billingIntervalMonths: Number(interval) || 1,
       tokenQuota: tokenQuota.trim() === '' ? null : Number(tokenQuota) || 0,
       monthlyTokenLimit: tokenLimit.trim() === '' ? null : Number(tokenLimit) || null,
+      policyCheckAiMonthlyLimit: fromAiLimitDraft(aiCheck),
+      aiFixMaxPerVersion: fromAiLimitDraft(aiFix),
       descriptionVi: descVi.trim() || null, descriptionEn: descEn.trim() || null,
       featuresVi: lines(featuresVi), featuresEn: lines(featuresEn),
       teaserFeaturesVi: lines(teaserVi), teaserFeaturesEn: lines(teaserEn),
@@ -455,7 +491,10 @@ function PlanFormModal({ plan, onClose, onSaved }: {
       ? createPlan({ ...input, code: code.trim().toUpperCase() }).then((saved) => onSaved(saved, true))
       : updatePlan(plan.id, input).then((saved) => onSaved(saved, false));
     req
-      .catch((e) => toast.error((e as ApiError).code === ERR_PLAN_CODE_EXISTED ? t.plCodeExists : t.plSaveFail))
+      .catch((e) => {
+        const code = (e as ApiError).code;
+        toast.error(code === ERR_PLAN_CODE_EXISTED ? t.plCodeExists : code === ERR_PLAN_AI_LIMIT_INVALID ? t.plAiLimitInvalid : t.plSaveFail);
+      })
       .finally(() => setBusy(false));
   };
 
@@ -522,6 +561,12 @@ function PlanFormModal({ plan, onClose, onSaved }: {
               <input value={tokenLimit} onChange={(e) => setTokenLimit(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" style={fieldStyle} placeholder="100000" aria-invalid={tokenLimitMissing} />
               <div style={{ ...hintStyle, ...(tokenLimitMissing ? { color: C.danger } : {}) }}>{tokenLimitMissing ? t.plTokenLimitRequired : t.plTokenLimitHint}</div>
             </div>
+          </div>
+          <div style={two}>
+            <AiLimitField label={t.plAiCheckLimit} hint={t.plAiCheckLimitHint} unit={t.plAiPerMonth}
+              value={aiCheck} onChange={setAiCheck} systemDefault={limitDefaults?.policyCheckAiMonthlyLimit} />
+            <AiLimitField label={t.plAiFixLimit} hint={t.plAiFixLimitHint} unit={t.plAiPerVersion}
+              value={aiFix} onChange={setAiFix} systemDefault={limitDefaults?.aiFixMaxPerVersion} />
           </div>
           <div style={two}>
             <div>
@@ -591,6 +636,55 @@ function PlanFormModal({ plan, onClose, onSaved }: {
         <button onClick={submit} disabled={!canSave || busy} style={{ flex: 1, border: 'none', borderRadius: 10, padding: '10px 0', fontSize: 14, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: canSave && !busy ? 'pointer' : 'default', opacity: canSave && !busy ? 1 : 0.6 }}>{t.save}</button>
       </div>
     </Modal>
+  );
+}
+
+// ===== Giới hạn AI của gói =====
+
+/** Nhãn ngắn trên thẻ gói: "Mặc định (30)", "∞", "Tắt", "30". Giới hạn đã quy đổi: null = không giới hạn. */
+function useAiLimitLabel() {
+  const { t } = useApp();
+  const effective = (v: number | null | undefined) =>
+    v === undefined ? '' : v === null ? '∞' : v === 0 ? t.plAiModeOff : v.toLocaleString('vi-VN');
+  return (v: PlanAiLimit, systemDefault: number | null | undefined) => {
+    if (v != null) return effective(v === PLAN_AI_UNLIMITED ? null : v);
+    return systemDefault === undefined ? t.plAiModeDefault : `${t.plAiModeDefault} (${effective(systemDefault)})`;
+  };
+}
+
+function AiLimitField({ label, hint, unit, value, onChange, systemDefault }: {
+  label: string;
+  hint: string;
+  unit: string;
+  value: AiLimitDraft;
+  onChange: (next: AiLimitDraft) => void;
+  systemDefault: number | null | undefined;
+}) {
+  const { t } = useApp();
+  const invalid = !aiLimitDraftValid(value);
+  const defaultText = systemDefault === undefined ? '' : systemDefault === null ? t.plAiModeUnlimited
+    : systemDefault === 0 ? t.plAiModeOff : `${systemDefault.toLocaleString('vi-VN')} ${unit}`;
+  const help = invalid ? t.plAiLimitInvalid
+    : value.mode === 'default' && defaultText ? `${hint} ${t.plAiDefaultIs.replace('{value}', defaultText)}` : hint;
+  return (
+    <div>
+      <label style={labelStyle}>{label}</label>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <select value={value.mode} aria-label={label}
+          onChange={(e) => onChange({ mode: e.target.value as AiLimitMode, n: value.n })}
+          style={{ ...fieldStyle, flex: value.mode === 'limit' ? '0 0 52%' : 1 }}>
+          <option value="default">{t.plAiModeDefault}</option>
+          <option value="limit">{t.plAiModeLimit}</option>
+          <option value="unlimited">{t.plAiModeUnlimited}</option>
+          <option value="off">{t.plAiModeOff}</option>
+        </select>
+        {value.mode === 'limit' && (
+          <input value={value.n} onChange={(e) => onChange({ mode: 'limit', n: e.target.value.replace(/[^\d]/g, '') })}
+            inputMode="numeric" style={fieldStyle} placeholder="30" aria-label={`${label} (${unit})`} aria-invalid={invalid} />
+        )}
+      </div>
+      <div style={{ ...hintStyle, ...(invalid ? { color: C.danger } : {}) }}>{help}</div>
+    </div>
   );
 }
 

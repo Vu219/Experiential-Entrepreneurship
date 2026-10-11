@@ -1,5 +1,6 @@
 package com.aima.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -18,4 +19,8 @@ public class PlansResponse {
     List<PlanResponse> plans;
 
     List<PlanFeatureResponse> features;
+
+    /** Chỉ GET /admin/plans: mặc định hệ thống cho giới hạn AI để "Mặc định" trên gói. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    PlanLimitDefaultsResponse limitDefaults;
 }

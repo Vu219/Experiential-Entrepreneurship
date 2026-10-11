@@ -1,6 +1,9 @@
 package com.aima.dto.response;
 
 import com.aima.enums.FailedPostFilter;
+import com.aima.enums.Platform;
+import com.aima.enums.PublishErrorCategory;
+import com.aima.enums.PublishErrorCode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -61,6 +64,29 @@ public class AdminFailedPostSummaryResponse {
         List<Long> sparkline;
     }
 
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    @Schema(name = "AdminFailedPostCodeCount", description = "Failures of one normalized AIMA error code in the range.")
+    public static class CodeCount {
+        PublishErrorCode code;
+        PublishErrorCategory category;
+        long count;
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    @Schema(name = "AdminFailedPostPlatformCount", description = "Failures on one platform in the range.")
+    public static class PlatformCount {
+        Platform platform;
+        long count;
+    }
+
     @Schema(description = "Tab mà bộ số này được tính cho (POLICY = Bị từ chối, TECHNICAL = Lỗi hệ thống).")
     FailedPostFilter kind;
 
@@ -87,4 +113,18 @@ public class AdminFailedPostSummaryResponse {
 
     @Schema(description = "End of the previous adjacent period (inclusive).")
     LocalDate comparisonTo;
+
+    // ===== Chuẩn hoá lỗi (docs/failed-posts-error-handling-plan.md Phase 4) — phạm vi theo tab giống `total`
+
+    @Schema(description = "Normalized AIMA error codes, most frequent first (final failures in the range).")
+    List<CodeCount> topCodes;
+
+    @Schema(description = "Final failures per platform in the range.")
+    List<PlatformCount> byPlatform;
+
+    @Schema(description = "Posts PUBLISHED in the range — failure rate = total / (total + postedTotal).")
+    long postedTotal;
+
+    @Schema(description = "Platforms currently showing a wide outage (retries deferred).")
+    List<PlatformIncidentResponse> incidents;
 }

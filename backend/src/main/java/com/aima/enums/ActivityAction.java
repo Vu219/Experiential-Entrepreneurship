@@ -51,6 +51,10 @@ public enum ActivityAction {
     SCHEDULE_CANCELLED(ActivityActionGroup.CONTENT),
     POST_PUBLISHED(ActivityActionGroup.CONTENT),
     POST_FAILED(ActivityActionGroup.CONTENT),
+    /** "Thử lại ngay" một bài lỗi — do chủ bài, hoặc admin thay người dùng (metadata có reason). */
+    POST_RETRIED(ActivityActionGroup.CONTENT),
+    /** Bỏ qua một bài lỗi (ẩn khỏi "Cần xử lý"). */
+    POST_FAILURE_DISMISSED(ActivityActionGroup.CONTENT),
 
     // ===== BILLING =====
     PLAN_CHANGED(ActivityActionGroup.BILLING),
@@ -102,7 +106,10 @@ public enum ActivityAction {
     /** Cấp credit bằng dev-tool (không qua thanh toán) — cấp token miễn phí thì càng phải có vết. */
     DEV_CREDIT_GRANTED(ActivityActionGroup.ADMIN),
 
-    DATA_EXPORTED(ActivityActionGroup.ADMIN);
+    DATA_EXPORTED(ActivityActionGroup.ADMIN),
+
+    /** Thêm/xoá ánh xạ chữ ký lỗi nền tảng → mã lỗi AIMA (hàng đợi "chưa phân loại"). */
+    PUBLISH_ERROR_MAPPING_UPDATED(ActivityActionGroup.ADMIN);
 
     ActivityActionGroup group;
 

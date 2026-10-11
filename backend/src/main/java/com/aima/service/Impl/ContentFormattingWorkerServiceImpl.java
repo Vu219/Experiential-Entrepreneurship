@@ -27,6 +27,7 @@ import com.aima.service.ScheduleHoldService;
 import com.aima.service.ContentFormattingWorkerService;
 import com.aima.service.AiUsageService;
 import com.aima.service.TokenUsageService;
+import com.aima.util.UserFacingErrors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -134,7 +135,7 @@ public class ContentFormattingWorkerServiceImpl implements ContentFormattingWork
                 anySuccess = true;
             } catch (Exception e) {
                 // AppException truyền message của ErrorCode vào super(...) nên getMessage() luôn có nghĩa.
-                String message = e.getMessage();
+                String message = UserFacingErrors.messageOf(e); // chuỗi kỹ thuật không lộ ra người dùng — e vẫn được log đủ
                 log.warn("[ContentFormatting] Job {} nền tảng {} thất bại: {}", jobId, platform, message, e);
                 failures.add(platform + ": " + message);
             }

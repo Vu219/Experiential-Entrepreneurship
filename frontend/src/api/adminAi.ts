@@ -12,7 +12,9 @@ export type AiTaskCode =
   | 'TREND_RESEARCH'
   | 'GOLDEN_HOURS'
   | 'STRATEGY_OPTIMIZATION'
-  | 'CONTENT_REGENERATION';
+  | 'CONTENT_REGENERATION'
+  | 'POLICY_FIX'
+  | 'POLICY_CHECK';
 /**
  * Kết quả "Kiểm tra kết nối" (AI service phân loại bằng classify_error). SUCCESS/FAILED = dữ liệu
  * cũ (trước 29/9) hoặc FAILED = lỗi khác (AI service không phản hồi...).
@@ -471,6 +473,8 @@ export const aiTaskLabel = (lang: Lang, task: AiTaskCode): string =>
     GOLDEN_HOURS: P(lang, 'Khung giờ vàng', 'Golden hours'),
     STRATEGY_OPTIMIZATION: P(lang, 'Tối ưu chiến lược', 'Strategy optimization'),
     CONTENT_REGENERATION: P(lang, 'Tạo lại nội dung', 'Content regeneration'),
+    POLICY_FIX: P(lang, 'AI sửa bài vi phạm', 'AI policy fix'),
+    POLICY_CHECK: P(lang, 'AI kiểm tra chính sách', 'AI policy check'),
   })[task] ?? task;
 
 export const aiAuditActionLabel = (lang: Lang, action: AiAuditRow['action']): string =>

@@ -22,6 +22,10 @@ export interface PlanDto {
   tokenQuota: number | null;
   /** Hạn mức token THẬT mỗi tháng (dùng chặn quota). null = không giới hạn. */
   monthlyTokenLimit: number | null;
+  /** Lượt AI kiểm tra chính sách/tháng — xem {@link PlanAiLimit}. */
+  policyCheckAiMonthlyLimit: PlanAiLimit;
+  /** Số lần AI sửa bài tối đa mỗi bản nền tảng — xem {@link PlanAiLimit}. */
+  aiFixMaxPerVersion: PlanAiLimit;
   descriptionVi: string | null;
   descriptionEn: string | null;
   featuresVi: string[];
@@ -55,9 +59,21 @@ export interface PlanFeatureDto {
   values: PlanFeatureValueDto[];
 }
 
+/** Giới hạn AI trên gói (BE V15): null = mặc định hệ thống, -1 = không giới hạn, 0 = tắt, > 0 = số lượt. */
+export type PlanAiLimit = number | null;
+export const PLAN_AI_UNLIMITED = -1;
+export const PLAN_AI_LIMIT_MAX = 100_000;
+
+/** Mặc định hệ thống (env) đã quy đổi: null = không giới hạn, 0 = tắt. Chỉ GET /admin/plans trả. */
+export interface PlanLimitDefaults {
+  policyCheckAiMonthlyLimit: number | null;
+  aiFixMaxPerVersion: number | null;
+}
+
 export interface PlansPayload {
   plans: PlanDto[];
   features: PlanFeatureDto[];
+  limitDefaults?: PlanLimitDefaults;
 }
 
 // ===== Public (landing + /pricing) =====
@@ -83,6 +99,9 @@ export interface PlanSaveInput {
   tokenQuota: number | null;
   /** BE: gói ĐANG BÁN (active, giá > 0) bắt buộc có; null khi sửa = giữ nguyên giá trị cũ. */
   monthlyTokenLimit: number | null;
+  /** FULL update: null = về mặc định hệ thống (khác monthlyTokenLimit). */
+  policyCheckAiMonthlyLimit: PlanAiLimit;
+  aiFixMaxPerVersion: PlanAiLimit;
   descriptionVi: string | null;
   descriptionEn: string | null;
   featuresVi: string[];

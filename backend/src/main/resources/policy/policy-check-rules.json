@@ -1,0 +1,89 @@
+{
+  "_comment": "Tầng 1 kiểm tra chính sách (miễn phí, không gọi AI). Regex chạy trên nội dung ĐÃ BỎ DẤU + chữ thường (đ→d) nên viết mẫu không dấu; mỗi luật báo tối đa một đoạn trích. severity: LOW | MEDIUM | HIGH. Thêm luật = thêm phần tử, không sửa code. Đổi file bằng aima.ai-assist.policy-check.rules-location.",
+  "rules": [
+    {
+      "id": "refund-guarantee",
+      "category": "REFUND_GUARANTEE",
+      "severity": "HIGH",
+      "patterns": [
+        "cam\\s*ket\\s*hoan\\s*(?:tien|lai\\s*tien|phi)",
+        "hoan\\s*tien\\s*(?:100\\s*%|gap\\s*(?:doi|\\d+))",
+        "khong\\s*(?:hieu\\s*qua|hai\\s*long)\\s*(?:\\S+\\s*){0,3}?(?:hoan|tra\\s*lai)\\s*tien",
+        "money[-\\s]?back\\s+guarantee",
+        "full\\s+refund\\s+guarantee"
+      ]
+    },
+    {
+      "id": "health-claim",
+      "category": "HEALTH_CLAIM",
+      "severity": "HIGH",
+      "patterns": [
+        "chua\\s*(?:khoi|dut\\s*diem|tan\\s*goc|benh)",
+        "(?:dieu\\s*tri|tri)\\s*(?:dut\\s*diem|tan\\s*goc)",
+        "(?:dac\\s*tri|tri\\s*(?:mun|nam|tan\\s*nhang|hoi\\s*nach|ung\\s*thu|tieu\\s*duong|xuong\\s*khop|dau\\s*da\\s*day))",
+        "khoi\\s*(?:benh|han|hoan\\s*toan)",
+        "giam\\s*\\d+\\s*(?:kg|ky|can)",
+        "giam\\s*can\\s*(?:cap\\s*toc|than\\s*toc|khong\\s*can\\s*an\\s*kieng)",
+        "thay\\s*the\\s*thuoc",
+        "(?:ngan\\s*ngua|phong\\s*ngua)\\s*(?:ung\\s*thu|covid|benh)",
+        "\\bcures?\\b",
+        "\\btreats?\\s+(?:acne|cancer|diabetes|covid)",
+        "\\blose\\s+\\d+\\s*(?:kg|lbs?|pounds)"
+      ]
+    },
+    {
+      "id": "exaggerated-discount",
+      "category": "EXAGGERATED_DISCOUNT",
+      "severity": "MEDIUM",
+      "patterns": [
+        "giam\\s*(?:gia\\s*)?(?:den\\s*|toi\\s*)?(?:[6-9]\\d|100)\\s*%",
+        "sale\\s*(?:off\\s*)?(?:len\\s*den\\s*|upto\\s*|up\\s*to\\s*)?(?:[6-9]\\d|100)\\s*%",
+        "(?:[6-9]\\d|100)\\s*%\\s*off",
+        "mien\\s*phi\\s*100\\s*%",
+        "re\\s*nhat\\s*(?:thi\\s*truong|viet\\s*nam|the\\s*gioi)",
+        "gia\\s*soc\\s*nhat",
+        "xa\\s*kho\\s*(?:lo\\s*von|0\\s*d|0\\s*dong)"
+      ]
+    },
+    {
+      "id": "absolute-claim",
+      "category": "ABSOLUTE_CLAIM",
+      "severity": "MEDIUM",
+      "patterns": [
+        "(?<![\\d.,])100\\s*%\\s*(?:hieu\\s*qua|an\\s*toan|tu\\s*nhien|thanh\\s*cong|khoi|dam\\s*bao|chinh\\s*hang\\s*khong)",
+        "cam\\s*ket\\s*(?:hieu\\s*qua|ket\\s*qua|100|trang\\s*da|het\\s*mun|giam\\s*can|tang\\s*can)",
+        "dam\\s*bao\\s*(?:hieu\\s*qua|ket\\s*qua|100|thanh\\s*cong)",
+        "so\\s*(?:1|mot)\\s*(?:thi\\s*truong|viet\\s*nam|the\\s*gioi)",
+        "tot\\s*nhat\\s*(?:thi\\s*truong|viet\\s*nam|the\\s*gioi)",
+        "hieu\\s*qua\\s*(?:tuc\\s*thi|tuc\\s*khac|ngay\\s*lan\\s*dau)",
+        "\\bguaranteed\\s+results?\\b",
+        "100\\s*%\\s*(?:effective|guaranteed|safe)"
+      ]
+    },
+    {
+      "id": "financial-promise",
+      "category": "FINANCIAL_PROMISE",
+      "severity": "HIGH",
+      "patterns": [
+        "thu\\s*nhap\\s*(?:thu\\s*dong\\s*)?(?:tu\\s*|len\\s*den\\s*)?\\d+\\s*(?:trieu|tr\\b)",
+        "loi\\s*nhuan\\s*(?:cam\\s*ket|dam\\s*bao|\\d+\\s*%)",
+        "lam\\s*giau\\s*(?:nhanh|cap\\s*toc)",
+        "viec\\s*nhe\\s*luong\\s*cao",
+        "dau\\s*tu\\s*(?:khong|0)\\s*rui\\s*ro",
+        "\\bget\\s+rich\\s+quick\\b",
+        "\\bguaranteed\\s+(?:income|profits?|returns?)\\b"
+      ]
+    },
+    {
+      "id": "engagement-bait",
+      "category": "ENGAGEMENT_BAIT",
+      "severity": "LOW",
+      "patterns": [
+        "like\\s*(?:va|&|\\+|,)\\s*share\\s*(?:\\S+\\s*){0,3}?(?:de|nhan|trung)",
+        "tag\\s*\\d+\\s*(?:nguoi\\s*)?ban\\s*(?:be\\s*)?(?:de|nhan)",
+        "share\\s*(?:ve\\s*tuong\\s*|cong\\s*khai\\s*)?de\\s*(?:nhan|trung)",
+        "\\blike\\s+and\\s+share\\s+to\\s+win\\b"
+      ]
+    }
+  ]
+}

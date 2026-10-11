@@ -50,6 +50,7 @@ const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const PrivacyPage = lazy(() => import("./pages/legal/PrivacyPage"));
 const TermsPage = lazy(() => import("./pages/legal/TermsPage"));
 const DataDeletionPage = lazy(() => import("./pages/legal/DataDeletionPage"));
+const UnsubscribePage = lazy(() => import("./pages/Unsubscribe"));
 
 // Fallback khi chunk trang đang tải — dùng .loader sẵn có (index.css), căn giữa viewport.
 function PageLoader() {
@@ -157,6 +158,8 @@ export default function App() {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/data-deletion" element={<DataDeletionPage />} />
+        {/* Link huỷ nhận email lỗi đăng bài — công khai, không cần đăng nhập (token có chữ ký). */}
+        <Route path="/unsubscribe" element={<UnsubscribePage />} />
         <Route path="/login" element={<GuestRoute><Auth /></GuestRoute>} />
         <Route path="/register" element={<GuestRoute><Auth /></GuestRoute>} />
         <Route path="/logout" element={<Auth />} />

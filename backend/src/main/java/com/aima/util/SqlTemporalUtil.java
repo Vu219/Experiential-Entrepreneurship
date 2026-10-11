@@ -55,4 +55,27 @@ public final class SqlTemporalUtil {
         }
         throw new IllegalArgumentException("Không đọc được giá trị thời gian từ native query: " + value.getClass());
     }
+
+    /**
+     * Cột SQL {@code TIMESTAMPTZ} (mốc thời điểm của luồng đăng bài) từ native query → {@link java.time.Instant};
+     * Hibernate/driver có thể trả Instant, OffsetDateTime hoặc Timestamp. null giữ nguyên null.
+     */
+    public static java.time.Instant toInstant(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof java.time.Instant instant) {
+            return instant;
+        }
+        if (value instanceof java.time.OffsetDateTime offset) {
+            return offset.toInstant();
+        }
+        if (value instanceof java.time.ZonedDateTime zoned) {
+            return zoned.toInstant();
+        }
+        if (value instanceof Timestamp timestamp) {
+            return timestamp.toInstant();
+        }
+        throw new IllegalArgumentException("Không đọc được mốc thời điểm từ native query: " + value.getClass());
+    }
 }

@@ -55,6 +55,7 @@ import com.aima.service.ContentItemStatusResolver;
 import com.aima.service.PostPublishWorkerService;
 import com.aima.service.PostScheduleService;
 import com.aima.service.PostingDispatchService;
+import com.aima.service.PublishRecoveryService;
 import com.aima.service.ScheduleHoldService;
 import com.aima.util.PublishingTime;
 import lombok.AccessLevel;
@@ -149,6 +150,7 @@ public class PostScheduleServiceImpl implements PostScheduleService {
     TransactionTemplate transactionTemplate;
     PostRepository postRepository;
     StrategyOptimizationMapper strategyOptimizationMapper;
+    PublishRecoveryService recoveryService;
 
     /** Đầu vào chuẩn hoá của MỘT dòng tạo lịch (đơn hay batch). */
     private record RowInput(UUID contentVersionId, UUID platformAccountId, ScheduleMode mode, Instant scheduledTime) {
@@ -526,11 +528,14 @@ public class PostScheduleServiceImpl implements PostScheduleService {
     @Override
     @Transactional
     public ApiResponse<PostScheduleResponse> cancel(String email, UUID scheduleId) {
-        LockedSchedule locked = lockedOwnedSchedule(currentUser(email), scheduleId);
+        User user = currentUser(email);
+        LockedSchedule locked = lockedOwnedSchedule(user, scheduleId);
         PostSchedule schedule = locked.schedule();
         if (!CANCELLABLE_STATUSES.contains(schedule.getStatus())) {
             throw new AppException(ErrorCode.SCHEDULE_NOT_CANCELLABLE);
         }
+        // Lịch FAILED bị huỷ = cách xử lý lần đăng lỗi (vòng đời bài lỗi → CANCELLED), trước khi đổi trạng thái.
+        recoveryService.markCancelled(schedule, user.getId());
 
         // Bản vẫn FORMATTED nên lên lịch lại được (FR-39/FR-58); duyệt nằm ở item, không bị đụng.
         schedule.setStatus(ScheduleStatus.CANCELLED);

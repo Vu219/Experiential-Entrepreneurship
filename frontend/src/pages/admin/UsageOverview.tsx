@@ -56,7 +56,7 @@ const fmtDateTime = (iso: string) => iso.slice(0, 16).replace('T', ' ');
 /** Scope chọn được khi thêm version hệ số (khớp enum AiTaskCode phía BE). */
 const RATE_TASKS: AiTaskCode[] = [
   'CONTENT_GENERATION', 'PLATFORM_FORMATTING', 'TREND_RESEARCH',
-  'GOLDEN_HOURS', 'STRATEGY_OPTIMIZATION', 'CONTENT_REGENERATION',
+  'GOLDEN_HOURS', 'STRATEGY_OPTIMIZATION', 'CONTENT_REGENERATION', 'POLICY_FIX', 'POLICY_CHECK',
 ];
 const initialsOf = (name: string) => name.trim().split(/\s+/).map((w) => w[0]).slice(-2).join('').toUpperCase();
 

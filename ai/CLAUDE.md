@@ -44,6 +44,9 @@ ai/
     │   │                           hook/steps/cta, caption, hashtags, media prompt)
     │   ├── content_regenerator.py — regenerate ONE script part (hook/body/cta × content/scene)
     │   ├── platform_formatter.py  — FR-40..46: one ContentVersion per requested platform
+    │   ├── policy_assistant.py  — /policy-fix (rewrite a rejected/flagged version, brand voice kept)
+    │   │                           + /policy-check (tier-2 review, only when the backend rule filter
+    │   │                           flagged it). Gets NORMALIZED codes only — never raw platform errors
     │   └── optimizer.py         — /analyze (FR-63..64), /optimize (FR-65..66),
     │                               /golden-hours (FR-48: defaults until ≥10 posts)
     └── platform/            — REAL data sources for trend research (never mock; failure → [])
@@ -69,6 +72,8 @@ response = the domain response **plus `TokenAccounting`** fields (`tokens_used`,
 | `/analyze` | Success factors + insights from post metrics (FR-63..64) |
 | `/optimize` | Strategy adjustments + future improvements (FR-65..66) |
 | `/golden-hours` | Posting-hour suggestions (FR-48; `data_driven=false` under 10 posts) |
+| `/policy-fix` | Suggest a compliant rewrite of one platform version (caption + hashtags + `changes`); user reviews a diff |
+| `/policy-check` | Tier-2 policy review (`risk_level` none/low/medium/high + issues) — warning only |
 | `/test-connection` | Admin "Cấu hình AI": probe a provider key by LISTING models (Gemini `GET /v1beta/models`, Anthropic `GET /v1/models`, 1 item — never generateContent, no quota); returns `status` from `classify_error` (OK / INVALID_KEY / RATE_LIMITED / DAILY_QUOTA_EXHAUSTED / PROVIDER_OVERLOADED / NETWORK_ERROR / FAILED) + `free_tier`; wrong key = result, not 5xx |
 | `/list-models` | Admin model sync: provider catalog (id + limits, no pricing) |
 

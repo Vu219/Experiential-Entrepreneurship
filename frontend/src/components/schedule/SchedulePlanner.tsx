@@ -17,6 +17,7 @@ import ScheduleDateField from './ScheduleDateField.tsx';
 import ScheduleTimeField from './ScheduleTimeField.tsx';
 import ScheduleCalendar from './ScheduleCalendar.tsx';
 import TimezoneSelect from './TimezoneSelect.tsx';
+import PolicyCheckNotice from '../aiAssist/PolicyCheckNotice.tsx';
 import {
   MIN_LEAD_MINUTES, applyBatchResult, applySharedToggle, bookedDays, convertGoldenHours, earliestTimeOn, initialRows, localConflicts, nowWallIn,
   pickCalendarDay, rezoneSchedules, submitSummary, toBatchRows, validateRow, wallDateTime, wallDiffMinutes,
@@ -315,24 +316,27 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
             {rows.map((row, i) => {
               const wall = wallDateTime(row, shared);
               return (
-                <SchedulePlatformRow
-                  key={row.versionId}
-                  row={row}
-                  accounts={accounts.filter((a) => a.platform === row.platform)}
-                  shared={shared}
-                  goldenHours={golden[row.platform] ?? []}
-                  conflicts={localConflicts(row.accountId, wall, zonedSchedules, windowMinutes, zone)}
-                  accountSchedules={row.accountId ? zonedSchedules.filter((s) => s.platformAccountId === row.accountId) : []}
-                  wall={wall}
-                  nowWall={nowWall}
-                  error={errors[i]}
-                  todayISO={todayISO}
-                  zone={zone}
-                  accountZone={accountZone}
-                  onChange={(patch) => patchRow(row.versionId, patch)}
-                  onConnect={onConnect}
-                  onFixInFinalize={onFixInFinalize}
-                />
+                <div key={row.versionId} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <SchedulePlatformRow
+                    row={row}
+                    accounts={accounts.filter((a) => a.platform === row.platform)}
+                    shared={shared}
+                    goldenHours={golden[row.platform] ?? []}
+                    conflicts={localConflicts(row.accountId, wall, zonedSchedules, windowMinutes, zone)}
+                    accountSchedules={row.accountId ? zonedSchedules.filter((s) => s.platformAccountId === row.accountId) : []}
+                    wall={wall}
+                    nowWall={nowWall}
+                    error={errors[i]}
+                    todayISO={todayISO}
+                    zone={zone}
+                    accountZone={accountZone}
+                    onChange={(patch) => patchRow(row.versionId, patch)}
+                    onConnect={onConnect}
+                    onFixInFinalize={onFixInFinalize}
+                  />
+                  {/* Cảnh báo chính sách — chỉ cảnh báo, không khoá nút lên lịch (failed-posts đợt 2 — A2). */}
+                  {!row.block && <PolicyCheckNotice versionId={row.versionId} platform={row.platform} />}
+                </div>
               );
             })}
           </div>

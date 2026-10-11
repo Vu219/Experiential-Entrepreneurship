@@ -106,6 +106,9 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
                    or lower(coalesce(pa.account_name, '')) like lower(concat('%', cast(:q as text), '%')))
               and (cast(:from as timestamp) is null or lj.failed_at >= cast(:from as timestamp))
               and (cast(:to as timestamp) is null or lj.failed_at < cast(:to as timestamp))
+              and (cast(:ref as text) is null
+                   or exists (select 1 from posting_jobs jr where jr.post_id = p.id
+                              and cast(jr.id as text) like concat(cast(:ref as text), '%')))
             """;
 
     @Query(value = "select p.* " + FAILED_ADMIN_FROM
@@ -122,16 +125,23 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
                                     @Param("q") String q,
                                     @Param("from") LocalDateTime from,
                                     @Param("to") LocalDateTime to,
+                                    @Param("ref") String ref,
                                     @Param("asc") boolean asc,
                                     Pageable pageable);
 
+    // `ref` = tiền tố id job từ mã tham chiếu ERR-XXXXXX (PublishReference.toIdPrefix) — admin tra lỗi người dùng gửi.
     @Query(value = "select count(*) " + FAILED_ADMIN_FROM, nativeQuery = true)
     long countFailedForAdmin(@Param("mode") String mode,
                              @Param("platform") String platform,
                              @Param("errorType") String errorType,
                              @Param("q") String q,
                              @Param("from") LocalDateTime from,
-                             @Param("to") LocalDateTime to);
+                             @Param("to") LocalDateTime to,
+                             @Param("ref") String ref);
+
+    // Bài ĐĂNG THÀNH CÔNG trong [from, to) — mẫu số của "tỷ lệ lỗi" trên trang admin.
+    long countByStatusAndPublishedAtGreaterThanEqualAndPublishedAtLessThanAndDeletedAtIsNull(
+            PostStatus status, Instant from, Instant to);
 
     /*
      * Khối 4 thẻ KPI: gom theo NGÀY thất bại trong [from, to). Mỗi ngày một dòng
@@ -194,25 +204,49 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     long countAffectedUsersForAdmin(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to,
                                     @Param("technicalOnly") boolean technicalOnly);
 
-    // FR-35..FR-39: bài lỗi CHƯA xử lý của CHÍNH user (trang "Bài lỗi & cần xử lý"), lọc phân loại
-    // mode = ALL | POLICY (vi phạm chính sách) | TECHNICAL (lỗi kỹ thuật — không phải vi phạm).
-    // Chỉ tính lịch còn FAILED: hủy/đặt lại/đăng lại sẽ đổi schedule khỏi FAILED → tự rời danh sách.
-    @Query("select p from Post p where p.status = com.aima.enums.PostStatus.FAILED and p.deletedAt is null "
-            + "and p.schedule.status = com.aima.enums.ScheduleStatus.FAILED "
+    // Bài của job/lịch — khóa bài (resolver.lock) TRƯỚC khi đọc lịch/job (thứ tự item → schedule → job).
+    @Query("select p.schedule.contentVersion.contentItem.id from Post p where p.id = :postId")
+    Optional<UUID> findContentItemId(@Param("postId") UUID postId);
+
+    /*
+     * FR-35..FR-39: bài lỗi của CHÍNH user (trang "Bài lỗi & cần xử lý") theo VÒNG ĐỜI (FailedPostStateFilter):
+     *  - AUTO_RETRYING: lỗi tạm thời đang chờ tự thử lại — lịch còn POSTING, có job RETRYING;
+     *  - NEEDS_ACTION / DISMISSED: lịch FAILED, lần lỗi cuối chưa xử lý / đã bị bỏ qua;
+     *  - ACTIVE = NEEDS_ACTION + AUTO_RETRYING; ALL = cả ba.
+     * Hủy/đặt lại/đăng lại đổi lịch khỏi FAILED → tự rời danh sách. `mode` = ALL | POLICY | TECHNICAL lọc theo
+     * errorType của job FAILED MỚI NHẤT (chu kỳ hiện tại). Mọi tham số đều là chuỗi khác null (không dính lỗi suy
+     * kiểu tham số null của PostgreSQL).
+     */
+    String LAST_FAILED_JOB = "select j from PostingJob j where j.post = p "
+            + "and j.status = com.aima.enums.PostingJobStatus.FAILED "
+            + "and not exists (select j2 from PostingJob j2 where j2.post = p "
+            + "and j2.status = com.aima.enums.PostingJobStatus.FAILED and j2.endTime > j.endTime)";
+
+    String USER_FAILED_WHERE = "from Post p where p.status = com.aima.enums.PostStatus.FAILED and p.deletedAt is null "
             + "and p.schedule.platformAccount.user.id = :userId "
+            + "and ((:state in ('AUTO_RETRYING', 'ACTIVE', 'ALL') "
+            + "      and p.schedule.status = com.aima.enums.ScheduleStatus.POSTING "
+            + "      and exists (select r from PostingJob r where r.post = p "
+            + "                  and r.status = com.aima.enums.PostingJobStatus.RETRYING)) "
+            + "  or (p.schedule.status = com.aima.enums.ScheduleStatus.FAILED "
+            + "      and ((:state in ('NEEDS_ACTION', 'ACTIVE', 'ALL') and not exists (" + LAST_FAILED_JOB
+            + "            and j.resolution = com.aima.enums.FailureResolution.DISMISSED)) "
+            + "        or (:state in ('DISMISSED', 'ALL') and exists (" + LAST_FAILED_JOB
+            + "            and j.resolution = com.aima.enums.FailureResolution.DISMISSED))))) "
             + "and (:mode = 'ALL' "
-            + "  or (:mode = 'POLICY' and exists (select j from PostingJob j where j.post = p "
-            + "and j.status = com.aima.enums.PostingJobStatus.FAILED "
-            + "and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION "
-            + "and not exists (select j2 from PostingJob j2 where j2.post = p "
-            + "and j2.status = com.aima.enums.PostingJobStatus.FAILED and j2.endTime > j.endTime))) "
-            + "  or (:mode = 'TECHNICAL' and not exists (select j from PostingJob j where j.post = p "
-            + "and j.status = com.aima.enums.PostingJobStatus.FAILED "
-            + "and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION "
-            + "and not exists (select j2 from PostingJob j2 where j2.post = p "
-            + "and j2.status = com.aima.enums.PostingJobStatus.FAILED and j2.endTime > j.endTime)))) "
-            + "order by p.updatedAt desc")
-    Page<Post> findFailedForUser(@Param("userId") UUID userId, @Param("mode") String mode, Pageable pageable);
+            + "  or (:mode = 'POLICY' and exists (" + LAST_FAILED_JOB
+            + "      and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION)) "
+            + "  or (:mode = 'TECHNICAL' and not exists (" + LAST_FAILED_JOB
+            + "      and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION))) ";
+
+    @Query(value = "select p " + USER_FAILED_WHERE + "order by p.updatedAt desc",
+            countQuery = "select count(p) " + USER_FAILED_WHERE)
+    Page<Post> findFailedForUser(@Param("userId") UUID userId, @Param("mode") String mode,
+                                 @Param("state") String state, Pageable pageable);
+
+    @Query("select count(p) " + USER_FAILED_WHERE)
+    long countFailedForUserByState(@Param("userId") UUID userId, @Param("mode") String mode,
+                                   @Param("state") String state);
 
     // Khối "Tổng quan lỗi": tổng bài lỗi + số bài vi phạm chính sách (kỹ thuật = tổng - policy).
     @Query("select count(p) from Post p where p.status = com.aima.enums.PostStatus.FAILED and p.deletedAt is null "

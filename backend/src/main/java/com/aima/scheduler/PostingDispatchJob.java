@@ -9,6 +9,9 @@ import com.aima.repository.PostScheduleRepository;
 import com.aima.repository.PostingJobRepository;
 import com.aima.service.PostPublishWorkerService;
 import com.aima.service.PostingDispatchService;
+import com.aima.dto.response.PlatformIncidentResponse;
+import com.aima.enums.Platform;
+import com.aima.service.PlatformIncidentService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -48,6 +51,7 @@ public class PostingDispatchJob {
     PostPublishWorkerService postPublishWorkerService;
     PostingDispatchService dispatchService;
     TransactionTemplate transactionTemplate;
+    PlatformIncidentService incidentService;
 
     @Scheduled(fixedDelay = 60_000)
     @SchedulerLock(name = "posting-dispatch", lockAtMostFor = "PT5M", lockAtLeastFor = "PT20S")
@@ -78,9 +82,17 @@ public class PostingDispatchJob {
     }
 
     private void dispatchDueRetries(Instant now) {
-        List<PostingJob> retries = jobRepository
-                .findByStatusAndNextRetryAtLessThanEqualAndDeletedAtIsNullAndPost_Schedule_PlatformAccount_User_StatusNotIn(
-                        PostingJobStatus.RETRYING, now, EXCLUDED_USER_STATUSES);
+        // Nền tảng đang sự cố diện rộng: HOÃN retry (job giữ RETRYING, không tiêu lượt) tới khi sự cố qua.
+        List<Platform> deferred = incidentService.activeIncidents().stream()
+                .map(PlatformIncidentResponse::getPlatform).toList();
+        if (!deferred.isEmpty()) {
+            log.warn("[PostingDispatch] Hoãn retry của {} — nền tảng đang có sự cố", deferred);
+        }
+        List<PostingJob> retries = deferred.isEmpty()
+                ? jobRepository.findByStatusAndNextRetryAtLessThanEqualAndDeletedAtIsNullAndPost_Schedule_PlatformAccount_User_StatusNotIn(
+                        PostingJobStatus.RETRYING, now, EXCLUDED_USER_STATUSES)
+                : jobRepository.findByStatusAndNextRetryAtLessThanEqualAndDeletedAtIsNullAndPost_Schedule_PlatformAccount_User_StatusNotInAndPost_PlatformNameNotIn(
+                        PostingJobStatus.RETRYING, now, EXCLUDED_USER_STATUSES, deferred);
         for (PostingJob job : retries) {
             try {
                 postPublishWorkerService.process(job.getId()); // claim nguyên tử chống dispatch trùng

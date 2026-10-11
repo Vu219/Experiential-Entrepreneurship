@@ -7,7 +7,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import com.aima.service.EmailService;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.time.format.DateTimeFormatter;
 
 @Service
@@ -19,6 +23,10 @@ public class EmailServiceImpl implements EmailService {
 
     @Value("${app.frontend.base-url}")
     String frontendBaseUrl;
+
+    // URL công khai của backend (gồm context path) cho one-click unsubscribe (RFC 8058); trống → chỉ link trang FE.
+    @Value("${aima.notifications.public-api-base-url:}")
+    String publicApiBaseUrl;
 
     static final String BRAND_NAME = "AIMA";
     static final String BRAND_SUBTITLE = "Trợ lý Marketing AI đa nền tảng";
@@ -75,6 +83,54 @@ public class EmailServiceImpl implements EmailService {
     public void sendAccountDeletionWarningEmail(String toEmail, String fullName, LocalDateTime deletionDate, long daysRemaining) {
         String htmlContent = buildDeletionWarningEmail(fullName, deletionDate, daysRemaining);
         sendHtmlEmail(toEmail, "Tài khoản sắp bị xóa vĩnh viễn - " + BRAND_NAME, htmlContent);
+    }
+
+    @Override
+    public void sendPublishActionRequiredEmail(String toEmail, String fullName, String title, String message,
+                                               String actionLabel, String actionPath, String unsubscribeToken) {
+        String greetingName = (fullName != null && !fullName.isBlank()) ? escapeHtml(fullName) : "bạn";
+        String actionUrl = frontendBaseUrl + actionPath;
+        String token = URLEncoder.encode(unsubscribeToken, StandardCharsets.UTF_8);
+        String unsubscribePage = frontendBaseUrl + "/unsubscribe?token=" + token;
+        String htmlContent = open() + header()
+                + "<div style='padding:32px;color:#241f3a;'>"
+                + "<h2 style='margin:0 0 12px;font-size:18px;'>" + escapeHtml(title) + "</h2>"
+                + "<p style='margin:0 0 16px;font-size:15px;line-height:1.6;color:#4b4660;'>Xin chào <b>" + greetingName + "</b>,</p>"
+                + "<p style='margin:0 0 20px;font-size:15px;line-height:1.6;color:#4b4660;'>" + escapeHtml(message) + "</p>"
+                + "<div style='text-align:center;margin:0 0 8px;'>"
+                + "<a href='" + actionUrl + "' style='display:inline-block;padding:12px 24px;background:" + BRAND_ACCENT + ";"
+                + "color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;'>"
+                + escapeHtml(actionLabel) + "</a></div>"
+                + "<hr style='border:none;border-top:1px solid #efeaf8;margin:16px 0;'>"
+                + "<p style='margin:0;font-size:12px;line-height:1.6;color:#a59fbb;'>"
+                + "Bạn nhận email này vì đã bật thông báo email khi bài đăng trên " + BRAND_NAME + " cần xử lý. "
+                + "<a href='" + unsubscribePage + "' style='color:#a59fbb;'>Huỷ nhận email này</a>.</p>"
+                + "</div>" + footer();
+        brevoEmailSender.sendHtml(toEmail, title + " - " + BRAND_NAME, htmlContent, unsubscribeHeaders(unsubscribePage, token));
+    }
+
+    /**
+     * List-Unsubscribe (+ List-Unsubscribe-Post khi có URL backend công khai — hộp thư POST thẳng, RFC 8058);
+     * không có URL backend thì chỉ trỏ trang xác nhận của FE (hộp thư mở link, không one-click).
+     */
+    private Map<String, String> unsubscribeHeaders(String unsubscribePage, String token) {
+        Map<String, String> headers = new LinkedHashMap<>();
+        if (publicApiBaseUrl != null && !publicApiBaseUrl.isBlank()) {
+            String oneClick = publicApiBaseUrl.replaceAll("/+$", "") + "/notifications/unsubscribe?token=" + token;
+            headers.put("List-Unsubscribe", "<" + oneClick + ">");
+            headers.put("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
+        } else {
+            headers.put("List-Unsubscribe", "<" + unsubscribePage + ">");
+        }
+        return headers;
+    }
+
+    private static String escapeHtml(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                .replace("\"", "&quot;").replace("'", "&#39;");
     }
 
     // ===== Khung email dùng chung (đồng bộ màu với web) =====

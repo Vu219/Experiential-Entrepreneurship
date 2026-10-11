@@ -274,6 +274,41 @@ aima:
     metric-snapshot-days: ${METRIC_SNAPSHOT_RETENTION_DAYS:180}
     # Sự kiện webhook Meta đã xử lý (meta_webhook_events) — chỉ để soi lại; PENDING không bao giờ bị xoá.
     webhook-event-days: ${WEBHOOK_EVENT_RETENTION_DAYS:30}
+  # Bài đăng lỗi & cần xử lý (docs/failed-posts-error-handling-plan.md)
+  notifications:
+    # Gửi kèm EMAIL (Brevo) khi một kết nối cần người dùng xử lý (token hết hạn / sắp hết hạn, thiếu quyền,
+    # tài khoản bị chặn) — tối đa 1 email / kết nối / mã / ngày. Mặc định TẮT để không gửi mail bất ngờ;
+    # thông báo trong app (chuông) luôn có.
+    publish-email-enabled: ${AIMA_PUBLISH_EMAIL_ENABLED:false}
+    # Email chỉ gửi khi công tắc trên BẬT và người dùng đã đồng ý (opt-in ở trang Bài lỗi / Cài đặt → Thông báo).
+    # Khoá ký link huỷ nhận (HMAC-SHA256); để trống → suy ra từ JWT_SIGNER_KEY. Nên đặt riêng ở production.
+    unsubscribe-secret: ${AIMA_EMAIL_UNSUBSCRIBE_SECRET:}
+    unsubscribe-ttl-days: ${AIMA_EMAIL_UNSUBSCRIBE_TTL_DAYS:60}
+    # URL backend công khai (gồm context path, vd https://api.aima-marketing.id.vn/api/aima) cho one-click unsubscribe
+    # (List-Unsubscribe-Post); trống → header chỉ trỏ trang xác nhận của FE.
+    public-api-base-url: ${AIMA_PUBLIC_API_BASE_URL:}
+  # Giới hạn AI theo GÓI nằm trên bảng plans (admin → Quản lý gói, Flyway V15). Hai giá trị dưới đây chỉ là
+  # MẶC ĐỊNH HỆ THỐNG cho gói để "Mặc định" (cột null): -1 = không giới hạn, 0 = tắt. Đọc ở PlanLimitServiceImpl.
+  # AIMA_POLICY_CHECK_AI_LIMIT_FREE/PLUS/PRO đã DEPRECATED (còn đọc tạm cho gói cùng mã + log WARN khi khởi động).
+  ai-assist:
+    # AI sửa bài vi phạm: số lần tối đa mỗi bản nền tảng (job lỗi không tính).
+    fix-max-per-version: ${AIMA_AI_FIX_MAX_PER_VERSION:3}
+    policy-check:
+      # Bộ luật/từ khoá miễn phí (tầng 1) — thêm luật bằng cách sửa file, không sửa code.
+      rules-location: ${AIMA_POLICY_RULES_LOCATION:classpath:policy/policy-check-rules.json}
+      # Số lượt kiểm tra bằng AI (tầng 2) mỗi tháng; 0 = chỉ dùng bộ luật.
+      ai-monthly-limit-default: ${AIMA_POLICY_CHECK_AI_LIMIT_DEFAULT:0}
+      # Kết quả AI được dùng lại cho cùng nội dung (hash) trong số ngày này.
+      cache-days: ${AIMA_POLICY_CHECK_CACHE_DAYS:30}
+  publishing:
+    # Phát hiện sự cố nền tảng: trong `window-minutes` gần nhất, một nền tảng có ≥ `min-failures` lỗi tạm thời từ
+    # ≥ `min-accounts` kết nối khác nhau → retry của nền tảng đó bị HOÃN (không tiêu lượt) + banner cho người dùng.
+    outage:
+      window-minutes: ${AIMA_OUTAGE_WINDOW_MINUTES:15}
+      min-failures: ${AIMA_OUTAGE_MIN_FAILURES:5}
+      min-accounts: ${AIMA_OUTAGE_MIN_ACCOUNTS:3}
+      # Kết quả phát hiện được cache (giây) — dispatcher/worker hỏi cho từng retry.
+      cache-seconds: ${AIMA_OUTAGE_CACHE_SECONDS:60}
 
 springdoc:
   api-docs:

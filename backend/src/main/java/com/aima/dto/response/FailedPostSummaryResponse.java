@@ -28,4 +28,13 @@ public class FailedPostSummaryResponse {
 
     @Schema(description = "Technical failures (retryable / reconnect / reschedule — FR-56/FR-72).")
     long technical;
+
+    @Schema(description = "Failures waiting for the user (final failure, not dismissed).")
+    long needsAction;
+
+    @Schema(description = "Temporary failures AIMA is still retrying automatically (FR-56).")
+    long autoRetrying;
+
+    @Schema(description = "Failures the user dismissed.")
+    long dismissed;
 }

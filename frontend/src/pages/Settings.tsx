@@ -30,6 +30,7 @@ import { useToast } from '../components/toast/ToastProvider';
 import PageContainer from '../components/PageContainer';
 import UsageTab from '../components/settings/UsageTab';
 import PublishingTab from '../components/settings/PublishingTab';
+import PublishErrorEmailCard from '../components/settings/PublishErrorEmailCard';
 
 type SettingsTab = 'appearance' | 'usage' | 'publishing' | 'notifications' | 'connections';
 
@@ -229,22 +230,26 @@ export default function Settings() {
 
       {/* ——— Tab: Notifications ——— */}
       {tab === 'notifications' && (
-        <Card style={{ padding: 26 }}>
-          <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong, marginBottom: 16 }}>{t.seNotif}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {notifs.map((label, i) => {
-              const on = notif[i];
-              return (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                  <span style={{ fontSize: 13.5, color: C.text, flex: 1 }}>{label}</span>
-                  <span onClick={() => toggleNotif(i)} style={toggleStyle(on)}>
-                    <span style={dot} />
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Email lỗi đăng bài (opt-in, lưu ở backend) — các công tắc bên dưới là tuỳ chọn giao diện cũ. */}
+          <PublishErrorEmailCard />
+          <Card style={{ padding: 26 }}>
+            <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong, marginBottom: 16 }}>{t.seNotif}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {notifs.map((label, i) => {
+                const on = notif[i];
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <span style={{ fontSize: 13.5, color: C.text, flex: 1 }}>{label}</span>
+                    <span onClick={() => toggleNotif(i)} style={toggleStyle(on)}>
+                      <span style={dot} />
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
       )}
 
       {/* ——— Tab: Connections ——— */}

@@ -1,16 +1,18 @@
 import { Download, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import DateRangePill from './DateRangePill';
-import type { PostProblemKind, PostProblemSummary } from '../../../api/admin';
+import type { PostProblemSummary } from '../../../api/admin';
+import type { AdminPostsView } from './usePostProblems';
 import { C } from '../../../styles/colors';
 
 // Khối B của thiết kế: hàng tab (kèm badge số lượng) bên trái, khoảng ngày + "Bộ lọc" +
 // "Xuất báo cáo" bên phải. Badge lấy TỪ SUMMARY của backend — không đếm trên trang đang tải,
 // nên số vẫn đúng khi danh sách có nhiều trang. Chưa tải xong thì không hiện badge (không đoán 0).
 
-const TABS: { key: PostProblemKind; labelKey: 'apTabRejected' | 'apTabSystem' }[] = [
+const TABS: { key: AdminPostsView; labelKey: 'apTabRejected' | 'apTabSystem' | 'apTabUnclassified' }[] = [
   { key: 'rejected', labelKey: 'apTabRejected' },
   { key: 'system', labelKey: 'apTabSystem' },
+  { key: 'unclassified', labelKey: 'apTabUnclassified' },
 ];
 
 const controlBtn = {
@@ -20,33 +22,34 @@ const controlBtn = {
 } as const;
 
 export default function PostProblemToolbar({
-  kind,
+  view,
   summary,
   range,
   activeFilters,
   filtersOpen,
   exporting,
-  onKindChange,
+  onViewChange,
   onRangeChange,
   onToggleFilters,
   onExport,
 }: {
-  kind: PostProblemKind;
+  view: AdminPostsView;
   /** null khi summary chưa tải xong / lỗi — badge ẩn thay vì hiện số bịa. */
   summary: PostProblemSummary | null;
   range: { from: string; to: string };
   activeFilters: number;
   filtersOpen: boolean;
   exporting: boolean;
-  onKindChange: (kind: PostProblemKind) => void;
+  onViewChange: (view: AdminPostsView) => void;
   onRangeChange: (range: { from: string; to: string }) => void;
   onToggleFilters: () => void;
   onExport: () => void;
 }) {
   const { t } = useApp();
 
-  const countOf = (key: PostProblemKind): number | null => {
-    if (!summary) return null;
+  // Hàng đợi "chưa phân loại" không có badge: số nhóm chỉ biết sau khi tab đó tự tải.
+  const countOf = (key: AdminPostsView): number | null => {
+    if (!summary || key === 'unclassified') return null;
     return key === 'rejected' ? summary.policyViolation.value : summary.technical.value;
   };
 
@@ -54,12 +57,12 @@ export default function PostProblemToolbar({
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {TABS.map(({ key, labelKey }) => {
-          const active = kind === key;
+          const active = view === key;
           const count = countOf(key);
           return (
             <button
               key={key}
-              onClick={() => onKindChange(key)}
+              onClick={() => onViewChange(key)}
               aria-pressed={active}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 7,

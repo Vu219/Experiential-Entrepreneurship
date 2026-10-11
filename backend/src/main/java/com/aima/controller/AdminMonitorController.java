@@ -1,13 +1,19 @@
 package com.aima.controller;
 
+import com.aima.dto.request.AdminActionReasonRequest;
+import com.aima.dto.request.PublishErrorMappingRequest;
 import com.aima.dto.response.ActivityLogResponse;
+import com.aima.dto.response.AdminFailedPostDetailResponse;
 import com.aima.dto.response.AdminFailedPostResponse;
 import com.aima.dto.response.AdminFailedPostSummaryResponse;
 import com.aima.dto.response.AdminSystemStatusResponse;
 import com.aima.dto.response.ApiResponse;
+import com.aima.dto.response.FailedPostRetryResponse;
 import com.aima.dto.response.PageResponse;
+import com.aima.dto.response.PublishErrorMappingResponse;
 import com.aima.dto.response.SystemActivityResponse;
 import com.aima.dto.response.SystemLogResponse;
+import com.aima.dto.response.UnclassifiedErrorGroupResponse;
 import com.aima.enums.ActivityAction;
 import com.aima.enums.ActivityResult;
 import com.aima.enums.FailedPostFilter;
@@ -16,9 +22,11 @@ import com.aima.enums.Platform;
 import com.aima.enums.PublishErrorType;
 import com.aima.service.ActivityLogService;
 import com.aima.service.AdminMonitorService;
+import com.aima.service.PublishErrorAdminService;
 import com.aima.service.SystemLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -26,13 +34,17 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -44,6 +56,7 @@ import java.util.UUID;
 public class AdminMonitorController {
 
     AdminMonitorService adminMonitorService;
+    PublishErrorAdminService publishErrorAdminService;
     SystemLogService systemLogService;
     ActivityLogService activityLogService;
 
@@ -117,6 +130,56 @@ public class AdminMonitorController {
         AdminMonitorService.FailedPostFilterQuery query =
                 new AdminMonitorService.FailedPostFilterQuery(filter, violationOnly, platform, errorType, from, to, q);
         return adminMonitorService.exportFailedPosts(query);
+    }
+
+    // ===== Chuẩn hoá lỗi đăng bài (docs/failed-posts-error-handling-plan.md Phase 4)
+
+    @GetMapping("/posts/failed/unclassified")
+    @Operation(summary = "Unclassified publishing failures grouped by signature",
+            description = "Lần đăng lỗi mã UNKNOWN trong khoảng ngày (to BAO GỒM), gom theo nền tảng + mã gốc + subcode + "
+                    + "dạng chuẩn hoá của message; kèm payload mẫu ĐÃ REDACT để admin ánh xạ vào mã AIMA.")
+    public ApiResponse<List<UnclassifiedErrorGroupResponse>> unclassifiedFailures(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return publishErrorAdminService.unclassified(from, to);
+    }
+
+    @GetMapping("/posts/failed/{postId}")
+    @Operation(summary = "Failed post detail for admins",
+            description = "Dòng danh sách + vòng đời + lỗi thô của lần cuối (JSON ĐÃ REDACT) + timeline mọi lần thử.")
+    public ApiResponse<AdminFailedPostDetailResponse> failedPostDetail(@PathVariable UUID postId) {
+        return publishErrorAdminService.get(postId);
+    }
+
+    @PostMapping("/posts/failed/{postId}/retry")
+    @Operation(summary = "Retry a failed post on behalf of its owner",
+            description = "Bắt buộc lý do (ghi activity_logs). Cùng luật chặn với \"Thử lại ngay\" của người dùng.")
+    public ApiResponse<FailedPostRetryResponse> retryFailedPost(@AuthenticationPrincipal UserDetails principal,
+                                                                @PathVariable UUID postId,
+                                                                @Valid @RequestBody AdminActionReasonRequest request) {
+        return publishErrorAdminService.retry(principal.getUsername(), postId, request);
+    }
+
+    @GetMapping("/publish-error-mappings")
+    @Operation(summary = "Admin mappings of platform error signatures to AIMA error codes")
+    public ApiResponse<List<PublishErrorMappingResponse>> listPublishErrorMappings() {
+        return publishErrorAdminService.listMappings();
+    }
+
+    @PostMapping("/publish-error-mappings")
+    @Operation(summary = "Map a platform error signature to an existing AIMA error code",
+            description = "subcode / messagePattern bỏ trống = mọi. applyToExisting = áp luôn cho lần lỗi UNKNOWN đã lưu.")
+    public ApiResponse<PublishErrorMappingResponse> createPublishErrorMapping(
+            @AuthenticationPrincipal UserDetails principal,
+            @Valid @RequestBody PublishErrorMappingRequest request) {
+        return publishErrorAdminService.createMapping(principal.getUsername(), request);
+    }
+
+    @DeleteMapping("/publish-error-mappings/{mappingId}")
+    @Operation(summary = "Remove (soft delete) a publish error mapping")
+    public ApiResponse<PublishErrorMappingResponse> deletePublishErrorMapping(
+            @AuthenticationPrincipal UserDetails principal, @PathVariable UUID mappingId) {
+        return publishErrorAdminService.deleteMapping(principal.getUsername(), mappingId);
     }
 
     @GetMapping("/logs")

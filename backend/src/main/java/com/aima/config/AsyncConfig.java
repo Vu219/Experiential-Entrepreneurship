@@ -76,6 +76,18 @@ public class AsyncConfig implements AsyncConfigurer {
         return executor;
     }
 
+    // AI sửa bài vi phạm / kiểm tra chính sách (failed-posts đợt 2) — lời gọi ngắn, ít token.
+    @Bean(name = "aiAssistExecutor")
+    public Executor aiAssistExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(5);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("ai-assist-");
+        executor.initialize();
+        return executor;
+    }
+
     @Bean(name = "strategyOptimizationExecutor")
     public Executor strategyOptimizationExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

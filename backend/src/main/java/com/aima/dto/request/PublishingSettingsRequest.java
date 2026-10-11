@@ -43,4 +43,7 @@ public class PublishingSettingsRequest {
     @Max(value = 100, message = "BRAND_VOICE_THRESHOLD_INVALID")
     @Schema(description = "0-100; required when brandVoiceBlockingEnabled.", example = "70")
     Integer brandVoiceThreshold;
+
+    @Schema(description = "Warn about likely policy violations before publishing (rules + AI per plan). Null = keep.")
+    Boolean policyCheckEnabled;
 }

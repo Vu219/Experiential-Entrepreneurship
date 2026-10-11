@@ -18,6 +18,7 @@ import com.aima.exception.ErrorCode;
 import com.aima.mapper.PlanMapper;
 import com.aima.repository.PlanFeatureRepository;
 import com.aima.repository.PlanRepository;
+import com.aima.service.PlanLimitService;
 import com.aima.service.PlanService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,7 @@ public class PlanServiceImpl implements PlanService {
     PlanRepository planRepository;
     PlanFeatureRepository featureRepository;
     PlanMapper planMapper;
+    PlanLimitService planLimitService;
 
     @Override
     @Transactional(readOnly = true)
@@ -60,6 +62,7 @@ public class PlanServiceImpl implements PlanService {
     public ApiResponse<PlansResponse> list() {
         List<Plan> plans = planRepository.findByDeletedAtIsNullOrderByDisplayOrderAscCreatedAtAsc();
         PlansResponse result = buildResponse(plans);
+        result.setLimitDefaults(planMapper.toLimitDefaults(planLimitService.defaults()));
         return ApiResponse.success("Danh sách gói (admin)", result);
     }
 

@@ -3,6 +3,7 @@ package com.aima.dto.publish;
 import com.aima.enums.Platform;
 import com.aima.enums.PlatformAccountType;
 
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -13,6 +14,8 @@ import java.util.UUID;
  * @param accountId         id bản ghi {@code platform_accounts} (UUID nội bộ)
  * @param platformAccountId id thật trên nền tảng (Page id, Threads user id...)
  * @param accessToken       token ĐÃ giải mã — không bao giờ log (xem {@link #toString()})
+ * @param verifySince       khác null = lần thử trước lỗi MƠ HỒ (timeout/gián đoạn/5xx): trước khi đăng, tìm bài khớp
+ *                          nội dung đăng từ thời điểm này ({@code PlatformPublisher.findPublished}) để không đăng trùng
  */
 public record PublishTarget(
         UUID jobId,
@@ -23,7 +26,8 @@ public record PublishTarget(
         String platformAccountId,
         String accountName,
         String accessToken,
-        String message) {
+        String message,
+        Instant verifySince) {
 
     // SEC-03/NFR-06: record tự sinh toString() in cả token — ghi đè để lỡ log object cũng không lộ.
     @Override

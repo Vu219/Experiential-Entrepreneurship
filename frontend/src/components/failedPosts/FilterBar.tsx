@@ -2,19 +2,37 @@ import type { CSSProperties } from 'react';
 import { SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { FilterSelect } from '../admin/AdminListPage.tsx';
+import {
+  publishErrorCategoryLabel, publishErrorCopy, type PublishErrorCategory, type PublishErrorCode,
+} from '../../api/publishErrorCatalog.ts';
 import { countActiveFilters, EMPTY_FILTERS, type FpFilters } from './shared.ts';
 import { C } from '../../styles/colors';
 
-// Thanh bộ lọc dưới hàng tab: nền tảng / khoảng ngày / trạng thái. Các control áp dụng ngay
-// khi đổi; nút "Bộ lọc" hiển thị số bộ lọc đang bật và bấm để đặt lại về mặc định.
+// Thanh bộ lọc dưới hàng tab: nền tảng / tài khoản / nhóm lỗi / loại lỗi / khoảng ngày. Danh sách tài khoản,
+// nhóm và loại lỗi lấy từ CHÍNH dữ liệu đang có (không liệt kê lựa chọn rỗng). Control áp dụng ngay khi đổi;
+// nút "Bộ lọc" hiển thị số bộ lọc đang bật và bấm để đặt lại.
 
 const dateStyle: CSSProperties = {
   height: 38, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10,
   padding: '0 10px', fontSize: 13, fontWeight: 600, color: C.ink650, fontFamily: 'inherit',
 };
 
-export default function FilterBar({ filters, onChange }: { filters: FpFilters; onChange: (f: FpFilters) => void }) {
-  const { t } = useApp();
+export interface FpFilterOptions {
+  accounts: { id: string; name: string }[];
+  categories: PublishErrorCategory[];
+  codes: PublishErrorCode[];
+}
+
+export default function FilterBar({
+  filters,
+  options,
+  onChange,
+}: {
+  filters: FpFilters;
+  options: FpFilterOptions;
+  onChange: (f: FpFilters) => void;
+}) {
+  const { t, lang } = useApp();
   const active = countActiveFilters(filters);
 
   return (
@@ -29,6 +47,30 @@ export default function FilterBar({ filters, onChange }: { filters: FpFilters; o
           ['THREADS', 'Threads'],
         ]}
       />
+      {options.accounts.length > 1 && (
+        <FilterSelect
+          value={filters.account}
+          onChange={(v) => onChange({ ...filters, account: v })}
+          options={[['ALL', t.fpAllAccounts], ...options.accounts.map((a): [string, string] => [a.id, a.name])]}
+        />
+      )}
+      <FilterSelect
+        value={filters.category}
+        onChange={(v) => onChange({ ...filters, category: v as FpFilters['category'] })}
+        options={[
+          ['ALL', t.fpAllCategories],
+          ...options.categories.map((c): [string, string] => [c, publishErrorCategoryLabel(lang, c)]),
+        ]}
+      />
+      <FilterSelect
+        value={filters.code}
+        onChange={(v) => onChange({ ...filters, code: v as FpFilters['code'] })}
+        options={[
+          ['ALL', t.fpAllCodes],
+          // Nhãn = tiêu đề thân thiện của catalog (không hiện tên mã kỹ thuật).
+          ...options.codes.map((c): [string, string] => [c, publishErrorCopy(lang, c).title]),
+        ]}
+      />
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
         <input
           type="date"
@@ -36,6 +78,7 @@ export default function FilterBar({ filters, onChange }: { filters: FpFilters; o
           max={filters.to || undefined}
           onChange={(e) => onChange({ ...filters, from: e.target.value })}
           style={dateStyle}
+          aria-label={t.fpColTime}
         />
         <span style={{ fontSize: 12, color: C.textFaint }}>–</span>
         <input
@@ -44,16 +87,9 @@ export default function FilterBar({ filters, onChange }: { filters: FpFilters; o
           min={filters.from || undefined}
           onChange={(e) => onChange({ ...filters, to: e.target.value })}
           style={dateStyle}
+          aria-label={t.fpColTime}
         />
       </div>
-      <FilterSelect
-        value={filters.status}
-        onChange={(v) => onChange({ ...filters, status: v as FpFilters['status'] })}
-        options={[
-          ['ALL', t.fpAllStatuses],
-          ['FAILED', t.fpStatusFailed],
-        ]}
-      />
       <button
         onClick={() => active > 0 && onChange(EMPTY_FILTERS)}
         disabled={active === 0}

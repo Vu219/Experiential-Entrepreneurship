@@ -53,6 +53,8 @@ public class SecurityConfig {
 
             // Nội dung Landing Page đã xuất bản — không cần đăng nhập.
             "/landing/public",
+            // Link huỷ nhận email lỗi đăng bài (token có chữ ký + hạn dùng; cả one-click của hộp thư).
+            "/notifications/unsubscribe",
 
             // Meta OAuth callback: nền tảng redirect về (không có cookie auth) — userId lấy qua state.
             "/connections/*/callback",

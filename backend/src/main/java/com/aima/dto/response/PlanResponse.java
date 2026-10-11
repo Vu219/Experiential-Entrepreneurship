@@ -40,6 +40,14 @@ public class PlanResponse {
     @Schema(description = "Hạn mức token LLM THẬT mỗi tháng. null = không giới hạn.", example = "100000")
     Long monthlyTokenLimit;
 
+    @Schema(description = "Lượt AI kiểm tra chính sách mỗi tháng. null = mặc định hệ thống, -1 = không giới hạn, "
+            + "0 = tắt (chỉ bộ lọc tự động).", example = "30")
+    Integer policyCheckAiMonthlyLimit;
+
+    @Schema(description = "Số lần AI sửa bài tối đa mỗi bản nền tảng. null = mặc định hệ thống, -1 = không giới hạn, "
+            + "0 = tắt.", example = "3")
+    Integer aiFixMaxPerVersion;
+
     String descriptionVi;
     String descriptionEn;
 

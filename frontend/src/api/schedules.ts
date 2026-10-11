@@ -13,6 +13,8 @@ export interface PublishingSettings {
   brandVoiceBlockingEnabled: boolean;
   /** 0–100, bắt buộc khi bật chặn brand voice. */
   brandVoiceThreshold: number | null;
+  /** Cảnh báo vi phạm chính sách trước khi đăng (bộ luật miễn phí + AI theo gói) — chỉ cảnh báo, không chặn. */
+  policyCheckEnabled: boolean;
 }
 
 export async function getPublishingSettings(): Promise<PublishingSettings> {

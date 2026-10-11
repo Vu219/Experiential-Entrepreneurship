@@ -16,6 +16,9 @@ export type { AdminPostProblem };
 
 export type Load = 'loading' | 'error' | 'ok';
 
+/** Tab của trang: 2 tab danh sách (rejected/system) + hàng đợi lỗi chưa phân loại. */
+export type AdminPostsView = PostProblemKind | 'unclassified';
+
 const DEFAULT_RANGE_DAYS = 7;
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
@@ -35,6 +38,7 @@ const oneOf = <T extends string>(raw: string | null, allowed: T[]): T | undefine
   allowed.includes(raw as T) ? (raw as T) : undefined;
 
 export interface PostProblemsState {
+  view: AdminPostsView;
   kind: PostProblemKind;
   filter: PostProblemFilter;
   sort: PostProblemSort;
@@ -57,7 +61,7 @@ export interface PostProblemsState {
   selected: AdminPostProblem | null;
   selectedId: string | null;
 
-  setKind: (kind: PostProblemKind) => void;
+  setView: (view: AdminPostsView) => void;
   setSelectedId: (postId: string | null) => void;
   setRange: (range: { from: string; to: string }) => void;
   setPlatform: (platform?: AdminPostPlatform) => void;
@@ -78,7 +82,9 @@ export function usePostProblems(): PostProblemsState {
   const [pageSize, setPageSize] = usePageSize('admin-posts');
 
   const fallbackRange = useMemo(defaultRange, []);
-  const kind: PostProblemKind = params.get('tab') === 'system' ? 'system' : 'rejected';
+  const tabParam = params.get('tab');
+  const view: AdminPostsView = tabParam === 'system' || tabParam === 'unclassified' ? tabParam : 'rejected';
+  const kind: PostProblemKind = view === 'system' ? 'system' : 'rejected';
   const range = {
     from: params.get('from') || fallbackRange.from,
     to: params.get('to') || fallbackRange.to,
@@ -130,6 +136,7 @@ export function usePostProblems(): PostProblemsState {
 
   useEffect(() => {
     let alive = true;
+    if (view === 'unclassified') return () => { alive = false; }; // tab hàng đợi tự tải dữ liệu riêng
     setListLoad('loading');
     // Debounce chung 300ms để gõ ô tìm kiếm không bắn một request mỗi phím (như tab log lỗi).
     const timer = setTimeout(() => {
@@ -141,7 +148,7 @@ export function usePostProblems(): PostProblemsState {
         .catch(() => { if (alive) setListLoad('error'); });
     }, 300);
     return () => { alive = false; clearTimeout(timer); };
-  }, [filter, sort, page, pageSize, listNonce]);
+  }, [filter, sort, page, pageSize, listNonce, view]);
 
   // Bài đang chọn giữ trên URL, nhưng bản ghi thì lấy từ trang đang hiển thị — đổi bộ lọc/trang
   // mà bài đó không còn trong danh sách thì panel tự đóng thay vì hiện dữ liệu mồ côi.
@@ -159,6 +166,7 @@ export function usePostProblems(): PostProblemsState {
   }, [filter]);
 
   return {
+    view,
     kind,
     filter,
     sort,
@@ -178,7 +186,7 @@ export function usePostProblems(): PostProblemsState {
     selectedId,
 
     // Đổi tab thì bỏ luôn bài đang chọn — bài đó thuộc tập kết quả của tab cũ.
-    setKind: (next) => patch({ tab: next === 'system' ? 'system' : undefined, postId: undefined }),
+    setView: (next) => patch({ tab: next === 'rejected' ? undefined : next, postId: undefined }),
     setSelectedId: (postId) => patch({ postId: postId ?? undefined }, false),
     setRange: (next) => patch({ from: next.from, to: next.to }),
     setPlatform: (next) => patch({ platform: next }),

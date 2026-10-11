@@ -631,3 +631,75 @@ class ListModelsResult(BaseModel):
     """Provider order is preserved (Anthropic lists newest models first)."""
 
     models: List[CatalogModel] = Field(default_factory=list)
+
+
+# ============================================================
+# Policy assist (failed-posts round 2): AI fix of a rejected post + pre-publish policy check
+# ============================================================
+
+
+class RuleHit(BaseModel):
+    """One match of the backend's FREE rule/keyword filter (tier 1) — the reason the AI is called."""
+
+    category: str = Field(..., description="Rule group, e.g. REFUND_GUARANTEE, HEALTH_CLAIM, EXAGGERATED_DISCOUNT")
+    severity: str = Field(default="MEDIUM", description="LOW | MEDIUM | HIGH")
+    excerpt: str = Field(default="", description="Text that matched")
+
+
+class PolicyFixRequest(BaseModel):
+    """Mirrors backend dto/ai/PolicyFixPayload — rewrite ONE platform version so it passes policy.
+
+    error_code is the NORMALIZED AIMA code (never the platform's raw message); rule_hits come from the
+    backend rule filter. The agent keeps the brand voice and the post's intent."""
+
+    brand_profile: Optional[BrandProfileInput] = None
+    platform: str
+    caption: str
+    hashtags: List[str] = Field(default_factory=list)
+    error_code: Optional[str] = None
+    rule_hits: List[RuleHit] = Field(default_factory=list)
+    llm_config: Optional[LlmConfig] = None
+
+
+class PolicyFixSuggestion(BaseModel):
+    """Structured output of the fix call (no accounting fields — see TokenAccounting)."""
+
+    caption: str = Field(..., description="Rewritten caption, same language, NO hashtags inside")
+    hashtags: List[str] = Field(default_factory=list, description="Hashtags without '#'")
+    changes: List[str] = Field(default_factory=list, description="Short list of what was changed and why")
+
+
+class PolicyFixResult(TokenAccounting):
+    caption: str
+    hashtags: List[str] = Field(default_factory=list)
+    changes: List[str] = Field(default_factory=list)
+
+
+class PolicyCheckRequest(BaseModel):
+    """Mirrors backend dto/ai/PolicyCheckPayload — tier-2 review, only sent when tier 1 found something."""
+
+    platform: str
+    caption: str
+    hashtags: List[str] = Field(default_factory=list)
+    rule_hits: List[RuleHit] = Field(default_factory=list)
+    llm_config: Optional[LlmConfig] = None
+
+
+class PolicyIssue(BaseModel):
+    excerpt: str = Field(default="", description="Exact problematic text from the post")
+    reason: str = Field(..., description="Why it may break the platform's policy")
+    suggestion: str = Field(..., description="How to rephrase it")
+
+
+class PolicyAssessment(BaseModel):
+    """Structured output of the check call."""
+
+    risk_level: Literal["none", "low", "medium", "high"]
+    summary: str
+    issues: List[PolicyIssue] = Field(default_factory=list)
+
+
+class PolicyCheckResult(TokenAccounting):
+    risk_level: Literal["none", "low", "medium", "high"] = "none"
+    summary: str = ""
+    issues: List[PolicyIssue] = Field(default_factory=list)

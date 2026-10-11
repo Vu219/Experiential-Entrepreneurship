@@ -9,6 +9,7 @@ import com.aima.mapper.PlanMapperImpl;
 import com.aima.repository.PlanFeatureRepository;
 import com.aima.repository.PlanRepository;
 import com.aima.service.ActivityLogService;
+import com.aima.service.PlanLimitService;
 import com.aima.service.Impl.PlanServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,7 @@ class PlanTokenLimitTest {
             return p;
         });
         service = new PlanServiceImpl(mock(ActivityLogService.class), planRepository,
-                mock(PlanFeatureRepository.class), new PlanMapperImpl());
+                mock(PlanFeatureRepository.class), new PlanMapperImpl(), mock(PlanLimitService.class));
     }
 
     private static PlanCreateRequest create(long price, Long limit) {
@@ -92,5 +93,25 @@ class PlanTokenLimitTest {
                         .billingIntervalMonths((short) 1).highlight(false).displayOrder(1).isActive(true).build()));
 
         assertEquals(ErrorCode.PLAN_TOKEN_LIMIT_REQUIRED, e.getErrorCode());
+    }
+
+    /** Giới hạn AI (V15) lưu thẳng lên gói; PUT là FULL update — null = về mặc định hệ thống, không giữ giá trị cũ. */
+    @Test
+    void aiLimits_storedOnPlan_andNullOnUpdateMeansSystemDefault() {
+        service.create(PlanCreateRequest.builder().code("team").nameVi("Team").nameEn("Team").price(0L)
+                .billingIntervalMonths((short) 1).policyCheckAiMonthlyLimit(-1).aiFixMaxPerVersion(0).build());
+        verify(planRepository).save(argThat(p -> Integer.valueOf(-1).equals(p.getPolicyCheckAiMonthlyLimit())
+                && Integer.valueOf(0).equals(p.getAiFixMaxPerVersion())));
+
+        Plan plan = Plan.builder().code("PLUS").nameVi("Plus").nameEn("Plus").price(0L)
+                .policyCheckAiMonthlyLimit(30).aiFixMaxPerVersion(5).isActive(true).build();
+        plan.setId(UUID.randomUUID());
+        when(planRepository.findByIdAndDeletedAtIsNull(plan.getId())).thenReturn(Optional.of(plan));
+        service.update(plan.getId(), PlanUpdateRequest.builder().nameVi("Plus").nameEn("Plus").price(0L)
+                .billingIntervalMonths((short) 1).highlight(false).displayOrder(1).isActive(true)
+                .policyCheckAiMonthlyLimit(45).build());
+
+        assertEquals(45, plan.getPolicyCheckAiMonthlyLimit());
+        assertNull(plan.getAiFixMaxPerVersion());
     }
 }

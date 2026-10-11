@@ -1,6 +1,7 @@
 package com.aima.posting;
 
 import com.aima.entity.BrandProfile;
+import com.aima.entity.Notification;
 import com.aima.entity.ContentItem;
 import com.aima.entity.ContentVersion;
 import com.aima.entity.PlatformAccount;
@@ -12,10 +13,13 @@ import com.aima.entity.User;
 import com.aima.enums.ConnectionStatus;
 import com.aima.enums.ContentItemStatus;
 import com.aima.enums.ContentVersionStatus;
+import com.aima.enums.NotificationType;
 import com.aima.enums.Platform;
 import com.aima.enums.PlatformAccountType;
 import com.aima.enums.PostStatus;
 import com.aima.enums.PostingJobStatus;
+import com.aima.enums.PublishErrorAction;
+import com.aima.enums.PublishErrorCode;
 import com.aima.enums.PublishErrorType;
 import com.aima.enums.ScheduleStatus;
 import com.aima.enums.TokenType;
@@ -24,6 +28,7 @@ import com.aima.enums.UserStatus;
 import com.aima.repository.BrandProfileRepository;
 import com.aima.repository.ContentItemRepository;
 import com.aima.repository.ContentVersionRepository;
+import com.aima.repository.NotificationRepository;
 import com.aima.repository.PlatformAccountRepository;
 import com.aima.repository.PostRepository;
 import com.aima.repository.PostScheduleRepository;
@@ -99,6 +104,7 @@ class PostPublishWorkerIntegrationTest {
     @Autowired private PostingJobRepository jobRepository;
     @Autowired private TransactionTemplate transactionTemplate;
     @Autowired private com.aima.scheduler.PostingDispatchJob dispatchJob;
+    @Autowired private NotificationRepository notificationRepository;
 
     // ================================================================== các case
 
@@ -156,6 +162,171 @@ class PostPublishWorkerIntegrationTest {
             // FR-70: token hết hạn → kết nối EXPIRED.
             assertEquals(ConnectionStatus.EXPIRED, post.getSchedule().getPlatformAccount().getConnectionStatus());
         });
+        // Chuẩn hoá lỗi (V13): mã AIMA + mã gốc + chi tiết cho admin.
+        assertEquals(PublishErrorCode.AUTH_TOKEN_EXPIRED, job.getErrorCode());
+        assertEquals("190", job.getPlatformErrorCode());
+        assertTrue(job.getErrorDetail().contains("\"aimaCode\":\"AUTH_TOKEN_EXPIRED\""), job.getErrorDetail());
+    }
+
+    @Test
+    void tokenExpiredWithSubcode_redactedDetail_singleGroupedNotificationWithoutRawMessage() {
+        Fixture f = newFixture(PlatformAccountType.PAGE);
+        META.enqueue(json(400, "{\"error\":{\"message\":\"Error validating access token: access_token=EAABleak123456 "
+                + "for owner@aima.vn\",\"type\":\"OAuthException\",\"code\":190,\"error_subcode\":460,\"fbtrace_id\":\"Trace1\"}}"));
+
+        worker.process(f.jobId());
+        PostingJob job = awaitFinished(f.jobId());
+
+        assertEquals(PublishErrorCode.AUTH_PASSWORD_CHANGED, job.getErrorCode());
+        assertEquals("460", job.getPlatformErrorSubcode());
+        for (String stored : List.of(job.getErrorMessage(), job.getErrorDetail())) {
+            assertFalse(stored.contains("EAABleak123456"), stored);
+            assertFalse(stored.contains("owner@aima.vn"), stored);
+        }
+        assertTrue(job.getErrorDetail().contains("Trace1"), "fbtrace_id giữ lại để báo lỗi cho Meta");
+
+        UUID userId = userIdOfPost(f.postId());
+        List<Notification> notes = awaitNotifications(userId, 1);
+        assertEquals(1, notes.size(), "lỗi cấp tài khoản: đúng MỘT thông báo (không kèm POST_FAILED riêng)");
+        Notification note = notes.getFirst();
+        assertEquals(NotificationType.RECONNECT_NEEDED, note.getType());
+        assertFalse(note.getMessage().contains("Error validating"), "không ghép message gốc của nền tảng");
+        assertTrue(note.getMessage().contains(com.aima.util.PublishReference.of(f.jobId())), note.getMessage());
+    }
+
+    // ===== Phase 3 (docs/failed-posts-error-handling-plan.md): thời gian chờ nền tảng, chống đăng trùng, pre-flight token
+
+    @Test
+    void rateLimitWithRegainTime_retryWaitsAsLongAsThePlatformAsks() {
+        Fixture f = newFixture(PlatformAccountType.PAGE);
+        META.enqueue(json(400, "{\"error\":{\"message\":\"Page request limit reached\",\"code\":32}}")
+                .addHeader("X-Business-Use-Case-Usage",
+                        "{\"" + f.pageId() + "\":[{\"type\":\"pages\",\"call_count\":100,\"estimated_time_to_regain_access\":42}]}"));
+
+        Instant startedAt = Instant.now();
+        worker.process(f.jobId());
+        PostingJob job = awaitFinished(f.jobId());
+
+        assertEquals(PublishErrorCode.RATE_LIMITED, job.getErrorCode());
+        PostingJob retry = jobsOf(f.postId()).get(1);
+        assertEquals(PostingJobStatus.RETRYING, retry.getStatus());
+        assertTrue(retry.getNextRetryAt().isAfter(startedAt.plus(java.time.Duration.ofMinutes(41))),
+                "chờ theo nền tảng (42 phút), không retry sau 5 phút: " + retry.getNextRetryAt());
+        assertTrue(retry.getNextRetryAt().isBefore(startedAt.plus(java.time.Duration.ofMinutes(44))));
+    }
+
+    @Test
+    void retryAfterTimeout_postAlreadyOnPlatform_recordedWithoutPostingAgain() throws Exception {
+        Fixture f = newFixture(PlatformAccountType.PAGE);
+        // Lần 1: Meta nhận request rồi cắt kết nối — không biết bài đã lên chưa.
+        META.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST));
+        worker.process(f.jobId());
+        assertEquals(PublishErrorCode.NETWORK_TIMEOUT, awaitFinished(f.jobId()).getErrorCode());
+        PostingJob retry = jobsOf(f.postId()).get(1);
+        assertEquals(PostingJobStatus.RETRYING, retry.getStatus());
+
+        // Lần retry: Trang ĐÃ có bài cùng nội dung → ghi nhận thành công, không POST /feed lần hai.
+        while (META.takeRequest(200, TimeUnit.MILLISECONDS) != null) {
+            // bỏ request của lần 1 khỏi hàng đợi ghi nhận
+        }
+        int before = META.getRequestCount();
+        META.enqueue(json(200, "{\"data\":[{\"id\":\"" + f.pageId() + "_777\",\"created_time\":\"2026-10-11T08:00:00+0000\","
+                + "\"message\":\"Xin chao AIMA\\n\\n#aima #test\"}]}"));
+        worker.process(retry.getId());
+
+        assertEquals(PostingJobStatus.SUCCESS, awaitFinished(retry.getId()).getStatus());
+        assertEquals(before + 1, META.getRequestCount(), "chỉ GỌI KIỂM TRA, không đăng lại");
+        RecordedRequest check = takeRequestFor(f.pageId());
+        assertEquals("GET", check.getMethod());
+        assertTrue(check.getPath().contains("/published_posts"), check.getPath());
+        transactionTemplate.executeWithoutResult(tx ->
+                assertEquals(f.pageId() + "_777", postRepository.findById(f.postId()).orElseThrow().getPlatformPostId()));
+    }
+
+    @Test
+    void retryAfterTimeout_postNotOnPlatform_checksFirstThenPublishes() throws Exception {
+        Fixture f = newFixture(PlatformAccountType.PAGE);
+        META.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST));
+        worker.process(f.jobId());
+        assertEquals(PublishErrorCode.NETWORK_TIMEOUT, awaitFinished(f.jobId()).getErrorCode());
+        PostingJob retry = jobsOf(f.postId()).get(1);
+
+        while (META.takeRequest(200, TimeUnit.MILLISECONDS) != null) {
+            // bỏ request của lần 1
+        }
+        // Trang CHƯA có bài → kiểm tra xong mới đăng (đúng một lần).
+        META.enqueue(json(200, "{\"data\":[]}"));
+        META.enqueue(json(200, "{\"id\":\"" + f.pageId() + "_778\"}"));
+        worker.process(retry.getId());
+
+        assertEquals(PostingJobStatus.SUCCESS, awaitFinished(retry.getId()).getStatus());
+        RecordedRequest check = takeRequestFor(f.pageId());
+        assertEquals("GET", check.getMethod());
+        assertTrue(check.getPath().contains("/published_posts"), check.getPath());
+        RecordedRequest publish = takeRequestFor(f.pageId());
+        assertEquals("POST", publish.getMethod());
+        assertTrue(publish.getPath().endsWith("/" + f.pageId() + "/feed"), publish.getPath());
+        transactionTemplate.executeWithoutResult(tx ->
+                assertEquals(f.pageId() + "_778", postRepository.findById(f.postId()).orElseThrow().getPlatformPostId()));
+    }
+
+    @Test
+    void retryAfterTimeout_pageDeniesReadingPosts_needsActionWithPermissionCode_noBlindPost() throws Exception {
+        Fixture f = newFixture(PlatformAccountType.PAGE);
+        META.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST));
+        worker.process(f.jobId());
+        assertEquals(PublishErrorCode.NETWORK_TIMEOUT, awaitFinished(f.jobId()).getErrorCode());
+        PostingJob retry = jobsOf(f.postId()).get(1);
+
+        while (META.takeRequest(200, TimeUnit.MILLISECONDS) != null) {
+            // bỏ request của lần 1
+        }
+        int before = META.getRequestCount();
+        // Token Page cấp trước khi app có pages_read_engagement → Graph (#10) thiếu quyền khi đọc published_posts.
+        META.enqueue(json(403, "{\"error\":{\"message\":\"(#10) This endpoint requires the "
+                + "'pages_read_engagement' permission\",\"type\":\"OAuthException\",\"code\":10}}"));
+        worker.process(retry.getId());
+
+        PostingJob done = awaitFinished(retry.getId());
+        assertEquals(PostingJobStatus.FAILED, done.getStatus());
+        assertEquals(PublishErrorCode.AUTH_PERMISSION_MISSING, done.getErrorCode());
+        assertEquals("VERIFY_PERMISSION", done.getPlatformErrorCode());
+        assertEquals(before + 1, META.getRequestCount(), "chỉ gọi kiểm tra — KHÔNG POST /feed mù");
+        assertEquals(2, jobsOf(f.postId()).size(), "lỗi quyền: không tạo lần thử lại tự động");
+        assertTrue(PublishErrorCode.AUTH_PERMISSION_MISSING.actions().contains(PublishErrorAction.RECONNECT_ACCOUNT));
+    }
+
+    @Test
+    void tokenPastExpiry_failsAsTokenExpiredWithoutCallingMeta() {
+        Fixture f = newFixture(PlatformAccountType.PAGE);
+        transactionTemplate.executeWithoutResult(tx -> postRepository.findById(f.postId()).orElseThrow()
+                .getSchedule().getPlatformAccount().setTokenExpiredAt(java.time.LocalDateTime.now().minusHours(1)));
+        int before = META.getRequestCount();
+
+        worker.process(f.jobId());
+        PostingJob job = awaitFinished(f.jobId());
+
+        assertEquals(PublishErrorCode.AUTH_TOKEN_EXPIRED, job.getErrorCode());
+        assertEquals(before, META.getRequestCount(), "token đã quá hạn: không gọi Meta");
+        assertEquals(1, jobsOf(f.postId()).size());
+        transactionTemplate.executeWithoutResult(tx -> assertEquals(ConnectionStatus.EXPIRED,
+                postRepository.findById(f.postId()).orElseThrow().getSchedule().getPlatformAccount().getConnectionStatus()));
+    }
+
+    @Test
+    void internalError_userNoticeHasNoExceptionText() {
+        Fixture f = newFixture(PlatformAccountType.PAGE);
+        // Body 200 không phải JSON → lỗi không đến từ nền tảng → INTERNAL (không retry).
+        META.enqueue(new MockResponse().setResponseCode(200).setBody("<html>not json</html>"));
+
+        worker.process(f.jobId());
+        PostingJob job = awaitFinished(f.jobId());
+
+        assertEquals(PublishErrorCode.INTERNAL_ERROR, job.getErrorCode());
+        assertEquals(PublishErrorType.INTERNAL, job.getErrorType());
+        List<Notification> notes = awaitNotifications(userIdOfPost(f.postId()), 1);
+        assertEquals(NotificationType.POST_FAILED, notes.getFirst().getType());
+        assertFalse(notes.getFirst().getMessage().contains("Exception"), notes.getFirst().getMessage());
     }
 
     @Test
@@ -429,6 +600,37 @@ class PostPublishWorkerIntegrationTest {
             old.getPost().getPostingJobs().forEach(j -> j.setStatus(PostingJobStatus.FAILED));
             return scheduleRepository.save(due).getId();
         });
+    }
+
+    private UUID userIdOfPost(UUID postId) {
+        return transactionTemplate.execute(tx ->
+                postRepository.findById(postId).orElseThrow().getSchedule().getPlatformAccount().getUser().getId());
+    }
+
+    /** Thông báo được gửi SAU commit kết quả (cùng thread worker) — chờ tới khi đủ {@code atLeast} bản ghi. */
+    private List<Notification> awaitNotifications(UUID userId, int atLeast) {
+        long deadline = System.currentTimeMillis() + 15_000;
+        List<Notification> notes = List.of();
+        while (System.currentTimeMillis() < deadline) {
+            notes = notificationRepository.findByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(
+                    userId, org.springframework.data.domain.PageRequest.of(0, 20)).getContent();
+            if (notes.size() >= atLeast) {
+                try {
+                    Thread.sleep(300); // chờ thêm: bắt trường hợp gửi THỪA thông báo
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                return notificationRepository.findByUser_IdAndDeletedAtIsNullOrderByCreatedAtDesc(
+                        userId, org.springframework.data.domain.PageRequest.of(0, 20)).getContent();
+            }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
+            }
+        }
+        return notes;
     }
 
     private UUID itemIdOfPost(UUID postId) {

@@ -5,11 +5,12 @@ import Switch from '../admin/Switch';
 import { useToast } from '../toast/ToastProvider';
 import type { ApiError } from '../../api/apiClient';
 import { getPublishingSettings, updatePublishingSettings, type PublishingSettings } from '../../api/schedules';
+import { getAiAssistUsage, type AiAssistUsage } from '../../api/aiAssist';
 import { validatePublishingSettings } from '../../validations/publishingSettingsValidation';
 import { C } from '../../styles/colors';
 
 // Tab "Đăng bài" trong Cài đặt (Phase 2): múi giờ đăng, bắt buộc duyệt (bật/tắt áp lại cho mọi lịch
-// chưa đăng — BE xử lý), cửa sổ cảnh báo trùng lịch, chặn brand voice dưới ngưỡng.
+// chưa đăng — BE xử lý), cửa sổ cảnh báo trùng lịch, chặn brand voice dưới ngưỡng, kiểm tra chính sách trước khi đăng.
 
 const inputStyle: CSSProperties = {
   width: '100%', border: `1.5px solid ${C.border}`, borderRadius: 11, padding: '9px 12px',
@@ -36,6 +37,40 @@ function Row({ title, sub, control, children }: { title: string; sub: string; co
         {control}
       </div>
       {children}
+    </div>
+  );
+}
+
+/** Lượt AI hỗ trợ chính sách theo gói (admin cấu hình trên gói) + gợi ý nâng gói khi gói không gồm / đã hết lượt. */
+function AiAssistUsageNote() {
+  const { t, lang, go } = useApp();
+  const [usage, setUsage] = useState<AiAssistUsage | null>(null);
+
+  useEffect(() => {
+    getAiAssistUsage().then(setUsage).catch(() => setUsage(null)); // không lấy được → ẩn, không chặn trang cài đặt
+  }, []);
+
+  if (!usage) return null;
+  const date = new Date(usage.resetAt).toLocaleDateString(lang === 'en' ? 'en-GB' : 'vi-VN');
+  const { policyCheckAiUsed: used, policyCheckAiLimit: limit, aiFixMaxPerVersion: fix } = usage;
+  const check = limit === null ? t.seAiCheckUnlimited.replace('{used}', String(used))
+    : limit === 0 ? t.pcPlanNotIncluded
+      : (used >= limit ? t.seAiCheckExhausted : t.seAiCheckUsage)
+        .replace('{used}', String(used)).replace('{limit}', String(limit)).replace('{date}', date);
+  const fixText = fix === null ? t.seAiFixUnlimited : fix === 0 ? t.seAiFixNotIncluded : t.seAiFixPerVersion.replace('{n}', String(fix));
+  const canUpgrade = limit === 0 || (limit !== null && used >= limit) || fix === 0;
+
+  return (
+    <div style={{ background: C.surfaceSubtle, border: `1px solid ${C.surfaceMuted}`, borderRadius: 11, padding: '10px 12px', fontSize: 12.5, color: C.ink650, lineHeight: 1.55 }}>
+      <div style={{ fontWeight: 700, color: C.text }}>{t.seAiUsageTitle.replace('{plan}', usage.planCode ?? '—')}</div>
+      <div>{check}</div>
+      <div>{fixText}</div>
+      {canUpgrade && (
+        <button type="button" onClick={() => go('pricing')}
+          style={{ marginTop: 6, border: 'none', background: 'none', padding: 0, fontSize: 12.5, fontWeight: 700, color: C.primaryStrong, cursor: 'pointer', textDecoration: 'underline' }}>
+          {t.pcUpgrade}
+        </button>
+      )}
     </div>
   );
 }
@@ -124,6 +159,14 @@ export default function PublishingTab() {
           </div>
         )}
         {errors.brandVoiceThreshold && <div style={errStyle}>{t[errors.brandVoiceThreshold as keyof typeof t] as string}</div>}
+      </Row>
+
+      <Row
+        title={t.sePolicyCheck}
+        sub={t.sePolicyCheckSub}
+        control={<Switch checked={form.policyCheckEnabled ?? true} onChange={(v) => set({ policyCheckEnabled: v })} title={t.sePolicyCheck} />}
+      >
+        {(form.policyCheckEnabled ?? true) && <AiAssistUsageNote />}
       </Row>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 6 }}>

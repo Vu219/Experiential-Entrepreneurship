@@ -1,6 +1,7 @@
 package com.aima.service.Impl;
 
 import com.aima.config.MetaProperties;
+import com.aima.dto.publish.PlatformErrorDetail;
 import com.aima.enums.MetricsErrorType;
 import com.aima.enums.Platform;
 import com.aima.enums.PublishErrorType;
@@ -11,6 +12,8 @@ import com.aima.exception.PublishException;
 import com.aima.service.MetaApiClient;
 import com.aima.service.PlatformVersionService;
 import com.aima.util.FacebookPostIds;
+import com.aima.util.PublishErrorRules;
+import com.aima.util.SensitiveDataRedactor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -435,6 +438,29 @@ public class MetaApiClientImpl implements MetaApiClient {
         }
     }
 
+    @Override
+    public List<MetaPublishedPost> getThreadsPosts(String token, Instant since) {
+        Platform platform = Platform.THREADS;
+        String version = versionService.getCurrentVersion(platform);
+        String url = UriComponentsBuilder.fromUriString(metaProperties.threadsBaseUrl())
+                .pathSegment(version, "me", "threads")
+                .queryParam("fields", "id,text,timestamp,permalink")
+                .queryParam("since", since.getEpochSecond())
+                .queryParam("limit", THREADS_RECENT_LIMIT)
+                .queryParam("access_token", token)
+                .toUriString();
+        // getMetrics: lỗi được PHÂN LOẠI (thiếu quyền / token chết / tạm thời) để worker không đăng mù.
+        JsonNode body = getMetrics(url, platform);
+        List<MetaPublishedPost> posts = new ArrayList<>();
+        for (JsonNode node : body.path("data")) {
+            posts.add(new MetaPublishedPost(text(node, "id"), graphTime(text(node, "timestamp")),
+                    text(node, "permalink"), text(node, "text"), null, false));
+        }
+        return posts;
+    }
+
+    static final int THREADS_RECENT_LIMIT = 25;
+
     private List<MetaPublishedPost> listPublishedPosts(String pageId, String pageToken, Instant since, String fields,
                                                        boolean withAttachments) {
         Platform platform = Platform.FACEBOOK;
@@ -625,7 +651,7 @@ public class MetaApiClientImpl implements MetaApiClient {
         JsonNode container = postFormForPublish(createUrl, createForm, platform);
         String creationId = text(container, "id");
         if (creationId == null) {
-            throw new PublishException(PublishErrorType.TEMPORARY, "NO_CONTAINER",
+            throw new PublishException(PublishErrorType.TEMPORARY, PublishErrorRules.CODE_NO_CONTAINER,
                     "Threads không trả về container id khi tạo bài");
         }
 
@@ -793,57 +819,98 @@ public class MetaApiClientImpl implements MetaApiClient {
             return parse(raw);
         } catch (WebClientResponseException e) {
             log.warn("[Meta] Đăng bài lỗi {} {}: {}", platform, e.getStatusCode(), mask(e.getResponseBodyAsString()));
-            throw toPublishException(e);
+            throw toPublishException(e, platform);
         } catch (WebClientRequestException e) {
             // Lỗi mạng không có response (connect/response timeout của Reactor Netty, DNS, connection
             // reset) — tạm thời (FR-56: retry). Lỗi khác (vd body 200 không phải JSON) KHÔNG bị gộp vào
             // đây: để lọt lên worker thành INTERNAL, tránh retry vô ích một lỗi không tự hết.
-            log.warn("[Meta] Đăng bài thất bại (network) {}: {}", platform, e.getMessage());
-            throw new PublishException(PublishErrorType.TEMPORARY, "NETWORK", e.getMessage(), e);
+            // Message gốc của Netty chứa URL Graph — chỉ giữ dạng đã redact cho admin, user không bao giờ thấy.
+            String message = "Lỗi mạng khi gọi " + platform + ": " + e.getClass().getSimpleName()
+                    + (e.getMostSpecificCause() == e ? "" : " / " + e.getMostSpecificCause().getClass().getSimpleName());
+            log.warn("[Meta] Đăng bài thất bại (network) {}: {}", platform, mask(e.getMessage()));
+            throw new PublishException(PublishErrorType.TEMPORARY, PublishErrorRules.CODE_NETWORK, message, e,
+                    new PlatformErrorDetail(platform, null, null, null, null, mask(e.getMessage()), null, null,
+                            null, true, null));
         }
     }
 
     static final int TOKEN_INVALID_CODE = 190;
 
-    // Mã lỗi Graph tạm thời: 1/2 (unknown/service), 4/17/32/613 (rate limit), 341 (application limit).
-    private static final Set<Integer> TEMPORARY_GRAPH_CODES = Set.of(1, 2, 4, 17, 32, 341, 613);
-
-    // Business Use Case rate limit (80001 Pages, 80002 Instagram, ... 80014) — tạm thời, retry theo FR-56.
-    private static final int BUC_RATE_LIMIT_MIN = 80001;
-    private static final int BUC_RATE_LIMIT_MAX = 80014;
-
-    /** Body lỗi Graph/Threads: {"error":{message,type,code,error_subcode,...}} — giữ nguyên mã + message gốc (FR-35). */
-    private PublishException toPublishException(WebClientResponseException e) {
+    /**
+     * Body lỗi Graph/Threads: {"error":{message,type,code,error_subcode,error_user_title,error_user_msg,
+     * fbtrace_id,is_transient}} — giữ nguyên mã + message gốc (FR-35) và bóc đủ trường cho
+     * {@code PublishErrorNormalizer} (subcode phân biệt token hết hạn / đổi mật khẩu / gỡ app...; thời gian chờ
+     * từ header để retry không sớm hơn nền tảng cho phép). Message chỉ để log/admin, đã redact.
+     */
+    private PublishException toPublishException(WebClientResponseException e, Platform platform) {
         JsonNode error = null;
         try {
             error = objectMapper.readTree(e.getResponseBodyAsString()).path("error");
+            if (error.isMissingNode() || !error.isObject()) {
+                error = null;
+            }
         } catch (Exception ignored) {
             // body không phải JSON — phân loại theo HTTP status bên dưới
         }
-        int code = error == null ? -1 : error.path("code").asInt(-1);
-        String message = error == null || !error.hasNonNull("message")
-                ? "HTTP " + e.getStatusCode().value()
-                : error.path("message").asText();
-        String responseCode = code >= 0 ? String.valueOf(code) : String.valueOf(e.getStatusCode().value());
+        int status = e.getStatusCode().value();
+        Integer code = error != null && error.hasNonNull("code") ? error.path("code").asInt() : null;
+        Integer subcode = error != null && error.hasNonNull("error_subcode") ? error.path("error_subcode").asInt() : null;
+        String message = error == null || !error.hasNonNull("message") ? "HTTP " + status : error.path("message").asText();
+        String responseCode = code != null ? String.valueOf(code) : String.valueOf(status);
 
-        // HTTP 429 (Too Many Requests) và cờ Graph error.is_transient=true đều là lỗi tự hết → tạm thời.
-        boolean transientError = e.getStatusCode().is5xxServerError() || e.getStatusCode().value() == 429
+        // HTTP 5xx và cờ Graph error.is_transient=true đều là lỗi tự hết → tạm thời (HTTP 429 xét riêng = rate limit).
+        boolean transientError = e.getStatusCode().is5xxServerError()
                 || (error != null && error.path("is_transient").asBoolean(false));
-        PublishErrorType type = classifyPublishError(transientError, code, message);
-        return new PublishException(type, responseCode, message);
+        PlatformErrorDetail detail = new PlatformErrorDetail(platform, status, code, subcode,
+                error == null ? null : text(error, "type"), mask(message),
+                error == null ? null : mask(text(error, "error_user_title")),
+                error == null ? null : mask(text(error, "error_user_msg")),
+                error == null ? null : text(error, "fbtrace_id"),
+                transientError, retryAfterSeconds(e));
+        PublishErrorType type = PublishErrorRules.classify(detail).legacyType();
+        return new PublishException(type, responseCode, mask(message), null, detail);
     }
 
-    // FR-37: policy (368/message chứa "policy") > tạm thời (5xx/429/is_transient/rate limit kể cả BUC 80001-80014)
-    // > còn lại vĩnh viễn (190 token hết hạn, 100 tham số sai, 200-299 thiếu quyền, ...).
+    /**
+     * FR-37: phân loại thô (policy / tạm thời / vĩnh viễn) — uỷ quyền cho bộ luật dùng chung
+     * {@link PublishErrorRules} để hai nơi không bao giờ lệch nhau.
+     */
     static PublishErrorType classifyPublishError(boolean transientError, int code, String message) {
-        if (code == 368 || (message != null && message.toLowerCase().contains("policy"))) {
-            return PublishErrorType.POLICY_VIOLATION;
+        return PublishErrorRules.classify(new PlatformErrorDetail(null, null, code < 0 ? null : code, null, null,
+                message, null, null, null, transientError, null)).legacyType();
+    }
+
+    /**
+     * Thời gian nền tảng yêu cầu chờ trước khi gọi lại (giây): header {@code Retry-After} (số giây) hoặc
+     * {@code X-Business-Use-Case-Usage[*][*].estimated_time_to_regain_access} (phút) — lấy giá trị lớn nhất.
+     * Không có/không đọc được → null (không phải lỗi).
+     */
+    private Long retryAfterSeconds(WebClientResponseException e) {
+        Long seconds = null;
+        String retryAfter = e.getHeaders().getFirst("Retry-After");
+        if (retryAfter != null) {
+            try {
+                seconds = Long.parseLong(retryAfter.trim());
+            } catch (NumberFormatException ignored) {
+                // dạng HTTP-date hiếm gặp với Graph — bỏ qua
+            }
         }
-        if (transientError || TEMPORARY_GRAPH_CODES.contains(code)
-                || (code >= BUC_RATE_LIMIT_MIN && code <= BUC_RATE_LIMIT_MAX)) {
-            return PublishErrorType.TEMPORARY;
+        String buc = e.getHeaders().getFirst("X-Business-Use-Case-Usage");
+        if (buc != null) {
+            try {
+                for (JsonNode entries : objectMapper.readTree(buc)) {
+                    for (JsonNode entry : entries) {
+                        long minutes = entry.path("estimated_time_to_regain_access").asLong(0);
+                        if (minutes > 0) {
+                            seconds = Math.max(seconds == null ? 0 : seconds, minutes * 60);
+                        }
+                    }
+                }
+            } catch (Exception ignored) {
+                // header lạ — bỏ qua, vẫn retry theo FR-56
+            }
         }
-        return PublishErrorType.PERMANENT;
+        return seconds;
     }
 
     private JsonNode parse(String raw) {
@@ -864,14 +931,8 @@ public class MetaApiClientImpl implements MetaApiClient {
         return v == null || v.isNull() ? null : v.asLong();
     }
 
-    // Che token/app secret/proof trong log để tránh lộ thông tin nhạy cảm (NFR-06).
+    // Che token/app secret/proof/PII trong log để tránh lộ thông tin nhạy cảm (NFR-06) — một bộ luật dùng chung.
     public static String mask(String value) {
-        if (value == null) return null;
-        return value
-                .replaceAll("(access_token=)[^&\\s\"]+", "$1***")
-                .replaceAll("(client_secret=)[^&\\s\"]+", "$1***")
-                .replaceAll("(appsecret_proof=)[^&\\s\"]+", "$1***")
-                .replaceAll("(fb_exchange_token=)[^&\\s\"]+", "$1***")
-                .replaceAll("(\"access_token\"\\s*:\\s*\")[^\"]+", "$1***");
+        return SensitiveDataRedactor.redact(value);
     }
 }

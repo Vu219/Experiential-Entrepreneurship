@@ -74,6 +74,18 @@ public class Plan extends BaseEntity {
     @Column(name = "monthly_token_limit")
     Long monthlyTokenLimit;
 
+    /**
+     * Lượt AI kiểm tra chính sách mỗi tháng (tầng 2, chỉ khi bộ luật có nghi vấn). Đọc qua
+     * {@code PlanLimitService}: null = mặc định hệ thống, -1 = không giới hạn, 0 = tắt (chỉ bộ luật).
+     * CHECK &gt;= -1 do Flyway V15.
+     */
+    @Column(name = "policy_check_ai_monthly_limit")
+    Integer policyCheckAiMonthlyLimit;
+
+    /** Số lần AI sửa bài tối đa mỗi bản nền tảng — cùng quy ước với {@link #policyCheckAiMonthlyLimit}. */
+    @Column(name = "ai_fix_max_per_version")
+    Integer aiFixMaxPerVersion;
+
     @Column(name = "description_vi", length = 500)
     String descriptionVi;
 

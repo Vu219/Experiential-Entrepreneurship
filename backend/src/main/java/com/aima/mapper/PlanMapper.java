@@ -6,10 +6,12 @@ import com.aima.dto.request.PlanFeatureValueRequest;
 import com.aima.dto.request.PlanUpdateRequest;
 import com.aima.dto.response.PlanFeatureResponse;
 import com.aima.dto.response.PlanFeatureValueResponse;
+import com.aima.dto.response.PlanLimitDefaultsResponse;
 import com.aima.dto.response.PlanResponse;
 import com.aima.entity.Plan;
 import com.aima.entity.PlanFeature;
 import com.aima.entity.PlanFeatureValue;
+import com.aima.service.PlanLimitService;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -35,6 +37,10 @@ public interface PlanMapper {
     PlanResponse toResponse(Plan plan);
 
     List<PlanResponse> toResponseList(List<Plan> plans);
+
+    @Mapping(target = "policyCheckAiMonthlyLimit", source = "policyCheckAiMonthly")
+    @Mapping(target = "aiFixMaxPerVersion", source = "aiFixPerVersion")
+    PlanLimitDefaultsResponse toLimitDefaults(PlanLimitService.PlanLimits limits);
 
     // ===== PlanFeature (values do service reconcile theo planCode — mapper bỏ qua) =====
 

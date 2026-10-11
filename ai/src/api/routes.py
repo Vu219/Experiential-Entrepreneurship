@@ -27,6 +27,7 @@ from ..agents import (
     content_regenerator,
     optimizer,
     platform_formatter,
+    policy_assistant,
     trend_research,
 )
 from ..config import get_settings
@@ -48,6 +49,10 @@ from ..schemas import (
     LlmConfig,
     OptimizeRequest,
     OptimizeResult,
+    PolicyCheckRequest,
+    PolicyCheckResult,
+    PolicyFixRequest,
+    PolicyFixResult,
     RegeneratePartRequest,
     RegeneratePartResult,
     ResearchRequest,
@@ -130,6 +135,24 @@ def regenerate_part(
     """Regenerate ONE part of a video script (hook/body/cta × content/scene) — FR-32."""
     _apply_llm_config(req.llm_config)
     return _run("partial regeneration", content_regenerator.regenerate_part, req)
+
+
+@router.post("/policy-fix", response_model=PolicyFixResult)
+def policy_fix(
+    req: PolicyFixRequest,
+) -> PolicyFixResult:
+    """Suggest a compliant rewrite of ONE rejected/flagged platform version (user reviews a diff)."""
+    _apply_llm_config(req.llm_config)
+    return _run("policy fix", policy_assistant.fix_post, req)
+
+
+@router.post("/policy-check", response_model=PolicyCheckResult)
+def policy_check(
+    req: PolicyCheckRequest,
+) -> PolicyCheckResult:
+    """Tier-2 policy review — the backend calls it only when its free rule filter flagged the post."""
+    _apply_llm_config(req.llm_config)
+    return _run("policy check", policy_assistant.check_policy, req)
 
 
 @router.post("/analyze", response_model=AnalyzeResult)

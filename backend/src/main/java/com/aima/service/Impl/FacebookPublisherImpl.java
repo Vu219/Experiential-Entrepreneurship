@@ -7,11 +7,14 @@ import com.aima.enums.PublishErrorType;
 import com.aima.exception.PublishException;
 import com.aima.service.MetaApiClient;
 import com.aima.service.PlatformPublisher;
+import com.aima.util.PublishErrorRules;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 /**
  * Đăng bài Facebook: chỉ qua Trang (Page) — Graph API không cho đăng lên feed cá nhân.
@@ -30,14 +33,25 @@ public class FacebookPublisherImpl implements PlatformPublisher {
     }
 
     // Mã lỗi nội bộ khi kênh đích không phải Trang — lỗi vĩnh viễn, không gọi Meta, không retry.
-    static final String ACCOUNT_TYPE_CODE = "ACCOUNT_TYPE";
     static final String USER_TARGET_MESSAGE = "Facebook chỉ cho phép đăng lên Trang, vui lòng chọn một Trang";
 
     @Override
     public MetaApiClient.MetaPostResult publish(PublishTarget target) {
         if (target.accountType() != PlatformAccountType.PAGE) {
-            throw new PublishException(PublishErrorType.PERMANENT, ACCOUNT_TYPE_CODE, USER_TARGET_MESSAGE);
+            throw new PublishException(PublishErrorType.PERMANENT, PublishErrorRules.CODE_ACCOUNT_TYPE, USER_TARGET_MESSAGE);
         }
         return metaApiClient.publishPagePost(target.platformAccountId(), target.accessToken(), target.message());
+    }
+
+    @Override
+    public Optional<String> findPublished(PublishTarget target) {
+        if (target.verifySince() == null || target.accountType() != PlatformAccountType.PAGE) {
+            return Optional.empty();
+        }
+        return metaApiClient.getPagePublishedPosts(target.platformAccountId(), target.accessToken(), target.verifySince())
+                .stream()
+                .filter(p -> PlatformPublisher.sameMessage(p.message(), target.message()))
+                .map(MetaApiClient.MetaPublishedPost::id)
+                .findFirst();
     }
 }

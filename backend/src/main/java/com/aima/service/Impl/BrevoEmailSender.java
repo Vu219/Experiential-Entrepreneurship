@@ -1,5 +1,6 @@
 package com.aima.service.Impl;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Gửi email qua Brevo Transactional Email API (HTTP, cổng 443) thay cho SMTP —
@@ -41,12 +43,18 @@ public class BrevoEmailSender {
     }
 
     public void sendHtml(String toEmail, String subject, String htmlContent) {
+        sendHtml(toEmail, subject, htmlContent, null);
+    }
+
+    /** {@code headers}: header email tuỳ ý Brevo chuyển nguyên (vd List-Unsubscribe); null/rỗng = không gửi. */
+    public void sendHtml(String toEmail, String subject, String htmlContent, Map<String, String> headers) {
         try {
             BrevoEmailRequest body = new BrevoEmailRequest(
                     new Sender(senderName, senderEmail),
                     List.of(new Recipient(toEmail)),
                     subject,
-                    htmlContent);
+                    htmlContent,
+                    headers == null || headers.isEmpty() ? null : headers);
 
             restClient.post()
                     .body(body)
@@ -60,7 +68,9 @@ public class BrevoEmailSender {
         }
     }
 
-    private record BrevoEmailRequest(Sender sender, List<Recipient> to, String subject, String htmlContent) {
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private record BrevoEmailRequest(Sender sender, List<Recipient> to, String subject, String htmlContent,
+                                     Map<String, String> headers) {
     }
 
     private record Sender(String name, String email) {

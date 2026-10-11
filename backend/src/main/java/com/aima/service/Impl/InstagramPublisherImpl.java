@@ -6,6 +6,7 @@ import com.aima.enums.PublishErrorType;
 import com.aima.exception.PublishException;
 import com.aima.service.MetaApiClient;
 import com.aima.service.PlatformPublisher;
+import com.aima.util.PublishErrorRules;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -25,7 +26,7 @@ public class InstagramPublisherImpl implements PlatformPublisher {
 
     @Override
     public MetaApiClient.MetaPostResult publish(PublishTarget target) {
-        throw new PublishException(PublishErrorType.PERMANENT, "IG_MEDIA_REQUIRED",
+        throw new PublishException(PublishErrorType.PERMANENT, PublishErrorRules.CODE_MEDIA_REQUIRED,
                 "Instagram yêu cầu ảnh/video khi đăng — MVP chưa hỗ trợ đăng media (chỉ tạo media prompt, FR-29)");
     }
 }

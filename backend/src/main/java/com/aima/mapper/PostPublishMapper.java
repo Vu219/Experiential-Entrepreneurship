@@ -44,6 +44,13 @@ public interface PostPublishMapper {
     @Mapping(target = "endTime", ignore = true)
     @Mapping(target = "errorMessage", ignore = true)
     @Mapping(target = "errorType", ignore = true)
+    @Mapping(target = "errorCode", ignore = true)
+    @Mapping(target = "platformErrorCode", ignore = true)
+    @Mapping(target = "platformErrorSubcode", ignore = true)
+    @Mapping(target = "errorDetail", ignore = true)
+    @Mapping(target = "resolution", ignore = true)
+    @Mapping(target = "resolvedAt", ignore = true)
+    @Mapping(target = "resolvedBy", ignore = true)
     @Mapping(target = "status", source = "jobStatus") // tường minh: lấy param, không phải post.status
     PostingJob toPostingJob(Post post, Integer retryCount, Instant nextRetryAt, PostingJobStatus jobStatus);
 
@@ -77,5 +84,6 @@ public interface PostPublishMapper {
     @Mapping(target = "platformAccountId", source = "account.platformAccountId")
     @Mapping(target = "accountName", source = "account.accountName")
     @Mapping(target = "accessToken", source = "account.accessToken")
-    PublishTarget toPublishTarget(PostingJob job, PlatformAccount account, ContentVersion version, String message);
+    PublishTarget toPublishTarget(PostingJob job, PlatformAccount account, ContentVersion version, String message,
+                                  Instant verifySince);
 }

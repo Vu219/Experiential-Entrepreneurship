@@ -326,6 +326,23 @@ public enum ErrorCode {
     FAILED_POST_RANGE_TOO_LARGE(2061, "Khoảng thời gian quá dài — tối đa 366 ngày", HttpStatus.BAD_REQUEST),
     FAILED_POST_EXPORT_TOO_LARGE(2062,
             "Kết quả vượt trần 50.000 dòng — thu hẹp bộ lọc rồi export lại", HttpStatus.BAD_REQUEST),
+    // Hồi phục bài lỗi (docs/failed-posts-error-handling-plan.md §3.4)
+    FAILED_POST_NOT_ACTIONABLE(2063, "Bài không còn ở trạng thái lỗi — có thể đã được thử lại hoặc huỷ lịch",
+            HttpStatus.CONFLICT),
+    FAILED_POST_ACCOUNT_NOT_READY(2064,
+            "Tài khoản đăng bài chưa sẵn sàng — hãy kết nối lại hoặc xác thực lại tài khoản trước khi thử lại",
+            HttpStatus.BAD_REQUEST),
+    FAILED_POST_EDIT_REQUIRED(2065,
+            "Hãy sửa nội dung bài trước khi đăng lại — đăng y nguyên sẽ bị nền tảng từ chối lần nữa",
+            HttpStatus.BAD_REQUEST),
+    FAILED_POST_NOT_RETRYABLE(2066,
+            "Lỗi này không khắc phục được bằng cách thử lại — hãy lên lịch lại sang tài khoản hoặc nền tảng khác",
+            HttpStatus.BAD_REQUEST),
+    FAILED_POST_BULK_INVALID(2067, "Chọn thao tác và từ 1 đến 50 bài cho thao tác hàng loạt", HttpStatus.BAD_REQUEST),
+    PUBLISH_ERROR_MAPPING_INVALID(2068,
+            "Ánh xạ lỗi không hợp lệ — cần nền tảng, mã lỗi gốc và mã AIMA; chữ ký này có thể đã được ánh xạ",
+            HttpStatus.BAD_REQUEST),
+    PUBLISH_ERROR_MAPPING_NOT_FOUND(2069, "Không tìm thấy ánh xạ lỗi", HttpStatus.NOT_FOUND),
 
     // Thanh toán gói dịch vụ qua payOS — 2070+
     PAYMENT_NOT_FOUND(2070, "Không tìm thấy đơn hàng", HttpStatus.NOT_FOUND),
@@ -467,6 +484,31 @@ public enum ErrorCode {
     AI_JOB_QUEUE_FULL(2174, "Hệ thống đang xử lý quá nhiều tác vụ AI — vui lòng thử lại sau ít phút", HttpStatus.SERVICE_UNAVAILABLE),
     CONTENT_FORMATTING_IN_PROGRESS(2175, "Một số nền tảng đang được định dạng — đợi tác vụ hiện tại hoàn tất rồi thử lại",
             HttpStatus.CONFLICT),
+    PLAN_AI_LIMIT_INVALID(2176, "Giới hạn AI của gói phải là -1 (không giới hạn), 0 (tắt) hoặc từ 1 đến 100000",
+            HttpStatus.BAD_REQUEST),
+
+    // Thao tác admin trên bài lỗi (thử lại thay người dùng, ánh xạ lỗi) — 2180+
+    ADMIN_ACTION_REASON_REQUIRED(2180, "Vui lòng nhập lý do (tối đa 500 ký tự)", HttpStatus.BAD_REQUEST),
+
+    // AI sửa bài vi phạm / kiểm tra chính sách / email lỗi đăng bài (failed-posts đợt 2) — 2190+
+    AI_ASSIST_JOB_NOT_FOUND(2190, "Không tìm thấy tác vụ AI", HttpStatus.NOT_FOUND),
+    AI_FIX_NOT_ELIGIBLE(2191,
+            "AI chỉ sửa được bài lỗi do nội dung (vi phạm chính sách, nội dung chưa hợp lệ, trùng hoặc quá dài)",
+            HttpStatus.BAD_REQUEST),
+    AI_FIX_NOTHING_TO_FIX(2192, "Không thấy dấu hiệu vi phạm chính sách trong nội dung này — không cần AI sửa",
+            HttpStatus.BAD_REQUEST),
+    AI_FIX_LIMIT_REACHED(2193,
+            "Bài này đã dùng hết số lần AI sửa nội dung — hãy chỉnh tay hoặc dùng một gợi ý đã có",
+            HttpStatus.TOO_MANY_REQUESTS),
+    AI_FIX_NOT_READY(2194, "Gợi ý của AI chưa sẵn sàng hoặc đã lỗi — không áp dụng được", HttpStatus.CONFLICT),
+    AI_FIX_NO_FAILED_POST(2195, "Gợi ý này không gắn với bài lỗi nào để đăng lại — hãy lưu rồi lên lịch",
+            HttpStatus.BAD_REQUEST),
+    EMAIL_UNSUBSCRIBE_LINK_INVALID(2196, "Liên kết huỷ nhận email không hợp lệ", HttpStatus.BAD_REQUEST),
+    EMAIL_UNSUBSCRIBE_LINK_EXPIRED(2197,
+            "Liên kết huỷ nhận email đã hết hạn — hãy tắt email trong Cài đặt → Thông báo",
+            HttpStatus.BAD_REQUEST),
+    AI_FIX_NOT_IN_PLAN(2198, "Gói hiện tại chưa gồm AI sửa nội dung — hãy chỉnh tay hoặc nâng cấp gói",
+            HttpStatus.FORBIDDEN),
     ;
 
     private int code;

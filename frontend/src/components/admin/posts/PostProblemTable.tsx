@@ -7,7 +7,7 @@ import { PlatformTag } from '../../ui';
 import { PLATFORM_BG } from '../../../theme';
 import { AP_PLATFORM_NAME } from './platforms';
 import { formatDateVN } from '../../../utils/format';
-import { categoryOf, REASON_META, reasonText } from './rejectionReasons';
+import { reasonBadge, reasonCopy, retryHint } from './rejectionReasons';
 import type { AdminPostProblem, PostProblemKind } from '../../../api/admin';
 import { C } from '../../../styles/colors';
 
@@ -71,7 +71,7 @@ export default function PostProblemTable({
   onToggleDetail: (post: AdminPostProblem) => void;
   onCopyContent: (post: AdminPostProblem) => void;
 }) {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const isSystem = kind === 'system';
 
   const head = [
@@ -84,7 +84,7 @@ export default function PostProblemTable({
   return (
     <DataTable head={head} minWidth={isSystem ? 1120 : 1020}>
       {rows.map((post) => {
-        const meta = REASON_META[categoryOf(post)];
+        const badge = reasonBadge(post, lang);
         const { title, excerpt } = postLines(post, t.apNoContent);
         // Parse cả 'YYYY-MM-DDTHH:mm' (giờ ĐỊA PHƯƠNG); nếu chỉ truyền phần ngày thì trình duyệt
         // hiểu là UTC và múi giờ âm sẽ lùi mất một ngày.
@@ -112,8 +112,9 @@ export default function PostProblemTable({
                   {excerpt && (
                     <div style={{ fontSize: 12.5, color: C.textMuted, marginTop: 2, ...clamp1 }}>{excerpt}</div>
                   )}
+                  {/* Mã tham chiếu người dùng gửi hỗ trợ — gõ vào ô tìm kiếm để tra đúng lần lỗi. */}
                   <div style={{ fontSize: 11.5, color: C.textFaint, marginTop: 4, fontFamily: 'ui-monospace,Menlo,Consolas,monospace' }}>
-                    #{post.id.slice(0, 8)}
+                    {post.referenceCode ?? `#${post.id.slice(0, 8)}`}
                   </div>
                 </div>
               </div>
@@ -127,9 +128,9 @@ export default function PostProblemTable({
             <td style={{ ...cell, fontSize: 13, color: C.text, wordBreak: 'break-word' }}>{post.user}</td>
 
             <td style={{ ...cell, maxWidth: 300 }}>
-              <StatusBadge tone={meta.tone} label={t[meta.labelKey]} />
+              <StatusBadge tone={badge.tone} label={badge.label} />
               <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 6, lineHeight: 1.5, ...clamp2 }}>
-                {reasonText(post, t)}
+                {reasonCopy(post, lang).title}
               </div>
             </td>
 
@@ -139,7 +140,7 @@ export default function PostProblemTable({
                   ? '—'
                   : t.apRetryOf.replace('{n}', String(post.retryCount))}
                 <div style={{ fontSize: 11.5, color: C.textFaint, marginTop: 3 }}>
-                  {post.nextRetryAt ? `${t.apNextRetry} ${post.nextRetryAt.slice(11, 16)}` : t.apRetryExhausted}
+                  {retryHint(post, t)}
                 </div>
               </td>
             )}
