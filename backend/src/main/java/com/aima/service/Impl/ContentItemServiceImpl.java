@@ -37,6 +37,7 @@ import com.aima.service.ContentItemService;
 import com.aima.service.ContentItemStatusResolver;
 import com.aima.service.ScheduleHoldService;
 import com.aima.util.PlatformTextLimits;
+import com.aima.util.SearchPatterns;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -129,7 +130,7 @@ public class ContentItemServiceImpl implements ContentItemService {
                 brandProfileId,
                 platform == null ? null : platform.name(),
                 industry == null ? "" : industry.trim(), from, to,
-                q == null ? "" : q.trim(), sortKey, pageable);
+                SearchPatterns.contains(q), sortKey, pageable);
 
         List<ContentItemResponse> content = items.getContent().stream()
                 .map(contentItemMapper::toResponse)

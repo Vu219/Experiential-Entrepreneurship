@@ -175,9 +175,9 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <SetupChecklist onboarding={data.onboarding} />
+      <SetupChecklist id="dashboard-setup" onboarding={data.onboarding} />
 
-      <div style={{ display: 'grid', gridTemplateColumns: statCols, gap: 16 }}>
+      <div id="dashboard-stats" style={{ display: 'grid', gridTemplateColumns: statCols, gap: 16 }}>
         <StatCard icon={FileText} tone="violet" label={t.dbStatTotal} stat={data.stats.total} comparisonLabel={t.dbVs7d} />
         <StatCard icon={Send} tone="emerald" label={t.dbPosted} stat={data.stats.posted} comparisonLabel={t.dbVs7d} />
         <StatCard icon={Clock} tone="amber" label={t.dbStatPending} stat={data.stats.pending} comparisonLabel={t.dbVs7d} />
@@ -189,28 +189,28 @@ export default function Dashboard() {
         // alignItems:start để mỗi cột cao tự nhiên; minmax(0,..) chặn tràn ngang do biểu đồ.
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
-            <PerformanceChart points={perfPoints} range={range} onRangeChange={setRange} demo={!perfHasData} />
+            <PerformanceChart id="dashboard-performance" points={perfPoints} range={range} onRangeChange={setRange} demo={!perfHasData} />
             {/* alignItems:stretch để 2 card con cao bằng nhau. */}
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18, alignItems: 'stretch' }}>
-              <TopTopics rows={topicRows} demo={topicsDemo} />
-              <ContentTypeDonut rows={data.contentTypes} />
+              <TopTopics id="dashboard-topics" rows={topicRows} demo={topicsDemo} />
+              <ContentTypeDonut id="dashboard-types" rows={data.contentTypes} />
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
-            <PlatformPanel rows={data.platforms} />
-            <ActivityTimeline items={activity} total={activityTotal} />
+            <PlatformPanel id="dashboard-platforms" rows={data.platforms} />
+            <ActivityTimeline id="dashboard-activity" items={activity} total={activityTotal} />
           </div>
         </div>
       ) : (
         // <lg: xếp dọc theo thứ tự dễ đọc — hiệu suất → nền tảng → (top chủ đề | loại nội dung) → hoạt động.
         <>
-          <PerformanceChart points={perfPoints} range={range} onRangeChange={setRange} demo={!perfHasData} />
-          <PlatformPanel rows={data.platforms} />
+          <PerformanceChart id="dashboard-performance" points={perfPoints} range={range} onRangeChange={setRange} demo={!perfHasData} />
+          <PlatformPanel id="dashboard-platforms" rows={data.platforms} />
           <div style={{ display: 'grid', gridTemplateColumns: pairCols, gap: 18, alignItems: 'stretch' }}>
-            <TopTopics rows={topicRows} demo={topicsDemo} />
-            <ContentTypeDonut rows={data.contentTypes} />
+            <TopTopics id="dashboard-topics" rows={topicRows} demo={topicsDemo} />
+            <ContentTypeDonut id="dashboard-types" rows={data.contentTypes} />
           </div>
-          <ActivityTimeline items={activity} total={activityTotal} />
+          <ActivityTimeline id="dashboard-activity" items={activity} total={activityTotal} />
         </>
       )}
     </PageContainer>

@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { Globe, Search, Menu, X } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Globe, Menu, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useUiStore } from '../store/useUiStore';
 import { useBreakpoint } from '../hooks/useBreakpoint';
@@ -8,6 +8,10 @@ import Sidebar from './Sidebar';
 import NotificationBell from './NotificationBell';
 import UserMenu from './UserMenu';
 import ColorModeToggle from './ColorModeToggle';
+import SearchTrigger from './search/SearchTrigger';
+import CommandPalette from './search/CommandPalette';
+import { useSectionFocus } from '../hooks/useSectionFocus';
+import type { SearchArea } from '../search/types';
 import { C } from '../styles/colors';
 
 /** Globe / language switch button (shared between landing, auth and topbar). */
@@ -37,8 +41,8 @@ export function LangButton({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function Topbar({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen?: boolean, setMobileMenuOpen?: (v: boolean) => void }) {
-  const { t, go } = useApp();
+function Topbar({ area, mobileMenuOpen, setMobileMenuOpen }: { area: SearchArea, mobileMenuOpen?: boolean, setMobileMenuOpen?: (v: boolean) => void }) {
+  const { go } = useApp();
   const { isMobile } = useBreakpoint();
   const isDark = useIsDark();
   // Ô tìm kiếm co giãn theo trạng thái sidebar: sidebar MỞ → gọn lại (440px) vì hàng
@@ -92,42 +96,14 @@ function Topbar({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen?: boolea
       {!isMobile && <PageHeading />}
       {!isMobile && (
         <div style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', justifyContent: 'center' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              background: C.surfaceMuted,
-              border: `1px solid ${C.border}`,
-              borderRadius: 12,
-              padding: '9px 14px',
-              flex: '1 1 auto',
-              // Co được (tới cỡ chỉ còn icon ở tablet hẹp): 260px cứng đẩy cụm phải ra ngoài màn ở 1280px khi tên
-              // tài khoản dài (tràn ngang). Ở ≥1280px ô vẫn đủ rộng vì flex hấp thụ chiều rộng dôi.
-              minWidth: 44,
-              maxWidth: sidebarOpen ? 460 : 600,
-              transition: 'max-width .2s ease',
-            }}
-          >
-            <Search size={17} color={C.ink350} strokeWidth={1.8} style={{ flexShrink: 0 }} />
-            <input
-              placeholder={t.searchPh}
-              style={{
-                flex: 1,
-                border: 'none',
-                outline: 'none',
-                background: 'transparent',
-                fontSize: 14,
-                color: C.textStrong,
-                minWidth: 0,
-              }}
-            />
-          </div>
+          {/* Ô tìm kiếm toàn cục: nút mở Command Palette, giữ nguyên khung/co giãn của ô cũ. */}
+          <SearchTrigger variant="bar" area={area} maxWidth={sidebarOpen ? 460 : 600} />
         </div>
       )}
       {isMobile && <div style={{ flex: 1 }} />}
       {/* Cụm phải: flex none + bám mép phải — bất biến khi sidebar đổi trạng thái. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 18, flex: 'none', marginLeft: 'auto' }}>
+        {isMobile && <SearchTrigger variant="icon" area={area} />}
         {!isMobile && <LangButton compact />}
         {/* Sáng / Tối / Theo hệ thống — tự ẩn khi cờ VITE_ENABLE_DARK_MODE chưa bật. */}
         <ColorModeToggle />
@@ -200,15 +176,54 @@ function PageHeading() {
   );
 }
 
+/**
+ * Khu vực của ô tìm kiếm: khu quản trị, hoặc Hồ sơ/Cài đặt mở TỪ khu quản trị (sidebar vẫn là sidebar admin —
+ * cùng quy tắc `profileOrigin` của Sidebar).
+ */
+function useSearchArea(variant: 'app' | 'admin'): SearchArea {
+  const { route } = useApp();
+  const profileOrigin = useUiStore((s) => s.profileOrigin);
+  if (variant === 'admin') return 'admin';
+  const fromAdmin = (route === 'profile' || route === 'settings') && !!profileOrigin && profileOrigin.startsWith('admin');
+  return fromAdmin ? 'admin' : 'app';
+}
+
+/** Ctrl/⌘+K mở/đóng ô tìm kiếm — trừ khi đang có hộp thoại khác mở (tránh hai lớp modal tranh phím Esc/focus). */
+function usePaletteHotkey() {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || (e.key !== 'k' && e.key !== 'K')) return;
+      const ui = useUiStore.getState();
+      if (ui.paletteOpen) {
+        e.preventDefault();
+        ui.closePalette();
+        return;
+      }
+      if (document.querySelector('[aria-modal="true"]')) return;
+      e.preventDefault();
+      ui.setNotificationsOpen(false);
+      ui.openPalette();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+}
+
 export default function AppShell({ children, variant = 'app' }: { children: ReactNode; variant?: 'app' | 'admin' }) {
   const { isMobile } = useBreakpoint();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const area = useSearchArea(variant);
+  const paletteOpen = useUiStore((s) => s.paletteOpen);
+  usePaletteHotkey();
+  useSectionFocus();
+  // Rời shell (đăng xuất / đổi khu vực) → palette không mở sẵn cho lần sau.
+  useEffect(() => () => useUiStore.getState().closePalette(), []);
 
   return (
     <div className="ambient-surface" style={{ minHeight: '100vh', display: 'flex', flexDirection: isMobile ? 'column' : 'row', position: 'relative' }}>
       <Sidebar mode={variant} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <Topbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+        <Topbar area={area} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
         {/* Padding vùng nội dung do .page-shell (PageContainer) đảm nhiệm — main không đệm riêng.
             `overflow` PHẢI là `visible`: `overflow: auto` biến <main> thành scrollport gần nhất,
             mà chính nó lại KHÔNG bao giờ cuộn (trang cuộn ở document) → mọi `position: sticky`
@@ -220,6 +235,7 @@ export default function AppShell({ children, variant = 'app' }: { children: Reac
           {children}
         </main>
       </div>
+      {paletteOpen && <CommandPalette area={area} />}
     </div>
   );
 }

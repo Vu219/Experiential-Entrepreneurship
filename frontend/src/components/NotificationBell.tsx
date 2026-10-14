@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCheck } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { useBreakpoint } from "../hooks/useBreakpoint";
+import { useUiStore } from "../store/useUiStore";
 import { Icon } from "./ui";
 import { ICON } from "../data";
 import { ROUTE_BY_TYPE, TYPE_META } from "./notificationMeta";
@@ -22,7 +23,9 @@ const POLL_MS = 60_000;
 export default function NotificationBell() {
   const { t, go } = useApp();
   const { isMobile } = useBreakpoint();
-  const [open, setOpen] = useState(false);
+  // Trạng thái mở nằm ở useUiStore để ô tìm kiếm toàn cục ("Mở thông báo") mở được chuông từ bên ngoài.
+  const open = useUiStore((s) => s.notificationsOpen);
+  const setOpen = useUiStore((s) => s.setNotificationsOpen);
   const [unread, setUnread] = useState(0);
   const [items, setItems] = useState<AppNotification[]>([]);
   const [page, setPage] = useState(0);
@@ -48,7 +51,7 @@ export default function NotificationBell() {
     };
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
-  }, []);
+  }, [setOpen]);
 
   const loadPage = useCallback(async (pageNo: number, replace: boolean) => {
     setLoading(true);
@@ -65,14 +68,18 @@ export default function NotificationBell() {
     }
   }, []);
 
-  const toggle = () => {
-    const next = !open;
-    setOpen(next);
-    if (next) {
+  // Mỗi lần mở (từ nút chuông hoặc từ palette) nạp lại trang đầu + badge.
+  useEffect(() => {
+    if (open) {
       loadPage(0, true);
       refreshUnread();
     }
-  };
+  }, [open, loadPage, refreshUnread]);
+
+  // Rời khu vực (unmount topbar, vd đăng xuất) → không để dropdown mở sẵn cho lần sau.
+  useEffect(() => () => setOpen(false), [setOpen]);
+
+  const toggle = () => setOpen(!open);
 
   const onItemClick = (n: AppNotification) => {
     if (!n.readAt) {

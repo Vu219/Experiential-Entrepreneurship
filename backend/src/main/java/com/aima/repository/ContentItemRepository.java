@@ -53,7 +53,22 @@ public interface ContentItemRepository extends JpaRepository<ContentItem, UUID> 
     @Query("select c from ContentItem c where c.id = :id")
     Optional<ContentItem> findByIdForUpdate(@Param("id") UUID id);
 
-    // FR-87: thư viện nội dung — lọc status/reviewStatus/platform/thương hiệu/ngành/khoảng ngày + tìm trong caption/script
+    // Ô tìm kiếm toàn cục (GET /search): bài của user khớp :q (SearchSql, không dấu) — cập nhật gần nhất trước.
+    @Query(value = """
+            select i.* from content_items i
+            join brand_profiles bp on bp.id = i.brand_profile_id
+            where bp.user_id = :userId and i.deleted_at is null and""" + SearchSql.CONTENT_ITEM_MATCHES + """
+            order by coalesce(i.updated_at, i.created_at) desc
+            """,
+            countQuery = """
+            select count(*) from content_items i
+            join brand_profiles bp on bp.id = i.brand_profile_id
+            where bp.user_id = :userId and i.deleted_at is null and""" + SearchSql.CONTENT_ITEM_MATCHES,
+            nativeQuery = true)
+    Page<ContentItem> searchText(@Param("userId") UUID userId, @Param("q") String q, Pageable pageable);
+
+    // FR-87: thư viện nội dung — lọc status/reviewStatus/platform/thương hiệu/ngành/khoảng ngày + tìm KHÔNG DẤU trong
+    // caption/hook/hashtag của các bản nền tảng (SearchSql.CONTENT_ITEM_MATCHES — :q là pattern SearchPatterns.contains)
     // (q rỗng / industry rỗng / param null = bỏ qua điều kiện, cùng mẫu BrandProfileRepository.search).
     // Sắp xếp server-side (phân trang đúng): :sort = 'voice' (điểm brand-voice cao nhất của các bản còn
     // hiệu lực) / 'status' (gom theo trạng thái) / còn lại = mới nhất; mọi kiểu tie-break bằng createdAt desc.
@@ -73,8 +88,8 @@ public interface ContentItemRepository extends JpaRepository<ContentItem, UUID> 
                     where cv.content_item_id = i.id and cv.platform_name = CAST(:platform as varchar) and cv.deleted_at is null))
               and (CAST(:fromDate as timestamp) is null or i.created_at >= CAST(:fromDate as timestamp))
               and (CAST(:toDate as timestamp) is null or i.created_at <= CAST(:toDate as timestamp))
-              and (CAST(:q as varchar) = '' or lower(i.caption) like lower(concat('%', CAST(:q as varchar), '%'))
-                   or lower(i.script) like lower(concat('%', CAST(:q as varchar), '%')))
+              and (CAST(:q as varchar) = '' or """ + SearchSql.CONTENT_ITEM_MATCHES + """
+            )
             order by
               case when :sort = 'voice' then (
                     select max(v2.voice_score) from content_versions v2

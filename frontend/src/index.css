@@ -1609,3 +1609,40 @@ html {
 .sch-hover:hover {
   background: var(--c-hover) !important;
 }
+
+/* Ô tìm kiếm toàn cục → "Khu vực trong trang": tô sáng khối vừa cuộn tới (hooks/useSectionFocus). Dùng outline
+   để không đè box-shadow sẵn có của Card; outline tự bo theo border-radius. */
+@keyframes search-focus-flash {
+  0%, 35% {
+    outline-color: var(--c-primary);
+  }
+  100% {
+    outline-color: transparent;
+  }
+}
+.search-focus-flash {
+  outline: 3px solid transparent;
+  outline-offset: 4px;
+  animation: search-focus-flash 2.4s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .search-focus-flash {
+    animation: none;
+    outline-color: var(--c-primary);
+  }
+}
+
+/* Biểu tượng đang tải trong ô tìm kiếm toàn cục. */
+@keyframes gs-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.gs-spin {
+  animation: gs-spin 0.9s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gs-spin {
+    animation: none;
+  }
+}

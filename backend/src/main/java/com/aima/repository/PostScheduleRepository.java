@@ -4,6 +4,8 @@ import com.aima.entity.PostSchedule;
 import com.aima.enums.Platform;
 import com.aima.enums.ScheduleStatus;
 import com.aima.enums.UserStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -101,4 +103,28 @@ public interface PostScheduleRepository extends JpaRepository<PostSchedule, UUID
     // FR-52 + tài khoản chờ xoá/bị khoá: lịch đến hạn, BỎ user đang ở trạng thái loại trừ (PENDING_DELETE, LOCKED).
     List<PostSchedule> findByStatusAndScheduledTimeLessThanEqualAndDeletedAtIsNullAndPlatformAccount_User_StatusNotIn(
             ScheduleStatus status, Instant threshold, Collection<UserStatus> excludedUserStatuses);
+
+    // Ô tìm kiếm toàn cục (GET /search): lịch còn hiệu lực (không CANCELLED) của user — bài khớp :q hoặc tên tài khoản
+    // đăng khớp :q (SearchSql, không dấu); giờ đăng mới nhất trước. Sở hữu theo platformAccount.user như các API lịch.
+    @Query(value = """
+            select ps.* from post_schedules ps
+            join platform_accounts pa on pa.id = ps.platform_account_id
+            join content_versions sv on sv.id = ps.content_version_id
+            join content_items ci on ci.id = sv.content_item_id
+            where pa.user_id = :userId and ps.deleted_at is null and ps.status <> 'CANCELLED'
+              and sv.deleted_at is null and ci.deleted_at is null
+              and (""" + SearchSql.VERSION_TEXT_MATCHES + " or" + SearchSql.ACCOUNT_NAME_MATCHES + """
+            )
+            order by ps.scheduled_time desc
+            """,
+            countQuery = """
+            select count(*) from post_schedules ps
+            join platform_accounts pa on pa.id = ps.platform_account_id
+            join content_versions sv on sv.id = ps.content_version_id
+            join content_items ci on ci.id = sv.content_item_id
+            where pa.user_id = :userId and ps.deleted_at is null and ps.status <> 'CANCELLED'
+              and sv.deleted_at is null and ci.deleted_at is null
+              and (""" + SearchSql.VERSION_TEXT_MATCHES + " or" + SearchSql.ACCOUNT_NAME_MATCHES + ")",
+            nativeQuery = true)
+    Page<PostSchedule> searchText(@Param("userId") UUID userId, @Param("q") String q, Pageable pageable);
 }

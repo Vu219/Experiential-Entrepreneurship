@@ -96,8 +96,9 @@ export function useApp() {
       ? 'adminUsage'
       : 'dashboard');
 
+  // `search` (tuỳ chọn, vd '?tab=connections') — ô tìm kiếm toàn cục mở thẳng một tab/khu vực của trang.
   const go = useCallback(
-    (r: Route) => {
+    (r: Route, search = '') => {
       // Khi mở Hồ sơ/Cài đặt từ một khu vực khác (vd Quản trị/Bảng điều khiển),
       // nhớ lại route gốc để sidebar vẫn highlight đúng chỗ; rời đi thì xóa.
       const current = ROUTE_BY_PATH[location.pathname] ?? 'dashboard';
@@ -107,7 +108,7 @@ export function useApp() {
       } else {
         setProfileOrigin(null);
       }
-      navigate(PATH_BY_ROUTE[r]);
+      navigate(PATH_BY_ROUTE[r] + search);
       if (typeof window !== 'undefined') window.scrollTo(0, 0);
     },
     [navigate, location.pathname]

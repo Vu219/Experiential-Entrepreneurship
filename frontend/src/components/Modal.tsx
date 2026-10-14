@@ -19,6 +19,9 @@ export default function Modal({
   children,
   maxWidth = 460,
   animateScale = false,
+  bare = false,
+  placement = 'center',
+  fullScreen = false,
 }: {
   title: string;
   subtitle?: string;
@@ -27,6 +30,12 @@ export default function Modal({
   maxWidth?: number;
   /** true → overlay fade + panel scale nhẹ (thay cho slide-up view-pop mặc định). */
   animateScale?: boolean;
+  /** true → không vẽ tiêu đề/nút ✕/padding — nội dung tự lo (vd ô tìm kiếm toàn cục). `title` vẫn là aria-label. */
+  bare?: boolean;
+  /** 'top' → panel neo phía trên màn hình (kiểu command palette) thay vì giữa. */
+  placement?: 'center' | 'top';
+  /** true → panel phủ toàn màn hình (mobile). */
+  fullScreen?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -78,7 +87,8 @@ export default function Modal({
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
         background: C.modalOverlay, backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18,
+        display: 'flex', alignItems: placement === 'top' && !fullScreen ? 'flex-start' : 'center', justifyContent: 'center',
+        padding: fullScreen ? 0 : placement === 'top' ? '12vh 18px 18px' : 18,
       }}
     >
       <div
@@ -89,11 +99,14 @@ export default function Modal({
         onMouseDown={(e) => e.stopPropagation()}
         className={animateScale ? 'modal-scale-in' : 'view-pop'}
         style={{
-          width: '100%', maxWidth, background: C.surface, borderRadius: 20,
-          boxShadow: C.shadowModal, padding: 26, position: 'relative',
-          maxHeight: 'calc(100vh - 36px)', overflowY: 'auto',
+          width: '100%', maxWidth: fullScreen ? '100%' : maxWidth, background: C.surface, borderRadius: fullScreen ? 0 : 20,
+          boxShadow: C.shadowModal, padding: bare ? 0 : 26, position: 'relative',
+          ...(fullScreen ? { height: '100dvh', maxHeight: '100dvh' } : { maxHeight: placement === 'top' ? '76vh' : 'calc(100vh - 36px)' }),
+          ...(bare ? { display: 'flex', flexDirection: 'column', overflow: 'hidden' } : { overflowY: 'auto' }),
         }}
       >
+        {bare ? children : (
+        <>
         <button
           onClick={onClose}
           aria-label="Close"
@@ -104,6 +117,8 @@ export default function Modal({
         <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 19, color: C.textStrong, paddingRight: 28 }}>{title}</div>
         {subtitle && <div style={{ fontSize: 13.5, color: C.textSecondary, marginTop: 6 }}>{subtitle}</div>}
         <div style={{ marginTop: 18 }}>{children}</div>
+        </>
+        )}
       </div>
     </div>,
     document.body,

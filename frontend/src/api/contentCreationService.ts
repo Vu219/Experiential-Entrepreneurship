@@ -250,7 +250,7 @@ export function isWizardOpen(status: ContentItemStatus, reviewStatus: ReviewStat
   return reviewStatus === "NONE" && PRE_PUBLISHING_STATUSES.includes(status);
 }
 
-function toContentListItem(r: ContentItemResponse): ContentListItem {
+export function toContentListItem(r: ContentItemResponse): ContentListItem {
   const versions = r.versions ?? [];
   const first = versions[0];
   const hook = first?.script?.hook?.content?.trim() ?? "";

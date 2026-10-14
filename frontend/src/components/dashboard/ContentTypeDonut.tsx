@@ -12,7 +12,7 @@ import { C } from '../../styles/colors';
  * Nhãn định dạng lạ (backend thêm về sau) hiển thị nguyên văn thay vì rơi về "khác" — không
  * cần sửa code khi có định dạng mới.
  */
-function ContentTypeDonut({ rows }: { rows: DashboardDistribution[] }) {
+function ContentTypeDonut({ rows, id }: { rows: DashboardDistribution[]; id?: string }) {
   const { t, lang } = useApp();
 
   const labelOf = useMemo(() => {
@@ -29,7 +29,7 @@ function ContentTypeDonut({ rows }: { rows: DashboardDistribution[] }) {
   const total = rows.reduce((sum, r) => sum + r.value, 0);
 
   return (
-    <Card>
+    <Card id={id}>
       <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.dbTypesTitle}</div>
       <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 2 }}>{t.dbTypesSub}</div>
 

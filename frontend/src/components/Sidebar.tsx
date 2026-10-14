@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import {
-  AlertTriangle, ChevronRight, ChevronLeft, X, type LucideIcon,
+  ChevronRight, ChevronLeft, X, type LucideIcon,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
 import { adminNavGroupsFor } from '../config/adminNav';
+import { APP_NAV_GROUPS } from '../config/appNav';
 import type { UserRole } from '../api/admin';
 import { getTokenUsage, type TokenUsage } from '../api/auth';
 import { useBreakpoint } from '../hooks/useBreakpoint';
@@ -163,31 +164,17 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
   };
 
   // Sidebar app chia CỤM (đồng bộ style nhãn nhóm với sidebar admin — UI refactor mục 3).
-  // "Token & mức dùng" không còn ở đây — đã thành tab trong Cài đặt (mục 7), lối vào là
-  // widget token ở đáy sidebar + dropdown avatar.
-  const appGroups: NavGroup[] = [
-    {
-      label: t.secMain,
-      items: [
-        { key: 'dashboard', label: t.navDashboard, icon: ICON.dashboard },
-        { key: 'analytics', label: t.navAnalytics, icon: ICON.analytics },
-        { key: 'trends', label: t.navTrends, icon: ICON.trends },
-      ],
-    },
-    {
-      label: t.secContent,
-      items: [
-        { key: 'create', label: t.navCreate, icon: ICON.create },
-        { key: 'calendar', label: t.navCalendar, icon: ICON.calendar, badge: scheduledCount ? scheduledCount.toString() : undefined },
-        // Trung tâm hồi phục bài lỗi (FR-35..FR-39) — bổ trợ lối vào từ trang Lịch + notification.
-        { key: 'failedPosts', label: t.navFailedPosts, icon: AlertTriangle },
-      ],
-    },
-    {
-      label: t.secBrand,
-      items: [{ key: 'brand', label: t.navBrand, icon: ICON.brand }],
-    },
-  ];
+  // Danh sách mục lấy từ `config/appNav.ts` (dùng chung với ô tìm kiếm toàn cục); ở đây chỉ dịch
+  // labelKey và gắn badge số lịch sắp đăng cho mục Lịch.
+  const appGroups: NavGroup[] = APP_NAV_GROUPS.map((g) => ({
+    label: t[g.labelKey],
+    items: g.items.map((n) => ({
+      key: n.key,
+      label: t[n.labelKey],
+      icon: n.icon,
+      badge: n.key === 'calendar' && scheduledCount ? scheduledCount.toString() : undefined,
+    })),
+  }));
   // Sidebar admin: danh sách mục KHÔNG khai báo ở đây nữa. Nguồn duy nhất là
   // `config/adminNav.ts` — cùng bản đồ đó nuôi khối "Lối tắt quản trị" trên trang Tổng quan,
   // nên hai nơi không thể lệch route/nhãn. Ở đây chỉ dịch labelKey sang chuỗi theo ngôn ngữ

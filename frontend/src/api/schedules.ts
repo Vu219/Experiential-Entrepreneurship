@@ -139,6 +139,12 @@ export interface CreateScheduleInput {
 }
 
 // POST /schedules — version phải FORMATTED, account ACTIVE cùng nền tảng (BR-05).
+// GET /schedules/{id} — một lịch của chính user (ô tìm kiếm toàn cục kiểm tra mục lịch sử còn tồn tại).
+export async function getSchedule(id: string): Promise<PostSchedule> {
+  const { data } = await client.get<ApiResponse<PostSchedule>>(`/schedules/${id}`);
+  return data.result;
+}
+
 export async function createSchedule(input: CreateScheduleInput): Promise<PostSchedule> {
   await loadPublishingTimezone();
   const { data } = await client.post<ApiResponse<PostSchedule>>("/schedules", { ...input, scheduledTime: publishingInstant(input.scheduledTime) });

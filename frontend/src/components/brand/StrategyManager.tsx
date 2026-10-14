@@ -8,7 +8,9 @@ import { FilterSelect } from '../admin/AdminListPage';
 import Pagination from '../admin/Pagination';
 import type { PageResponse } from '../../api/apiClient';
 import { listAllBrandProfiles, type BrandProfile } from '../../api/brandProfile';
-import { listContentStrategies, listAllContentStrategies, setStrategyStatus, deleteContentStrategy, type ContentStrategy, type StrategyStatus } from '../../api/contentStrategy';
+import { listContentStrategies, listAllContentStrategies, getContentStrategy, setStrategyStatus, deleteContentStrategy, type ContentStrategy, type StrategyStatus } from '../../api/contentStrategy';
+import type { ApiError } from '../../api/apiClient';
+import { useToast } from '../toast/ToastProvider';
 import SearchSuggestInput from './SearchSuggestInput';
 import StrategyCard from './StrategyCard';
 import StrategyDetail from './StrategyDetail';
@@ -24,7 +26,13 @@ const SIDEBAR_KEY = 'brand-strategy-sidebar-state';
 const PAGE_SIZE = 4;
 const dotColor = (st: StrategyStatus) => (st === 'ACTIVE' ? '#16a34a' : st === 'PAUSED' ? '#d97706' : '#9b96ad');
 
-export default function StrategyManager() {
+/** Yêu cầu mở sẵn từ nơi khác (ô tìm kiếm toàn cục): xem một chiến lược theo id, hoặc mở form tạo mới. */
+export type StrategyIntent = { kind: 'view'; id: string } | { kind: 'create' };
+
+export default function StrategyManager({ intent = null, onIntentHandled }: {
+  intent?: StrategyIntent | null;
+  onIntentHandled?: () => void;
+} = {}) {
   const { t, brandGradient, activeBrandId } = useApp();
   // Mobile + tablet (<1024): danh sách chuyển thành drawer overlay thay vì 2 cột cố định
   // (sidebar 340px chiếm quá nửa màn hình tablet); ≥1024 giữ sidebar thu gọn được.
@@ -118,6 +126,34 @@ export default function StrategyManager() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [strategyCreateNonce]);
 
+  // Mở sẵn theo yêu cầu (ô tìm kiếm toàn cục). Chờ danh sách hồ sơ tải xong — effect reset mode theo brandId ở trên
+  // chạy trước nên không đè lên lựa chọn này. Chiến lược có thể nằm ngoài trang hiện tại / thuộc hồ sơ khác hồ sơ
+  // đang dùng → giữ bản tải theo id ở `focused` để panel chi tiết vẫn hiển thị (KHÔNG đổi hồ sơ đang dùng).
+  const toast = useToast();
+  const [focused, setFocused] = useState<ContentStrategy | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  useEffect(() => {
+    if (!intent || brandsLoad !== 'ok') return;
+    onIntentHandled?.();
+    if (intent.kind === 'create') {
+      if (activeBrand) openCreate();
+      return;
+    }
+    getContentStrategy(intent.id)
+      .then((s) => {
+        if (!mounted.current) return;
+        setFocused(s);
+        selectStrategy(s.id);
+      })
+      .catch((e) => { if (mounted.current) toast.error((e as ApiError).message); });
+    // Chỉ chạy theo intent mới / khi hồ sơ tải xong; các hàm mở form đọc state hiện tại.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intent, brandsLoad]);
+
   // Trả về Promise để StrategyCard tự quản lý trạng thái đang xử lý / lỗi (FR-13).
   // Đang lọc theo trạng thái → tải lại trang (item có thể không còn khớp bộ lọc server-side).
   const toggleStatus = (s: ContentStrategy, next: StrategyStatus) =>
@@ -137,6 +173,7 @@ export default function StrategyManager() {
       setReloadKey((k) => k + 1);
     } else {
       setPageData((prev) => (prev ? { ...prev, content: prev.content.map((x) => (x.id === s.id ? s : x)) } : prev));
+      setFocused((prev) => (prev?.id === s.id ? s : prev));
     }
     setMode({ kind: 'view', id: s.id });
   };
@@ -146,6 +183,7 @@ export default function StrategyManager() {
     setBusy(true);
     try {
       await deleteContentStrategy(deleting.id);
+      setFocused((prev) => (prev?.id === deleting.id ? null : prev));
       setDeleting(null);
       setMode({ kind: 'empty' });
       setReloadKey((k) => k + 1);
@@ -174,7 +212,11 @@ export default function StrategyManager() {
       </Card>
     );
 
-  const selected = mode.kind === 'view' || mode.kind === 'edit' ? items.find((s) => s.id === mode.id) ?? null : null;
+  const selected = mode.kind === 'view' || mode.kind === 'edit'
+    ? items.find((s) => s.id === mode.id) ?? (focused?.id === mode.id ? focused : null)
+    : null;
+  // Hồ sơ của chiến lược đang xem (chiến lược mở từ ô tìm kiếm có thể thuộc hồ sơ khác hồ sơ đang dùng).
+  const selectedBrandName = selected ? brands.find((b) => b.id === selected.brandId)?.brandName ?? activeBrand?.brandName ?? '' : '';
   const total = pageData?.totalElements ?? 0;
   const noFilters = !submittedQ && status === 'all';
   const showFrom = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
@@ -278,7 +320,7 @@ export default function StrategyManager() {
         <StrategyEditor key="editor-create" strategy={null} brandId={brandId} brandName={activeBrand?.brandName ?? ''} onCancel={() => setMode({ kind: 'empty' })} onSaved={onSaved} />
       ) : mode.kind === 'edit' && selected ? (
         // key theo id → đổi sang sửa chiến lược khác cũng remount, không leak state giữa các chiến lược.
-        <StrategyEditor key={`editor-${selected.id}`} strategy={selected} brandId={brandId} brandName={activeBrand?.brandName ?? ''} onCancel={() => setMode({ kind: 'view', id: selected.id })} onSaved={onSaved} onDelete={() => setDeleting(selected)} />
+        <StrategyEditor key={`editor-${selected.id}`} strategy={selected} brandId={selected.brandId} brandName={selectedBrandName} onCancel={() => setMode({ kind: 'view', id: selected.id })} onSaved={onSaved} onDelete={() => setDeleting(selected)} />
       ) : mode.kind === 'view' && selected ? (
         <StrategyDetail s={selected} onEdit={() => openEdit(selected.id)} onDelete={() => setDeleting(selected)} />
       ) : (

@@ -12,7 +12,7 @@ import { C } from '../../styles/colors';
  * Chỉ hiển thị các mục MỚI NHẤT được truyền vào (Dashboard nạp preview 5 mục); khi tổng số
  * (`total`) nhiều hơn số đang hiện → nút "Xem tất cả" mở modal phân trang toàn bộ.
  */
-function ActivityTimeline({ items, total }: { items: AppNotification[]; total?: number }) {
+function ActivityTimeline({ items, total, id }: { items: AppNotification[]; total?: number; id?: string }) {
   const { t } = useApp();
   const [showAll, setShowAll] = useState(false);
 
@@ -20,7 +20,7 @@ function ActivityTimeline({ items, total }: { items: AppNotification[]; total?: 
   const hasMore = (total ?? items.length) > items.length;
 
   return (
-    <Card>
+    <Card id={id}>
       <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong, marginBottom: items.length ? 18 : 0 }}>
         {t.dbActivityTitle}
       </div>

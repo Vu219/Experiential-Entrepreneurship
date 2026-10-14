@@ -1,7 +1,9 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Search, Play, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext.tsx';
 import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
+import { useTabParam } from '../../hooks/useTabParam.ts';
 import { Card, Icon } from '../../components/ui.tsx';
 import PageContainer from '../../components/PageContainer.tsx';
 import Pagination from '../../components/admin/Pagination.tsx';
@@ -68,6 +70,8 @@ const loadIdSet = (key: string): Set<string> => {
 
 const saveIdSet = (key: string, ids: Set<string>) => localStorage.setItem(key, JSON.stringify([...ids]));
 
+const TRENDS_TABS: readonly TrendsTab[] = ['hot', 'ideas', 'history'];
+
 export default function Trends() {
   const { t, lang, go } = useApp();
   const toast = useToast();
@@ -80,7 +84,8 @@ export default function Trends() {
   const ideaPageSize = ideaCols === 3 ? 9 : ideaCols === 2 ? 6 : 4;
 
   const [status, setStatus] = useState<'loading' | 'ready'>('loading');
-  const [tab, setTab] = useState<TrendsTab>('hot');
+  // Tab trên URL (?tab=ideas|history) — ô tìm kiếm toàn cục mở thẳng một tab.
+  const [tab, setTab] = useTabParam<TrendsTab>(TRENDS_TABS, 'hot');
   const [q, setQ] = useState('');
   // Bộ lọc sub-tab "Trend nổi bật"
   const [industryF, setIndustryF] = useState('all');
@@ -114,6 +119,18 @@ export default function Trends() {
   const [researching, setResearching] = useState(false);
   const [researchProgress, setResearchProgress] = useState('');
   const [startOpen, setStartOpen] = useState(false);
+  // Ô tìm kiếm toàn cục → "Research ngay": ?research=1 mở hộp chọn hồ sơ/chiến lược MỘT lần rồi xóa tham số
+  // (đang research thì bỏ qua — giống nút bị khóa).
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('research') !== '1') return;
+    if (!researching) setStartOpen(true);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('research');
+      return next;
+    }, { replace: true });
+  }, [searchParams, setSearchParams, researching]);
   // Modal chi tiết ý tưởng / phiên + lịch tự động
   const [detailIdea, setDetailIdea] = useState<ContentIdea | null>(null);
   const [detailSession, setDetailSession] = useState<ResearchSession | null>(null);

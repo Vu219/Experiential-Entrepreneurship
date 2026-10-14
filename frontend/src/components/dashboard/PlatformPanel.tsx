@@ -13,11 +13,11 @@ import { C } from '../../styles/colors';
  * Backend luôn trả đủ 3 nền tảng trong scope MVP nên panel không bao giờ trống.
  * Mọi thao tác kết nối/quản lý đều dẫn về Cài đặt → tab Kết nối (nơi duy nhất chạy OAuth).
  */
-function PlatformPanel({ rows }: { rows: DashboardPlatform[] }) {
+function PlatformPanel({ rows, id }: { rows: DashboardPlatform[]; id?: string }) {
   const { t, go } = useApp();
 
   return (
-    <Card>
+    <Card id={id}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.dbPlatformsTitle}</div>

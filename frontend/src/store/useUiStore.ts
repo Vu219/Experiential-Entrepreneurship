@@ -59,6 +59,13 @@ interface UiState {
   // "Chỉnh sửa hồ sơ/chiến lược"). Brand đọc 1 lần lúc mount rồi xóa.
   brandInitialTab: 'brand' | 'strategy' | null;
   setBrandInitialTab: (t: 'brand' | 'strategy' | null) => void;
+  // Ô tìm kiếm toàn cục (Command Palette) — mở bằng ô tìm kiếm trên topbar hoặc Ctrl/⌘+K.
+  paletteOpen: boolean;
+  openPalette: () => void;
+  closePalette: () => void;
+  // Dropdown chuông thông báo — ở store để palette ("Mở thông báo") mở được từ bên ngoài.
+  notificationsOpen: boolean;
+  setNotificationsOpen: (v: boolean) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -91,4 +98,9 @@ export const useUiStore = create<UiState>((set) => ({
   requestStrategyCreate: () => set((s) => ({ strategyCreateNonce: s.strategyCreateNonce + 1 })),
   brandInitialTab: null,
   setBrandInitialTab: (t) => set((s) => (s.brandInitialTab === t ? s : { brandInitialTab: t })),
+  paletteOpen: false,
+  openPalette: () => set((s) => (s.paletteOpen ? s : { paletteOpen: true })),
+  closePalette: () => set((s) => (s.paletteOpen ? { paletteOpen: false } : s)),
+  notificationsOpen: false,
+  setNotificationsOpen: (v) => set((s) => (s.notificationsOpen === v ? s : { notificationsOpen: v })),
 }));

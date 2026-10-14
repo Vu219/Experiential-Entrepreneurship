@@ -1,9 +1,10 @@
 import { C } from '../../styles/colors';
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, Download } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
+import { useTabParam } from '../../hooks/useTabParam.ts';
 import { SearchInput } from '../../components/admin/AdminListPage.tsx';
 import { useToast } from '../../components/toast/ToastProvider.tsx';
 import ConfirmModal from '../../components/ConfirmModal.tsx';
@@ -47,6 +48,8 @@ import { TONE_COLORS } from '../../statusTokens.ts';
 
 const isMock = (p: FailedPost) => p.id.startsWith('mock-');
 
+const FP_TABS: readonly FpTab[] = ['NEEDS_ACTION', 'AUTO_RETRYING', 'DISMISSED'];
+
 export default function FailedPosts() {
   const { t, lang, brandGradient } = useApp();
   const { width, isDesktop } = useBreakpoint();
@@ -61,7 +64,8 @@ export default function FailedPosts() {
   const [loadState, setLoadState] = useState<'loading' | 'ok' | 'error'>('loading');
   const [demo, setDemo] = useState(false);
 
-  const [tab, setTab] = useState<FpTab>('NEEDS_ACTION');
+  // Tab trên URL (?tab=AUTO_RETRYING|DISMISSED) — ô tìm kiếm toàn cục / link ngoài mở thẳng một tab.
+  const [tab, setTab] = useTabParam<FpTab>(FP_TABS, 'NEEDS_ACTION');
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search);
   // Khoảng ngày nhận được từ URL (?from=&to=) — trang Phân tích điều hướng sang đây kèm đúng kỳ
@@ -170,6 +174,13 @@ export default function FailedPosts() {
   // Đổi tab / bộ lọc / tìm kiếm → về trang 1 + bỏ chọn bài đang mở + bỏ chọn hàng loạt.
   const resetView = () => { setPage(1); setSelectedId(null); setDetailOpen(false); setChecked(new Set()); };
   const changeTab = (next: FpTab) => { setTab(next); resetView(); };
+  // Tab đổi từ URL (palette, nút Back) chứ không qua TabBar → vẫn về trang 1 và bỏ chọn như khi bấm tab.
+  const lastTab = useRef(tab);
+  useEffect(() => {
+    if (lastTab.current === tab) return;
+    lastTab.current = tab;
+    resetView();
+  }, [tab]);
   const changeFilters = (f: FpFilters) => { setFilters(f); resetView(); };
   const changeSearch = (q: string) => { setSearch(q); resetView(); };
   const changePage = (next: number) => { setPage(next); setChecked(new Set()); };

@@ -62,6 +62,12 @@ export async function listAllContentStrategies(brandId?: string): Promise<Conten
   return data.result.content;
 }
 
+// GET /content-strategies/{id} — mở một chiến lược theo id (ô tìm kiếm toàn cục, có thể khác hồ sơ đang dùng).
+export async function getContentStrategy(id: string): Promise<ContentStrategy> {
+  const { data } = await client.get<ApiResponse<ContentStrategy>>(`/content-strategies/${id}`);
+  return data.result;
+}
+
 // POST /content-strategies
 export async function createContentStrategy(input: ContentStrategyInput): Promise<ContentStrategy> {
   const { data } = await client.post<ApiResponse<ContentStrategy>>("/content-strategies", input);

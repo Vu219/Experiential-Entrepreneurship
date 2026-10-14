@@ -38,4 +38,18 @@ public interface ContentStrategyRepository extends JpaRepository<ContentStrategy
                                  @Param("status") StrategyStatus status,
                                  @Param("q") String q,
                                  Pageable pageable);
+
+    // Ô tìm kiếm toàn cục (GET /search): chiến lược của user có tên khớp :q (SearchSql, không dấu).
+    @Query(value = """
+            select s.* from content_strategies s
+            join brand_profiles bp on bp.id = s.brand_profile_id
+            where bp.user_id = :userId and s.deleted_at is null and""" + SearchSql.STRATEGY_NAME_MATCHES + """
+            order by coalesce(s.updated_at, s.created_at) desc
+            """,
+            countQuery = """
+            select count(*) from content_strategies s
+            join brand_profiles bp on bp.id = s.brand_profile_id
+            where bp.user_id = :userId and s.deleted_at is null and""" + SearchSql.STRATEGY_NAME_MATCHES,
+            nativeQuery = true)
+    Page<ContentStrategy> searchName(@Param("userId") UUID userId, @Param("q") String q, Pageable pageable);
 }

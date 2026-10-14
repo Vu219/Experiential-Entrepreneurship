@@ -509,6 +509,10 @@ public enum ErrorCode {
             HttpStatus.BAD_REQUEST),
     AI_FIX_NOT_IN_PLAN(2198, "Gói hiện tại chưa gồm AI sửa nội dung — hãy chỉnh tay hoặc nâng cấp gói",
             HttpStatus.FORBIDDEN),
+
+    // Ô tìm kiếm toàn cục (GET /search)
+    SEARCH_QUERY_INVALID(2199, "Từ khóa tìm kiếm phải từ 1 đến 100 ký tự", HttpStatus.BAD_REQUEST),
+    SEARCH_LIMIT_INVALID(2200, "Số kết quả mỗi nhóm phải từ 1 đến 10", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

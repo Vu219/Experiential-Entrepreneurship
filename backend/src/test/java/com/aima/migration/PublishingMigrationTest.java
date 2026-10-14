@@ -44,7 +44,7 @@ class PublishingMigrationTest {
     }
 
     @Test void emptyDatabaseMigratesValidatesAndSecondRunDoesNothing() throws Exception {
-        assertEquals(15, flyway(null).migrate().migrationsExecuted);
+        assertEquals(16, flyway(null).migrate().migrationsExecuted);
         assertEquals(0, flyway(null).migrate().migrationsExecuted);
         flyway(null).validate();
         assertEquals("timestamp with time zone", scalar("select data_type from information_schema.columns where table_schema='" + schema + "' and table_name='post_schedules' and column_name='scheduled_time'"));
@@ -70,7 +70,7 @@ class PublishingMigrationTest {
         db.createStatement().execute("insert into post_schedules(id,created_at,deleted_at,content_version_id,platform_account_id,status,scheduled_time) values ('"+schedule+"',now(),now(),'"+version+"','"+account+"','CANCELLED','2026-09-30 00:30:00')");
         db.createStatement().execute("insert into posts(id,created_at,schedule_id,platform_name,status,published_at) values ('"+post+"',now(),'"+schedule+"','FACEBOOK','POSTED','2026-09-29 23:30:00')");
         db.createStatement().execute("insert into posting_jobs(id,created_at,post_id,status,retry_count,start_time,end_time,next_retry_at) values ('"+UUID.randomUUID()+"',now(),'"+post+"','RETRYING',1,'2026-09-29 23:30:00',null,'2026-09-30 00:30:00')");
-        assertEquals(14, flyway(null).migrate().migrationsExecuted);
+        assertEquals(15, flyway(null).migrate().migrationsExecuted);
         for (String zone : new String[]{"UTC", "America/New_York", "Asia/Tokyo"}) {
             db.createStatement().execute("set time zone '"+zone+"'");
             try (var rs = db.createStatement().executeQuery("select scheduled_time from post_schedules")) {
@@ -96,7 +96,7 @@ class PublishingMigrationTest {
         db.createStatement().execute("drop table flyway_schema_history");
         assertThrows(Exception.class, () -> flyway(null).migrate());
         flyway(null).baseline();
-        assertEquals(14, flyway(null).migrate().migrationsExecuted);
+        assertEquals(15, flyway(null).migrate().migrationsExecuted);
         validateHibernate();
     }
 
@@ -129,7 +129,7 @@ class PublishingMigrationTest {
                     + id + "',now(),'" + owner + "','FACEBOOK','" + row[0] + "')");
             row[0] = id;
         }
-        assertEquals(13, flyway(null).migrate().migrationsExecuted);
+        assertEquals(14, flyway(null).migrate().migrationsExecuted);
         for (String[] row : items) {
             assertEquals(row[2], scalar("select status from content_items where id='" + row[1] + "'"), row[1]);
             assertEquals(row[3], scalar("select review_status from content_items where id='" + row[1] + "'"), row[1]);
@@ -174,7 +174,7 @@ class PublishingMigrationTest {
         String post = UUID.randomUUID().toString();
         db.createStatement().execute("insert into posts(id,created_at,schedule_id,platform_name,status) values ('"+post+"',now(),'"+sUnknown+"','FACEBOOK','POSTED')");
 
-        assertEquals(12, flyway(null).migrate().migrationsExecuted);
+        assertEquals(13, flyway(null).migrate().migrationsExecuted);
         assertEquals("ACCOUNT_REMOVED", scalar("select string_agg(reason, ',') from post_schedule_holds where schedule_id='"+sRemoved+"'"));
         assertEquals("ACCOUNT_ISSUE", scalar("select string_agg(reason, ',') from post_schedule_holds where schedule_id='"+sExpired+"'"));
         assertEquals("0", scalar("select count(*) from post_schedule_holds where schedule_id='"+sUnknown+"'"), "không bằng chứng → chưa phân loại");
@@ -203,7 +203,7 @@ class PublishingMigrationTest {
         post(item, page, "POSTED", "page_3", true);     // đã xoá mềm
         db.createStatement().execute("insert into post_analytics(id,created_at,post_id,views,likes,milestone_hours,collected_at) values (gen_random_uuid(),now(),'"+posted+"',10,2,24,now())");
 
-        assertEquals(10, flyway(null).migrate().migrationsExecuted);
+        assertEquals(11, flyway(null).migrate().migrationsExecuted);
         assertEquals("1", scalar("select count(*) from platform_media"));
         assertEquals(posted + "|" + page + "|FACEBOOK|page_1|AIMA|ACTIVE|ACTIVE|0", scalar(
                 "select post_id||'|'||platform_account_id||'|'||platform_name||'|'||platform_media_id||'|'||origin||'|'||platform_status||'|'||sync_status||'|'||consecutive_failures from platform_media"));
@@ -234,7 +234,7 @@ class PublishingMigrationTest {
         db.createStatement().execute("insert into platform_media(id,created_at,platform_account_id,platform_name,platform_media_id,origin,platform_status,sync_status,consecutive_failures) "
                 + "values (gen_random_uuid(),now(),'"+page+"','FACEBOOK','page_9','AIMA','ACTIVE','ACTIVE',0)");
 
-        assertEquals(8, flyway(null).migrate().migrationsExecuted);
+        assertEquals(9, flyway(null).migrate().migrationsExecuted);
         assertEquals("1|0", scalar("select count(*)||'|'||count(media_type)+count(permalink)+count(caption_excerpt) from platform_media"),
                 "cột mới nullable, dòng cũ giữ nguyên");
         db.createStatement().execute("insert into account_sync_state(id,created_at,platform_account_id,consecutive_failures,instagram_link_status) values (gen_random_uuid(),now(),'"+page+"',0,'NOT_LINKED')");
@@ -256,7 +256,7 @@ class PublishingMigrationTest {
 
     @Test void v9AddsWebhookEventsWithDedupeAndStatusCheck() throws Exception {
         flyway("8").migrate();
-        assertEquals(7, flyway(null).migrate().migrationsExecuted);
+        assertEquals(8, flyway(null).migrate().migrationsExecuted);
         String insert = "insert into meta_webhook_events(id,created_at,dedupe_key,status,attempts) values (gen_random_uuid(),now(),'k1','%s',0)";
         db.createStatement().execute(insert.formatted("PENDING"));
         assertThrows(SQLException.class, () -> db.createStatement().execute(insert.formatted("PENDING")), "unique dedupe_key");
@@ -299,7 +299,7 @@ class PublishingMigrationTest {
                 + "||'|'||(select string_agg(id::text||views||milestone_hours,',') from post_analytics)||'|'||(select string_agg(platform_account_id::text||follows,',') from account_insights_daily)";
         String before = scalar(untouched);
 
-        assertEquals(6, flyway(null).migrate().migrationsExecuted);
+        assertEquals(7, flyway(null).migrate().migrationsExecuted);
 
         assertEquals(newPage + "|AIMA|true", scalar("select platform_account_id||'|'||origin||'|'||(deleted_at is null) from platform_media where id='" + keeper + "'"),
                 "bài AIMA chuyển sang kết nối đang hoạt động");
@@ -364,7 +364,7 @@ class PublishingMigrationTest {
 
     @Test void v13AddsPublishErrorColumnsMappingsAndActivityActions() throws Exception {
         flyway("12").migrate();
-        assertEquals(3, flyway(null).migrate().migrationsExecuted);
+        assertEquals(4, flyway(null).migrate().migrationsExecuted);
         assertEquals("7", scalar("select count(*) from information_schema.columns where table_schema='" + schema
                 + "' and table_name='posting_jobs' and column_name in ('error_code','platform_error_code',"
                 + "'platform_error_subcode','error_detail','resolution','resolved_at','resolved_by')"));
@@ -413,7 +413,7 @@ class PublishingMigrationTest {
             db.createStatement().execute("insert into plans(id,created_at,code,name_vi,name_en,price,display_order,highlight,is_active) "
                     + "values (gen_random_uuid(),now(),'" + code + "','" + code + "','" + code + "',0,0,false,true)");
         }
-        assertEquals(1, flyway(null).migrate().migrationsExecuted);
+        assertEquals(2, flyway(null).migrate().migrationsExecuted);
         assertEquals("FREE=0 PLUS=30 PRO=200 TEAM=", scalar("select string_agg(code||'='||coalesce(policy_check_ai_monthly_limit::text,''), ' ' "
                 + "order by array_position(array['FREE','PLUS','PRO','TEAM'], code::text)) from plans"));
         assertEquals("0", scalar("select count(*) from plans where ai_fix_max_per_version is not null"),
@@ -425,6 +425,25 @@ class PublishingMigrationTest {
                 "update plans set ai_fix_max_per_version=-2 where code='TEAM'"));
         validateHibernate();
         verifyEnumChecks();
+    }
+
+    // ===== V16: tìm kiếm không dấu (GET /search, GET /content-items?q=) — chỉ thêm extension + hàm
+
+    @Test void v16AddsAccentInsensitiveSearchFunctions() throws Exception {
+        flyway("15").migrate();
+        assertEquals(1, flyway(null).migrate().migrationsExecuted);
+        assertEquals("duong da cho nguoi moi", scalar("select lower(aima_unaccent('Dưỡng Da Cho Người Mới'))"));
+        assertEquals("d d", scalar("select aima_unaccent('đ Đ')").toLowerCase(), "đ/Đ phải thành d/D");
+        assertEquals("i", scalar("select provolatile from pg_proc where proname='aima_unaccent' and pronamespace='" + schema + "'::regnamespace"),
+                "IMMUTABLE để dùng được trong index sau này");
+        assertNull(scalar("select aima_unaccent(null)"));
+        // Hook: JSON → hook.content; bài cũ dạng dòng → dòng không rỗng đầu tiên; JSON hỏng không làm nổ truy vấn.
+        assertEquals("Mở đầu", scalar("select aima_script_hook('{\"hook\":{\"content\":\"Mở đầu\"},\"steps\":[]}')"));
+        assertEquals("Dòng đầu", scalar("select aima_script_hook(E'\\n  Dòng đầu \\nDòng hai')"));
+        assertEquals("{hỏng", scalar("select aima_script_hook('{hỏng')"));
+        assertNull(scalar("select aima_script_hook('{\"steps\":[]}')"));
+        assertNull(scalar("select aima_script_hook('   ')"));
+        validateHibernate();
     }
 
     void verifyEnumChecks() throws Exception {

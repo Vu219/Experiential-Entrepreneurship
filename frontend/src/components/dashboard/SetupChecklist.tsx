@@ -11,7 +11,7 @@ import { C } from '../../styles/colors';
  * Trạng thái từng bước do backend suy ra từ dữ liệu thật (không có cột onboarding trong DB),
  * nên thẻ tự hiện lại nếu user xóa hết kết nối/chiến lược — luôn phản ánh đúng thực tế.
  */
-function SetupChecklist({ onboarding }: { onboarding: DashboardOnboarding }) {
+function SetupChecklist({ onboarding, id }: { onboarding: DashboardOnboarding; id?: string }) {
   const { t, brandGradient, go } = useApp();
   const setBrandInitialTab = useUiStore((s) => s.setBrandInitialTab);
 
@@ -26,7 +26,7 @@ function SetupChecklist({ onboarding }: { onboarding: DashboardOnboarding }) {
   ];
 
   return (
-    <Card>
+    <Card id={id}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: 16, color: C.textStrong }}>{t.dbsTitle}</div>

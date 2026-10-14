@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { HelpCircle, Plus } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { useUiStore } from '../../store/useUiStore.ts';
@@ -6,10 +7,12 @@ import { useUiStore } from '../../store/useUiStore.ts';
 import { Icon } from '../../components/ui.tsx';
 import PageContainer from '../../components/PageContainer.tsx';
 import BrandProfileList from '../../components/brand/BrandProfileList.tsx';
-import StrategyManager from '../../components/brand/StrategyManager.tsx';
+import StrategyManager, { type StrategyIntent } from '../../components/brand/StrategyManager.tsx';
 import { C } from '../../styles/colors';
 
 type Tab = 'brand' | 'strategy';
+
+const tabOf = (v: string | null): Tab | null => (v === 'brand' || v === 'strategy' ? v : null);
 
 /**
  * /brand — màn list-first gộp 2 tab: "Thương hiệu" (hồ sơ thương hiệu, danh sách
@@ -20,12 +23,33 @@ export default function Brand() {
 
   // Tab mở sẵn do nơi khác yêu cầu (vd wizard Tạo nội dung → "Chỉnh sửa chiến lược");
   // đọc 1 lần lúc mount rồi xóa để lần vào sau trở về mặc định.
-  const [tab, setTab] = useState<Tab>(() => useUiStore.getState().brandInitialTab ?? 'brand');
+  // Ô tìm kiếm toàn cục mở bằng URL: ?tab=strategy, ?strategy=<id> (xem một chiến lược), ?new=1 (tạo mới) —
+  // đọc rồi XÓA khỏi URL (lệnh một lần), nên chọn lại cùng mục khi đang đứng ở trang vẫn có tác dụng.
+  const [params, setParams] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => tabOf(params.get('tab')) ?? useUiStore.getState().brandInitialTab ?? 'brand');
+  const [strategyIntent, setStrategyIntent] = useState<StrategyIntent | null>(null);
   const setSidebarCollapsed = useUiStore((s) => s.setSidebarCollapsed);
   const requestStrategyCreate = useUiStore((s) => s.requestStrategyCreate);
   useEffect(() => {
     useUiStore.getState().setBrandInitialTab(null);
   }, []);
+  useEffect(() => {
+    const nextTab = tabOf(params.get('tab'));
+    const strategyId = params.get('strategy');
+    const create = params.get('new') === '1';
+    if (!nextTab && !strategyId && !create) return;
+    if (strategyId || create) {
+      setTab('strategy');
+      setStrategyIntent(strategyId ? { kind: 'view', id: strategyId } : { kind: 'create' });
+    } else if (nextTab) {
+      setTab(nextTab);
+    }
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      ['tab', 'strategy', 'new'].forEach((k) => next.delete(k));
+      return next;
+    }, { replace: true });
+  }, [params, setParams]);
 
   // Tự thu gọn sidebar khi ở trang Hồ sơ thương hiệu để có không gian rộng hơn cho
   // form full-page; trả lại trạng thái trước đó khi rời trang (dùng đúng cơ chế collapse
@@ -71,7 +95,9 @@ export default function Brand() {
         )}
       </div>
 
-      {tab === 'brand' ? <BrandProfileList /> : <StrategyManager />}
+      {tab === 'brand'
+        ? <BrandProfileList />
+        : <StrategyManager intent={strategyIntent} onIntentHandled={() => setStrategyIntent(null)} />}
     </PageContainer>
   );
 }

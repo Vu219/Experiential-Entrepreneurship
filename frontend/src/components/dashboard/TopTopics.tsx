@@ -11,12 +11,12 @@ import { C } from '../../styles/colors';
  * Khối "Top chủ đề hiệu quả": chủ đề = trend gắn với bài. Thanh tỉ lệ so với chủ đề tương tác cao
  * nhất; chủ đề chưa đăng bài (engagement = 0) vẫn hiện để user thấy chủ đề đã dùng.
  */
-function TopTopics({ rows, demo = false }: { rows: DashboardTopic[]; demo?: boolean }) {
+function TopTopics({ rows, demo = false, id }: { rows: DashboardTopic[]; demo?: boolean; id?: string }) {
   const { t, brandGradient, go } = useApp();
   const max = Math.max(1, ...rows.map((r) => r.engagement));
 
   return (
-    <Card>
+    <Card id={id}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <span style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.dbTopicsTitle}</span>
         {demo && <DemoBadge label={t.dbDemoData} />}

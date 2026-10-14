@@ -23,8 +23,11 @@ function PerformanceChart({
   range,
   onRangeChange,
   demo = false,
+  id,
 }: {
   points: DashboardPoint[];
+  /** Anchor cho ô tìm kiếm toàn cục (cuộn tới + tô sáng). */
+  id?: string;
   range: DashboardRange;
   onRangeChange: (range: DashboardRange) => void;
   /** true = đang hiển thị dữ liệu mẫu (chưa có số liệu thật) → gắn nhãn "Dữ liệu mẫu". */
@@ -46,7 +49,7 @@ function PerformanceChart({
   const tickInterval = data.length > 10 ? Math.floor(data.length / 7) : 0;
 
   return (
-    <Card>
+    <Card id={id}>
       <div style={{
         display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
         gap: 12, flexWrap: 'wrap', marginBottom: 16,

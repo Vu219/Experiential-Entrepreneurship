@@ -81,7 +81,7 @@ src/
 │   │                       (StrictMode) — mỗi lần bấm chỉ MỘT job (tốn token + lượt).
 │   ├── notificationPreferences.ts — email lỗi đăng bài (opt-in): banner hỏi 1 lần ở /failed-posts
 │   │                       (EmailOptInBanner), Cài đặt → Thông báo (PublishErrorEmailCard), trang công khai /unsubscribe.
-│   └── trendResearch.ts  — start/poll/list/deleteTrends phiên Trend Research (async job, NFR-04);
+│   ├── trendResearch.ts  — start/poll/list/deleteTrends phiên Trend Research (async job, NFR-04);
 │                           input có `strategyId` + `articleCount` (1–20) ngoài brand/platform.
 │                           Trang Trends GỘP tối đa 3 phiên COMPLETED gần nhất MỖI nền tảng
 │                           (trendsLive.ts: mergedLiveData khử trùng lặp theo tên + remap idea;
@@ -98,6 +98,15 @@ src/
 │                           ScheduleModal (lịch research tự động — cấu hình lưu localStorage qua
 │                           src/trendsSchedule.ts; job backend 02:00 là nguồn chạy thật).
 │                           "Lưu ý tưởng" bền vững qua localStorage (key aima_saved_ideas).
+│   └── search.ts         — ô tìm kiếm toàn cục: GET /search (nội dung/chiến lược/lịch đăng của chính user, khớp
+│                           không dấu); mục nội dung map bằng `toContentListItem` như trang Tạo nội dung.
+├── search/               — lõi ô tìm kiếm toàn cục (Command Palette, Ctrl/⌘+K) — module thuần, test ở
+│                           tests/globalSearch.test.ts: normalize.ts (bỏ dấu, đ→d, bản đồ vị trí để tô sáng),
+│                           match.ts (chấm điểm + vùng tô sáng), rank.ts (lọc role/khu vực + giới hạn mỗi nhóm),
+│                           history.ts (8 mục đã chọn gần nhất, localStorage `aima.search.history.<userId>`),
+│                           registry.ts (trang lấy từ config/appNav.ts + config/adminNav.ts, tab/khu vực trong
+│                           trang, hành động nhanh + TỪ ĐỒNG NGHĨA vi/en). Thêm trang vào menu = tự tìm được;
+│                           thêm khu vực = đặt `id` trên khối + một dòng `block(...)` trong registry.
 ├── auth/
 │   ├── AuthContext.tsx   — user state, refreshUser() gọi /users/me, login/logout
 │   ├── ProtectedRoute.tsx— chặn route nếu chưa đăng nhập
@@ -111,8 +120,17 @@ src/
 │                           toast/ToastProvider (toast góc trên-phải: useToast().success/error/
 │                           warning/info cho MỌI feedback thao tác nhất thời — không tự chế banner;
 │                           KHÁC NotificationBell là hộp thư bền vững), …
+├── config/appNav.ts      — NGUỒN DUY NHẤT menu khu người dùng (cùng mẫu adminNav.ts): Sidebar + ô tìm kiếm cùng đọc.
+├── components/search/    — CommandPalette (tái dùng Modal `bare`/`placement="top"`/`fullScreen`; combobox ARIA,
+│                           ↑↓ Enter Esc, Enter bị bỏ qua khi bộ gõ tiếng Việt đang ghép chữ), SearchTrigger (ô trên
+│                           topbar giữ nguyên khung cũ; mobile là nút icon), HighlightText. Gắn ở AppShell cùng phím
+│                           tắt Ctrl/⌘+K (bỏ qua khi đang có hộp thoại khác) — state `paletteOpen` ở useUiStore.
 ├── hooks/                — useBreakpoint (responsive; resize gộp theo rAF — không dội re-render
-│                           liên tục khi kéo giãn cửa sổ), useReveal (scroll reveal)
+│                           liên tục khi kéo giãn cửa sổ), useReveal (scroll reveal),
+│                           useSearchActions (thực thi đích của mục tĩnh), useDataSearch (debounce + huỷ request),
+│                           useSearchSuggestions (gợi ý ngữ cảnh, cache 60s theo user),
+│                           useSectionFocus (`?focus=<id>` → chờ ≤5s, cuộn + tô sáng, xoá tham số; gắn ở AppShell),
+│                           useTabParam (tab trên `?tab=` — Xu hướng, Bài lỗi; Thương hiệu đọc `?tab/strategy/new` một lần)
 ├── validations/          — logic kiểm tra dữ liệu dùng chung (1 nguồn, không lặp inline):
 │                           password.ts (PASSWORD_RULE + độ mạnh), authValidation.ts
 │                           (validEmail/otpValid/passwordsMatch), profileValidation.ts (phoneOk/validateStep1)
@@ -146,6 +164,10 @@ src/
   `GET /users/me`. Đừng tự lưu token vào localStorage.
 - **State:** dữ liệu app dùng chung → `useAppStore` (Zustand); tiêu thụ qua `useApp()`. UI cục bộ → `useState`.
 - **Điều hướng:** dùng `go(route)` từ `useApp()` hoặc `<Link>`/`navigate` của react-router. Route map ở `AppContext`.
+  `go(route, search)` nhận thêm query (vd `go('settings', '?tab=connections')`) — giữ quy tắc `profileOrigin` của sidebar.
+- **Deep-link cho ô tìm kiếm:** tab mới của trang nên đọc `?tab=` (hooks/useTabParam); khối muốn tìm tới được thì đặt
+  `id` (Card nhận prop `id`) + khai báo trong `search/registry.ts`. Dropdown chuông thông báo mở qua
+  `useUiStore.setNotificationsOpen`.
 - **i18n:** chuỗi hiển thị lấy từ `t` (`useApp().t`), không hardcode tiếng Việt/Anh rải rác khi đã có key.
 - **TypeScript:** không `any` tùy tiện; type request/response API ở `api/*.ts`. Build chạy `tsc` nên lỗi type sẽ fail build.
 - **Hiệu năng trang danh sách** (mẫu tham chiếu: trang Trends): component hiển thị thuần bọc

@@ -183,6 +183,10 @@ backend/
 >   `scheduler/{TokenHealthCheckJob,TokenValidationJob,ApiVersionCheckJob}`, `util/{CryptoUtil,EncryptedStringConverter}`,
 >   `config/{MetaProperties,MetaWebClientConfig,AimaProperties,PlatformDataInitializer}`. See §4 "Social Media
 >   Connection (Meta OAuth2)" and §5 for the tables.
+> - **Ô tìm kiếm toàn cục (2026-10-14)**: `controller/SearchController` (`GET /search?q=&limit=`) → `service/SearchService`
+>   (+`Impl`) → `ContentItemRepository.searchText` / `ContentStrategyRepository.searchName` / `PostScheduleRepository.searchText`
+>   (native, mảnh khớp chung `repository/SearchSql`, dữ liệu CỦA CHÍNH user, lịch CANCELLED bị loại) → `mapper/SearchMapper`
+>   → `GlobalSearchResponse` (mục dùng lại DTO danh sách; nhóm rỗng = mảng rỗng nhờ `@Builder.Default`). ErrorCode 2199/2200.
 > - **Content Strategy**: `controller/ContentStrategyController`, `service/ContentStrategyService` (+`Impl`),
 >   `mapper/ContentStrategyMapper`, `entity/ContentStrategy` (BR-02: one brand → many strategies).
 > - **Content Generation (AI, async)**: `controller/{ContentGenerationController, ContentItemController}`,
@@ -582,7 +586,7 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 **Endpoints** (`/content-items`, auth required):
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/content-items` | **FR-87** thư viện nội dung: phân trang, lọc `status` (trạng thái tổng)/`reviewStatus`/`platform` (theo version đã định dạng)/`industry`/`fromDate`/`toDate` + tìm `q` trong caption/script (`ContentItemRepository.search`, sentinel rỗng/null = bỏ qua) |
+| GET | `/content-items` | **FR-87** thư viện nội dung: phân trang, lọc `status` (trạng thái tổng)/`reviewStatus`/`platform` (theo version đã định dạng)/`industry`/`fromDate`/`toDate` + tìm `q` KHÔNG DẤU trong caption/hook/hashtag của các bản nền tảng (`ContentItemRepository.search` + mảnh dùng chung `repository/SearchSql`, pattern `util/SearchPatterns`; hàm `aima_unaccent`/`aima_script_hook` từ Flyway V16 — query chỉ chạy trên PG, test `ContentSearchPgTest`) |
 | DELETE | `/content-items/{itemId}` | **FR-89** chỉ khi chưa có lịch hiệu lực (DRAFT/GENERATED/FORMATTED) và `reviewStatus` NONE/CHANGES_REQUESTED (`CONTENT_ITEM_NOT_DELETABLE` 1947); xóa mềm item + cascade ContentVersions/MediaAssets |
 | POST | `/content-items/generate` | Khởi động job (strategy phải **ACTIVE**, BR-03); trả job `PENDING` ngay |
 | GET | `/content-items/jobs/{jobId}` | Poll trạng thái job — FE gọi tới khi `SUCCESS`/`FAILED` |
