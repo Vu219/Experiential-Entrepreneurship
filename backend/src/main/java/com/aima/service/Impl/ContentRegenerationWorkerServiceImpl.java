@@ -1,5 +1,7 @@
 package com.aima.service.Impl;
 
+import com.aima.service.JobEventService;
+import com.aima.enums.RealtimeJobKind;
 import com.aima.dto.ai.RegeneratePartPayload;
 import com.aima.dto.ai.RegeneratePartResultPayload;
 import com.aima.dto.ai.ScriptSectionPayload;
@@ -66,6 +68,7 @@ public class ContentRegenerationWorkerServiceImpl implements ContentRegeneration
     TransactionTemplate transactionTemplate;
     ContentItemStatusResolver statusResolver;
     ScheduleHoldService holdService;
+    JobEventService jobEventService;
 
     /** Payload + ngữ cảnh event usage, dựng trong TX ngắn #1 để dùng ngoài transaction. */
     private record RegenerationTask(RegeneratePartPayload payload, AiUsageService.AiCallContext callContext) {
@@ -109,6 +112,7 @@ public class ContentRegenerationWorkerServiceImpl implements ContentRegeneration
         }
         job.setStatus(GenerationJobStatus.RUNNING);
         jobRepository.save(job);
+        emit(job);
 
         ContentItem item = version.getContentItem();
         BrandProfile brand = item.getBrandProfile();
@@ -167,6 +171,7 @@ public class ContentRegenerationWorkerServiceImpl implements ContentRegeneration
         }
         job.setStatus(GenerationJobStatus.SUCCESS);
         jobRepository.save(job);
+        emit(job);
 
         // Usage (event + cache hạn mức) đã được recordCall ghi tại thời điểm gọi AI.
     }
@@ -249,6 +254,15 @@ public class ContentRegenerationWorkerServiceImpl implements ContentRegeneration
         job.setStatus(GenerationJobStatus.FAILED);
         job.setErrorMessage(message);
         jobRepository.save(job);
+        emit(job);
+    }
+
+    /** {@code job.updated} cho màn chờ tạo lại (gọi trong transaction). */
+    private void emit(ContentRegenerationJob job) {
+        var version = job.getContentVersion();
+        var item = version.getContentItem();
+        jobEventService.jobUpdated(item.getBrandProfile().getUser().getId(), RealtimeJobKind.REGEN, job.getId(),
+                job.getStatus().name(), item.getId(), version.getPlatformName(), null);
     }
 
     private VideoScriptDto parseOrEmpty(String raw) {

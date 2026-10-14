@@ -1,5 +1,10 @@
 package com.aima.service.Impl;
 
+import com.aima.service.JobEventService;
+import com.aima.enums.RealtimeJobKind;
+import com.aima.util.NotificationParams;
+import com.aima.enums.NotificationRefType;
+import com.aima.dto.notification.NotificationDraft;
 import com.aima.dto.ai.AnalyzePayload;
 import com.aima.dto.ai.AnalyzeResultPayload;
 import com.aima.dto.ai.AnalyzedPostPayload;
@@ -70,6 +75,7 @@ public class StrategyOptimizationWorkerServiceImpl implements StrategyOptimizati
     AiUsageService aiUsageService;
     TransactionTemplate transactionTemplate;
     UserPublishingSettingsRepository publishingSettingsRepository;
+    JobEventService jobEventService;
 
     @Override
     @Async("strategyOptimizationExecutor")
@@ -120,6 +126,7 @@ public class StrategyOptimizationWorkerServiceImpl implements StrategyOptimizati
 
         ContentStrategy strategy = job.getContentStrategy();
         BrandProfile brand = strategy.getBrandProfile();
+        emit(job);
 
         List<Post> posts = postRepository
                 .findBySchedule_ContentVersion_ContentItem_BrandProfile_IdAndStatusAndDeletedAtIsNullOrderByPublishedAtDesc(
@@ -150,6 +157,7 @@ public class StrategyOptimizationWorkerServiceImpl implements StrategyOptimizati
             // Race hiếm: guard ở service qua nhưng analytics bị xóa trước khi worker chạy.
             job.setStatus(GenerationJobStatus.FAILED);
             job.setErrorMessage("Không còn bài đăng nào có số liệu để phân tích");
+            emit(job);
             return null;
         }
 
@@ -222,6 +230,7 @@ public class StrategyOptimizationWorkerServiceImpl implements StrategyOptimizati
                 ? List.of() : optimization.getFutureImprovements();
         job.setFutureImprovements(improvements.isEmpty() ? null : String.join("\n", improvements));
         job.setStatus(GenerationJobStatus.SUCCESS);
+        emit(job);
 
         int adjustmentCount = insights.isEmpty() ? 0
                 : insights.get(0).getStrategyAdjustments().size();
@@ -235,18 +244,28 @@ public class StrategyOptimizationWorkerServiceImpl implements StrategyOptimizati
             return; // không có insight/đề xuất mới → không báo NEW_INSIGHT sai sự thật
         }
         // FR-79: báo có insight/đề xuất mới cho user.
-        notificationService.notify(strategy.getBrandProfile().getUser(), NotificationType.NEW_INSIGHT,
-                "Có đề xuất tối ưu chiến lược mới",
-                "AI vừa phân tích hiệu quả các bài đã đăng và đưa ra " + adjustmentCount
+        notificationService.send(strategy.getBrandProfile().getUser(), NotificationDraft.builder()
+                .type(NotificationType.NEW_INSIGHT)
+                .title("Có đề xuất tối ưu chiến lược mới")
+                .message("AI vừa phân tích hiệu quả các bài đã đăng và đưa ra " + adjustmentCount
                         + " đề xuất điều chỉnh cho chiến lược \"" + strategy.getName()
-                        + "\". Vào phần Chiến lược để xem và duyệt.",
-                strategy.getId());
+                        + "\". Vào phần Chiến lược để xem và duyệt.")
+                .refType(NotificationRefType.STRATEGY).refId(strategy.getId())
+                .params(NotificationParams.of("strategyName", strategy.getName(), "count", adjustmentCount))
+                .build());
     }
 
     private void saveFailure(UUID jobId, String message) {
         jobRepository.findById(jobId).ifPresent(job -> {
             job.setStatus(GenerationJobStatus.FAILED);
             job.setErrorMessage(message);
+            emit(job);
         });
+    }
+
+    /** {@code job.updated} cho màn chờ tối ưu chiến lược (gọi trong transaction). */
+    private void emit(StrategyOptimizationJob job) {
+        jobEventService.jobUpdated(job.getContentStrategy().getBrandProfile().getUser().getId(), RealtimeJobKind.OPTIMIZE,
+                job.getId(), job.getStatus().name(), null, null, null);
     }
 }

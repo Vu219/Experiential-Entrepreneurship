@@ -48,6 +48,7 @@ const PAGE_KEYWORDS: Partial<Record<Route, readonly string[]>> = {
   adminSystem: ['hệ thống', 'trạng thái', 'sức khỏe', 'system', 'status', 'health'],
   adminLogs: ['nhật ký', 'logs', 'log hệ thống', 'activity log'],
   adminApiVersions: ['phiên bản api', 'graph api', 'api versions', 'meta'],
+  notifications: ['thông báo', 'xem tất cả', 'hộp thư', 'chưa đọc', 'notifications', 'inbox', 'unread', 'all notifications'],
 };
 
 const page = (route: Route, label: (t: Dict) => string, icon: LucideIcon, areas: readonly SearchArea[],
@@ -70,6 +71,7 @@ const extraPages: StaticSearchItem[] = [
   page('profile', (t) => t.navProfile, ICON.profile, BOTH),
   page('settings', (t) => t.navSettings, ICON.settings, BOTH),
   page('billing', (t) => t.blTitle, Receipt, APP),
+  page('notifications', (t) => t.ntfPageTitle, Bell, BOTH),
 ];
 
 /** Tab con: đi tới trang kèm `?tab=` (mỗi trang tự đọc tham số này). */

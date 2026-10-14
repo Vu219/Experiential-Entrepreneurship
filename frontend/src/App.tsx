@@ -18,6 +18,7 @@ const Create = lazy(() => import("./pages/app/Create.tsx"));
 const CreateWizard = lazy(() => import("./pages/app/CreateWizard.tsx"));
 const Calendar = lazy(() => import("./pages/app/Calendar.tsx"));
 const FailedPosts = lazy(() => import("./pages/app/FailedPosts.tsx"));
+const Notifications = lazy(() => import("./pages/app/Notifications.tsx"));
 const Analytics = lazy(() => import("./pages/app/Analytics.tsx"));
 const Trends = lazy(() => import("./pages/app/Trends.tsx"));
 const Brand = lazy(() => import("./pages/app/Brand.tsx"));
@@ -80,6 +81,7 @@ const APP_PAGE_IMPORTS = [
   () => import("./pages/app/CreateWizard.tsx"),
   () => import("./pages/app/Calendar.tsx"),
   () => import("./pages/app/FailedPosts.tsx"),
+  () => import("./pages/app/Notifications.tsx"),
   () => import("./pages/app/Analytics.tsx"),
   () => import("./pages/app/Trends.tsx"),
   () => import("./pages/app/Brand.tsx"),
@@ -179,6 +181,7 @@ export default function App() {
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/calendar/:id" element={<Calendar />} />
           <Route path="/failed-posts" element={<FailedPosts />} />
+          <Route path="/notifications" element={<Notifications />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/trends" element={<Trends />} />
           <Route path="/brand" element={<Brand />} />

@@ -1,5 +1,6 @@
 package com.aima.service;
 
+import java.util.UUID;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.TokenUsageResponse;
 import com.aima.entity.User;
@@ -46,6 +47,12 @@ public interface TokenUsageService {
      * null = không giới hạn) + {@code creditLeft} = token mua thêm còn lại (bucket riêng,
      * không reset theo kỳ).
      */
+    /**
+     * Sau khi ghi một event usage: đẩy {@code usage.updated} (thanh token ở sidebar) và báo MỘT lần mỗi kỳ khi vượt
+     * 80% ({@code AI_QUOTA_WARNING}) / 100% ({@code AI_QUOTA_EXHAUSTED}) hạn mức gói. Gọi trong transaction. Best-effort.
+     */
+    void notifyQuotaThresholds(UUID userId);
+
     record QuotaState(long used, Long limit, long creditLeft) {
 
         /**

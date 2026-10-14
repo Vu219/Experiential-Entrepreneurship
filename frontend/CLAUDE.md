@@ -79,8 +79,11 @@ src/
 │   │                       components/aiAssist/{AiFixModal (diff textDiff.ts + sửa + áp dụng), PolicyCheckNotice
 │   │                       (dưới mỗi nền tảng ở SchedulePlanner — chỉ cảnh báo)}. Effect gọi AI có ref chống gọi đôi
 │   │                       (StrictMode) — mỗi lần bấm chỉ MỘT job (tốn token + lượt).
-│   ├── notificationPreferences.ts — email lỗi đăng bài (opt-in): banner hỏi 1 lần ở /failed-posts
-│   │                       (EmailOptInBanner), Cài đặt → Thông báo (PublishErrorEmailCard), trang công khai /unsubscribe.
+│   ├── notifications.ts  — thông báo: 21 loại + nhóm (NotificationCategory) + params/refType; lọc status/category, xoá, xoá đã đọc.
+│   │                       Câu hiển thị KHÔNG lấy title/message (tiếng Việt dự phòng) mà dựng ở notifications/text.ts.
+│   ├── notificationPreferences.ts — cài đặt thông báo: email lỗi đăng bài (opt-in, banner hỏi 1 lần ở /failed-posts —
+│   │                       EmailOptInBanner) + kênh theo nhóm (ma trận Cài đặt → Thông báo: components/settings/
+│   │                       NotificationChannelsCard), trang công khai /unsubscribe.
 │   ├── trendResearch.ts  — start/poll/list/deleteTrends phiên Trend Research (async job, NFR-04);
 │                           input có `strategyId` + `articleCount` (1–20) ngoài brand/platform.
 │                           Trang Trends GỘP tối đa 3 phiên COMPLETED gần nhất MỖI nền tảng
@@ -107,8 +110,20 @@ src/
 │                           registry.ts (trang lấy từ config/appNav.ts + config/adminNav.ts, tab/khu vực trong
 │                           trang, hành động nhanh + TỪ ĐỒNG NGHĨA vi/en). Thêm trang vào menu = tự tìm được;
 │                           thêm khu vực = đặt `id` trên khối + một dòng `block(...)` trong registry.
+├── realtime/             — luồng SSE GET /realtime/stream (một kết nối / tab): sseParser.ts (parser thuần + backoff),
+│                           realtimeClient.ts (fetch + ReadableStream — NGOẠI LỆ của quy tắc "chỉ gọi qua axios client", xem §4;
+│                           401 → refreshSession, watchdog 45s, tab ẩn > 5 phút đóng), events.ts (kiểu sự kiện = hợp đồng với enum
+│                           backend RealtimeEventType + subscribeRealtime/useRealtimeEvent), waitForJob.ts (chờ job qua job.updated,
+│                           poll an toàn 15s, mất luồng → nhịp poll cũ), aiPreview.ts (gộp ai.delta/ai.reset). Gắn ở AppShell bằng
+│                           components/RealtimeConnector; trạng thái ở store/useRealtimeStore. Test tests/{sseParser,realtimeClient,
+│                           waitForJob,aiPreview}.test.ts.
+├── notifications/        — hàm thuần (test tests/notificationText.test.ts): text.ts (câu theo ngôn ngữ từ type + params, khoá
+│                           ntf_<TYPE>_title/_body[_<variant>]; lỗi đăng bài lấy catalog theo params.code), links.ts (deep link theo
+│                           refType/refId), toastGate.ts (tối đa 3 toast / 10s). Chuông + trang /notifications dùng hooks/useNotificationFeed
+│                           (danh sách cập nhật realtime) + hooks/useUnreadCountSync (badge, poll dự phòng sau 30s mất kết nối);
+│                           toast realtime ở components/NotificationToaster.
 ├── auth/
-│   ├── AuthContext.tsx   — user state, refreshUser() gọi /users/me, login/logout
+│   ├── AuthContext.tsx   — user state, refreshUser() gọi /users/me, login/logout; đăng ký handler hết phiên (refresh hỏng → user = null)
 │   ├── ProtectedRoute.tsx— chặn route nếu chưa đăng nhập
 │   └── GuestRoute.tsx    — chặn route nếu đã đăng nhập (login/register)
 ├── store/
@@ -155,6 +170,12 @@ src/
 
 - **Gọi API:** luôn qua `client` trong `api/apiClient.ts`, không `fetch` trực tiếp, không tạo axios instance khác.
   Thêm endpoint mới → thêm hàm trong `api/*.ts` trả `data.result`, dùng type cho request/response.
+  **Ngoại lệ duy nhất:** `realtime/realtimeClient.ts` dùng `fetch` cho luồng SSE (axios không đọc được stream trên trình duyệt;
+  `EventSource` gốc không thấy HTTP status / không đặt được Last-Event-ID) — vẫn đọc `VITE_API_BASE_URL`, `credentials: 'include'`.
+- **Hết phiên:** `client` gặp 401 → `refreshSession()` (POST /auth/refresh, single-flight + khoá Web Locks giữa các tab — refresh token
+  XOAY VÒNG nên hai lời gọi song song làm văng phiên) rồi thử lại 1 lần; hỏng → `endSession()`. Đừng tự gọi /auth/refresh ở chỗ khác.
+- **Realtime:** nghe sự kiện bằng `useRealtimeEvent(name, handler)`; màn hình cần tự làm mới khi dữ liệu đổi → `useRealtimeRefresh(['post.updated', 'ready'], refetch)`
+  (debounce; `ready` chỉ kích hoạt khi NỐI LẠI). Chờ job nền → `waitForJob` (không viết vòng poll mới).
 - **Validation:** logic kiểm tra dữ liệu (email/OTP/mật khẩu/SĐT…) đặt ở `src/validations/`, import dùng lại;
   không viết lại regex/điều kiện inline trong component. Quy tắc mật khẩu ở `validations/password.ts` (đồng bộ
   `WEAK_PASSWORD` của backend: ≥8 ký tự gồm hoa, thường, số, ký tự đặc biệt).

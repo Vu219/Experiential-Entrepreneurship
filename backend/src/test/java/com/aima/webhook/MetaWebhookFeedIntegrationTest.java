@@ -131,7 +131,7 @@ class MetaWebhookFeedIntegrationTest {
     }
 
     @Test
-    void postRemoved_marksDeletedOnPlatform_keepsPostStatusAndLastMetrics_noNotification() throws Exception {
+    void postRemoved_marksDeletedOnPlatform_keepsPostStatusAndLastMetrics_notifiesOnce() throws Exception {
         Fixture f = newTrackedPost();
         transactionTemplate.executeWithoutResult(tx -> {
             PostMetricSnapshot last = new PostMetricSnapshot();
@@ -153,7 +153,10 @@ class MetaWebhookFeedIntegrationTest {
         assertNull(media.getNextSyncAt());
         assertEquals(PostStatus.POSTED, postRepository.findById(f.postId()).orElseThrow().getStatus(),
                 "không đánh FAILED — Meta không cho biết bị gỡ hay tự xoá");
-        assertEquals(notificationsBefore, notificationRepository.count(), "không gửi thông báo \"bị nền tảng gỡ\"");
+        // D7 (2026-10-14): báo POST_REMOVED_BY_PLATFORM đúng MỘT lần (trước đây 07/10: không báo).
+        assertEquals(notificationsBefore + 1, notificationRepository.count(), "báo bài không còn trên nền tảng một lần");
+        assertTrue(notificationRepository.findAll().stream()
+                .anyMatch(n -> n.getType() == com.aima.enums.NotificationType.POST_REMOVED_BY_PLATFORM));
         assertEquals(1, snapshotRepository.findByPlatformMedia_IdAndDeletedAtIsNullOrderByCollectedAtAsc(media.getId()).size(),
                 "giữ số liệu cuối cùng đã thu");
     }

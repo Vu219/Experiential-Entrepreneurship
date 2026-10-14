@@ -1,5 +1,11 @@
 package com.aima.service.Impl;
 
+import com.aima.util.NotificationParams;
+import com.aima.service.RealtimeEventPublisher;
+import com.aima.service.NotificationService;
+import com.aima.enums.RealtimeEventType;
+import com.aima.enums.NotificationType;
+import com.aima.dto.notification.NotificationDraft;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.TokenUsageResponse;
 import com.aima.entity.Plan;
@@ -40,6 +46,9 @@ import java.util.UUID;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class TokenUsageServiceImpl implements TokenUsageService {
 
+    /** Ngưỡng cảnh báo hạn mức (D7: 80% / 100%). */
+    static final int QUOTA_WARNING_PERCENT = 80;
+
     UserRepository userRepository;
     PlanRepository planRepository;
     SubscriptionService subscriptionService;
@@ -50,6 +59,8 @@ public class TokenUsageServiceImpl implements TokenUsageService {
     ContentGenerationJobRepository generationJobRepository;
     ContentFormattingJobRepository formattingJobRepository;
     ContentRegenerationJobRepository regenerationJobRepository;
+    NotificationService notificationService;
+    RealtimeEventPublisher realtimeEventPublisher;
 
     private static final List<GenerationJobStatus> IN_FLIGHT =
             List.of(GenerationJobStatus.PENDING, GenerationJobStatus.RUNNING);
@@ -150,6 +161,40 @@ public class TokenUsageServiceImpl implements TokenUsageService {
         user.setTokenUsageMonth(month);
         user.setTokensUsed(base + amount);
         userRepository.save(user);
+    }
+
+    @Override
+    public void notifyQuotaThresholds(UUID userId) {
+        try {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null) {
+                return;
+            }
+            QuotaState state = state(user);
+            if (state.limit() == null || state.limit() <= 0) {
+                return; // gói không giới hạn
+            }
+            int percent = (int) Math.min(999, state.used() * 100 / state.limit());
+            realtimeEventPublisher.toUser(userId, RealtimeEventType.USAGE_UPDATED, NotificationParams.of("percent", percent));
+            if (percent < QUOTA_WARNING_PERCENT) {
+                return;
+            }
+            Subscription subscription = subscriptionService.getOrCreate(user);
+            String period = subscription == null || subscription.getCurrentPeriodStart() == null
+                    ? currentMonth() : subscription.getCurrentPeriodStart().toLocalDate().toString();
+            boolean exhausted = percent >= 100;
+            String creditNote = state.creditLeft() > 0 ? " AIMA đang dùng token bạn đã mua thêm." : "";
+            notificationService.send(user, NotificationDraft.builder()
+                    .type(exhausted ? NotificationType.AI_QUOTA_EXHAUSTED : NotificationType.AI_QUOTA_WARNING)
+                    .title(exhausted ? "Đã dùng hết hạn mức token" : "Sắp hết hạn mức token")
+                    .message((exhausted ? "Bạn đã dùng hết hạn mức token AI của kỳ này." : "Bạn đã dùng " + percent
+                            + "% hạn mức token AI của kỳ này.") + creditNote + " Nâng cấp gói hoặc mua thêm token để tiếp tục.")
+                    .params(NotificationParams.of("percent", percent, "creditLeft", state.creditLeft(), "period", period))
+                    .dedupeKey("quota:" + userId + ":" + period + ":" + (exhausted ? 100 : QUOTA_WARNING_PERCENT))
+                    .build());
+        } catch (Exception e) {
+            log.warn("[TokenUsage] Không báo được ngưỡng hạn mức cho user {}: {}", userId, e.toString());
+        }
     }
 
     // Hạn mức lấy từ row Plan theo code = user.plan (3 gói lõi khớp enum UserPlan).

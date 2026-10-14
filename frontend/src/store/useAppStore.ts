@@ -51,7 +51,6 @@ interface AppStoreState {
   colorMode: ColorMode;
   profile: ProfileState;
   brand: BrandState;
-  notif: boolean[];
   activeBrandId: string | null;
 
   setLang: (l: Lang) => void;
@@ -61,7 +60,6 @@ interface AppStoreState {
   setProfile: (patch: Partial<ProfileState>) => void;
   setBrand: (patch: Partial<BrandState>) => void;
   toggleBrandTone: (i: number) => void;
-  toggleNotif: (i: number) => void;
   setActiveBrand: (id: string) => void;
   // Đồng bộ tên/email hiển thị theo user đã đăng nhập (gọi từ AppProvider).
   syncUser: (fullName?: string, email?: string) => void;
@@ -73,7 +71,6 @@ export const useAppStore = create<AppStoreState>((set) => ({
   colorMode: colorModeStorage.load(),
   profile: { name: "AIMA User", email: "contact@aima.studio", bio: bioDefault("vi") },
   brand: { ...brandDefaults("vi"), toneIdx: [0, 1, 3] },
-  notif: [true, true, true, false],
   activeBrandId: readActiveBrand(),
 
   setLang: (l) => set({ lang: l }),
@@ -97,7 +94,6 @@ export const useAppStore = create<AppStoreState>((set) => ({
           : [...s.brand.toneIdx, i],
       },
     })),
-  toggleNotif: (i) => set((s) => ({ notif: s.notif.map((v, idx) => (idx === i ? !v : v)) })),
   setActiveBrand: (id) => {
     try {
       localStorage.setItem(ACTIVE_BRAND_KEY, id);

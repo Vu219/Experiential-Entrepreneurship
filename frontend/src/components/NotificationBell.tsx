@@ -1,49 +1,40 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CheckCheck } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { useBreakpoint } from "../hooks/useBreakpoint";
 import { useUiStore } from "../store/useUiStore";
 import { Icon } from "./ui";
 import { ICON } from "../data";
-import { ROUTE_BY_TYPE, TYPE_META } from "./notificationMeta";
+import { openNotificationTarget, TYPE_META } from "./notificationMeta";
 import { formatRelativeTime } from "../utils/format";
-import {
-  getUnreadCount,
-  listNotifications,
-  markAllNotificationsRead,
-  markNotificationRead,
-  type AppNotification,
-} from "../api/notifications";
+import type { AppNotification } from "../api/notifications";
+import { notificationText } from "../notifications/text";
+import { notificationTarget } from "../notifications/links";
+import { useNotificationFeed } from "../hooks/useNotificationFeed";
+import { useUnreadCountSync } from "../hooks/useUnreadCountSync";
+import { useRealtimeEvent } from "../realtime/events";
 import { C } from "../styles/colors";
 
 const PAGE_SIZE = 8;
-const POLL_MS = 60_000;
+const RING_MS = 900;
 
-/** Chuông thông báo trên Topbar: badge số chưa đọc + dropdown danh sách (FR-75..FR-78, FR-38). */
+/**
+ * Chuông thông báo trên Topbar: badge chưa đọc (realtime, poll dự phòng khi mất kết nối) + dropdown danh sách cập nhật
+ * trực tiếp (FR-75..FR-79). "Xem tất cả" → trang /notifications (D9).
+ */
 export default function NotificationBell() {
-  const { t, go } = useApp();
+  const { t, lang, go } = useApp();
+  const navigate = useNavigate();
   const { isMobile } = useBreakpoint();
   // Trạng thái mở nằm ở useUiStore để ô tìm kiếm toàn cục ("Mở thông báo") mở được chuông từ bên ngoài.
   const open = useUiStore((s) => s.notificationsOpen);
   const setOpen = useUiStore((s) => s.setNotificationsOpen);
-  const [unread, setUnread] = useState(0);
-  const [items, setItems] = useState<AppNotification[]>([]);
-  const [page, setPage] = useState(0);
-  const [last, setLast] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const { unread, reconnecting } = useUnreadCountSync();
+  const feed = useNotificationFeed({ pageSize: PAGE_SIZE, enabled: open });
+  const [ringing, setRinging] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-
-  const refreshUnread = useCallback(() => {
-    getUnreadCount().then(setUnread).catch(() => undefined); // best-effort — badge cũ vẫn dùng được
-  }, []);
-
-  // Badge chưa đọc: nạp khi mount + poll mỗi phút.
-  useEffect(() => {
-    refreshUnread();
-    const timer = setInterval(refreshUnread, POLL_MS);
-    return () => clearInterval(timer);
-  }, [refreshUnread]);
+  const dict = t as unknown as Record<string, string>;
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
@@ -53,49 +44,30 @@ export default function NotificationBell() {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [setOpen]);
 
-  const loadPage = useCallback(async (pageNo: number, replace: boolean) => {
-    setLoading(true);
-    setError(false);
-    try {
-      const result = await listNotifications({ page: pageNo, size: PAGE_SIZE });
-      setItems((prev) => (replace ? result.content : [...prev, ...result.content]));
-      setPage(result.page);
-      setLast(result.last);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Mỗi lần mở (từ nút chuông hoặc từ palette) nạp lại trang đầu + badge.
-  useEffect(() => {
-    if (open) {
-      loadPage(0, true);
-      refreshUnread();
-    }
-  }, [open, loadPage, refreshUnread]);
-
   // Rời khu vực (unmount topbar, vd đăng xuất) → không để dropdown mở sẵn cho lần sau.
   useEffect(() => () => setOpen(false), [setOpen]);
+
+  // Thông báo mới: rung nhẹ chuông (CSS tắt hiệu ứng khi prefers-reduced-motion).
+  useRealtimeEvent("notification.created", () => {
+    setRinging(true);
+    window.setTimeout(() => setRinging(false), RING_MS);
+  });
 
   const toggle = () => setOpen(!open);
 
   const onItemClick = (n: AppNotification) => {
-    if (!n.readAt) {
-      // Optimistic: đánh dấu đã đọc ngay, lỗi thì poll sau tự chỉnh lại.
-      setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x)));
-      setUnread((u) => Math.max(0, u - 1));
-      markNotificationRead(n.id).catch(() => undefined);
-    }
+    feed.markRead(n);
     setOpen(false);
-    go(ROUTE_BY_TYPE[n.type] ?? "dashboard");
+    openNotificationTarget(notificationTarget(n), go, navigate);
   };
 
   const onMarkAll = () => {
-    setItems((prev) => prev.map((x) => (x.readAt ? x : { ...x, readAt: new Date().toISOString() })));
-    setUnread(0);
-    markAllNotificationsRead().catch(() => undefined);
+    feed.markAll().catch(() => undefined);
+  };
+
+  const onViewAll = () => {
+    setOpen(false);
+    navigate("/notifications");
   };
 
   return (
@@ -104,7 +76,9 @@ export default function NotificationBell() {
         onClick={toggle}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={t.ntfTitle}
+        aria-label={reconnecting ? `${t.ntfTitle} — ${t.ntfReconnecting}` : t.ntfTitle}
+        title={reconnecting ? t.ntfReconnecting : undefined}
+        className={ringing ? "ntf-bell ntf-bell--ring" : "ntf-bell"}
         style={{
           position: "relative", width: isMobile ? 38 : 42, height: isMobile ? 38 : 42, borderRadius: 11,
           background: C.surfaceMuted, border: `1px solid ${C.border}`,
@@ -122,6 +96,15 @@ export default function NotificationBell() {
           >
             {unread > 99 ? "99+" : unread}
           </span>
+        )}
+        {reconnecting && (
+          <span
+            aria-hidden
+            style={{
+              position: "absolute", bottom: -3, right: -3, width: 10, height: 10, borderRadius: "50%",
+              background: C.ink350, border: `2px solid ${C.surface}`,
+            }}
+          />
         )}
       </button>
 
@@ -149,40 +132,62 @@ export default function NotificationBell() {
             )}
           </div>
 
+          {reconnecting && (
+            <div style={{ padding: "7px 16px", fontSize: 11.5, color: C.textMuted, background: C.surfaceSubtle, borderBottom: `1px solid ${C.surfaceMuted}` }}>
+              {t.ntfReconnecting}
+            </div>
+          )}
+
           <div style={{ maxHeight: 420, overflowY: "auto" }}>
-            {error && (
+            {feed.error && (
               <div style={{ padding: "26px 16px", textAlign: "center", fontSize: 13, color: C.textMuted }}>
                 {t.ntfErr}{" "}
-                <button onClick={() => loadPage(0, true)} style={{ background: "none", border: "none", color: C.primary, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
+                <button onClick={feed.reload} style={{ background: "none", border: "none", color: C.primary, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
                   {t.ntfRetry}
                 </button>
               </div>
             )}
-            {!error && items.length === 0 && !loading && (
+            {!feed.error && feed.items.length === 0 && !feed.loading && (
               <div style={{ padding: "30px 16px", textAlign: "center", fontSize: 13, color: C.textMuted }}>{t.ntfEmpty}</div>
             )}
-            {items.map((n) => (
-              <NotificationRow key={n.id} notification={n} onClick={() => onItemClick(n)} />
+            {feed.items.map((n) => (
+              <NotificationRow key={n.id} notification={n} text={notificationText(n, dict, lang)} onClick={() => onItemClick(n)} />
             ))}
-            {loading && (
+            {feed.loading && (
               <div style={{ padding: "14px 16px", textAlign: "center", fontSize: 12.5, color: C.ink350 }}>…</div>
             )}
-            {!loading && !error && !last && (
+            {!feed.loading && !feed.error && !feed.last && (
               <button
-                onClick={() => loadPage(page + 1, false)}
+                onClick={feed.loadMore}
                 style={{ width: "100%", padding: "11px 16px", background: C.surfaceSubtle, border: "none", borderTop: `1px solid ${C.surfaceMuted}`, cursor: "pointer", fontSize: 12.5, fontWeight: 700, color: C.primary }}
               >
                 {t.ntfMore}
               </button>
             )}
           </div>
+
+          <button
+            onClick={onViewAll}
+            className="link-underline"
+            style={{ width: "100%", padding: "11px 16px", background: C.surface, border: "none", borderTop: `1px solid ${C.surfaceMuted}`, cursor: "pointer", fontSize: 12.5, fontWeight: 700, color: C.primary }}
+          >
+            {t.ntfViewAll}
+          </button>
         </div>
       )}
     </div>
   );
 }
 
-function NotificationRow({ notification, onClick }: { notification: AppNotification; onClick: () => void }) {
+export function NotificationRow({
+  notification,
+  text,
+  onClick,
+}: {
+  notification: AppNotification;
+  text: { title: string; body: string };
+  onClick: () => void;
+}) {
   const { t } = useApp();
   const meta = TYPE_META[notification.type] ?? TYPE_META.NEW_INSIGHT;
   const TypeIcon = meta.icon;
@@ -205,18 +210,18 @@ function NotificationRow({ notification, onClick }: { notification: AppNotificat
       <span style={{ minWidth: 0, flex: 1 }}>
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ fontSize: 13, fontWeight: unread ? 800 : 600, color: C.textStrong, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {notification.title}
+            {text.title}
           </span>
           {unread && <span style={{ width: 7, height: 7, flex: "none", borderRadius: "50%", background: "#ec4899" }} />}
         </span>
-        {notification.message && (
+        {text.body && (
           <span
             style={{
               display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
               fontSize: 12, color: C.textSecondary, lineHeight: 1.45, marginTop: 2,
             }}
           >
-            {notification.message}
+            {text.body}
           </span>
         )}
         <span style={{ display: "block", fontSize: 11, color: C.ink350, marginTop: 4 }}>

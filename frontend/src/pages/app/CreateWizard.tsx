@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { cancelContentGeneration } from '../../api/contentGeneration';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Lock } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
@@ -217,6 +218,7 @@ export default function CreateWizard() {
   // Job FAILED (errorCode) / mã lỗi AI / lỗi không có mã → câu thân thiện theo mã (api/aiErrorMessages),
   // KHÔNG hiện errorMessage thô của job. Lỗi nghiệp vụ khác có mã (vd hết hạn mức) giữ message backend.
   const generationErrorMessage = (err: ApiError): string => {
+    if (err.errorCode === 'CANCELLED_BY_USER') return t.cwStopped;
     if (err.code === ERR_CONTENT_ITEM_NOT_DRAFT) return t.cwGenItemNotDraft;
     if (err.code === ERR_CONTENT_ITEM_NOT_FOUND) return t.cwGenItemNotFound;
     if (err.code === ERR_CONTENT_ITEM_ID_REQUIRED) return t.cwGenItemMissing;
@@ -275,6 +277,7 @@ export default function CreateWizard() {
         ideaId: source.trend?.kind === 'idea' ? source.trend.id : undefined,
         note: [source.aiNote, regenNote].filter(Boolean).join('\n') || undefined,
         regenerateFrom,
+        onStarted: (jobId) => setRun(genId, platform, { status: 'running', jobId }),
       });
       setGens((prev) =>
         prev.map((g) =>
@@ -284,7 +287,8 @@ export default function CreateWizard() {
       setBaselines((prev) => ({ ...prev, [version.id]: version.brandVoice.score }));
       setRun(genId, platform, { status: 'done' });
     } catch (e) {
-      setRun(genId, platform, { status: 'error', error: generationErrorMessage(e as ApiError) });
+      const err = e as ApiError;
+      setRun(genId, platform, { status: 'error', error: generationErrorMessage(err), cancelled: err.errorCode === 'CANCELLED_BY_USER' });
     }
   };
 
@@ -322,6 +326,19 @@ export default function CreateWizard() {
       startingRef.current = false;
       setStarting(false);
     }
+  };
+
+  // "Dừng" một nền tảng đang tạo: backend chốt job FAILED/CANCELLED_BY_USER (đóng luồng AI); runPlatform đang chờ
+  // job sẽ nhận trạng thái đó và hiện "Bạn đã dừng…" + nút Thử lại như lỗi thường.
+  const stopPlatform = (platform: Platform) => {
+    const gen = gens[genIndex];
+    const run = gen ? runsByGen[gen.id]?.[platform] : undefined;
+    if (!gen || !run?.jobId || run.stopping) return;
+    setRun(gen.id, platform, { ...run, stopping: true });
+    cancelContentGeneration(run.jobId).catch((e) => {
+      setRun(gen.id, platform, { ...run, stopping: false });
+      toast.error((e as ApiError).message);
+    });
   };
 
   // "Thử lại" riêng nền tảng lỗi của bản hiện tại — các nền tảng đã xong không bị đụng.
@@ -607,6 +624,7 @@ export default function CreateWizard() {
           onGenerate={() => startGeneration()}
           onRegenerate={(note) => startGeneration(note)}
           onRetryPlatform={retryPlatform}
+          onStopPlatform={stopPlatform}
           onPatchVersion={patchVersion}
           onBack={() => goStep(1)}
           onNext={() => gen && goStep(3)}

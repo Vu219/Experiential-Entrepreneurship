@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import AiStreamPreview from '../AiStreamPreview';
 import { ArrowLeft, ArrowRight, RefreshCw, Sparkles } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import { Card, Icon, Loader } from '../../ui';
@@ -25,6 +26,12 @@ import { C } from '../../../styles/colors';
 export interface PlatformRun {
   status: PlatformRunStatus;
   error?: string;
+  /** Job backend đang chạy — xem trước AI streaming + nút Dừng. */
+  jobId?: string;
+  /** Đã bấm Dừng, chờ backend chốt job. */
+  stopping?: boolean;
+  /** Kết thúc vì user bấm Dừng (không phải lỗi) — hiện câu trung tính. */
+  cancelled?: boolean;
 }
 
 /**
@@ -43,6 +50,7 @@ export default function GenerateStep({
   onGenerate,
   onRegenerate,
   onRetryPlatform,
+  onStopPlatform,
   onPatchVersion,
   onBack,
   onNext,
@@ -58,6 +66,7 @@ export default function GenerateStep({
   onGenerate: () => void;
   onRegenerate: (note: string) => void;
   onRetryPlatform: (platform: Platform) => void;
+  onStopPlatform: (platform: Platform) => void;
   onPatchVersion: (versionId: string, patch: Partial<ContentVersion>) => void;
   onBack: () => void;
   onNext: () => void;
@@ -155,11 +164,11 @@ export default function GenerateStep({
 
           {/* Panel theo tab: đang tạo / lỗi + Thử lại / nội dung — độc lập từng nền tảng */}
           {run?.status === 'running' ? (
-            <Loader label={t.cwGenerating} />
+            <AiStreamPreview jobId={run.jobId} stopping={!!run.stopping} onStop={() => onStopPlatform(platform)} />
           ) : run?.status === 'error' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '18px 0' }}>
               <div style={{ fontSize: 13, color: C.legacyTextd1435b, background: C.legacyBgfdf1f3, borderRadius: 12, padding: '12px 14px', lineHeight: 1.55 }}>
-                {t.cwGenPlatformError}{run.error ? `: ${run.error}` : ''}
+                {run.cancelled ? t.cwStopped : `${t.cwGenPlatformError}${run.error ? `: ${run.error}` : ''}`}
               </div>
               <button
                 onClick={() => onRetryPlatform(platform)}

@@ -1,5 +1,8 @@
 package com.aima.scheduler;
 
+import com.aima.util.NotificationParams;
+import com.aima.enums.NotificationRefType;
+import com.aima.dto.notification.NotificationDraft;
 import com.aima.entity.PostSchedule;
 import com.aima.enums.NotificationType;
 import com.aima.repository.PostScheduleRepository;
@@ -33,12 +36,18 @@ public class HeldScheduleOverdueJob {
     public void run() {
         for (PostSchedule schedule : scheduleRepository.findHeldOverdue(Instant.now())) {
             try {
-                notificationService.notifyOnce(schedule.getPlatformAccount().getUser(), NotificationType.SCHEDULE_OVERDUE,
-                        "Bài tạm giữ đã quá giờ đăng",
-                        "Một bài lên lịch cho " + schedule.getPlatformAccount().getAccountName()
+                notificationService.send(schedule.getPlatformAccount().getUser(), NotificationDraft.builder()
+                        .type(NotificationType.SCHEDULE_OVERDUE)
+                        .title("Bài tạm giữ đã quá giờ đăng")
+                        .message("Một bài lên lịch cho " + schedule.getPlatformAccount().getAccountName()
                                 + " đang bị tạm giữ và đã qua giờ đăng — hệ thống sẽ không tự đăng. "
-                                + "Hãy xử lý lý do tạm giữ rồi chọn giờ đăng mới trong Lịch đăng.",
-                        schedule.getId(), dedupeKey(schedule));
+                                + "Hãy xử lý lý do tạm giữ rồi chọn giờ đăng mới trong Lịch đăng.")
+                        .refType(NotificationRefType.SCHEDULE).refId(schedule.getId())
+                        .params(NotificationParams.of("accountName", schedule.getPlatformAccount().getAccountName(),
+                                "platform", schedule.getPlatformAccount().getPlatformName(),
+                                "scheduledTime", schedule.getScheduledTime()))
+                        .dedupeKey(dedupeKey(schedule))
+                        .build());
             } catch (Exception e) {
                 log.error("[HeldOverdue] Bỏ qua lịch {} do lỗi khi nhắc", schedule.getId(), e);
             }

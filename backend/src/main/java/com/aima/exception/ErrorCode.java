@@ -513,6 +513,15 @@ public enum ErrorCode {
     // Ô tìm kiếm toàn cục (GET /search)
     SEARCH_QUERY_INVALID(2199, "Từ khóa tìm kiếm phải từ 1 đến 100 ký tự", HttpStatus.BAD_REQUEST),
     SEARCH_LIMIT_INVALID(2200, "Số kết quả mỗi nhóm phải từ 1 đến 10", HttpStatus.BAD_REQUEST),
+
+    // Realtime (SSE GET /realtime/stream)
+    REALTIME_CAPACITY_EXCEEDED(2201, "Máy chủ đang quá tải kết nối realtime — ứng dụng sẽ tự thử lại",
+            HttpStatus.SERVICE_UNAVAILABLE),
+
+    // Thông báo (danh sách / cài đặt kênh)
+    NOTIFICATION_CATEGORY_INVALID(2202, "Nhóm thông báo không hợp lệ", HttpStatus.BAD_REQUEST),
+    NOTIFICATION_FILTER_INVALID(2203, "Bộ lọc thông báo không hợp lệ (status = all | unread)", HttpStatus.BAD_REQUEST),
+    NOTIFICATION_PREFERENCE_EMPTY(2204, "Chưa có thay đổi cài đặt thông báo nào để lưu", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

@@ -1,5 +1,6 @@
-import axios from "axios";
+import axios, { type InternalAxiosRequestConfig } from "axios";
 import { globalToast } from "../components/toast/ToastProvider";
+import { createSessionRefresher, isProfileProbe, isRefreshExempt, type LockManagerLike } from "./sessionRefresh";
 
 // Unified backend response format (API-01)
 export interface ApiResponse<T> {
@@ -36,21 +37,62 @@ export interface ApiError extends Error {
   errorCode?: string;
 }
 
+interface RetriableConfig extends InternalAxiosRequestConfig {
+  _sentAt?: number;
+  _authRetried?: boolean;
+}
+
+// Access token sống 1 giờ; gặp 401 thì làm mới phiên bằng cookie refresh rồi thử lại MỘT lần
+// (single-flight + khoá giữa các tab — xem sessionRefresh.ts). Client SSE dùng chung refreshSession().
+const refresher = createSessionRefresher(
+  () => client.post("/auth/refresh", null, { timeout: 15_000 }),
+  { getLocks: () => (typeof navigator !== "undefined" ? (navigator.locks as LockManagerLike | undefined) : undefined) },
+);
+
+export function refreshSession(sentAt?: number): Promise<boolean> {
+  return refresher.refresh(sentAt);
+}
+
+// AuthContext đăng ký: refresh hỏng → xoá user (ProtectedRoute đưa về /login). Trả true nếu trước đó đang đăng nhập.
+let sessionExpiredHandler: (() => boolean) | null = null;
+
+export function setSessionExpiredHandler(handler: (() => boolean) | null): void {
+  sessionExpiredHandler = handler;
+}
+
+/** Hết phiên thật (refresh thất bại): xoá trạng thái đăng nhập + báo một lần. */
+export function endSession(): void {
+  const hadSession = sessionExpiredHandler?.() ?? false;
+  if (hadSession) {
+    globalToast?.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", {
+      title: "Lỗi kết nối",
+      id: 401,
+    });
+  }
+}
+
+client.interceptors.request.use((config) => {
+  (config as RetriableConfig)._sentAt = Date.now();
+  return config;
+});
+
 client.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const data = error.response?.data;
     const status = error.response?.status;
+    const config = error.config as RetriableConfig | undefined;
     const message = data?.message ?? "Cannot reach the server. Please try again.";
-    
-    const isLoginEndpoint = error.config?.url?.includes("/auth/login");
-    const isProfileProbe = error.config?.url?.includes("/users/me");
-    
-    if (status === 401 && !isLoginEndpoint && !isProfileProbe) {
-      globalToast?.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", { 
-        title: "Lỗi kết nối",
-        id: 401 
-      });
+
+    if (status === 401 && config && !config._authRetried && !isRefreshExempt(config.url)) {
+      config._authRetried = true;
+      if (await refreshSession(config._sentAt)) {
+        return client(config);
+      }
+      if (!isProfileProbe(config.url)) endSession();
+    } else if (status === 401 && config?._authRetried && !isProfileProbe(config.url)) {
+      // Vừa làm mới phiên xong mà vẫn 401 (tài khoản bị khoá / đăng xuất ở nơi khác).
+      endSession();
     } else if (status >= 500) {
       globalToast?.error("Máy chủ hiện không phản hồi. Vui lòng thử lại sau.", { title: "Lỗi hệ thống" });
     }

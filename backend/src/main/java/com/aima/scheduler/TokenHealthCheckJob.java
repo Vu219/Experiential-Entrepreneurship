@@ -1,5 +1,8 @@
 package com.aima.scheduler;
 
+import com.aima.util.NotificationParams;
+import com.aima.enums.NotificationRefType;
+import com.aima.dto.notification.NotificationDraft;
 import com.aima.entity.PlatformAccount;
 import com.aima.enums.ConnectionStatus;
 import com.aima.enums.HoldReason;
@@ -99,12 +102,16 @@ public class TokenHealthCheckJob {
             int held = holdService.holdForAccounts(List.of(account.getId()), HoldReason.ACCOUNT_ISSUE);
 
             // FR-78: nhắc kết nối lại.
-            notificationService.notify(account.getUser(), NotificationType.RECONNECT_NEEDED,
-                    "Cần kết nối lại tài khoản",
-                    "Token của " + account.getAccountName() + " trên " + account.getPlatformName()
+            notificationService.send(account.getUser(), NotificationDraft.builder()
+                    .type(NotificationType.RECONNECT_NEEDED)
+                    .title("Cần kết nối lại tài khoản")
+                    .message("Token của " + account.getAccountName() + " trên " + account.getPlatformName()
                             + " đã hết hạn — " + (held == 0 ? "" : held + " bài đã lên lịch được tạm giữ (On Hold). ")
-                            + "Vui lòng kết nối lại trong phần Cài đặt.",
-                    account.getId());
+                            + "Vui lòng kết nối lại trong phần Cài đặt.")
+                    .refType(NotificationRefType.PLATFORM_ACCOUNT).refId(account.getId())
+                    .params(NotificationParams.of(NotificationParams.VARIANT, "EXPIRED",
+                            "accountName", account.getAccountName(), "platform", account.getPlatformName(), "held", held))
+                    .build());
         } catch (Exception e) {
             log.error("[TokenHealthCheck] Không thể đánh dấu EXPIRED cho {}", account.getId(), e);
         }

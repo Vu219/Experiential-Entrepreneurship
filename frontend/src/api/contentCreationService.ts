@@ -29,6 +29,12 @@ import {
 import { listTrendResearchSessions, getTrendResearchSession } from "./trendResearch";
 import type { ApiError, PageResponse } from "./apiClient";
 import { useAppStore } from "../store/useAppStore";
+import { useRealtimeStore } from "../store/useRealtimeStore";
+import { waitForJob } from "../realtime/waitForJob";
+import type { JobUpdatedEvent } from "../realtime/events";
+
+/** Luồng realtime đang mở → chờ job qua sự kiện, chỉ poll an toàn; không thì poll như trước. */
+const realtimeOpen = () => useRealtimeStore.getState().status === "open";
 import { mockBrandVoice, placeholderImage, draftListTitle } from "../createData";
 
 // ===== Lớp service THỐNG NHẤT cho màn Tạo nội dung (list + wizard) =====
@@ -165,6 +171,10 @@ export interface GenerateVersionInput {
   note?: string;
   /** TEXT bản trước cần cải thiện khi tạo lại (FR-32) — KHÔNG phải id. */
   regenerateFrom?: string;
+  /** Tiến độ realtime của job (stage PREPARING / GENERATING) — tuỳ chọn. */
+  onProgress?: (event: JobUpdatedEvent) => void;
+  /** Có jobId ngay sau khi khởi động — để xem trước AI streaming và nút Dừng. */
+  onStarted?: (jobId: string) => void;
 }
 
 /** Trend/idea gắn được vào bài — lấy từ phiên research THẬT của tab Xu hướng. */
@@ -468,17 +478,21 @@ export async function generateVersion(input: GenerateVersionInput): Promise<Cont
     },
     crypto.randomUUID(),
   );
-  // Poll có backoff nhẹ (2s → 3s → 5s…) và trần tổng GENERATION_POLL_LIMIT_MS. Hết trần: dừng poll,
-  // báo AI_TIMEOUT — job vẫn có thể xong ở backend (kết quả được lưu, xem lại trong Thư viện nội dung).
-  const deadline = Date.now() + GENERATION_POLL_LIMIT_MS;
-  let round = 0;
-  while (job.status === "PENDING" || job.status === "RUNNING") {
-    if (Date.now() >= deadline) {
-      throw generationError("AI_TIMEOUT", job.errorMessage);
-    }
-    await delay(POLL_BACKOFF_MS[Math.min(round++, POLL_BACKOFF_MS.length - 1)]);
-    job = await getContentGenerationJob(job.id);
-  }
+  // Chờ qua realtime (job.updated) — luồng không mở / lỡ sự kiện thì poll có backoff nhẹ (2s → 3s → 5s…) như trước.
+  // Trần tổng GENERATION_POLL_LIMIT_MS: hết trần báo AI_TIMEOUT — job vẫn có thể xong ở backend (xem lại trong Thư viện).
+  const jobId = job.id;
+  input.onStarted?.(jobId);
+  job = await waitForJob({
+    jobId,
+    initial: job,
+    fetch: () => getContentGenerationJob(jobId),
+    isDone: (j) => j.status !== "PENDING" && j.status !== "RUNNING",
+    pollMs: (round) => POLL_BACKOFF_MS[Math.min(round, POLL_BACKOFF_MS.length - 1)],
+    deadline: Date.now() + GENERATION_POLL_LIMIT_MS,
+    onDeadline: (j) => generationError("AI_TIMEOUT", j.errorMessage),
+    isRealtimeOpen: realtimeOpen,
+    onEvent: input.onProgress,
+  });
   if (job.status !== "SUCCESS" || !job.contentVersion) {
     throw generationError(job.errorCode ?? undefined, job.errorMessage);
   }
@@ -505,12 +519,21 @@ function generationError(errorCode: string | undefined, message: string | null):
  * riêng một nền tảng không được kéo theo bản cũ (đọc từ DB) của các nền tảng khác — sẽ đè mất
  * chỉnh sửa tay chưa lưu của chúng ở FE.
  */
-export async function formatContent(itemId: string, platforms: Platform[]): Promise<ContentVersion[]> {
-  let job = await startFormatting(itemId, platforms);
-  while (job.status === "PENDING" || job.status === "RUNNING") {
-    await delay(2000);
-    job = await getFormattingJob(job.id);
-  }
+export async function formatContent(
+  itemId: string,
+  platforms: Platform[],
+  onProgress?: (event: JobUpdatedEvent) => void,
+): Promise<ContentVersion[]> {
+  const started = await startFormatting(itemId, platforms);
+  const job = await waitForJob({
+    jobId: started.id,
+    initial: started,
+    fetch: () => getFormattingJob(started.id),
+    isDone: (j) => j.status !== "PENDING" && j.status !== "RUNNING",
+    pollMs: () => 2000,
+    isRealtimeOpen: realtimeOpen,
+    onEvent: onProgress,
+  });
   if (job.status !== "SUCCESS") {
     throw new Error(job.errorMessage ?? "AI_SERVICE_ERROR");
   }
@@ -549,15 +572,19 @@ export async function regeneratePart(
   field: RegenField,
   stepIndex?: number,
 ): Promise<ScriptPatch> {
-  let job = await startRegeneratePart(itemId, versionId, {
+  const started = await startRegeneratePart(itemId, versionId, {
     section: SECTION_TO_API[section],
     field: field === "content" ? "CONTENT" : "SCENE",
     stepIndex,
   });
-  while (job.status === "PENDING" || job.status === "RUNNING") {
-    await delay(1500);
-    job = await getRegenJob(job.id);
-  }
+  const job = await waitForJob({
+    jobId: started.id,
+    initial: started,
+    fetch: () => getRegenJob(started.id),
+    isDone: (j) => j.status !== "PENDING" && j.status !== "RUNNING",
+    pollMs: () => 1500,
+    isRealtimeOpen: realtimeOpen,
+  });
   if (job.status !== "SUCCESS" || !job.patch) {
     throw new Error(job.errorMessage ?? "AI_SERVICE_ERROR");
   }

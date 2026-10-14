@@ -13,6 +13,7 @@ import com.aima.mapper.NotificationPreferenceMapper;
 import com.aima.repository.UserNotificationPreferenceRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.NotificationPreferenceService;
+import com.aima.util.NotificationChannelPolicy;
 import com.aima.util.UnsubscribeTokenCodec;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,8 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -70,16 +73,30 @@ public class NotificationPreferenceServiceImpl implements NotificationPreference
     @Transactional
     public ApiResponse<NotificationPreferenceResponse> update(String email, NotificationPreferenceRequest request) {
         User user = currentUser(email);
+        boolean emailChange = request.getEmailPublishErrors() != null;
+        boolean channelChange = request.getChannels() != null && !request.getChannels().isEmpty();
+        if (!emailChange && !channelChange) {
+            throw new AppException(ErrorCode.NOTIFICATION_PREFERENCE_EMPTY);
+        }
         UserNotificationPreference preference = preferenceOf(user.getId());
-        boolean enable = Boolean.TRUE.equals(request.getEmailPublishErrors());
-        preference.setEmailPublishErrors(enable);
-        preference.setEmailPromptStatus(enable ? EmailPromptStatus.ACCEPTED : EmailPromptStatus.DECLINED);
-        preference.setConsentAt(enable ? Instant.now() : null);
+        String message = "Đã lưu cài đặt thông báo";
+        if (emailChange) {
+            boolean enable = request.getEmailPublishErrors();
+            preference.setEmailPublishErrors(enable);
+            preference.setEmailPromptStatus(enable ? EmailPromptStatus.ACCEPTED : EmailPromptStatus.DECLINED);
+            preference.setConsentAt(enable ? Instant.now() : null);
+            log.info("[NotifyPref] User {} {} email lỗi đăng bài", user.getId(), enable ? "BẬT" : "tắt");
+            message = enable ? "Đã bật email thông báo lỗi đăng bài" : "Đã tắt email thông báo lỗi đăng bài";
+        }
+        if (channelChange) {
+            Map<String, NotificationChannelPolicy.Change> changes = new LinkedHashMap<>();
+            request.getChannels().forEach((category, channel) -> changes.put(category,
+                    channel == null ? null : new NotificationChannelPolicy.Change(channel.getInApp(), channel.getToast())));
+            preference.setChannels(NotificationChannelPolicy.merge(preference.getChannels(), changes));
+        }
         preference.setUpdatedAt(Instant.now());
         UserNotificationPreference saved = preferenceRepository.save(preference);
-        log.info("[NotifyPref] User {} {} email lỗi đăng bài", user.getId(), enable ? "BẬT" : "tắt");
-        return ApiResponse.success(enable ? "Đã bật email thông báo lỗi đăng bài" : "Đã tắt email thông báo lỗi đăng bài",
-                mapper.toResponse(saved, emailEnabled));
+        return ApiResponse.success(message, mapper.toResponse(saved, emailEnabled));
     }
 
     @Override

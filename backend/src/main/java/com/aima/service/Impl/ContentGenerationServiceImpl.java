@@ -1,5 +1,8 @@
 package com.aima.service.Impl;
 
+import java.time.LocalDateTime;
+import com.aima.service.GenerationCancelService;
+import com.aima.service.JobEventService;
 import com.aima.dto.request.ContentGenerationRequest;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.ContentGenerationJobResponse;
@@ -40,6 +43,8 @@ import java.util.UUID;
 @Transactional
 public class ContentGenerationServiceImpl implements ContentGenerationService {
 
+    static final String CANCELLED_MESSAGE = "Người dùng đã dừng tạo nội dung";
+
     ContentGenerationJobRepository contentGenerationJobRepository;
     ContentStrategyRepository contentStrategyRepository;
     ContentItemRepository contentItemRepository;
@@ -47,6 +52,8 @@ public class ContentGenerationServiceImpl implements ContentGenerationService {
     ContentGenerationJobMapper contentGenerationJobMapper;
     ContentGenerationWorkerService contentGenerationWorkerService;
     TokenUsageService tokenUsageService;
+    JobEventService jobEventService;
+    GenerationCancelService generationCancelService;
 
     // Job đang chạy = còn chiếm chỗ chống trùng; SUCCESS/FAILED thì user tạo lại bình thường.
     private static final List<GenerationJobStatus> IN_FLIGHT = List.of(GenerationJobStatus.PENDING, GenerationJobStatus.RUNNING);
@@ -136,6 +143,25 @@ public class ContentGenerationServiceImpl implements ContentGenerationService {
                 .orElseThrow(() -> new AppException(ErrorCode.CONTENT_GENERATION_JOB_NOT_FOUND));
         ContentGenerationJobResponse response = contentGenerationJobMapper.toResponse(job);
         return ApiResponse.success("Lấy trạng thái tác vụ tạo nội dung thành công", response);
+    }
+
+    @Override
+    public ApiResponse<ContentGenerationJobResponse> cancel(String email, UUID jobId) {
+        User user = currentUser(email);
+        contentGenerationJobRepository
+                .findByIdAndContentStrategy_BrandProfile_User_IdAndDeletedAtIsNull(jobId, user.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.CONTENT_GENERATION_JOB_NOT_FOUND));
+        int cancelled = contentGenerationJobRepository.cancel(jobId, LocalDateTime.now(),
+                JobEventServiceImpl.CANCELLED_BY_USER, CANCELLED_MESSAGE);
+        if (cancelled > 0) {
+            log.info("[ContentGeneration] User {} dừng job {}", user.getId(), jobId);
+            jobEventService.generationFailed(jobId);       // job.updated FAILED (không thông báo lỗi) — sau commit
+            generationCancelService.requestCancel(jobId);  // instance đang stream đóng luồng AI — sau commit
+        }
+        ContentGenerationJob job = contentGenerationJobRepository.findById(jobId)
+                .orElseThrow(() -> new AppException(ErrorCode.CONTENT_GENERATION_JOB_NOT_FOUND));
+        ContentGenerationJobResponse response = contentGenerationJobMapper.toResponse(job);
+        return ApiResponse.success(cancelled > 0 ? "Đã dừng tạo nội dung" : "Tác vụ đã kết thúc trước đó", response);
     }
 
     private ApiResponse<ContentGenerationJobResponse> existing(ContentGenerationJob job) {

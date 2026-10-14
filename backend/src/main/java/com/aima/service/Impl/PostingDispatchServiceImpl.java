@@ -1,5 +1,9 @@
 package com.aima.service.Impl;
 
+import com.aima.service.JobEventService;
+import com.aima.util.NotificationParams;
+import com.aima.enums.NotificationRefType;
+import com.aima.dto.notification.NotificationDraft;
 import com.aima.entity.ContentItem;
 import com.aima.entity.PlatformAccount;
 import com.aima.entity.Post;
@@ -46,6 +50,7 @@ public class PostingDispatchServiceImpl implements PostingDispatchService {
     ContentItemStatusResolver statusResolver;
     ScheduleHoldService holdService;
     NotificationService notificationService;
+    JobEventService jobEventService;
 
     @Override
     public Outcome dispatch(UUID scheduleId) {
@@ -97,18 +102,24 @@ public class PostingDispatchServiceImpl implements PostingDispatchService {
         savedPost.getPostingJobs().add(job);
         PostingJob savedJob = jobRepository.save(job);
         statusResolver.refresh(itemId); // lịch POSTING → bài POSTING
+        jobEventService.postUpdated(schedule);
         return new Outcome(savedJob.getId(), null);
     }
 
     // FR-78: lịch bị giữ vì tài khoản đã xoá/không ACTIVE → nhắc kết nối lại (chỉ khi lý do mới được thêm).
     private void notifyReconnect(PostSchedule schedule) {
         PlatformAccount account = schedule.getPlatformAccount();
-        notificationService.notify(account.getUser(), NotificationType.RECONNECT_NEEDED,
-                "Bài đã lên lịch được tạm giữ",
-                "Kết nối " + account.getAccountName() + " trên " + account.getPlatformName()
+        notificationService.send(account.getUser(), NotificationDraft.builder()
+                .type(NotificationType.RECONNECT_NEEDED)
+                .title("Bài đã lên lịch được tạm giữ")
+                .message("Kết nối " + account.getAccountName() + " trên " + account.getPlatformName()
                         + " không còn hiệu lực nên bài đến giờ đăng được chuyển sang Tạm giữ (On Hold) — hãy kết nối lại"
-                        + " hoặc đổi tài khoản đăng trong Lịch đăng.",
-                account.getId());
+                        + " hoặc đổi tài khoản đăng trong Lịch đăng.")
+                .refType(NotificationRefType.PLATFORM_ACCOUNT).refId(account.getId())
+                .params(NotificationParams.of(NotificationParams.VARIANT, "HELD_DISPATCH",
+                        "accountName", account.getAccountName(), "platform", account.getPlatformName(),
+                        "scheduleId", schedule.getId()))
+                .build());
     }
 
     private HoldReason blockerOf(PostSchedule schedule, ContentItem item) {

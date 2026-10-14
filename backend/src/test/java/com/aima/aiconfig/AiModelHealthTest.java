@@ -63,7 +63,8 @@ class AiModelHealthTest {
         when(redis.opsForValue()).thenReturn(ops);
         mapper = mock(AiConfigMapper.class);
         when(mapper.toLlmConfig(any(), any())).thenCallRealMethod(); // default method — dựng fallback + fallbacks
-        health = new AiModelHealthServiceImpl(redis, objectMapper, mapper, mock(AiProviderRepository.class));
+        health = new AiModelHealthServiceImpl(redis, objectMapper, mapper, mock(AiProviderRepository.class),
+                mock(com.aima.service.NotificationService.class));
     }
 
     private static LlmAttemptPayload attempt(String model, String outcome, Instant until) {

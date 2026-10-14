@@ -1,4 +1,6 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { waitForJob } from '../../realtime/waitForJob';
+import { useRealtimeStore } from '../../store/useRealtimeStore';
 import { AlertTriangle, Search, Play, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext.tsx';
@@ -188,16 +190,19 @@ export default function Trends() {
             platform,
             articleCount: config.articleCount,
           });
-          let ok = false;
-          for (let i = 0; i < POLL_MAX_TRIES; i++) {
-            await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-            const s = await getTrendResearchSession(started.id);
-            if (s.status === 'COMPLETED') {
-              ok = true;
-              break;
-            }
-            if (s.status === 'FAILED') throw new Error(s.errorMessage || t.trResearchFailed);
-          }
+          // Chờ qua realtime (job.updated kind TREND); luồng không mở → poll 4s như trước, trần POLL_MAX_TRIES vòng.
+          const s = await waitForJob({
+            jobId: started.id,
+            initial: started,
+            fetch: () => getTrendResearchSession(started.id),
+            isDone: (x) => x.status === 'COMPLETED' || x.status === 'FAILED',
+            pollMs: () => POLL_INTERVAL_MS,
+            deadline: Date.now() + POLL_INTERVAL_MS * POLL_MAX_TRIES,
+            onDeadline: () => new Error(t.trResearchFailed),
+            isRealtimeOpen: () => useRealtimeStore.getState().status === 'open',
+          }).catch(() => null);
+          if (s?.status === 'FAILED') throw new Error(s.errorMessage || t.trResearchFailed);
+          const ok = s?.status === 'COMPLETED';
           if (!ok) throw new Error(t.trResearchFailed);
         } catch {
           failed.push(PLATFORM_NAME[platform] ?? platform);

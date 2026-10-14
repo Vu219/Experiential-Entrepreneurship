@@ -1,5 +1,7 @@
 package com.aima.service.Impl;
 
+import com.aima.enums.RealtimeJobKind;
+import com.aima.service.JobEventService;
 import com.aima.dto.ai.ContentIdeaPayload;
 import com.aima.dto.ai.PreviousTrendPayload;
 import com.aima.dto.ai.ResearchPayload;
@@ -65,6 +67,7 @@ public class TrendResearchWorkerServiceImpl implements TrendResearchWorkerServic
     AiContentMapper aiContentMapper;
     TransactionTemplate transactionTemplate;
     AiUsageService aiUsageService;
+    JobEventService jobEventService;
 
     /** Payload + ngữ cảnh event usage, dựng trong TX ngắn #1 để dùng ngoài transaction. */
     private record ResearchTask(ResearchPayload payload, AiUsageService.AiCallContext callContext) {
@@ -133,6 +136,8 @@ public class TrendResearchWorkerServiceImpl implements TrendResearchWorkerServic
 
         session.setStatus(ResearchStatus.RUNNING);
         sessionRepository.save(session);
+        jobEventService.jobUpdated(brand.getUser().getId(), RealtimeJobKind.TREND, session.getId(),
+                ResearchStatus.RUNNING.name(), null, session.getPlatform(), null);
 
         // Số ý tưởng user yêu cầu (1-20, đã validate ở request); null = mặc định MAX_IDEAS.
         int maxIdeas = session.getArticleCount() != null
@@ -198,6 +203,7 @@ public class TrendResearchWorkerServiceImpl implements TrendResearchWorkerServic
         session.setStatus(ResearchStatus.COMPLETED);
         session.setErrorMessage(null);
         sessionRepository.save(session); // cascade ALL: lưu luôn trends + content ideas
+        jobEventService.researchFinished(sessionId);
 
         // Usage (event + cache hạn mức) đã được recordCall ghi tại thời điểm gọi AI.
     }
@@ -210,5 +216,6 @@ public class TrendResearchWorkerServiceImpl implements TrendResearchWorkerServic
         session.setStatus(ResearchStatus.FAILED);
         session.setErrorMessage(message);
         sessionRepository.save(session);
+        jobEventService.researchFinished(sessionId);
     }
 }

@@ -22,6 +22,8 @@ context, and never a payload/spec repr.
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 import time
 import uuid
@@ -30,7 +32,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
-from typing import Any, Callable, List, Optional, TypeVar
+from typing import Any, AsyncIterator, Callable, List, Optional, TypeVar
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
@@ -138,6 +140,16 @@ class _GeminiChat(ChatGoogleGenerativeAI):
     def _generate(self, messages, stop=None, run_manager=None, **kwargs):
         kwargs.setdefault("automatic_function_calling", {"disable": True})
         return super()._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
+
+    # Streaming path (/generate/stream) — same AFC guard as _generate.
+    def _stream(self, messages, stop=None, run_manager=None, **kwargs):
+        kwargs.setdefault("automatic_function_calling", {"disable": True})
+        yield from super()._stream(messages, stop=stop, run_manager=run_manager, **kwargs)
+
+    async def _astream(self, messages, stop=None, run_manager=None, **kwargs):
+        kwargs.setdefault("automatic_function_calling", {"disable": True})
+        async for chunk in super()._astream(messages, stop=stop, run_manager=run_manager, **kwargs):
+            yield chunk
 
 
 def _env_spec() -> LlmSpec:
@@ -560,3 +572,186 @@ def _dedupe_sources(sources: List[dict]) -> List[dict]:
             seen.add(s["url"])
             out.append(s)
     return out[:MAX_GROUNDED_SOURCES]
+
+
+# ============================================================
+# Streaming structured output (/generate/stream, NDJSON)
+# ============================================================
+#
+# Same chain policy as invoke_structured (retry/fallback per classified error, one budget), but
+# the model is STREAMED: raw JSON pieces (Anthropic tool-call args / Gemini JSON text) are
+# accumulated, parsed leniently (langchain_core parse_partial_json) and every string field that
+# grew is emitted as a delta. A failure BEFORE the first delta falls back silently; AFTER it, a
+# ``reset`` event tells the client to clear its preview first. The final result is validated with
+# the same pydantic schema as the non-stream path, so the stored content is identical.
+#
+# Events yielded (dicts): {"type":"start","provider","model","input_tokens"?} ·
+# {"type":"delta","path","append"} (+ "replace": true when a field changed non-incrementally) ·
+# {"type":"reset","reason"} · {"type":"result","parsed": <schema>, "usage": TokenUsage} (last).
+# Raises LlmChainError when every model failed. Closing the iterator (client disconnect) closes
+# the provider stream, so the provider stops generating.
+
+
+async def _stream_chunks(spec: LlmSpec, timeout: float, schema: type[BaseModel],
+                         messages: list) -> AsyncIterator[tuple[str, dict]]:
+    """Provider stream -> (raw JSON piece, usage_metadata so far). Bound like with_structured_output."""
+    model = build_llm(spec, timeout=timeout)
+    if spec.provider == "anthropic":
+        bound = model.bind_tools([schema], tool_choice=schema.__name__)
+    else:
+        bound = model.bind(response_mime_type="application/json",
+                           response_json_schema=schema.model_json_schema())
+    async for chunk in bound.astream(messages):
+        piece = ""
+        tool_chunks = getattr(chunk, "tool_call_chunks", None) or []
+        if tool_chunks:
+            piece = "".join(tc.get("args") or "" for tc in tool_chunks)
+        elif isinstance(chunk.content, str):
+            piece = chunk.content
+        elif isinstance(chunk.content, list):
+            piece = "".join(p.get("text", "") for p in chunk.content
+                            if isinstance(p, dict) and p.get("type") == "text")
+        yield piece, (getattr(chunk, "usage_metadata", None) or {})
+
+
+def string_leaves(value: Any, prefix: str = "") -> dict[str, str]:
+    """Flatten a (partial) JSON object to {"script.steps[1].content": "..."} — string leaves only."""
+    out: dict[str, str] = {}
+    if isinstance(value, dict):
+        for k, v in value.items():
+            out.update(string_leaves(v, f"{prefix}.{k}" if prefix else str(k)))
+    elif isinstance(value, list):
+        for i, v in enumerate(value):
+            out.update(string_leaves(v, f"{prefix}[{i}]"))
+    elif isinstance(value, str):
+        out[prefix] = value
+    return out
+
+
+def diff_deltas(previous: dict[str, str], current: dict[str, str]) -> List[dict]:
+    """Delta events turning ``previous`` into ``current`` (appends; ``replace`` when not a prefix)."""
+    deltas = []
+    for path, text in current.items():
+        old = previous.get(path, "")
+        if text == old:
+            continue
+        if text.startswith(old):
+            deltas.append({"type": "delta", "path": path, "append": text[len(old):]})
+        else:
+            deltas.append({"type": "delta", "path": path, "append": text, "replace": True})
+    return deltas
+
+
+def _merge_usage(total: dict, part: dict) -> dict:
+    """Providers report usage either once (final chunk) or split (input first, output last)."""
+    if not part:
+        return total
+    merged = dict(total)
+    for key in ("input_tokens", "output_tokens", "total_tokens"):
+        if part.get(key):
+            merged[key] = max(merged.get(key, 0), part[key])
+    details = part.get("input_token_details") or {}
+    if details.get("cache_read"):
+        merged["cache_read"] = details["cache_read"]
+    return merged
+
+
+async def astream_structured(schema: type[T], prompt: ChatPromptTemplate,
+                             variables: dict[str, Any]) -> AsyncIterator[dict]:
+    """Streamed :func:`invoke_structured` — see the section comment above for the event protocol."""
+    from langchain_core.utils.json import parse_partial_json
+
+    settings = get_settings()
+    config = _current_llm_config.get()
+    chain = config.chain() if config is not None else [_env_spec()]
+    messages = prompt.format_messages(**variables)
+    request_id = uuid.uuid4().hex[:8]
+    started = time.monotonic()
+    deadline = started + settings.llm_chain_budget_seconds
+    attempts: List[LlmAttempt] = []
+    dead_providers: set[str] = set()
+    bad_requests = 0
+    emitted_any = False
+
+    for i, spec in enumerate(chain):
+        if spec.provider in dead_providers:
+            continue
+        retried = False
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining < MIN_CALL_SECONDS:
+                _log_step(request_id, spec, "budget_exhausted", None, started)
+                raise LlmChainError(AI_TIMEOUT, attempts)
+            t0 = time.monotonic()
+            if not spec.api_key.get_secret_value():
+                info = errors.ErrorInfo(errors.INVALID_KEY)
+                attempts.append(_attempt(spec, info, t0))
+                dead_providers.add(spec.provider)
+                _log_step(request_id, spec, info.kind, "fallback", started, _next_spec(chain, i, dead_providers))
+                break
+            raw = ""
+            shown: dict[str, str] = {}
+            usage: dict = {}
+            started_event = False
+            try:
+                async for piece, part in _stream_chunks(spec, min(settings.llm_call_timeout_seconds, remaining),
+                                                        schema, messages):
+                    if time.monotonic() > deadline:
+                        raise TimeoutError("chain budget exhausted mid-stream")
+                    usage = _merge_usage(usage, part)
+                    if not started_event:
+                        started_event = True
+                        event = {"type": "start", "provider": spec.provider, "model": spec.model}
+                        if usage.get("input_tokens"):
+                            event["input_tokens"] = usage["input_tokens"]
+                        yield event
+                    if not piece:
+                        continue
+                    raw += piece
+                    partial = parse_partial_json(raw)
+                    if isinstance(partial, dict):
+                        current = string_leaves(partial)
+                        for delta in diff_deltas(shown, current):
+                            emitted_any = True
+                            yield delta
+                        shown = current
+                if not raw.strip():
+                    raise ValueError(f"Model returned no {schema.__name__} JSON")
+                parsed = schema.model_validate(json.loads(raw))
+            except Exception as e:  # noqa: BLE001 — classified exactly like the non-stream chain
+                info = errors.classify_error(e)
+                attempts.append(_attempt(spec, info, t0))
+                action = _next_action(info, retried, deadline, bad_requests)
+                if info.kind == errors.BAD_REQUEST:
+                    bad_requests += 1
+                nxt = _next_spec(chain, i, dead_providers | (
+                    {spec.provider} if info.kind == errors.INVALID_KEY else set()))
+                _log_step(request_id, spec, info.kind, action, started, nxt if action == "fallback" else None)
+                if action == "stop":
+                    raise LlmChainError(AI_BAD_REQUEST, attempts) from e
+                if emitted_any:
+                    # The client already shows partial text from this attempt — clear it first.
+                    yield {"type": "reset", "reason": "retry" if action == "retry" else "fallback"}
+                    emitted_any = False
+                if action == "retry":
+                    await asyncio.sleep(info.retry_after if info.kind == errors.RATE_LIMITED
+                                        else RETRY_BACKOFF_SECONDS)
+                    retried = True
+                    continue
+                if info.kind == errors.INVALID_KEY:
+                    dead_providers.add(spec.provider)
+                break
+            else:
+                attempts.append(LlmAttempt(provider=spec.provider, model=spec.model, outcome="ok",
+                                           latency_ms=_ms_since(t0)))
+                _log_step(request_id, spec, "ok", None, started)
+                yield {"type": "result", "parsed": parsed, "usage": TokenUsage(
+                    total_tokens=usage.get("total_tokens")
+                    or usage.get("input_tokens", 0) + usage.get("output_tokens", 0),
+                    input_tokens=usage.get("input_tokens", 0),
+                    output_tokens=usage.get("output_tokens", 0),
+                    cached_tokens=usage.get("cache_read", 0),
+                    attempts=attempts)}
+                return
+
+    raise LlmChainError(_final_error_code(attempts), attempts)

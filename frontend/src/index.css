@@ -1498,6 +1498,23 @@ html {
 .ntf-row:hover {
   background: var(--c-hover);
 }
+/* Chuông rung nhẹ khi có thông báo realtime mới (NotificationBell) */
+@keyframes ntf-bell-ring {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-12deg); }
+  40% { transform: rotate(10deg); }
+  60% { transform: rotate(-6deg); }
+  80% { transform: rotate(3deg); }
+}
+.ntf-bell--ring {
+  animation: ntf-bell-ring 0.8s ease-in-out;
+  transform-origin: 50% 20%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ntf-bell--ring {
+    animation: none;
+  }
+}
 /* Mục trong flyout nhóm sidebar thu gọn — :focus cho điều hướng bàn phím (roving tabIndex). */
 .flyout-item {
   background: transparent;

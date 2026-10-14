@@ -1,5 +1,7 @@
 package com.aima.service.Impl;
 
+import com.aima.service.JobEventService;
+import com.aima.enums.RealtimeJobKind;
 import com.aima.dto.ai.BrandProfileInputPayload;
 import com.aima.dto.ai.ContentVersionPayload;
 import com.aima.dto.ai.FormatContentPayload;
@@ -70,6 +72,7 @@ public class ContentFormattingWorkerServiceImpl implements ContentFormattingWork
     AiUsageService aiUsageService;
     ContentItemStatusResolver statusResolver;
     ScheduleHoldService holdService;
+    JobEventService jobEventService;
 
     /** Nguồn format của MỘT nền tảng: id bản GỐC (để adapt từ bản gốc + gắn source_version_id) + payload gửi AI. */
     /** Nguồn format của một nền tảng + bản đang hiệu lực lúc bắt đầu (id + revision) để phát hiện sửa/lên lịch giữa chừng. */
@@ -78,6 +81,7 @@ public class ContentFormattingWorkerServiceImpl implements ContentFormattingWork
 
     /** Ngữ cảnh dựng trong transaction ngắn đầu tiên, tiêu thụ NGOÀI transaction khi gọi AI. */
     private record FormatContext(UUID userId,
+                                 UUID itemId,
                                  BrandProfileInputPayload brandProfile,
                                  List<Platform> platforms,
                                  Map<Platform, PlatformSource> sources,
@@ -95,7 +99,14 @@ public class ContentFormattingWorkerServiceImpl implements ContentFormattingWork
         boolean anySuccess = false;
         List<String> failures = new ArrayList<>();
 
+        int done = 0;
         for (Platform platform : ctx.platforms()) {
+            if (done > 0) {
+                // Tiến độ realtime sau mỗi nền tảng (stage chỉ có trong sự kiện, không lưu DB).
+                jobEventService.formattingProgress(ctx.userId(), jobId, ctx.itemId(), done, ctx.platforms().size(),
+                        ctx.platforms().get(done - 1));
+            }
+            done++;
             PlatformSource source = ctx.sources().get(platform);
             if (source == null) {
                 // Nền tảng được yêu cầu nhưng chưa có bản nội dung nguồn (chưa generate) — bỏ qua.
@@ -186,7 +197,9 @@ public class ContentFormattingWorkerServiceImpl implements ContentFormattingWork
         AiUsageService.AiCallContext callContext = AiUsageService.AiCallContext.of(
                 item.getBrandProfile().getUser(), AiTaskCode.PLATFORM_FORMATTING, jobId,
                 job.getClientIp(), job.getUserAgent());
-        return new FormatContext(item.getBrandProfile().getUser().getId(), brandProfile, platforms, sources,
+        jobEventService.jobUpdated(item.getBrandProfile().getUser().getId(), RealtimeJobKind.FORMATTING, jobId,
+                GenerationJobStatus.RUNNING.name(), item.getId(), null, null);
+        return new FormatContext(item.getBrandProfile().getUser().getId(), item.getId(), brandProfile, platforms, sources,
                 callContext);
     }
 
@@ -282,6 +295,8 @@ public class ContentFormattingWorkerServiceImpl implements ContentFormattingWork
                     : String.join("; ", failures));
         }
         jobRepository.save(job);
+        jobEventService.jobUpdated(job.getContentItem().getBrandProfile().getUser().getId(), RealtimeJobKind.FORMATTING,
+                jobId, job.getStatus().name(), job.getContentItem().getId(), null, null);
     }
 
     private Platform parsePlatform(String token) {

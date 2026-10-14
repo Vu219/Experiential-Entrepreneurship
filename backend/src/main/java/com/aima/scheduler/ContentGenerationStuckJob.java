@@ -1,5 +1,8 @@
 package com.aima.scheduler;
 
+import java.util.UUID;
+import java.util.List;
+import com.aima.service.JobEventService;
 import com.aima.exception.ErrorCode;
 import com.aima.repository.ContentGenerationJobRepository;
 import lombok.AccessLevel;
@@ -34,14 +37,20 @@ public class ContentGenerationStuckJob {
 
     ContentGenerationJobRepository jobRepository;
     TransactionTemplate transactionTemplate;
+    JobEventService jobEventService;
 
     @Scheduled(fixedDelay = 60_000)
     @SchedulerLock(name = "content-generation-stuck", lockAtMostFor = "PT5M", lockAtLeastFor = "PT20S")
     public void run() {
         try {
             LocalDateTime now = LocalDateTime.now();
-            Integer failed = transactionTemplate.execute(status -> jobRepository.failStuckJobs(
-                    now.minus(STUCK_AGE), now, ErrorCode.AI_TIMEOUT.name(), ErrorCode.AI_TIMEOUT.getMessage()));
+            Integer failed = transactionTemplate.execute(status -> {
+                List<UUID> stuck = jobRepository.findStuckIds(now.minus(STUCK_AGE));
+                int count = jobRepository.failStuckJobs(now.minus(STUCK_AGE), now, ErrorCode.AI_TIMEOUT.name(),
+                        ErrorCode.AI_TIMEOUT.getMessage());
+                stuck.forEach(jobEventService::generationFailed); // báo user + job.updated sau commit
+                return count;
+            });
             if (failed != null && failed > 0) {
                 log.warn("[ContentGenerationStuck] Chốt FAILED/AI_TIMEOUT {} job kẹt quá {} phút",
                         failed, STUCK_AGE.toMinutes());

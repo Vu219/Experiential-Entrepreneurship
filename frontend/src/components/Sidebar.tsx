@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh';
 import { motion } from 'framer-motion';
 import {
   ChevronRight, ChevronLeft, X, type LucideIcon,
@@ -101,6 +102,9 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
   const [usage, setUsage] = useState<TokenUsage | null>(null);
   const [scheduledCount, setScheduledCount] = useState<number | null>(null);
 
+  // Realtime: số lịch sắp đăng + thanh token cập nhật khi lịch đổi trạng thái / dùng token (post.updated, usage.updated).
+  const [realtimeTick, setRealtimeTick] = useState(0);
+  useRealtimeRefresh(['post.updated', 'usage.updated'], () => setRealtimeTick((n) => n + 1), 1000);
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -119,7 +123,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
     }
 
     return () => { cancelled = true; };
-  }, [user, route, mode]);
+  }, [user, route, mode, realtimeTick]);
 
   const usagePct = usage && usage.limit !== null
     ? Math.min(usage.limit > 0 ? (usage.used / usage.limit) * 100 : 100, 100)

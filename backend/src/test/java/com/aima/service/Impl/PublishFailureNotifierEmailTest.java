@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -47,7 +48,7 @@ class PublishFailureNotifierEmailTest {
         user.setId(UUID.randomUUID());
         notifier = new PublishFailureNotifierImpl(userRepository, notificationService, emailService, preferenceService, redis);
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
-        when(notificationService.notifyOnce(any(), any(), anyString(), anyString(), any(), anyString())).thenReturn(true);
+        when(notificationService.send(any(), any())).thenReturn(true);
         when(preferenceService.unsubscribeToken(user.getId())).thenReturn("signed-token");
         when(redis.opsForValue()).thenReturn(ops);
     }
@@ -74,8 +75,8 @@ class PublishFailureNotifierEmailTest {
         consent(true);
         notifier.notifyFailure(notice(PublishErrorCode.AUTH_TOKEN_EXPIRED), 0);
 
-        verify(notificationService).notifyOnce(eq(user), eq(NotificationType.RECONNECT_NEEDED), anyString(), anyString(),
-                any(), anyString());
+        verify(notificationService).send(eq(user), argThat(d -> d.type() == NotificationType.RECONNECT_NEEDED
+                && d.dedupeKey() != null && "PUBLISH_ERROR".equals(d.params().get("variant"))));
         verify(emailService).sendPublishActionRequiredEmail(eq("owner@aima.vn"), eq("Owner"), anyString(), anyString(),
                 anyString(), eq(PublishFailureNotifierImpl.RECONNECT_PATH), eq("signed-token"));
     }
@@ -86,7 +87,7 @@ class PublishFailureNotifierEmailTest {
         consent(false);
         notifier.notifyFailure(notice(PublishErrorCode.AUTH_TOKEN_EXPIRED), 0);
 
-        verify(notificationService).notifyOnce(any(), any(), anyString(), anyString(), any(), anyString());
+        verify(notificationService).send(any(), any());
         verifyNoInteractions(emailService);
     }
 
@@ -108,8 +109,8 @@ class PublishFailureNotifierEmailTest {
         notifier.notifyFailure(notice(PublishErrorCode.CONTENT_DUPLICATE), 0);
         notifier.notifyFailure(notice(PublishErrorCode.POLICY_VIOLATION), 0);
 
-        verify(notificationService, times(2)).notifyOnce(any(), eq(NotificationType.POST_FAILED), anyString(), anyString(),
-                any(), anyString());
+        verify(notificationService, times(2)).send(any(), argThat(d -> d.type() == NotificationType.POST_FAILED
+                && d.params().get("code") != null && d.params().get("reference") != null));
         verify(emailService, times(1)).sendPublishActionRequiredEmail(anyString(), anyString(), anyString(), anyString(),
                 anyString(), eq(PublishFailureNotifierImpl.FAILED_POSTS_PATH), eq("signed-token"));
     }
@@ -121,6 +122,6 @@ class PublishFailureNotifierEmailTest {
         doThrow(new RuntimeException("Brevo down")).when(emailService).sendPublishActionRequiredEmail(
                 anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
         notifier.notifyFailure(notice(PublishErrorCode.AUTH_TOKEN_EXPIRED), 0);
-        verify(notificationService).notifyOnce(any(), any(), anyString(), anyString(), any(), anyString());
+        verify(notificationService).send(any(), any());
     }
 }

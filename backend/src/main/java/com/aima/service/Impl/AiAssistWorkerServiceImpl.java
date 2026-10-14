@@ -1,5 +1,7 @@
 package com.aima.service.Impl;
 
+import com.aima.service.JobEventService;
+import com.aima.enums.RealtimeJobKind;
 import com.aima.dto.ai.PolicyCheckPayload;
 import com.aima.dto.ai.PolicyCheckResultPayload;
 import com.aima.dto.ai.PolicyFixPayload;
@@ -49,6 +51,7 @@ public class AiAssistWorkerServiceImpl implements AiAssistWorkerService {
     PolicyRuleEngine ruleEngine;
     ObjectMapper objectMapper;
     TransactionTemplate transactionTemplate;
+    JobEventService jobEventService;
 
     /** Việc cần làm ngoài transaction: đúng một trong fix/check khác null. */
     private record Task(PolicyFixPayload fix, String originalCaption, List<String> originalHashtags,
@@ -93,10 +96,12 @@ public class AiAssistWorkerServiceImpl implements AiAssistWorkerService {
             job.setStatus(GenerationJobStatus.FAILED);
             job.setErrorMessage("Bản nội dung không còn tồn tại");
             jobRepository.save(job);
+            emit(job);
             return null;
         }
         job.setStatus(GenerationJobStatus.RUNNING);
         jobRepository.save(job);
+        emit(job);
 
         String caption = version.getFormattedCaption() == null ? "" : version.getFormattedCaption();
         List<String> hashtags = AiAssistServiceImpl.hashtags(version);
@@ -121,6 +126,13 @@ public class AiAssistWorkerServiceImpl implements AiAssistWorkerService {
             job.setResult(result);
             job.setErrorMessage(errorMessage);
             jobRepository.save(job);
+            emit(job);
         });
+    }
+
+    /** {@code job.updated} cho màn chờ AI sửa / kiểm tra chính sách (gọi trong transaction). */
+    private void emit(AiAssistJob job) {
+        jobEventService.jobUpdated(job.getUser().getId(), RealtimeJobKind.AI_ASSIST, job.getId(), job.getStatus().name(),
+                null, job.getPlatform(), null);
     }
 }

@@ -1,5 +1,9 @@
 package com.aima.service.Impl;
 
+import com.aima.util.NotificationParams;
+import com.aima.service.NotificationService;
+import com.aima.enums.NotificationType;
+import com.aima.dto.notification.NotificationDraft;
 import com.aima.dto.ai.LlmAttemptPayload;
 import com.aima.dto.ai.LlmConfigPayload;
 import com.aima.dto.ai.LlmSpecPayload;
@@ -53,6 +57,7 @@ public class AiModelHealthServiceImpl implements AiModelHealthService {
     ObjectMapper objectMapper;
     AiConfigMapper aiConfigMapper;
     AiProviderRepository providerRepository;
+    NotificationService notificationService;
 
     /** Epoch ms tới khi nào bỏ qua Redis sau một lần lỗi (circuit của chính Redis). */
     @NonFinal
@@ -82,10 +87,29 @@ public class AiModelHealthServiceImpl implements AiModelHealthService {
                             Duration.between(now, a.getCooldownUntil()));
                     log.info("[AiModelHealth] {}/{} {} tới {} ({})", a.getProvider(), a.getModel(),
                             entry.state(), entry.until(), a.getOutcome());
+                    notifyDegraded(entry, now);
                 }
             }
             return null;
         }, null);
+    }
+
+    /** Báo admin model vào trạng thái nghỉ — tối đa MỘT lần/giờ/model (dedupe), best-effort. */
+    private void notifyDegraded(Entry entry, Instant now) {
+        try {
+            String hour = now.truncatedTo(java.time.temporal.ChronoUnit.HOURS).toString();
+            notificationService.sendToAdmins(NotificationDraft.builder()
+                    .type(NotificationType.ADMIN_AI_DEGRADED)
+                    .title("Model AI đang tạm nghỉ")
+                    .message("Model " + entry.provider() + "/" + entry.model() + " " + entry.state() + " tới " + entry.until()
+                            + " (" + entry.reason() + "). Hệ thống đang dùng model dự phòng nếu có.")
+                    .params(NotificationParams.of("provider", entry.provider(), "model", entry.model(),
+                            "state", entry.state(), "reason", entry.reason(), "until", entry.until()))
+                    .dedupeKey("ai-degraded:" + entry.provider() + ":" + entry.model() + ":" + hour)
+                    .build());
+        } catch (Exception e) {
+            log.warn("[AiModelHealth] Không báo được admin: {}", e.toString());
+        }
     }
 
     /**

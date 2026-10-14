@@ -22,6 +22,7 @@ const PATH_BY_ROUTE: Record<Route, string> = {
   createWizard: '/create/new',
   calendar: '/calendar',
   failedPosts: '/failed-posts',
+  notifications: '/notifications',
   analytics: '/analytics',
   trends: '/trends',
   brand: '/brand',
@@ -73,14 +74,12 @@ export function useApp() {
   const theme = useAppStore((s) => s.theme);
   const profile = useAppStore((s) => s.profile);
   const brand = useAppStore((s) => s.brand);
-  const notif = useAppStore((s) => s.notif);
   const setLang = useAppStore((s) => s.setLang);
   const toggleLang = useAppStore((s) => s.toggleLang);
   const setTheme = useAppStore((s) => s.setTheme);
   const setProfile = useAppStore((s) => s.setProfile);
   const setBrand = useAppStore((s) => s.setBrand);
   const toggleBrandTone = useAppStore((s) => s.toggleBrandTone);
-  const toggleNotif = useAppStore((s) => s.toggleNotif);
   const activeBrandId = useAppStore((s) => s.activeBrandId);
   const setActiveBrand = useAppStore((s) => s.setActiveBrand);
 
@@ -136,8 +135,6 @@ export function useApp() {
     brand,
     setBrand,
     toggleBrandTone,
-    notif,
-    toggleNotif,
     activeBrandId,
     setActiveBrand,
   };

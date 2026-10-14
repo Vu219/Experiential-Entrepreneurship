@@ -7,9 +7,11 @@ self-checks brand-voice alignment. Media/image prompts are TEXT ONLY (FR-29).
 
 from __future__ import annotations
 
+from typing import AsyncIterator
+
 from langchain_core.prompts import ChatPromptTemplate
 
-from ..llm import invoke_structured
+from ..llm import astream_structured, invoke_structured
 from ..schemas import ContentItem, GenerateRequest, GenerateResult
 
 SYSTEM_PROMPT = """You are the Content Generator for AIMA, an AI social-media content \
@@ -116,3 +118,21 @@ def generate_content(req: GenerateRequest) -> GenerateResult:
     )
     item, usage = invoke_structured(ContentItem, prompt, build_prompt_vars(req))
     return GenerateResult(**item.model_dump(), **usage.response_fields())
+
+
+async def generate_content_stream(req: GenerateRequest) -> AsyncIterator[dict]:
+    """Streamed :func:`generate_content` — same prompt, schema and result shape.
+
+    Yields start / delta / reset events from :func:`llm.astream_structured`, then ONE
+    ``{"type": "done", "result": GenerateResult}`` built exactly like the non-stream path.
+    """
+    prompt = ChatPromptTemplate.from_messages(
+        [("system", SYSTEM_PROMPT), ("user", USER_PROMPT)]
+    )
+    async for event in astream_structured(ContentItem, prompt, build_prompt_vars(req)):
+        if event["type"] == "result":
+            item, usage = event["parsed"], event["usage"]
+            result = GenerateResult(**item.model_dump(), **usage.response_fields())
+            yield {"type": "done", "result": result.model_dump(mode="json")}
+        else:
+            yield event

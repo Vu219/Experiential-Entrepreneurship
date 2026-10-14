@@ -1,5 +1,13 @@
 package com.aima.service.Impl;
 
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicBoolean;
+import reactor.core.publisher.Mono;
+import org.springframework.http.MediaType;
+import com.aima.service.AiStreamListener;
+import com.aima.exception.AiStreamCancelledException;
+import com.aima.dto.ai.GenerateStreamEventPayload;
 import com.aima.config.AiServiceProperties;
 import com.aima.dto.ai.AnalyzePayload;
 import com.aima.dto.ai.AnalyzeResultPayload;
@@ -120,6 +128,91 @@ public class AiServiceClientImpl implements AiServiceClient {
     public PolicyCheckResultPayload policyCheck(PolicyCheckPayload payload) {
         applyRouting(payload, AiTaskCode.POLICY_CHECK);
         return post("/policy-check", payload, PolicyCheckResultPayload.class);
+    }
+
+    @Override
+    public GeneratedContentResult generateContentStream(GenerateContentPayload payload, AiStreamListener listener,
+                                                        Mono<Void> cancel) {
+        applyRouting(payload, AiTaskCode.CONTENT_GENERATION);
+        String uri = "/generate/stream";
+        AtomicReference<GeneratedContentResult> done = new AtomicReference<>();
+        AtomicReference<GenerateStreamEventPayload> failure = new AtomicReference<>();
+        AtomicBoolean cancelled = new AtomicBoolean();
+        AtomicLong inputTokens = new AtomicLong();
+        AtomicLong receivedChars = new AtomicLong();
+        try {
+            webClient.post()
+                    .uri(uri)
+                    .accept(MediaType.APPLICATION_NDJSON)
+                    .bodyValue(payload)
+                    .retrieve()
+                    .bodyToFlux(String.class) // StringDecoder tách theo dòng → một sự kiện NDJSON mỗi phần tử
+                    .takeUntilOther(cancel.doOnTerminate(() -> cancelled.set(true)))
+                    .doOnNext(line -> onStreamLine(line, listener, done, failure, inputTokens, receivedChars))
+                    .blockLast(Duration.ofSeconds(properties.timeoutSeconds()));
+        } catch (WebClientResponseException e) {
+            ErrorCode code = recordFailedChain(e.getResponseBodyAsString());
+            throw aiFailure(uri, e.getStatusCode() + ": " + e.getResponseBodyAsString(), e, code);
+        } catch (Exception e) {
+            ErrorCode code = isBlockTimeout(e) ? ErrorCode.AI_TIMEOUT : ErrorCode.AI_SERVICE_ERROR;
+            throw aiFailure(uri, e.getMessage(), e, code);
+        }
+        if (done.get() != null) {
+            modelHealthService.record(done.get().getLlmAttempts());
+            return done.get();
+        }
+        if (failure.get() != null) {
+            GenerateStreamEventPayload error = failure.get();
+            modelHealthService.record(error.getAttempts());
+            throw aiFailure(uri, "stream error " + error.getErrorCode() + ": " + error.getMessage(), null,
+                    chainErrorCode(error.getErrorCode()));
+        }
+        if (cancelled.get()) {
+            long output = estimateTokens(receivedChars.get());
+            GeneratedContentResult partial = GeneratedContentResult.builder()
+                    .inputTokens(inputTokens.get()).outputTokens(output).tokensUsed(inputTokens.get() + output)
+                    .cachedTokens(0L).build();
+            throw new AiStreamCancelledException(partial);
+        }
+        throw aiFailure(uri, "stream ended without a result", null, ErrorCode.AI_SERVICE_ERROR);
+    }
+
+    /** Ước lượng token output khi bị huỷ (không có usage thật của phần đã sinh): ~3 ký tự / token cho chữ Việt + JSON. */
+    static long estimateTokens(long chars) {
+        return chars <= 0 ? 0 : (chars + 2) / 3;
+    }
+
+    private void onStreamLine(String line, AiStreamListener listener, AtomicReference<GeneratedContentResult> done,
+                              AtomicReference<GenerateStreamEventPayload> failure, AtomicLong inputTokens,
+                              AtomicLong receivedChars) {
+        if (line == null || line.isBlank()) return;
+        GenerateStreamEventPayload event;
+        try {
+            event = objectMapper.readValue(line, GenerateStreamEventPayload.class);
+        } catch (Exception e) {
+            log.warn("[AiService] Bỏ qua dòng stream không đọc được: {}", e.getClass().getSimpleName());
+            return;
+        }
+        try {
+            switch (String.valueOf(event.getType())) {
+                case "start" -> {
+                    if (event.getInputTokens() != null) inputTokens.set(event.getInputTokens());
+                    listener.onStart(event.getProvider(), event.getModel(), event.getInputTokens());
+                }
+                case "delta" -> {
+                    if (event.getAppend() == null) return;
+                    receivedChars.addAndGet(event.getAppend().length());
+                    listener.onDelta(event.getPath(), event.getAppend(), Boolean.TRUE.equals(event.getReplace()));
+                }
+                case "reset" -> listener.onReset(event.getReason());
+                case "done" -> done.set(event.getResult());
+                case "error" -> failure.set(event);
+                default -> { /* sự kiện lạ của AI service bản mới hơn — bỏ qua */ }
+            }
+        } catch (Exception e) {
+            // listener không được làm hỏng luồng: xem trước chỉ là gợi ý, kết quả cuối vẫn lưu từ "done".
+            log.warn("[AiService] Listener stream lỗi: {}", e.toString());
+        }
     }
 
     /**

@@ -6,6 +6,7 @@ import com.aima.entity.AiUsage;
 import com.aima.entity.User;
 import com.aima.enums.AiProviderCode;
 import com.aima.enums.AiUsageStatus;
+import com.aima.exception.AiStreamCancelledException;
 import com.aima.mapper.AiConfigMapper;
 import com.aima.repository.AiUsageRepository;
 import com.aima.repository.UserRepository;
@@ -57,6 +58,10 @@ public class AiUsageServiceImpl implements AiUsageService {
         T result;
         try {
             result = call.get();
+        } catch (AiStreamCancelledException e) {
+            // User bấm Dừng giữa luồng (D4): tính token input thật + output ước lượng, status CANCELLED.
+            saveEvent(context, e.getPartialUsage(), AiUsageStatus.CANCELLED, elapsedMs(startNanos));
+            throw e;
         } catch (RuntimeException e) {
             // Ghi event lỗi rồi NÉM LẠI nguyên exception — không được nuốt/đổi luồng lỗi gốc.
             saveEvent(context, null, classify(e), elapsedMs(startNanos));
@@ -71,7 +76,8 @@ public class AiUsageServiceImpl implements AiUsageService {
                            AiUsageStatus status, long latencyMs) {
         try {
             Long totalTokens = result == null ? null : result.getTokensUsed();
-            if (status == AiUsageStatus.SUCCESS && (totalTokens == null || totalTokens <= 0)) {
+            boolean billed = status == AiUsageStatus.SUCCESS || status == AiUsageStatus.CANCELLED;
+            if (billed && (totalTokens == null || totalTokens <= 0)) {
                 return; // cuộc gọi không tiêu token (endpoint không chạm LLM) — không có gì để ghi
             }
 
@@ -88,7 +94,7 @@ public class AiUsageServiceImpl implements AiUsageService {
             long billable;
             BigDecimal cost;
             String idempotencyKey;
-            if (status == AiUsageStatus.SUCCESS) {
+            if (billed) {
                 total = totalTokens;
                 billable = billingRateService.toBillableUnits(context.taskCode(), modelCode, total);
                 cost = model == null ? null : estimateCost(result, total, model);
@@ -113,7 +119,7 @@ public class AiUsageServiceImpl implements AiUsageService {
 
                 long creditUnits = 0;
                 long creditShortfall = 0;
-                if (status == AiUsageStatus.SUCCESS && user != null && billableFinal > 0) {
+                if (billed && user != null && billableFinal > 0) {
                     // Trừ hạn mức GÓI trước; phần vượt mới tiêu token mua thêm (FIFO). Đo quota
                     // TRƯỚC khi lưu event này nên allowance chưa gồm chính nó.
                     TokenUsageService.QuotaState quota = tokenUsageService.state(user);
@@ -138,6 +144,9 @@ public class AiUsageServiceImpl implements AiUsageService {
                 usage.setRoutedModelCode(routedModelCode);
                 usageRepository.save(usage);
             });
+            if (billed && billableFinal > 0 && context.userId() != null) {
+                transactionTemplate.executeWithoutResult(tx -> tokenUsageService.notifyQuotaThresholds(context.userId()));
+            }
         } catch (DataIntegrityViolationException e) {
             // Job được xử lý lại (crash rescue) — event SUCCESS đã ghi trước đó, bỏ qua để không double-count.
             log.info("[AiUsage] Trùng idempotency key task {} request {} — bỏ qua event lặp",

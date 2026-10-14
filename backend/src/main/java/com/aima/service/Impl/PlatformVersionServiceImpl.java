@@ -1,5 +1,9 @@
 package com.aima.service.Impl;
 
+import com.aima.util.NotificationParams;
+import com.aima.service.NotificationService;
+import com.aima.enums.NotificationType;
+import com.aima.dto.notification.NotificationDraft;
 import com.aima.dto.request.UpdateVersionRequest;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.ApiVersionHistoryResponse;
@@ -50,6 +54,7 @@ public class PlatformVersionServiceImpl implements PlatformVersionService {
     PlatformApiVersionHistoryRepository historyRepository;
     UserRepository userRepository;
     PlatformApiVersionMapper versionMapper;
+    NotificationService notificationService;
 
     // Cache version thủ công 5 phút (dự án chưa có cache manager). Evict tường minh khi admin update.
     static final Duration CACHE_TTL = Duration.ofMinutes(5);
@@ -151,15 +156,33 @@ public class PlatformVersionServiceImpl implements PlatformVersionService {
                     version.setLatestVersion(latest);
                 }
                 version.setLastCheckedAt(LocalDateTime.now());
+                VersionStatus previous = version.getStatus();
                 version.setStatus(resolveStatus(version.getCurrentVersion(), version.getLatestVersion(),
                         version.getCurrentVersionDeprecationDate()));
                 versionRepository.save(version);
+                if (version.getStatus() != previous && version.getStatus() != VersionStatus.UP_TO_DATE) {
+                    notifyVersionStatus(version);
+                }
                 log.info("[ApiVersionCheck] {}: current={} latest={} status={}",
                         version.getPlatform(), version.getCurrentVersion(), version.getLatestVersion(), version.getStatus());
             } catch (Exception e) {
                 log.warn("[ApiVersionCheck] Bỏ qua {} do lỗi: {}", version.getPlatform(), e.getMessage());
             }
         }
+    }
+
+    /** Báo admin khi trạng thái version đổi sang cần xử lý (sắp ngừng / đã ngừng / có bản mới). */
+    private void notifyVersionStatus(PlatformApiVersion version) {
+        notificationService.sendToAdmins(NotificationDraft.builder()
+                .type(NotificationType.ADMIN_API_VERSION)
+                .title("API " + version.getPlatform() + ": " + version.getStatus())
+                .message("Version đang dùng " + version.getCurrentVersion() + ", mới nhất "
+                        + (version.getLatestVersion() == null ? "?" : version.getLatestVersion())
+                        + ". Kiểm tra trang Phiên bản API.")
+                .params(NotificationParams.of("platform", version.getPlatform(), "status", version.getStatus(),
+                        "currentVersion", version.getCurrentVersion(), "latestVersion", version.getLatestVersion()))
+                .dedupeKey("api-version:" + version.getPlatform() + ":" + version.getStatus() + ":" + version.getLatestVersion())
+                .build());
     }
 
     // Lấy version mới nhất từ trang changelog của Meta (chỉ Facebook/Instagram dùng Graph changelog).

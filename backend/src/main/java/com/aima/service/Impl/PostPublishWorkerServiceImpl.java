@@ -1,5 +1,9 @@
 package com.aima.service.Impl;
 
+import com.aima.service.JobEventService;
+import com.aima.util.NotificationParams;
+import com.aima.enums.NotificationRefType;
+import com.aima.dto.notification.NotificationDraft;
 import com.aima.dto.publish.NormalizedPublishError;
 import com.aima.dto.publish.PublishFailureNotice;
 import com.aima.dto.publish.PublishTarget;
@@ -124,6 +128,7 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
     PublishErrorNormalizer errorNormalizer;
     PublishFailureNotifier failureNotifier;
     PlatformIncidentService incidentService;
+    JobEventService jobEventService;
     Map<Platform, PlatformPublisher> publishers;
 
     public PostPublishWorkerServiceImpl(PostingJobRepository jobRepository,
@@ -137,6 +142,7 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
                                         PublishErrorNormalizer errorNormalizer,
                                         PublishFailureNotifier failureNotifier,
                                         PlatformIncidentService incidentService,
+                                        JobEventService jobEventService,
                                         List<PlatformPublisher> publisherList) {
         this.jobRepository = jobRepository;
         this.postPublishMapper = postPublishMapper;
@@ -152,6 +158,7 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         this.errorNormalizer = errorNormalizer;
         this.failureNotifier = failureNotifier;
         this.incidentService = incidentService;
+        this.jobEventService = jobEventService;
         this.publishers = publisherList.stream()
                 .collect(Collectors.toUnmodifiableMap(PlatformPublisher::platform, Function.identity()));
     }
@@ -367,6 +374,7 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         post.setStatus(PostStatus.POSTING);
         schedule.setStatus(ScheduleStatus.POSTING);
         statusResolver.refresh(itemId);
+        jobEventService.postUpdated(schedule);
         return true;
     }
 
@@ -467,13 +475,18 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         schedule.setStatus(ScheduleStatus.POSTED);
         // Hai nền tảng của cùng bài xong cùng lúc: khóa bài tuần tự hoá hai lần ghi, lần sau thấy kết quả lần trước.
         statusResolver.refresh(itemId);
+        jobEventService.postUpdated(schedule);
 
         // FR-75: báo đăng thành công.
         PlatformAccount account = schedule.getPlatformAccount();
-        notificationService.notify(account.getUser(), NotificationType.POST_PUBLISHED,
-                "Đã đăng bài thành công",
-                "Bài viết đã được đăng lên " + post.getPlatformName() + " (" + account.getAccountName() + ").",
-                post.getId());
+        notificationService.send(account.getUser(), NotificationDraft.builder()
+                .type(NotificationType.POST_PUBLISHED)
+                .title("Đã đăng bài thành công")
+                .message("Bài viết đã được đăng lên " + post.getPlatformName() + " (" + account.getAccountName() + ").")
+                .refType(NotificationRefType.SCHEDULE).refId(schedule.getId())
+                .params(NotificationParams.of("platform", post.getPlatformName(), "accountName", account.getAccountName(),
+                        "postId", post.getId()))
+                .build());
 
         // Worker nền: không có request context nên ip/userAgent để null (đúng bản chất — hệ thống
         // tự đăng theo lịch, không phải thao tác trực tiếp của user).
@@ -538,6 +551,7 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
             post.getPostingJobs().add(retryJob);
             log.info("[PostPublish] Job {} [{}] sẽ retry lần {} sau {} phút",
                     jobId, code, job.getRetryCount() + 1, delay.toMinutes());
+            jobEventService.postUpdated(heldSchedule); // RETRYING + attempt + nextRetryAt
             return FailureEffects.NONE;
         }
 
@@ -545,6 +559,7 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         PostSchedule schedule = post.getSchedule();
         schedule.setStatus(ScheduleStatus.FAILED);
         statusResolver.refresh(itemId);
+        jobEventService.postUpdated(schedule);
         String reference = PublishReference.of(jobId);
         log.warn("[PostPublish] Bài {} thất bại chung cuộc trên {} [{} / mã gốc {}] ({}): {}",
                 post.getId(), post.getPlatformName(), code, e.getResponseCode(), reference, adminMessage);

@@ -17,6 +17,7 @@ export type Route =
   | 'createWizard'
   | 'calendar'
   | 'failedPosts'
+  | 'notifications'
   | 'analytics'
   | 'trends'
   | 'brand'

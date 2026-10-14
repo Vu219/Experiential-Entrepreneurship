@@ -1,5 +1,6 @@
 package com.aima.service.Impl;
 
+import com.aima.service.JobEventService;
 import com.aima.entity.ContentItem;
 import com.aima.entity.PostSchedule;
 import com.aima.entity.UserPublishingSettings;
@@ -39,18 +40,22 @@ public class ScheduleHoldServiceImpl implements ScheduleHoldService {
     UserPublishingSettingsRepository settingsRepository;
     PostScheduleMapper postScheduleMapper;
     ContentItemStatusResolver statusResolver;
+    JobEventService jobEventService;
 
     @Override
     public boolean hold(PostSchedule schedule, HoldReason reason) {
         if (!HOLDABLE.contains(schedule.getStatus())) {
             return false;
         }
+        boolean statusChanged = schedule.getStatus() != ScheduleStatus.ON_HOLD;
         schedule.setStatus(ScheduleStatus.ON_HOLD);
         if (hasReason(schedule, reason)) {
+            if (statusChanged) jobEventService.postUpdated(schedule);
             return false;
         }
         schedule.getHolds().add(postScheduleMapper.toHold(schedule, reason, Instant.now()));
         log.info("[ScheduleHold] Lịch {} + {}", schedule.getId(), reason);
+        jobEventService.postUpdated(schedule); // realtime: Lịch đăng / Bài lỗi cập nhật tại chỗ
         return true;
     }
 
@@ -60,9 +65,14 @@ public class ScheduleHoldServiceImpl implements ScheduleHoldService {
         if (removed) {
             log.info("[ScheduleHold] Lịch {} − {}", schedule.getId(), reason);
         }
+        boolean resumed = false;
         if (resume && schedule.getStatus() == ScheduleStatus.ON_HOLD && schedule.getHolds().isEmpty()
                 && schedule.getScheduledTime().isAfter(Instant.now())) {
             schedule.setStatus(ScheduleStatus.SCHEDULED);
+            resumed = true;
+        }
+        if (removed || resumed) {
+            jobEventService.postUpdated(schedule);
         }
         return removed;
     }

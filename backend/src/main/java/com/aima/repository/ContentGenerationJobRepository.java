@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -43,4 +44,18 @@ public interface ContentGenerationJobRepository extends JpaRepository<ContentGen
             + "and j.updatedAt < :threshold and j.deletedAt is null")
     int failStuckJobs(@Param("threshold") LocalDateTime threshold, @Param("now") LocalDateTime now,
                       @Param("errorCode") String errorCode, @Param("errorMessage") String errorMessage);
+
+    /** Nút Dừng: chốt FAILED có điều kiện (chỉ job còn PENDING/RUNNING) — 0 = job đã xong trước đó. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update ContentGenerationJob j set j.status = com.aima.enums.GenerationJobStatus.FAILED, "
+            + "j.errorCode = :errorCode, j.errorMessage = :errorMessage, j.updatedAt = :now "
+            + "where j.id = :id and j.status in (com.aima.enums.GenerationJobStatus.PENDING, "
+            + "com.aima.enums.GenerationJobStatus.RUNNING) and j.deletedAt is null")
+    int cancel(@Param("id") UUID id, @Param("now") LocalDateTime now, @Param("errorCode") String errorCode,
+               @Param("errorMessage") String errorMessage);
+
+    /** Id các job {@link #failStuckJobs} sắp chốt — để báo user + phát job.updated. */
+    @Query("select j.id from ContentGenerationJob j where j.status in (com.aima.enums.GenerationJobStatus.PENDING, "
+            + "com.aima.enums.GenerationJobStatus.RUNNING) and j.updatedAt < :threshold and j.deletedAt is null")
+    List<UUID> findStuckIds(@Param("threshold") LocalDateTime threshold);
 }

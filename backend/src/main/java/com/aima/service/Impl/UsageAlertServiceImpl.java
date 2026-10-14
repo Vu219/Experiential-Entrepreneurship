@@ -1,5 +1,9 @@
 package com.aima.service.Impl;
 
+import com.aima.util.NotificationParams;
+import com.aima.service.NotificationService;
+import com.aima.enums.NotificationType;
+import com.aima.dto.notification.NotificationDraft;
 import com.aima.dto.request.AckAlertRequest;
 import com.aima.dto.response.AlertRuleStatResponse;
 import com.aima.dto.response.ApiResponse;
@@ -88,6 +92,7 @@ public class UsageAlertServiceImpl implements UsageAlertService {
     ActivityLogService activityLogService;
     UsageMapper usageMapper;
     JdbcTemplate jdbcTemplate;
+    NotificationService notificationService;
 
     @NonFinal
     volatile Map<String, String> cachedConfig;
@@ -418,8 +423,16 @@ public class UsageAlertServiceImpl implements UsageAlertService {
                 .message(message).data(dataJson)
                 .firstSeen(now).lastSeen(now)
                 .build();
-        alertRepository.save(alert);
+        UsageAlert saved = alertRepository.save(alert);
         log.info("[UsageAlert] {} {}: {}", rule, userId == null ? "(hệ thống)" : userId, message);
+        // Chỉ cảnh báo MỚI mở mới báo admin (lặp lại chỉ tăng occurrence_count, không gửi thêm).
+        notificationService.sendToAdmins(NotificationDraft.builder()
+                .type(NotificationType.ADMIN_USAGE_ALERT)
+                .title("Cảnh báo sử dụng mới: " + rule)
+                .message(message)
+                .params(NotificationParams.of("rule", rule, "severity", severity, "userEmail", email))
+                .dedupeKey("usage-alert:" + saved.getId())
+                .build());
     }
 
     // ===== Config (system_config, cache 60s) =====

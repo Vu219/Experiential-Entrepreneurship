@@ -41,6 +41,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -195,8 +196,8 @@ class PaymentWebhookTest {
         assertFalse(saved.getReconcileRequired(), "đường sạch thì không được bật cờ đối soát");
         assertNotNull(saved.getRawPayload(), "payload thô phải được lưu để đối soát");
         verify(subscriptionService, times(1)).activatePaidPlan(any(), eq(proPlan), any());
-        verify(notificationService).notify(eq(user), eq(NotificationType.PAYMENT_SUCCEEDED),
-                anyString(), anyString(), any());
+        verify(notificationService).send(eq(user), argThat(d -> d.type() == NotificationType.PAYMENT_SUCCEEDED
+                && d.title() != null && d.message() != null));
     }
 
     @Test
@@ -352,8 +353,8 @@ class PaymentWebhookTest {
 
         service.handleWebhook(body(""));
 
-        verify(notificationService).notify(eq(admin), eq(NotificationType.PAYMENT_WEBHOOK_ALERT),
-                anyString(), anyString(), any());
+        verify(notificationService).sendToAdmins(argThat(d -> d.type() == NotificationType.PAYMENT_WEBHOOK_ALERT
+                && d.title() != null && d.message() != null));
     }
 
     @Test
@@ -365,8 +366,7 @@ class PaymentWebhookTest {
 
         service.handleWebhook(body(""));
 
-        verify(notificationService, never()).notify(any(), eq(NotificationType.PAYMENT_WEBHOOK_ALERT),
-                anyString(), anyString(), any());
+        verify(notificationService, never()).sendToAdmins(argThat(d -> d.type() == NotificationType.PAYMENT_WEBHOOK_ALERT));
     }
 
     /** Khớp biến thể format số = gần như chắc chắn lỗi của TA → báo ngay, không đợi ngưỡng. */
@@ -379,8 +379,8 @@ class PaymentWebhookTest {
 
         service.handleWebhook(body(""));
 
-        verify(notificationService).notify(eq(admin), eq(NotificationType.PAYMENT_WEBHOOK_ALERT),
-                anyString(), anyString(), any());
+        verify(notificationService).sendToAdmins(argThat(d -> d.type() == NotificationType.PAYMENT_WEBHOOK_ALERT
+                && d.title() != null && d.message() != null));
     }
 
     /** Body rác/quá cỡ KHÔNG phải tín hiệu cấu hình sai — đừng gọi admin dậy vì nó. */
@@ -392,7 +392,8 @@ class PaymentWebhookTest {
 
         service.handleWebhook("{\"pad\":\"" + "x".repeat(20_000) + "\"}");
 
-        verify(notificationService, never()).notify(any(), any(), anyString(), anyString(), any());
+        verify(notificationService, never()).send(any(), any());
+        verify(notificationService, never()).sendToAdmins(any());
     }
 
     /** Một trận bão webhook không được biến thành một trận bão thông báo. */
@@ -408,8 +409,7 @@ class PaymentWebhookTest {
             service.handleWebhook(body(""));
         }
 
-        verify(notificationService, times(1)).notify(any(), eq(NotificationType.PAYMENT_WEBHOOK_ALERT),
-                anyString(), anyString(), any());
+        verify(notificationService, times(1)).sendToAdmins(argThat(d -> d.type() == NotificationType.PAYMENT_WEBHOOK_ALERT));
     }
 
     private User adminUser() {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useRealtimeRefresh } from '../../hooks/useRealtimeRefresh';
 import {
   AlertTriangle, Clock, FileText, RefreshCw, Send, Sparkles, XCircle, type LucideIcon,
 } from 'lucide-react';
@@ -53,6 +54,8 @@ export default function Dashboard() {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   // Đổi khoảng thời gian KHÔNG dựng lại skeleton — giữ nội dung cũ để trang không nháy.
   const loadedRef = useRef(false);
+  // Realtime: bài đổi trạng thái / thông báo mới → làm mới số liệu + "Hoạt động gần đây" (không hiện skeleton lại).
+  useRealtimeRefresh(['post.updated', 'notification.created', 'ready'], () => setReloadKey((k) => k + 1), 1500);
   // Khoảng thời gian ĐANG hiển thị (chỉ cập nhật khi tải thành công) — dùng để trả bộ lọc về
   // đúng dữ liệu trên biểu đồ nếu lần đổi khoảng bị lỗi.
   const appliedRangeRef = useRef<DashboardRange>(7);

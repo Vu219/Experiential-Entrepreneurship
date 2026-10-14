@@ -1,5 +1,6 @@
 package com.aima.security;
 
+import com.aima.exception.TokenExpiredException;
 import com.aima.service.JwtService;
 import com.aima.service.RefreshTokenService;
 import com.aima.service.TokenBlacklistService;
@@ -27,6 +28,9 @@ import java.io.IOException;
 @RequiredArgsConstructor
 @Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    /** Thời điểm access token của request hết hạn ({@link java.time.Instant}) — luồng SSE tự đóng trước mốc này. */
+    public static final String TOKEN_EXPIRES_AT_ATTRIBUTE = "aima.tokenExpiresAt";
+
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
     private final RefreshTokenService refreshTokenRedis;
@@ -97,8 +101,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                    request.setAttribute(TOKEN_EXPIRES_AT_ATTRIBUTE, claims.getExpirationTime().toInstant());
                 }
             }
+        } catch (TokenExpiredException e) {
+            // Access token hết hạn = chưa đăng nhập (401 qua entry point), KHÔNG phải token hỏng: giữ cookie
+            // refresh để FE gọi /auth/refresh rồi thử lại (xoá cả hai cookie ở đây làm user bị văng ra).
+            log.debug("Access token expired: {}", request.getRequestURI());
+            cookieUtils.clearAccessTokenCookie(response);
         } catch (Exception e) {
             log.error("Failed to authenticate JWT token: {}", e.getMessage());
             cookieUtils.clearAccessTokenCookie(response);

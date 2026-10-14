@@ -1,5 +1,7 @@
 package com.aima.service.Impl;
 
+import com.aima.util.NotificationParams;
+import com.aima.dto.notification.NotificationDraft;
 import com.aima.entity.Plan;
 import com.aima.entity.Subscription;
 import com.aima.entity.SubscriptionHistory;
@@ -361,11 +363,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
      * chỉ vì gửi thông báo hỏng.
      */
     private void announceDowngrade(User user, String previousPlanCode) {
-        notificationService.notify(user, NotificationType.PLAN_EXPIRED,
-                "Gói " + previousPlanCode + " đã hết hạn",
-                "Tài khoản của bạn đã chuyển về gói Free. Hạn mức token áp dụng ngay từ bây giờ —"
-                        + " gia hạn để tiếp tục dùng hạn mức cũ.",
-                null);
+        notificationService.send(user, NotificationDraft.builder()
+                .type(NotificationType.PLAN_EXPIRED)
+                .title("Gói " + previousPlanCode + " đã hết hạn")
+                .message("Tài khoản của bạn đã chuyển về gói Free. Hạn mức token áp dụng ngay từ bây giờ —"
+                        + " gia hạn để tiếp tục dùng hạn mức cũ.")
+                .params(NotificationParams.of("plan", previousPlanCode))
+                .build());
         activityLogService.record(new ActivityLogService.Entry(
                 ActivityAction.PLAN_CHANGED, user.getId(), user.getEmail(),
                 "SUBSCRIPTION", user.getId().toString(), null,

@@ -1,5 +1,6 @@
 package com.aima.service;
 
+import reactor.core.publisher.Mono;
 import com.aima.dto.ai.AnalyzePayload;
 import com.aima.dto.ai.AnalyzeResultPayload;
 import com.aima.dto.ai.FormatPayload;
@@ -30,6 +31,15 @@ public interface AiServiceClient {
 
     /** POST /generate — FR-24..FR-30, FR-32. */
     GeneratedContentResult generateContent(GenerateContentPayload payload);
+
+    /**
+     * Như {@link #generateContent} nhưng gọi {@code POST /generate/stream} (NDJSON): sự kiện start / delta / reset chuyển cho
+     * {@code listener} ngay khi tới, trả kết quả của sự kiện {@code done} (giống hệt body của /generate). {@code cancel}
+     * hoàn tất → đóng kết nối (AI service đóng luồng tới provider) và ném
+     * {@link com.aima.exception.AiStreamCancelledException} kèm usage một phần.
+     */
+    GeneratedContentResult generateContentStream(GenerateContentPayload payload, AiStreamListener listener,
+                                                 Mono<Void> cancel);
 
     /** POST /research — FR-20..FR-22 (phần phân tích của FR-19/23). */
     ResearchResultPayload research(ResearchPayload payload);

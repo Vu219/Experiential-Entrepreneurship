@@ -1,9 +1,12 @@
 package com.aima.entity;
 
+import com.aima.enums.NotificationRefType;
 import com.aima.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -42,6 +45,16 @@ public class Notification extends BaseEntity {
 
     @Column(name = "read_at")
     LocalDateTime readAt;
+
+    /** Đối tượng mà {@link #refId} trỏ tới (deep link). Null với bản ghi trước V17. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ref_type", length = 30)
+    NotificationRefType refType;
+
+    /** Tham số dựng câu theo ngôn ngữ ở FE (khoá {@code ntf_<TYPE>_*}), JSON object. Null = chỉ có title/message. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "params", columnDefinition = "jsonb")
+    String params;
 
     /** Khóa chống gửi lặp (unique khi khác null) — vd nhắc lịch tạm giữ đã quá giờ chỉ gửi một lần. */
     @Column(name = "dedupe_key", length = 200)

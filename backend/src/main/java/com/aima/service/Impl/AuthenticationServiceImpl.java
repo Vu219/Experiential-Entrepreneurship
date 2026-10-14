@@ -28,6 +28,7 @@ import com.aima.security.JwtProperties;
 import com.aima.service.ActivityLogService;
 import com.aima.service.AuthenticationService;
 import com.aima.service.JwtService;
+import com.aima.service.RealtimeEventPublisher;
 import com.aima.service.RefreshTokenService;
 import com.aima.service.TokenBlacklistService;
 
@@ -53,6 +54,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     CookieUtils cookieUtils;
     AuthenticationMapper authenticationMapper;
     ActivityLogService activityLogService;
+    RealtimeEventPublisher realtimeEventPublisher;
 
     static SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -80,6 +82,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                         var claims = jwtService.parseClaims(token);
                         String jti = claims.getJWTID();
                         String email = claims.getSubject();
+                        // logout_time vô hiệu MỌI access token cũ → đóng luồng SSE của user ở mọi instance
+                        // (phiên khác còn refresh token thì tự làm mới rồi nối lại).
+                        refreshTokenRedis.getUserIdByJti(jti)
+                                .ifPresent(userId -> realtimeEventPublisher.revokeSessions(UUID.fromString(userId)));
                         refreshTokenRedis.revoke(jti);
                         refreshTokenRedis.setLogoutTime(email);
                         activityLogService.record(ActivityLogService.Entry.byActor(

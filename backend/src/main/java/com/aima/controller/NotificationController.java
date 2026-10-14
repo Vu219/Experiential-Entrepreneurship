@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,19 +25,21 @@ import java.util.UUID;
 @RequestMapping("/notifications")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Tag(name = "Notification", description = "In-app notifications: published/failed posts, review needed, reconnection needed (FR-75..FR-79).")
+@Tag(name = "Notification", description = "In-app notifications (FR-75..FR-79): list, unread count, mark read, delete. Live updates via /realtime/stream.")
 public class NotificationController {
 
     NotificationService notificationService;
 
     @GetMapping
     @Operation(summary = "List notifications (newest first)",
-            description = "Paged; unreadOnly=true returns only unread ones.")
+            description = "Paged. status=all|unread (unreadOnly=true still accepted), category=NotificationCategory name.")
     public ApiResponse<PageResponse<NotificationResponse>> list(@AuthenticationPrincipal UserDetails principal,
+                                                                @RequestParam(required = false) String status,
+                                                                @RequestParam(required = false) String category,
                                                                 @RequestParam(defaultValue = "false") boolean unreadOnly,
                                                                 @RequestParam(defaultValue = "0") int page,
                                                                 @RequestParam(defaultValue = "10") int size) {
-        return notificationService.list(principal.getUsername(), unreadOnly, page, size);
+        return notificationService.list(principal.getUsername(), status, category, unreadOnly, page, size);
     }
 
     @GetMapping("/unread-count")
@@ -50,6 +53,18 @@ public class NotificationController {
     public ApiResponse<NotificationResponse> markRead(@AuthenticationPrincipal UserDetails principal,
                                                       @PathVariable UUID notificationId) {
         return notificationService.markRead(principal.getUsername(), notificationId);
+    }
+
+    @DeleteMapping("/{notificationId}")
+    @Operation(summary = "Delete one notification (soft delete)")
+    public ApiResponse<Void> delete(@AuthenticationPrincipal UserDetails principal, @PathVariable UUID notificationId) {
+        return notificationService.delete(principal.getUsername(), notificationId);
+    }
+
+    @DeleteMapping(params = "read=true")
+    @Operation(summary = "Delete all read notifications (soft delete)", description = "Returns how many were deleted.")
+    public ApiResponse<Long> deleteRead(@AuthenticationPrincipal UserDetails principal) {
+        return notificationService.deleteRead(principal.getUsername());
     }
 
     @PatchMapping("/read-all")

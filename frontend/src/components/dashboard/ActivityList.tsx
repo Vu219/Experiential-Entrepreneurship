@@ -1,7 +1,10 @@
 import { History } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Icon } from '../ui';
-import { ROUTE_BY_TYPE, TYPE_META } from '../notificationMeta';
+import { useNavigate } from 'react-router-dom';
+import { openNotificationTarget, TYPE_META } from '../notificationMeta';
+import { notificationText } from '../../notifications/text';
+import { notificationTarget } from '../../notifications/links';
 import { formatRelativeTime } from '../../utils/format';
 import type { AppNotification } from '../../api/notifications';
 import { C } from '../../styles/colors';
@@ -9,7 +12,7 @@ import { C } from '../../styles/colors';
 /**
  * Danh sách timeline hoạt động (icon + tiêu đề + thời gian tương đối) — DÙNG CHUNG cho khối
  * "Hoạt động gần đây" trên Dashboard và modal "Xem tất cả", để hai nơi luôn cùng giao diện.
- * Bấm một mục → điều hướng theo loại thông báo (notificationMeta); `onNavigate` để nơi gọi
+ * Bấm một mục → điều hướng tới đối tượng của thông báo (notifications/links); `onNavigate` để nơi gọi
  * đóng modal trước khi chuyển trang.
  */
 export default function ActivityList({
@@ -19,7 +22,9 @@ export default function ActivityList({
   items: AppNotification[];
   onNavigate?: () => void;
 }) {
-  const { t, go } = useApp();
+  const { t, lang, go } = useApp();
+  const navigate = useNavigate();
+  const dict = t as unknown as Record<string, string>;
 
   return (
     <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
@@ -28,6 +33,7 @@ export default function ActivityList({
         // không có ErrorBoundary nên một type lạ mà thiếu fallback sẽ làm trắng cả trang.
         const meta = TYPE_META[item.type] ?? { icon: History, color: C.textMuted, bg: C.slateTint };
         const isLast = i === items.length - 1;
+        const text = notificationText(item, dict, lang);
         return (
           <li key={item.id} style={{ display: 'flex', gap: 12 }}>
             {/* Cột mốc: icon + đường nối kéo dài tới mục sau (mục cuối không vẽ đường). */}
@@ -43,7 +49,7 @@ export default function ActivityList({
 
             <button
               type="button"
-              onClick={() => { onNavigate?.(); go(ROUTE_BY_TYPE[item.type] ?? 'dashboard'); }}
+              onClick={() => { onNavigate?.(); openNotificationTarget(notificationTarget(item), go, navigate); }}
               style={{
                 flex: 1, minWidth: 0, textAlign: 'left', border: 'none', background: 'transparent',
                 padding: '0 0 16px', cursor: 'pointer',
@@ -53,14 +59,14 @@ export default function ActivityList({
                 display: 'block', fontSize: 13.5, fontWeight: 600, color: C.ink750,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
-                {item.title}
+                {text.title}
               </span>
-              {item.message && (
+              {text.body && (
                 <span style={{
                   display: 'block', fontSize: 12.5, color: C.textSecondary, marginTop: 2,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
-                  {item.message}
+                  {text.body}
                 </span>
               )}
               <span style={{ display: 'block', fontSize: 11, color: C.ink350, marginTop: 4 }}>

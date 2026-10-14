@@ -67,6 +67,7 @@ response = the domain response **plus `TokenAccounting`** fields (`tokens_used`,
 | `GET /health` | liveness + active env provider |
 | `/research` | Trend research for one session (FR-19..23) |
 | `/generate` | Generate one content item (FR-24..30; `regenerate_from` = FR-32) |
+| `/generate/stream` | Same as `/generate`, STREAMED as NDJSON (one JSON per line): `start{provider,model,input_tokens?}` · `delta{path,append,replace?}` (string field that grew, e.g. `caption`, `script.steps[1].content`) · `reset{reason}` (fallback after deltas — client clears its preview) · `done{result}` (= `/generate` body) · `error{error_code,message,attempts}`. Backend uses it only when `aima.ai.generation-streaming-enabled=true`; client disconnect closes the provider stream |
 | `/regenerate-part` | Regenerate one video-script part, rest untouched |
 | `/format` | One `ContentVersion` per platform (FR-40..46) |
 | `/analyze` | Success factors + insights from post metrics (FR-63..64) |
@@ -94,6 +95,12 @@ response = the domain response **plus `TokenAccounting`** fields (`tokens_used`,
   `/list-models`, REQUIRES header `X-Internal-Token` == `AI_INTERNAL_TOKEN` (shared secret
   with the backend, compared with `secrets.compare_digest`). Token unset on this service ⇒
   those requests are refused (503); env-based requests keep working.
+
+**`astream_structured(schema, prompt, vars)`** (2026-10-14, `/generate/stream`) is the streamed twin: SAME chain policy and budget,
+the model bound like `with_structured_output` (Anthropic forced tool call → tool-call args; Gemini `response_json_schema` → JSON text,
+`_GeminiChat._astream` keeps AFC off); raw JSON is accumulated, parsed leniently (`parse_partial_json`) and every grown string leaf is a
+`delta`; failure before the first delta falls back silently, after it a `reset` is yielded first; the final object is validated with the
+same pydantic schema (stored content identical to `/generate`). Usage = merged `usage_metadata` of the chunks.
 
 **`invoke_structured(schema, prompt, vars)`** is the single agent→LLM gateway: LangChain
 `with_structured_output(include_raw=True)` returns the typed pydantic result AND real token
@@ -157,7 +164,7 @@ Gemini grounding has its own quota) — `TREND_SEARCH_MAX_USES` caps it.
    belong to the backend. Do not add storage here.
 3. **Never log secrets or request bodies.** API keys are `SecretStr`; log provider/model names
    and exception TYPES only. `/test-connection` redacts the key from provider error messages.
-4. **All model calls go through `invoke_structured`** (or `build_llm` for probes) — never
+4. **All model calls go through `invoke_structured` / `astream_structured`** (or `build_llm` for probes) — never
    instantiate a LangChain chat model inside an agent, or fallback routing and token
    accounting silently break.
 5. **Platform scope:** only Facebook → Instagram → Threads. The `platform` field of any

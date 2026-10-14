@@ -82,6 +82,12 @@ public interface PostScheduleRepository extends JpaRepository<PostSchedule, UUID
             + "where s.status = com.aima.enums.ScheduleStatus.ON_HOLD and s.scheduledTime <= :now and s.deletedAt is null")
     List<PostSchedule> findHeldOverdue(@Param("now") Instant now);
 
+    // Lịch SCHEDULED sẽ đăng trong (from, to] — nhắc "sắp đăng" (ScheduleUpcomingReminderJob, nhóm REMINDERS mặc định tắt).
+    @Query("select s from PostSchedule s join fetch s.platformAccount a join fetch a.user "
+            + "where s.status = com.aima.enums.ScheduleStatus.SCHEDULED and s.scheduledTime > :from "
+            + "and s.scheduledTime <= :to and s.deletedAt is null")
+    List<PostSchedule> findUpcoming(@Param("from") Instant from, @Param("to") Instant to);
+
     // Job sửa dữ liệu: lịch Instagram chưa đăng (MVP không tự đăng được) và lịch ON_HOLD chưa có lý do.
     List<PostSchedule> findByContentVersion_PlatformNameAndStatusInAndDeletedAtIsNull(Platform platform,
                                                                                   Collection<ScheduleStatus> statuses);

@@ -63,6 +63,14 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
             """)
     List<UUID> findExpiredPlanIds(@Param("now") LocalDateTime now);
 
+    /** Gói trả tiền hết hạn trong (now, until] — nhắc gia hạn (PlanExpiryReminderJob, báo trước 7 và 1 ngày). */
+    @Query("""
+            select s from Subscription s join fetch s.user join fetch s.plan
+            where s.deletedAt is null
+              and s.planExpiresAt is not null and s.planExpiresAt > :now and s.planExpiresAt <= :until
+            """)
+    List<Subscription> findExpiringPlans(@Param("now") LocalDateTime now, @Param("until") LocalDateTime until);
+
     /** Id các user đã có subscription — cho seed idempotent (SubscriptionDataInitializer). */
     @Query("select s.user.id from Subscription s where s.deletedAt is null")
     List<UUID> findActiveUserIds();

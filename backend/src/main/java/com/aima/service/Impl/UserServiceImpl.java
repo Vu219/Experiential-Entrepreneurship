@@ -5,6 +5,7 @@ import com.aima.dto.response.DeleteAccountResponse;
 import com.aima.dto.response.MeResponse;
 import com.aima.service.EmailService;
 import com.aima.service.OtpService;
+import com.aima.service.RealtimeEventPublisher;
 import com.aima.service.RefreshTokenService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -66,6 +67,7 @@ public class UserServiceImpl implements UserService {
     EmailService emailService;
     OtpService otpService;
     RefreshTokenService refreshTokenService;
+    RealtimeEventPublisher realtimeEventPublisher;
     StorageService storageService;
 
     UserMapper userMapper;
@@ -280,6 +282,9 @@ public class UserServiceImpl implements UserService {
         user.setStatus(request.getStatus());
         User saved = userRepository.save(user);
         log.info("[Admin] {} đổi trạng thái user {} thành {}", adminEmail, userId, request.getStatus());
+        if (request.getStatus() == UserStatus.LOCKED) {
+            realtimeEventPublisher.revokeSessions(userId); // sau commit — luồng SSE đang mở không nhận tiếp
+        }
 
         activityLogService.record(ActivityLogService.Entry.byActor(
                 ActivityAction.USER_STATUS_CHANGED, adminEmail, "User", userId.toString(),
@@ -439,6 +444,7 @@ public class UserServiceImpl implements UserService {
         // Vô hiệu hoá mọi phiên đăng nhập cũ sau khi đổi mật khẩu.
         refreshTokenService.revokeAllTokens(user.getId().toString());
         refreshTokenService.setLogoutTime(user.getEmail());
+        realtimeEventPublisher.revokeSessions(user.getId());
 
         activityLogService.record(ActivityLogService.Entry.of(
                 ActivityAction.PASSWORD_RESET, user.getId(), user.getEmail()));

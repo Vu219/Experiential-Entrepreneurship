@@ -175,6 +175,13 @@ export async function getContentGenerationJob(jobId: string): Promise<ContentGen
   return data.result;
 }
 
+// POST /content-items/jobs/{jobId}/cancel — nút "Dừng": job PENDING/RUNNING → FAILED (errorCode CANCELLED_BY_USER);
+// luồng AI đang stream bị đóng ở instance đang chạy. Job đã xong → trả nguyên trạng.
+export async function cancelContentGeneration(jobId: string): Promise<ContentGenerationJob> {
+  const { data } = await client.post<ApiResponse<ContentGenerationJob>>(`/content-items/jobs/${jobId}/cancel`);
+  return data.result;
+}
+
 // ---- FR-40..FR-46: định dạng theo nền tảng (async job, NFR-04) ----
 // PA2-a: mỗi nền tảng format từ CHÍNH bản active của nó (giữ chỉnh sửa tay làm đầu vào),
 // job trả về các bản FORMATTED khi SUCCESS. Item phải GENERATED/APPROVED/FORMATTED.

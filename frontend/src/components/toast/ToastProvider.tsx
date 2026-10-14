@@ -21,6 +21,11 @@ import { useAppStore } from '../../store/useAppStore';
  */
 export type ToastVariant = 'success' | 'error' | 'warning' | 'info' | 'loading';
 
+/** Nút hành động trong toast (vd "Xem" của thông báo realtime) — bấm thì chạy rồi đóng toast. */
+export type ToastAction = { label: string; onClick: () => void };
+
+export type ToastOptions = { duration?: number; id?: number; title?: string; action?: ToastAction };
+
 type ToastData = {
   id: number;
   variant: ToastVariant;
@@ -28,14 +33,15 @@ type ToastData = {
   duration: number;
   updatedAt: number;
   title?: string;
+  action?: ToastAction;
 };
 
 type ToastApi = {
-  success: (message: string, opts?: { duration?: number; id?: number; title?: string }) => number;
-  error: (message: string, opts?: { duration?: number; id?: number; title?: string }) => number;
-  warning: (message: string, opts?: { duration?: number; id?: number; title?: string }) => number;
-  info: (message: string, opts?: { duration?: number; id?: number; title?: string }) => number;
-  loading: (message: string, opts?: { duration?: number; id?: number; title?: string }) => number;
+  success: (message: string, opts?: ToastOptions) => number;
+  error: (message: string, opts?: ToastOptions) => number;
+  warning: (message: string, opts?: ToastOptions) => number;
+  info: (message: string, opts?: ToastOptions) => number;
+  loading: (message: string, opts?: ToastOptions) => number;
 };
 
 const DEFAULT_DURATION = 5000;
@@ -107,7 +113,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastData[]>([]);
   const nextId = useRef(1);
 
-  const push = useCallback((variant: ToastVariant, message: string, opts?: { duration?: number; id?: number; title?: string }) => {
+  const push = useCallback((variant: ToastVariant, message: string, opts?: ToastOptions) => {
     const id = opts?.id ?? nextId.current++;
     setToasts((list) => {
       const idx = list.findIndex((t) => t.id === id);
@@ -118,6 +124,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         duration: opts?.duration ?? (variant === 'loading' ? 999999 : DEFAULT_DURATION),
         updatedAt: Date.now(),
         title: opts?.title,
+        action: opts?.action,
       };
       if (idx >= 0) {
         const newList = [...list];
@@ -275,6 +282,29 @@ function ToastItem({ toast, onRemove }: { toast: ToastData; onRemove: (id: numbe
           {toast.message}
         </div>
       </div>
+      {toast.action && (
+        <button
+          type="button"
+          className="btn-soft"
+          onClick={() => {
+            toast.action?.onClick();
+            close();
+          }}
+          style={{
+            flex: 'none',
+            border: `1px solid ${C.border}`,
+            borderRadius: 9,
+            background: C.surfaceMuted,
+            color: C.primary,
+            fontSize: 12.5,
+            fontWeight: 700,
+            padding: '6px 12px',
+            cursor: 'pointer',
+          }}
+        >
+          {toast.action.label}
+        </button>
+      )}
       <button
         onClick={close}
         aria-label={t.toastClose}

@@ -1,4 +1,5 @@
 import { C } from '../../styles/colors';
+import { useRealtimeRefresh } from '../../hooks/useRealtimeRefresh';
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, Download } from 'lucide-react';
@@ -92,8 +93,8 @@ export default function FailedPosts() {
   }, []);
 
   // Nạp TOÀN BỘ bài lỗi mọi vòng đời 1 lần (gộp các trang server) để lọc/tìm/phân trang client-side.
-  const loadAll = useCallback(async () => {
-    setLoadState('loading');
+  const loadAll = useCallback(async (silent = false) => {
+    if (!silent) setLoadState('loading');
     let all: FailedPost[] = [];
     try {
       for (let pageNo = 0; pageNo < 20; pageNo++) {
@@ -122,6 +123,8 @@ export default function FailedPosts() {
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+  // Realtime: bài vừa lỗi chung cuộc / vào chu kỳ thử lại / đăng lại thành công → nạp lại lặng lẽ (không nháy skeleton).
+  useRealtimeRefresh(['post.updated', 'ready'], () => { void loadAll(true); }, 800);
   // Sự cố nền tảng đang mở (banner) — lỗi khi tải chỉ đơn giản là không hiện banner.
   useEffect(() => { getPlatformStatus().then(setIncidents).catch(() => setIncidents([])); }, []);
 
@@ -189,6 +192,15 @@ export default function FailedPosts() {
     setSelectedId(id);
     setDetailOpen(true);
   }, []);
+
+  // Deep link ?post=<postId> (bấm thông báo "Đăng bài thất bại") → mở chi tiết bài đó MỘT lần sau khi tải xong.
+  const deepLinkPost = useRef(searchParams.get('post'));
+  useEffect(() => {
+    const id = deepLinkPost.current;
+    if (!id || loadState !== 'ok') return;
+    deepLinkPost.current = null;
+    if (posts.some((p) => p.id === id)) selectPost(id);
+  }, [loadState, posts, selectPost]);
 
   const toggleChecked = useCallback((id: string) => {
     setChecked((prev) => {
@@ -414,7 +426,7 @@ export default function FailedPosts() {
         <Card style={{ padding: '36px 18px', textAlign: 'center' }}>
           <AlertTriangle size={22} color={C.warning} style={{ marginBottom: 8 }} aria-hidden />
           <div style={{ fontSize: 14, fontWeight: 600, color: C.ink650, marginBottom: 12 }}>{t.fpLoadError}</div>
-          <button onClick={loadAll} className="btn-grad"
+          <button onClick={() => loadAll()} className="btn-grad"
             style={{ border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>
             {t.fpReload}
           </button>

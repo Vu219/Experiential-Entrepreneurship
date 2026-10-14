@@ -263,7 +263,7 @@ class MetaOAuthServiceImplTest {
             assertNull(a.getRefreshToken());
         }
         t.pageSchedules().forEach(s -> assertEquals(ScheduleStatus.ON_HOLD, s.getStatus()));
-        verify(notificationService).notify(eq(t.root().getUser()), any(), any(), any(), any());
+        verify(notificationService).send(eq(t.root().getUser()), any());
         verify(metaApiClient, never()).revokeToken(any(), any()); // user đã gỡ app — không gọi Meta
     }
 
@@ -436,8 +436,8 @@ class MetaOAuthServiceImplTest {
         service.validate(t.page().getId());
 
         t.pageSchedules().forEach(s -> assertEquals(ScheduleStatus.ON_HOLD, s.getStatus()));
-        verify(notificationService).notify(eq(t.page().getUser()), eq(com.aima.enums.NotificationType.RECONNECT_NEEDED),
-                any(), any(), any());
+        verify(notificationService).send(eq(t.page().getUser()),
+                org.mockito.ArgumentMatchers.argThat(d -> d.type() == com.aima.enums.NotificationType.RECONNECT_NEEDED));
     }
 
     // ---------- refresh ----------
@@ -464,8 +464,8 @@ class MetaOAuthServiceImplTest {
 
         assertEquals(ConnectionStatus.EXPIRED, result.getConnectionStatus());
         t.pageSchedules().forEach(s -> assertEquals(ScheduleStatus.ON_HOLD, s.getStatus()));
-        verify(notificationService).notify(eq(t.page().getUser()), eq(com.aima.enums.NotificationType.RECONNECT_NEEDED),
-                any(), any(), any());
+        verify(notificationService).send(eq(t.page().getUser()),
+                org.mockito.ArgumentMatchers.argThat(d -> d.type() == com.aima.enums.NotificationType.RECONNECT_NEEDED));
     }
 
     @Test

@@ -212,10 +212,16 @@ backend/
 >   FacebookPublisherImpl, InstagramPublisherImpl, ThreadsPublisherImpl}`), `MetaApiClient.publishPagePost/
 >   publishThreadsPost`, `mapper/PostPublishMapper`, `repository/{PostRepository, PostingJobRepository}`,
 >   `exception/PublishException` + `enums/PublishErrorType`. See §4 "Auto-Posting".
-> - **Notifications (FR-75..FR-79)**: `controller/NotificationController`, `service/NotificationService`
->   (+`Impl`), `mapper/NotificationMapper`, `entity/Notification`, `enums/NotificationType`,
->   `repository/NotificationRepository`. Phát từ worker đăng bài, worker tạo nội dung và
->   `TokenHealthCheckJob`. See §4 "Notifications".
+> - **Notifications (FR-75..FR-79)**: `controller/{NotificationController, NotificationPreferenceController}`,
+>   `service/{NotificationService, NotificationPreferenceService, JobEventService}` (+`Impl`), `mapper/{NotificationMapper,
+>   NotificationPreferenceMapper}`, `entity/{Notification, UserNotificationPreference}`, `enums/{NotificationType,
+>   NotificationCategory, NotificationRefType}`, `dto/notification/NotificationDraft`, `util/{NotificationChannelPolicy,
+>   NotificationParams}`, `repository/{NotificationRepository, NotificationSpecifications}`, `scheduler/{NotificationRetentionJob,
+>   PlanExpiryReminderJob, ScheduleUpcomingReminderJob}`. See §4 "Notifications".
+> - **Realtime SSE (2026-10-14)**: `controller/RealtimeController` (`GET /realtime/stream`), `service/{RealtimeService,
+>   RealtimeConnectionRegistry, RealtimeEventPublisher, RealtimeControlHandler, GenerationCancelService}` (+`Impl`,
+>   `Impl/RealtimeMessageListener`), `config/{RealtimeConfig, RealtimeProperties}`, `enums/{RealtimeEventType, RealtimeJobKind}`,
+>   `dto/realtime/*`, `mapper/RealtimeMapper`, `util/RealtimePayloads`. See §4 "Realtime (SSE)".
 > - **Thanh toán gói dịch vụ (payOS)**: `controller/{PaymentController, PayOSWebhookController,
 >   AdminPaymentController}`, `service/{PaymentService, PaymentGatewayClient, AdminPaymentService}`
 >   (+ `Impl/{PaymentServiceImpl, PayOSGatewayClientImpl, MockGatewayClientImpl,
@@ -482,7 +488,10 @@ Request → JwtAuthenticationFilter (addFilterBefore UsernamePasswordAuthenticat
        → RefreshTokenService.getLogoutTime(email) vs iat ← revoked-by-logout check
        → UserDetailsServiceImpl.loadUserByUsername(email) → set SecurityContext (if enabled)
        → @EnableMethodSecurity enforces @PreAuthorize at method level
-   On parse error: clear cookies + handlerExceptionResolver.resolveException(...)
+   Access token EXPIRED (TokenExpiredException): clear ONLY the access cookie, continue unauthenticated → 401
+   (the refresh cookie must survive so the FE can call /auth/refresh — FE refreshes on 401, single-flight)
+   Other parse error: clear both cookies + handlerExceptionResolver.resolveException(...)
+   Success: request attribute aima.tokenExpiresAt = token exp (SSE closes the stream at that time)
 ```
 Auth/authorization failures return clean JSON envelopes: `GlobalExceptionHandler` handles
 `AuthenticationException` → `UNAUTHENTICATED` (401) and `AccessDeniedException` → `UNAUTHORIZED` (403).
@@ -608,6 +617,14 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
   2. Gọi `AiServiceClient.generateContent(payload)` **NGOÀI** transaction — không giữ DB connection khi chờ HTTP.
   3. `saveSuccess` (lưu `ContentItem` + gắn vào job, `SUCCESS`) / catch → `saveFailure` (`FAILED` + `errorMessage`).
 - **Job treo:** vì `RUNNING` được commit ngay, app crash giữa chừng để job kẹt — `scheduler/ContentGenerationStuckJob` (mỗi phút) chốt PENDING/RUNNING quá 5 phút → FAILED + `error_code=AI_TIMEOUT`; worker bỏ qua job không còn PENDING, kết quả về muộn vẫn ghi đè SUCCESS.
+- **AI streaming + nút Dừng (2026-10-14, cờ `aima.ai.generation-streaming-enabled`, mặc định TẮT — D11):** worker gọi
+  `AiServiceClient.generateContentStream` (`POST {ai}/generate/stream`, NDJSON) — delta gộp 100ms → SSE `ai.delta`, `reset` → `ai.reset`,
+  kết quả cuối từ sự kiện `done` lưu y như `/generate`. `POST /content-items/jobs/{id}/cancel`: update có điều kiện PENDING/RUNNING →
+  FAILED + `error_code=CANCELLED_BY_USER` (D12, không thêm enum), `job.updated` (không thông báo lỗi), lệnh `job.cancel` qua bus →
+  `GenerationCancelServiceImpl` ở instance đang stream đóng luồng (AI service đóng luồng provider) → `AiStreamCancelledException` →
+  `ai_usage.status=CANCELLED` (input thật từ `start` + output ước lượng ~3 ký tự/token, billable như SUCCESS — D4). `saveSuccess` /
+  `saveFailure` KHÔNG ghi đè job user đã huỷ (vẫn ghi đè job bị đánh treo AI_TIMEOUT như cũ). Test `GenerationStreamingIntegrationTest`,
+  `AiServiceClientStreamTest`.
 - **Chống tạo trùng (2026-09-29):** `startGeneration` khoá row bài (`ContentItemRepository.findOwnedForUpdate`) rồi trả lại job cũ khi header `Idempotency-Key` trùng (cùng user) hoặc đã có job PENDING/RUNNING cho cùng (bài, nền tảng); job SUCCESS/FAILED không chặn tạo lại.
 - `AsyncConfig`: bean `contentGenerationExecutor` (core 2 / max 5 / queue 50) **và** bean `TransactionTemplate` dùng chung cho các transaction ngắn của tác vụ nền.
 - `AiServiceClient`/`Impl` là **wrapper duy nhất** gọi AI service: `WebClient` `aiServiceWebClient` (base `ai-service.base-url`, timeout `ai-service.timeout-seconds`) → `POST /generate`; hết timeout → `AppException(ErrorCode.AI_TIMEOUT)`; 502 "cả chuỗi model thất bại" mang `detail.error_code` → ErrorCode **cùng tên** (`chainErrorCode`: `AI_PROVIDER_OVERLOADED` 1908, `AI_QUOTA_EXHAUSTED` 1909, `AI_TIMEOUT` 1907, `AI_BAD_REQUEST` 1954, `AI_UNAVAILABLE` 1955); body khác / mã lạ → `AI_SERVICE_ERROR`. FE ánh xạ tên mã → câu tiếng Việt ở `frontend/src/api/aiErrorMessages.ts` — thêm mã mới thì thêm cả ba nơi (ai/src/llm.py, ErrorCode, file FE). Worker lưu tên ErrorCode vào `ContentGenerationJob.errorCode` (FE map ra thông điệp). Retry/fallback giữa các model do AI service tự quản lý (xem `ai/CLAUDE.md` §4) — backend KHÔNG retry lời gọi AI.
@@ -797,7 +814,7 @@ Lịch `ON_HOLD` được kích hoạt lại bằng `PUT /schedules/{id}` khi đ
 > (POST `/webhooks/meta`) kiểm `X-Hub-Signature-256` (app secret) → lưu mỗi `changes[]` vào `meta_webhook_events` (`dedupe_key`
 > unique, trùng → bỏ) → `MetaWebhookEventWorker.process` (`@Async("metaWebhookExecutor")`, khoá dòng) → trả 200 ngay;
 > `MetaWebhookEventJob` (1 phút, ShedLock `meta-webhook-events`) xử lý lại PENDING > 2 phút, 3 lần lỗi → FAILED. Feed: bài remove →
-> `AnalyticsSyncService.markDeleted` ("Đã xoá trên nền tảng", KHÔNG FAILED / KHÔNG thông báo — 07/10), sự kiện test Dashboard
+> `AnalyticsSyncService.markDeleted` ("Đã xoá trên nền tảng", KHÔNG FAILED; từ 14/10 báo POST_REMOVED_BY_PLATFORM một lần cho bài AIMA — D7), sự kiện test Dashboard
 > (`entry.id = "0"`) lưu thẳng IGNORED, bài add → `AnalyticsAccountSyncService.markDueForPage`,
 > comment/reaction/share/like → `syncSoon(post, 5 phút)`. Trang được `subscribed_apps?subscribed_fields=feed` sau commit OAuth
 > (`ensureWebhookSubscribed`) và mỗi lượt quét Trang nếu chưa (`account_sync_state.webhook_subscribed_at/webhook_error_code`).
@@ -819,20 +836,56 @@ saves/CTR/conversion/watch time = **null trong MVP** (nền tảng không cung c
 mỗi bài kèm đủ snapshot các mốc — FR-61/FR-62) • GET `/analytics/posts/{postId}`. **ErrorCode** 1946 `POST_NOT_FOUND`.
 
 ### Notifications — FR-75..FR-79
-> Thông báo in-app cho user. `NotificationService.notify(user, type, title, message, refId)` là API nội bộ
-> cho worker/scheduler — **best-effort**: lỗi chỉ log, không ném ra (không phá luồng đăng bài/tạo nội dung).
-> Entity `Notification` (user, type, title, message, `ref_id` để FE điều hướng, `read_at`); enum
-> `NotificationType`: POST_PUBLISHED / POST_FAILED / REVIEW_NEEDED / RECONNECT_NEEDED / NEW_INSIGHT (NEW_INSIGHT
-> phát khi làm analytics FR-59+) / SCHEDULE_OVERDUE (lịch tạm giữ quá giờ). `notifyOnce(..., dedupeKey)` ghi tối đa
-> một bản ghi mỗi `dedupe_key` (unique partial index, Flyway V4). KHÔNG có trong DATA_MODEL.md — entity bổ sung cho mục 14.
+> **API nội bộ:** `NotificationService.send(user, NotificationDraft)` (type, title/message tiếng Việt DỰ PHÒNG, `refType`/`refId`,
+> `params`, `dedupeKey`) — **best-effort**, không ném. Thứ tự: đọc cài đặt kênh của nhóm (`util/NotificationChannelPolicy`) → tắt
+> "trong app" (nhóm không bắt buộc) thì KHÔNG tạo bản ghi, KHÔNG đẩy SSE → chống trùng `dedupeKey` → INSERT trong transaction của nơi
+> gọi + đếm chưa đọc → SAU COMMIT đẩy `notification.created` (kèm `unreadCount`, `toast`). `sendToAdmins(draft)` gửi mọi admin ACTIVE
+> (dedupe có hậu tố id admin). `notify/notifyOnce` cũ chỉ còn bọc `send` (không params). Email là đường riêng (`PublishFailureNotifierImpl`).
+>
+> **Đa ngôn ngữ (D5):** `params` (jsonb, `util/NotificationParams.of(k, v, …)` bỏ null) — FE dựng câu bằng khoá `ntf_<TYPE>_title/_body`
+> (+ `_<variant>` khi có `params.variant`); lỗi đăng bài: `params.code` → catalog FE, KHÔNG gửi message gốc. Thêm loại = enum
+> `NotificationType` (kèm nhóm) + CHECK trong migration mới + `frontend/src/api/notifications.ts` + `notificationMeta.ts` + i18n + `links.ts`.
+>
+> **Nhóm × kênh:** `NotificationCategory` (PUBLISH_ISSUES ★, ACCOUNTS ★, PUBLISHING, AI_CONTENT, BILLING, REMINDERS (mặc định tắt), ADMIN);
+> ★ = luôn trong app; PLAN_EXPIRED cũng luôn trong app. Lưu `user_notification_preferences.channels` jsonb (khoá thiếu = mặc định).
+> Email chỉ PUBLISH_ISSUES + ACCOUNTS, dùng chung `email_publish_errors` (D8).
 
-**Endpoints** (`/notifications`, auth required): GET `/notifications?unreadOnly=&page=&size=` (PageResponse, mới nhất trước,
-size chặn ≤ 50) • GET `/unread-count` (badge chuông) • PATCH `/{id}/read` • PATCH `/read-all` (trả số bản ghi đã cập nhật,
-`@Modifying` bulk update).
+**Endpoints** (`/notifications`, auth required): `GET ?status=all|unread&category=&page&size` (`unreadOnly` cũ vẫn nhận; lọc bằng
+`NotificationSpecifications`; sai status 2203, sai nhóm 2202) • `GET /unread-count` • `PATCH /{id}/read`, `PATCH /read-all` (phát
+`notification.read`) • `DELETE /{id}` (xoá mềm) • `DELETE ?read=true` (xoá mềm mọi đã đọc) — hai cái sau phát `notification.deleted`.
+`GET/PUT /users/me/notification-preferences`: PUT ngữ nghĩa PATCH (`emailPublishErrors` và/hoặc `channels{CATEGORY:{inApp,toast}}`, rỗng 2204).
 
-**Điểm phát hiện tại**: worker đăng bài (POST_PUBLISHED khi POSTED; POST_FAILED khi thất bại chung cuộc; RECONNECT_NEEDED khi mã 190)
-• `ContentGenerationWorkerServiceImpl.saveSuccess` (REVIEW_NEEDED — FR-77) • `TokenHealthCheckJob.markExpired` (RECONNECT_NEEDED +
-chuyển lịch SCHEDULED → ON_HOLD, hoàn tất phần lịch của FR-18b). **ErrorCode** dùng lại `NOTIFICATION_NOT_FOUND` (1600, có sẵn).
+**Điểm phát:** worker đăng bài (POST_PUBLISHED → `/calendar/{scheduleId}`), `PublishFailureNotifierImpl` (POST_FAILED / RECONNECT_NEEDED
+variant PUBLISH_ERROR / TOKEN_EXPIRING), `TokenHealthCheckJob`, `MetaOAuthServiceImpl` (variant HELD_*), `PostingDispatchServiceImpl`,
+`HeldScheduleOverdueJob`, `JobEventServiceImpl` (CONTENT_GENERATION_FAILED trừ khi user huỷ, TREND_RESEARCH_DONE / FAILED thủ công),
+`AnalyticsSyncServiceImpl.markDeleted` (POST_REMOVED_BY_PLATFORM — webhook remove, câu trung tính vì Meta không cho biết tự xoá hay bị gỡ),
+`TokenUsageServiceImpl.notifyQuotaThresholds` (AI_QUOTA_WARNING 80% / EXHAUSTED 100%, dedupe theo kỳ, gọi sau mỗi event usage),
+`PlanExpiryReminderJob` (09:00, mốc 7 và 1 ngày), `ScheduleUpcomingReminderJob` (5 phút, báo trước 30 phút), `StrategyOptimizationWorker`,
+`PaymentServiceImpl`, `SubscriptionServiceImpl`, admin: `PaymentServiceImpl` (webhook alert), `UsageAlertServiceImpl` (cảnh báo mới mở),
+`AiModelHealthServiceImpl` (model vào nghỉ, dedupe theo giờ), `PlatformVersionServiceImpl` (trạng thái version đổi).
+**Dọn dẹp:** `NotificationRetentionJob` 03:45 (ShedLock) XOÁ CỨNG đã đọc > 90 ngày, mọi thông báo > 180 ngày, xoá mềm > 30 ngày
+(`aima.retention.notification-*`). **ErrorCode** `NOTIFICATION_NOT_FOUND` 1600, 2202–2204.
+
+### Realtime (SSE) — `GET /realtime/stream` (2026-10-14)
+> Một luồng / tab mang mọi sự kiện (`enums/RealtimeEventType`, hợp đồng với `frontend/src/realtime/events.ts`): `ready{unreadCount,resync}`,
+> `notification.created/read/deleted`, `job.updated`, `ai.delta`, `ai.reset`, `post.updated`, `usage.updated`, `session.revoked`, `replaced`,
+> `reconnect`. Payload luôn có `v` + `ts` (`util/RealtimePayloads`). SSE chỉ là GỢI Ý — DB là nguồn đúng (FE resync / poll dự phòng).
+
+- **Auth:** cookie `access_token` qua `JwtAuthenticationFilter`; `SecurityConfig` permit dispatcher ASYNC/ERROR. Server đóng tại
+  min(30 phút, hạn token) bằng `reconnect{reason}`; đăng xuất / đặt lại mật khẩu / admin khoá → `RealtimeEventPublisher.revokeSessions`
+  → `session.revoked` đóng mọi luồng của user ở MỌI instance.
+- **Registry (bộ nhớ instance, `RealtimeConnectionRegistryImpl`):** mỗi kết nối một hàng gửi tuần tự trên pool riêng (giữ thứ tự,
+  listener Redis / worker không bị socket chậm chặn); heartbeat `:hb` 20s bằng ScheduledExecutor riêng (KHÔNG `@Scheduled`+ShedLock — phải
+  chạy ở mọi instance); 6 kết nối/user/instance → kết nối cũ nhận `replaced`; 2000/instance → 503 + Retry-After (2201); > 500 sự kiện chờ
+  → đóng (client resync). Mở luồng: đăng ký TRƯỚC rồi mới chụp phần bù (≤ 50 thông báo sau Last-Event-ID, quá / id lạ → `resync:true`).
+- **Bus:** `RealtimeEventPublisher` phát SAU COMMIT (không có transaction → ngay), luôn qua Redis kênh `aima:rt:v1` kể cả cho chính
+  instance mình (một đường giao); `RealtimeMessageListener` giao cho registry local hoặc `RealtimeControlHandler` (message `control`,
+  vd `job.cancel`). `aima.realtime.bus=local` chỉ cho test. Lettuce tự nối lại + subscribe lại khi Redis rớt.
+- **Tiến độ:** `JobEventService` là MỘT chỗ cho `job.updated` (tạo nội dung PREPARING/GENERATING → SUCCESS/FAILED, định dạng
+  `progress{done,total,platform}`, tạo lại, nghiên cứu, AI hỗ trợ, tối ưu) + `post.updated` (dispatch claim, worker POSTING/RETRYING/FAILED/
+  POSTED, `ScheduleHoldServiceImpl` thêm/gỡ lý do giữ). Stage chỉ trong sự kiện — KHÔNG lưu DB, không đổi state machine.
+- **Cấu hình:** `aima.realtime.{bus,channel,heartbeat-seconds,max-connection-minutes,max-per-user,max-per-instance,replay-limit,max-queued-events}`.
+  Nén gzip không gồm `text/event-stream` (giữ nguyên). Test: `realtime/*`, `notification/NotificationRealtimeIntegrationTest`.
 
 ### Thanh toán gói dịch vụ (payOS) — 🟡 đã build, CHƯA chạy với tài khoản thật
 > Tài liệu đầy đủ (sơ đồ luồng, bảng map trạng thái, biến env, checklist go-live):
@@ -1038,6 +1091,10 @@ REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_TIMEOUT, REDIS_SSL_ENABLED
 OTP_TTL_SECONDS (90), OTP_MAX_ATTEMPTS (5), OTP_VERIFIED_TTL_SECONDS (300)
 REGISTER_OTP_TTL_SECONDS (300), REGISTER_OTP_MAX_ATTEMPTS (5), REGISTER_OTP_RESEND_COOLDOWN_SECONDS (60), REGISTER_PENDING_TTL_SECONDS (1800)
 AUTH_COOKIE_NAME (refresh_token), AUTH_COOKIE_SECURE (false), AUTH_COOKIE_SAME_SITE (Lax), AUTH_COOKIE_PATH (/)
+AIMA_REALTIME_BUS (redis), AIMA_REALTIME_CHANNEL (aima:rt:v1), AIMA_REALTIME_HEARTBEAT_SECONDS (20), AIMA_REALTIME_MAX_CONNECTION_MINUTES (30),
+AIMA_REALTIME_MAX_PER_USER (6), AIMA_REALTIME_MAX_PER_INSTANCE (2000)        # SSE — see §4 "Realtime (SSE)"
+AIMA_AI_GENERATION_STREAMING_ENABLED (false)   # turn on ONLY after the AI service exposes /generate/stream
+NOTIFICATION_READ_RETENTION_DAYS (90), NOTIFICATION_RETENTION_DAYS (180), NOTIFICATION_DELETED_RETENTION_DAYS (30), AIMA_PLAN_EXPIRY_REMINDER_CRON (0 0 9 * * *)
 ```
 
 **Google Cloud Console — redirect URI to register:** `{CONTEXT_PATH}/login/oauth2/code/google`
@@ -1059,7 +1116,7 @@ AUTH_COOKIE_NAME (refresh_token), AUTH_COOKIE_SECURE (false), AUTH_COOKIE_SAME_S
 
 2. **ErrorCode enum keys are validation message keys.** Every `@NotBlank(message="KEY")` maps directly to `ErrorCode.KEY`. Adding a new validation requires a matching `ErrorCode` entry. **The numeric `code` of each `ErrorCode` MUST be unique** — the FE distinguishes errors by `code`, so never reuse the same int across two constants (e.g. don't let a brand-profile and a file error both be `1700`).
 
-3. **Always use `ApiResponse<T>` as the return type** for every controller method. Never return raw types or `ResponseEntity` directly. *Two documented exceptions:* (a) `PlatformConnectionController.callback` returns `ResponseEntity<Void>` because it must 302-redirect the browser back to the FE (see §4 "Social Media Connection"); (b) `PayOSWebhookController.receive` returns `ResponseEntity<Object>` so the ack body payOS receives lives in the single constant `WEBHOOK_ACK` and can be switched to a bare `{"success": true}` in one line if payOS's `/confirm-webhook` rejects the envelope at go-live (the expected body is not documented by payOS); (c) `MetaDataDeletionController.requestDeletion` returns `MetaDataDeletionCallbackResponse` directly because Meta's Data Deletion Callback reads `url` + `confirmation_code` at the **top level** of the body — an envelope hides them and Meta treats the callback as failed. Do not add further exceptions. `ApiResponse` here means **only** our `com.aima.dto.response.ApiResponse` — never the Swagger annotation `io.swagger.v3.oas.annotations.responses.ApiResponse` (see the Swagger convention in §3). Import our `ApiResponse` directly so the return type is plain `ApiResponse<T>`, not a fully-qualified name.
+3. **Always use `ApiResponse<T>` as the return type** for every controller method. Never return raw types or `ResponseEntity` directly. *Two documented exceptions:* (a) `PlatformConnectionController.callback` returns `ResponseEntity<Void>` because it must 302-redirect the browser back to the FE (see §4 "Social Media Connection"); (b) `PayOSWebhookController.receive` returns `ResponseEntity<Object>` so the ack body payOS receives lives in the single constant `WEBHOOK_ACK` and can be switched to a bare `{"success": true}` in one line if payOS's `/confirm-webhook` rejects the envelope at go-live (the expected body is not documented by payOS); (c) `MetaDataDeletionController.requestDeletion` returns `MetaDataDeletionCallbackResponse` directly because Meta's Data Deletion Callback reads `url` + `confirmation_code` at the **top level** of the body — an envelope hides them and Meta treats the callback as failed; (d) `RealtimeController.stream` returns `SseEmitter` (`GET /realtime/stream`, body `text/event-stream`) — errors BEFORE the stream opens (401, 503 capacity) still go through `GlobalExceptionHandler` as JSON `ApiResponse` (client sends `Accept: text/event-stream, application/json`). Do not add further exceptions. `ApiResponse` here means **only** our `com.aima.dto.response.ApiResponse` — never the Swagger annotation `io.swagger.v3.oas.annotations.responses.ApiResponse` (see the Swagger convention in §3). Import our `ApiResponse` directly so the return type is plain `ApiResponse<T>`, not a fully-qualified name.
 
 4. **`@JsonInclude(NON_NULL)` on `ApiResponse` is intentional.** Do not remove it; absent fields must be omitted from JSON output.
 

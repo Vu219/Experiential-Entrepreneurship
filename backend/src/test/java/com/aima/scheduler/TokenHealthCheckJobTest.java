@@ -89,7 +89,8 @@ class TokenHealthCheckJobTest {
 
         assertEquals(ConnectionStatus.EXPIRED, a.getConnectionStatus());
         verify(holdService).holdForAccounts(List.of(a.getId()), HoldReason.ACCOUNT_ISSUE);
-        verify(notificationService).notify(eq(a.getUser()), eq(NotificationType.RECONNECT_NEEDED), any(), any(), eq(a.getId()));
+        verify(notificationService).send(eq(a.getUser()), org.mockito.ArgumentMatchers.argThat(
+                d -> d.type() == NotificationType.RECONNECT_NEEDED && a.getId().equals(d.refId())));
     }
 
     @Test

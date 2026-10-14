@@ -38,7 +38,7 @@ const TASKS: AiTaskCode[] = [
   'CONTENT_GENERATION', 'PLATFORM_FORMATTING', 'TREND_RESEARCH',
   'GOLDEN_HOURS', 'STRATEGY_OPTIMIZATION', 'CONTENT_REGENERATION', 'POLICY_FIX', 'POLICY_CHECK',
 ];
-const STATUSES: AiUsageEventStatus[] = ['SUCCESS', 'ERROR', 'TIMEOUT'];
+const STATUSES: AiUsageEventStatus[] = ['SUCCESS', 'ERROR', 'TIMEOUT', 'CANCELLED'];
 const RETENTION_DAYS = 90;
 const EXPORT_CAP = 50_000;
 
@@ -48,7 +48,8 @@ const fmtUsd = (n: number | null) => (n == null ? '—' : `$${n.toLocaleString('
 const fmtDateTime = (iso: string) => iso.slice(0, 19).replace('T', ' ');
 /** null = "không biết" — hiển thị '—', KHÔNG coalesce về 0. */
 const fmtNullable = (n: number | null) => (n == null ? '—' : fmtTokens(n));
-const statusTone = (s: AiUsageEventStatus) => (s === 'SUCCESS' ? 'success' : s === 'TIMEOUT' ? 'warning' : 'danger');
+// CANCELLED = user bấm Dừng khi AI đang stream (vẫn tính token, D4).
+const statusTone = (s: AiUsageEventStatus) => (s === 'SUCCESS' ? 'success' : s === 'TIMEOUT' || s === 'CANCELLED' ? 'warning' : 'danger');
 
 /** Skeleton mô phỏng đúng số cột/độ cao của bảng — không nhảy layout khi dữ liệu về. */
 function TableSkeleton({ rows, cols }: { rows: number; cols: number }) {

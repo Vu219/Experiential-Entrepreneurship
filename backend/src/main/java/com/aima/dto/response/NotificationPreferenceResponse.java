@@ -9,8 +9,9 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 import java.time.Instant;
+import java.util.List;
 
-/** Cài đặt email lỗi đăng bài của user. */
+/** Cài đặt thông báo của user: email lỗi đăng bài (opt-in) + kênh trong app/toast theo nhóm. */
 @Data
 @Builder
 @AllArgsConstructor
@@ -22,4 +23,7 @@ public class NotificationPreferenceResponse {
     Instant consentAt;
     /** Máy chủ có bật gửi email lỗi đăng bài không (AIMA_PUBLISH_EMAIL_ENABLED) — tắt thì FE không hỏi người dùng. */
     boolean emailAvailable;
+
+    /** Kênh theo nhóm đã áp mặc định (thứ tự cố định theo {@code NotificationCategory}). */
+    List<NotificationChannelResponse> channels;
 }

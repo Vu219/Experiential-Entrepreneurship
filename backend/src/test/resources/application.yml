@@ -49,5 +49,8 @@ app:
 
 # CryptoUtil (AES-256-GCM) can key base64 32 byte — key co dinh CHI dung cho test.
 aima:
+  # Realtime SSE: giao thang trong JVM (khong subscribe Redis) — test khong phu thuoc Redis pub/sub.
+  realtime:
+    bus: local
   encryption:
     key: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=

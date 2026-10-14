@@ -44,6 +44,15 @@ public class ContentGenerationController {
         return contentGenerationService.startGeneration(principal.getUsername(), request, idempotencyKey);
     }
 
+    @PostMapping("/jobs/{jobId}/cancel")
+    @Operation(summary = "Stop a running content-generation job",
+            description = "PENDING/RUNNING → FAILED with errorCode CANCELLED_BY_USER; a streaming AI call is closed on "
+                    + "whichever instance runs it. Already finished jobs are returned unchanged.")
+    public ApiResponse<ContentGenerationJobResponse> cancel(@AuthenticationPrincipal UserDetails principal,
+                                                            @PathVariable UUID jobId) {
+        return contentGenerationService.cancel(principal.getUsername(), jobId);
+    }
+
     @GetMapping("/jobs/{jobId}")
     @Operation(summary = "Get a content-generation job's status",
             description = "Polled by the frontend until status is SUCCESS or FAILED.")

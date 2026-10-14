@@ -3,9 +3,11 @@ import {
   ReactNode,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import * as authApi from "../api/auth";
+import { setSessionExpiredHandler } from "../api/apiClient";
 import { User } from "../api/auth";
 
 interface AuthContextValue {
@@ -38,6 +40,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refreshUser().finally(() => setLoading(false));
+  }, []);
+
+  // apiClient gặp 401 mà làm mới phiên thất bại → coi như đã đăng xuất (ProtectedRoute đưa về /login).
+  const userRef = useRef<User | null>(null);
+  userRef.current = user;
+  useEffect(() => {
+    setSessionExpiredHandler(() => {
+      const hadSession = userRef.current !== null;
+      if (hadSession) setUser(null);
+      return hadSession;
+    });
+    return () => setSessionExpiredHandler(null);
   }, []);
 
   const login = async (email: string, password: string) => {

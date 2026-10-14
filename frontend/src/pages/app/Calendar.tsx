@@ -1,4 +1,5 @@
 import { publishingToday } from '../../utils/publishingTime';
+import { useRealtimeRefresh } from '../../hooks/useRealtimeRefresh';
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, CalendarClock, RefreshCw, type LucideIcon } from 'lucide-react';
@@ -155,6 +156,8 @@ export default function Calendar() {
       setSchedules(await listSchedules());
     } catch { /* giữ dữ liệu hiện có */ }
   }, []);
+  // Realtime: lịch đổi trạng thái (đăng ngay, đang đăng, đã đăng, thử lại, tạm giữ) → nạp lại tại chỗ, không cần F5.
+  useRealtimeRefresh(['post.updated', 'ready'], refresh);
 
   // Đăng ngay qua API thật (cùng claim với bộ lập lịch); job chạy nền, trạng thái cập nhật khi refresh.
   const handlePublishNow = useCallback(async (s: PostSchedule) => {

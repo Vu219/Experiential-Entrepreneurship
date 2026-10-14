@@ -274,6 +274,24 @@ aima:
     metric-snapshot-days: ${METRIC_SNAPSHOT_RETENTION_DAYS:180}
     # Sự kiện webhook Meta đã xử lý (meta_webhook_events) — chỉ để soi lại; PENDING không bao giờ bị xoá.
     webhook-event-days: ${WEBHOOK_EVENT_RETENTION_DAYS:30}
+    # Thông báo (NotificationRetentionJob 03:45, D6): đã đọc > 90 ngày, mọi thông báo > 180 ngày, đã xoá mềm > 30 ngày.
+    notification-read-days: ${NOTIFICATION_READ_RETENTION_DAYS:90}
+    notification-all-days: ${NOTIFICATION_RETENTION_DAYS:180}
+    notification-deleted-days: ${NOTIFICATION_DELETED_RETENTION_DAYS:30}
+  # Realtime SSE (GET /realtime/stream) — docs/REALTIME_SSE_NOTIFICATIONS_PROPOSAL.md mục 1.
+  realtime:
+    # redis (mặc định, đúng cho N instance: mọi sự kiện qua Redis pub/sub) | local (chỉ test / một instance).
+    bus: ${AIMA_REALTIME_BUS:redis}
+    channel: ${AIMA_REALTIME_CHANNEL:aima:rt:v1}
+    # Heartbeat < timeout idle của edge Render (~60-100s); mỗi kết nối tự đóng sau N phút (client nối lại ngay).
+    heartbeat-seconds: ${AIMA_REALTIME_HEARTBEAT_SECONDS:20}
+    max-connection-minutes: ${AIMA_REALTIME_MAX_CONNECTION_MINUTES:30}
+    max-per-user: ${AIMA_REALTIME_MAX_PER_USER:6}
+    max-per-instance: ${AIMA_REALTIME_MAX_PER_INSTANCE:2000}
+  ai:
+    # D11: AI tạo nội dung trả từng đoạn (/generate/stream + nút Dừng huỷ được luồng AI). BẬT SAU KHI AI service đã
+    # deploy bản có /generate/stream — tắt = đường /generate cũ.
+    generation-streaming-enabled: ${AIMA_AI_GENERATION_STREAMING_ENABLED:false}
   # Bài đăng lỗi & cần xử lý (docs/failed-posts-error-handling-plan.md)
   notifications:
     # Gửi kèm EMAIL (Brevo) khi một kết nối cần người dùng xử lý (token hết hạn / sắp hết hạn, thiếu quyền,
@@ -287,6 +305,8 @@ aima:
     # URL backend công khai (gồm context path, vd https://api.aima-marketing.id.vn/api/aima) cho one-click unsubscribe
     # (List-Unsubscribe-Post); trống → header chỉ trỏ trang xác nhận của FE.
     public-api-base-url: ${AIMA_PUBLIC_API_BASE_URL:}
+    # Nhắc gói trả tiền sắp hết hạn (trước 7 và 1 ngày) — PlanExpiryReminderJob.
+    plan-expiry-reminder-cron: ${AIMA_PLAN_EXPIRY_REMINDER_CRON:0 0 9 * * *}
   # Giới hạn AI theo GÓI nằm trên bảng plans (admin → Quản lý gói, Flyway V15). Hai giá trị dưới đây chỉ là
   # MẶC ĐỊNH HỆ THỐNG cho gói để "Mặc định" (cột null): -1 = không giới hạn, 0 = tắt. Đọc ở PlanLimitServiceImpl.
   # AIMA_POLICY_CHECK_AI_LIMIT_FREE/PLUS/PRO đã DEPRECATED (còn đọc tạm cho gói cùng mã + log WARN khi khởi động).

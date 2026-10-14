@@ -96,7 +96,8 @@ class ContentGenerationDedupeTest {
         });
 
         service = new ContentGenerationServiceImpl(jobRepository, strategyRepository, itemRepository,
-                userRepository, mapper, worker, tokenUsageService);
+                userRepository, mapper, worker, tokenUsageService, mock(com.aima.service.JobEventService.class),
+                mock(com.aima.service.GenerationCancelService.class));
     }
 
     private ContentGenerationRequest request() {

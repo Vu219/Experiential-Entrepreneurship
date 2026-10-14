@@ -1,5 +1,8 @@
 package com.aima.scheduler;
 
+import java.util.UUID;
+import java.util.List;
+import com.aima.service.JobEventService;
 import com.aima.repository.TrendResearchSessionRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -33,14 +36,20 @@ public class TrendResearchStuckJob {
 
     TrendResearchSessionRepository sessionRepository;
     TransactionTemplate transactionTemplate;
+    JobEventService jobEventService;
 
     @Scheduled(fixedDelay = 60_000)
     @SchedulerLock(name = "trend-research-stuck", lockAtMostFor = "PT5M", lockAtLeastFor = "PT20S")
     public void run() {
         try {
             LocalDateTime now = LocalDateTime.now();
-            Integer failed = transactionTemplate.execute(status -> sessionRepository.failStuckSessions(
-                    now.minus(STUCK_AGE), now.minus(SCHEDULED_QUEUE_AGE), now, MESSAGE));
+            Integer failed = transactionTemplate.execute(status -> {
+                List<UUID> active = sessionRepository.findStuckActiveIds(now.minus(STUCK_AGE));
+                int count = sessionRepository.failStuckSessions(now.minus(STUCK_AGE), now.minus(SCHEDULED_QUEUE_AGE),
+                        now, MESSAGE);
+                active.forEach(jobEventService::researchFinished); // chỉ phiên user đang chờ — không báo phiên tự động
+                return count;
+            });
             if (failed != null && failed > 0) {
                 log.warn("[TrendResearchStuck] Chốt FAILED {} phiên nghiên cứu kẹt", failed);
             }

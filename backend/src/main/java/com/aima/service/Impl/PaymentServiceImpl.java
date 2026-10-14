@@ -1,5 +1,8 @@
 package com.aima.service.Impl;
 
+import com.aima.util.NotificationParams;
+import com.aima.enums.NotificationRefType;
+import com.aima.dto.notification.NotificationDraft;
 import com.aima.config.PaymentProperties;
 import com.aima.dto.request.CheckoutRequest;
 import com.aima.dto.response.ApiResponse;
@@ -802,12 +805,15 @@ public class PaymentServiceImpl implements PaymentService {
         log.error("[Payment] {}", message);
         try {
             systemLogService.error(LOG_MODULE, message, null);
-            List<User> admins = inTransaction(() ->
-                    userRepository.findActiveByRoleName(ADMIN_ROLE, UserStatus.ACTIVE));
-            for (User admin : admins) {
-                notificationService.notify(admin, NotificationType.PAYMENT_WEBHOOK_ALERT,
-                        "Webhook thanh toán đang bị từ chối", message, null);
-            }
+            NotificationDraft alert = NotificationDraft.builder().type(NotificationType.PAYMENT_WEBHOOK_ALERT)
+                    .title("Webhook thanh toán đang bị từ chối").message(message)
+                    .params(NotificationParams.of("count", recentCount,
+                            "windowMinutes", paymentProperties.webhookAlertWindowMinutes()))
+                    .build();
+            inTransaction(() -> {
+                notificationService.sendToAdmins(alert);
+                return null;
+            });
         } catch (Exception e) {
             log.warn("[Payment] Không gửi được cảnh báo webhook cho admin: {}", e.getMessage());
         }
@@ -1062,12 +1068,16 @@ public class PaymentServiceImpl implements PaymentService {
      */
     private void announcePaid(Payment payment, Subscription subscription) {
         User user = payment.getUser();
-        notificationService.notify(user, NotificationType.PAYMENT_SUCCEEDED,
-                "Thanh toán thành công",
-                "Gói " + payment.getPlan().getCode() + " đã được kích hoạt"
+        notificationService.send(user, NotificationDraft.builder()
+                .type(NotificationType.PAYMENT_SUCCEEDED)
+                .title("Thanh toán thành công")
+                .message("Gói " + payment.getPlan().getCode() + " đã được kích hoạt"
                         + (subscription.getPlanExpiresAt() == null
-                        ? "." : " tới " + subscription.getPlanExpiresAt().toLocalDate() + "."),
-                payment.getId());
+                        ? "." : " tới " + subscription.getPlanExpiresAt().toLocalDate() + "."))
+                .refType(NotificationRefType.PAYMENT).refId(payment.getId())
+                .params(NotificationParams.of("plan", payment.getPlan().getCode(),
+                        "expiresAt", subscription.getPlanExpiresAt() == null ? null : subscription.getPlanExpiresAt().toLocalDate()))
+                .build());
         activityLogService.record(new ActivityLogService.Entry(
                 ActivityAction.PAYMENT_SUCCEEDED, user.getId(), user.getEmail(),
                 "PAYMENT", payment.getId().toString(), ActivityResult.SUCCESS,

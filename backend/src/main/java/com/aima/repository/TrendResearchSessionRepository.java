@@ -43,6 +43,12 @@ public interface TrendResearchSessionRepository extends JpaRepository<TrendResea
                           @Param("scheduledThreshold") LocalDateTime scheduledThreshold,
                           @Param("now") LocalDateTime now, @Param("message") String message);
 
+    /** Phiên RUNNING / PENDING thủ công sắp bị {@link #failStuckSessions} chốt — để báo user (phiên tự động xếp hàng thì không). */
+    @Query("select s.id from TrendResearchSession s where s.deletedAt is null and s.updatedAt < :threshold and ("
+            + "s.status = com.aima.enums.ResearchStatus.RUNNING or (s.status = com.aima.enums.ResearchStatus.PENDING "
+            + "and s.triggerType = com.aima.enums.ResearchTrigger.MANUAL))")
+    List<UUID> findStuckActiveIds(@Param("threshold") LocalDateTime threshold);
+
     // User bấm "Research ngay" khi phiên tự động của họ còn xếp hàng (chưa chạy) → bỏ phiên tự động,
     // thay vì bắt user chờ cả lượt 2:00 AM. Worker thấy phiên không còn PENDING sẽ bỏ qua.
     @Modifying(flushAutomatically = true)

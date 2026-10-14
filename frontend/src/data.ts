@@ -164,12 +164,6 @@ export const brandToneLabels = (lang: Lang) =>
     : ['Truyền cảm hứng', 'Sáng tạo', 'Đáng tin', 'Trẻ trung', 'Tối giản', 'Chuyên nghiệp'];
 export const brandColors = ['#22D3EE', '#8B5CF6', '#EC4899', '#6366F1', '#1877f2'];
 
-// ===== Settings notifications =====
-export const notifLabels = (lang: Lang) =>
-  lang === 'en'
-    ? ['Post published', 'New AI content ideas', 'Weekly performance report', 'New trend alerts']
-    : ['Bài đăng đã xuất bản', 'Ý tưởng nội dung mới từ AI', 'Báo cáo hiệu quả hàng tuần', 'Cảnh báo xu hướng mới'];
-
 // Mẫu màu trong Cài đặt — chỉ còn Đại dương (đã bỏ Tím sương / Hồng sương).
 export function themeOptions(lang: Lang) {
   return [

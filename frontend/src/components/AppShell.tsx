@@ -10,6 +10,8 @@ import UserMenu from './UserMenu';
 import ColorModeToggle from './ColorModeToggle';
 import SearchTrigger from './search/SearchTrigger';
 import CommandPalette from './search/CommandPalette';
+import RealtimeConnector from './RealtimeConnector';
+import NotificationToaster from './NotificationToaster';
 import { useSectionFocus } from '../hooks/useSectionFocus';
 import type { SearchArea } from '../search/types';
 import { C } from '../styles/colors';
@@ -125,6 +127,7 @@ const PAGE_KEYS = {
   createWizard: ['cwTitle', 'cwSub'],
   calendar: ['navCalendar', 'pageSubCalendar'],
   failedPosts: ['navFailedPosts', 'fpSub'],
+  notifications: ['ntfPageTitle', 'ntfPageSub'],
   analytics: ['navAnalytics', 'pageSubAnalytics'],
   trends: ['navTrends', 'pageSubTrends'],
   brand: ['navBrand', 'pageSubBrand'],
@@ -236,6 +239,8 @@ export default function AppShell({ children, variant = 'app' }: { children: Reac
         </main>
       </div>
       {paletteOpen && <CommandPalette area={area} />}
+      <RealtimeConnector />
+      <NotificationToaster />
     </div>
   );
 }

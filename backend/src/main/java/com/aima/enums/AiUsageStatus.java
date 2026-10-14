@@ -8,5 +8,10 @@ public enum AiUsageStatus {
     SUCCESS,
     ERROR,
     /** Cuộc gọi AI quá thời gian chờ (WebClient timeout) — tách riêng để soi hạ tầng/model chậm. */
-    TIMEOUT
+    TIMEOUT,
+    /**
+     * User bấm Dừng khi AI đang stream (D4): tính token = input thật (provider báo lúc bắt đầu) + output ƯỚC LƯỢNG theo số
+     * ký tự đã nhận — billable như SUCCESS.
+     */
+    CANCELLED
 }

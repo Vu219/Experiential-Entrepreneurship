@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import com.aima.entity.User;
+import com.aima.exception.TokenExpiredException;
 import com.aima.security.JwtProperties;
 import com.aima.service.JwtService;
 
@@ -82,7 +83,7 @@ public class JwtServiceImpl implements JwtService {
 
         Date expirationTime = signedJWT.getJWTClaimsSet().getExpirationTime();
         if (expirationTime == null || expirationTime.before(new Date())) {
-            throw new RuntimeException("Token expired");
+            throw new TokenExpiredException();
         }
 
         return signedJWT.getJWTClaimsSet();

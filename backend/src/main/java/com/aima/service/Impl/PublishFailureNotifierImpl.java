@@ -1,5 +1,9 @@
 package com.aima.service.Impl;
 
+import java.util.Map;
+import com.aima.util.NotificationParams;
+import com.aima.enums.NotificationRefType;
+import com.aima.dto.notification.NotificationDraft;
 import com.aima.dto.publish.PublishFailureNotice;
 import com.aima.entity.User;
 import com.aima.enums.NotificationType;
@@ -83,14 +87,20 @@ public class PublishFailureNotifierImpl implements PublishFailureNotifier {
             if (code.isAccountLevel()) {
                 String dedupeKey = "publish-account:" + notice.accountId() + ":" + code.name() + ":"
                         + LocalDate.now(PublishingTime.LEGACY_ZONE);
-                boolean created = notificationService.notifyOnce(user, NotificationType.RECONNECT_NEEDED, copy.title(),
-                        message, notice.accountId(), dedupeKey);
+                boolean created = notificationService.send(user, NotificationDraft.builder()
+                        .type(NotificationType.RECONNECT_NEEDED).title(copy.title()).message(message)
+                        .refType(NotificationRefType.PLATFORM_ACCOUNT).refId(notice.accountId())
+                        .params(params(notice, "PUBLISH_ERROR", heldSchedules))
+                        .dedupeKey(dedupeKey).build());
                 if (created) {
                     email(user, copy.title(), message, RECONNECT_LABEL, RECONNECT_PATH, null);
                 }
             } else {
-                boolean created = notificationService.notifyOnce(user, NotificationType.POST_FAILED, copy.title(),
-                        message, notice.postId(), "publish-failed:" + notice.jobId());
+                boolean created = notificationService.send(user, NotificationDraft.builder()
+                        .type(NotificationType.POST_FAILED).title(copy.title()).message(message)
+                        .refType(NotificationRefType.POST).refId(notice.postId())
+                        .params(params(notice, null, heldSchedules))
+                        .dedupeKey("publish-failed:" + notice.jobId()).build());
                 if (created) {
                     email(user, "Có bài đăng cần bạn xử lý", copy.title() + ". " + message, FAILED_POSTS_LABEL,
                             FAILED_POSTS_PATH, POST_EMAIL_KEY + user.getId() + ":" + LocalDate.now(PublishingTime.LEGACY_ZONE));
@@ -113,8 +123,11 @@ public class PublishFailureNotifierImpl implements PublishFailureNotifier {
             String message = "Kết nối " + platformName(platform) + " của " + (accountName == null ? "tài khoản" : accountName)
                     + " sẽ hết hạn lúc " + EXPIRY_FORMAT.format(expiresAt) + " và AIMA chưa tự gia hạn được. "
                     + "Hãy kết nối lại trong Cài đặt → Kết nối để các bài đã lên lịch không bị lỗi.";
-            boolean created = notificationService.notifyOnce(user, NotificationType.RECONNECT_NEEDED, title, message,
-                    accountId, "token-expiring:" + accountId + ":" + expiresAt.toLocalDate());
+            boolean created = notificationService.send(user, NotificationDraft.builder()
+                    .type(NotificationType.TOKEN_EXPIRING).title(title).message(message)
+                    .refType(NotificationRefType.PLATFORM_ACCOUNT).refId(accountId)
+                    .params(NotificationParams.of("accountName", accountName, "platform", platform, "expiresAt", expiresAt))
+                    .dedupeKey("token-expiring:" + accountId + ":" + expiresAt.toLocalDate()).build());
             if (created) {
                 email(user, title, message, RECONNECT_LABEL, RECONNECT_PATH, null);
             }
@@ -151,6 +164,13 @@ public class PublishFailureNotifierImpl implements PublishFailureNotifier {
             log.warn("[PublishNotify] Không giữ được khoá email {}: {}", key, e.getMessage());
             return false;
         }
+    }
+
+    /** Tham số cho câu đa ngôn ngữ ở FE: mã chuẩn → catalog {@code publishErrorCatalog.ts} (không gửi message gốc). */
+    private static Map<String, Object> params(PublishFailureNotice notice, String variant, int heldSchedules) {
+        return NotificationParams.of(NotificationParams.VARIANT, variant, "code", notice.code(),
+                "platform", notice.platform(), "accountName", notice.accountName(),
+                "reference", PublishReference.of(notice.jobId()), "held", heldSchedules > 0 ? heldSchedules : null);
     }
 
     private static String fill(String template, PublishFailureNotice notice) {

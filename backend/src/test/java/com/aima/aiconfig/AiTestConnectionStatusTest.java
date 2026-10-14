@@ -140,7 +140,7 @@ class AiTestConnectionStatusTest {
         // Service thật (không phải mock của context) — Redis mock: chỉ kiểm tra phần ghi cờ DB.
         StringRedisTemplate redis = mock(StringRedisTemplate.class, RETURNS_DEEP_STUBS);
         AiModelHealthServiceImpl health = new AiModelHealthServiceImpl(redis, JsonMapper.builder().build(),
-                mock(AiConfigMapper.class), providerRepository);
+                mock(AiConfigMapper.class), providerRepository, mock(com.aima.service.NotificationService.class));
         LlmAttemptPayload quota = LlmAttemptPayload.builder().provider("google").model("gemini-3.5-flash")
                 .outcome("daily_quota_exhausted").freeTier(true).build();
 

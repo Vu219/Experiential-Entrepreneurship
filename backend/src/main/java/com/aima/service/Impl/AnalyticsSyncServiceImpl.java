@@ -1,5 +1,10 @@
 package com.aima.service.Impl;
 
+import com.aima.service.NotificationService;
+import com.aima.util.NotificationParams;
+import com.aima.enums.NotificationType;
+import com.aima.enums.NotificationRefType;
+import com.aima.dto.notification.NotificationDraft;
 import com.aima.entity.PlatformAccount;
 import com.aima.entity.PlatformMedia;
 import com.aima.entity.Post;
@@ -91,6 +96,7 @@ public class AnalyticsSyncServiceImpl implements AnalyticsSyncService {
     PostAnalyticsMapper postAnalyticsMapper;
     TransactionTemplate transactionTemplate;
     List<PlatformMetricsProvider> providers;
+    NotificationService notificationService;
 
     // ===== Chuẩn bị =====
 
@@ -442,9 +448,30 @@ public class AnalyticsSyncServiceImpl implements AnalyticsSyncService {
             }
             media.setPlatformStatus(PlatformMediaStatus.DELETED);
             stop(media, "nền tảng báo bài đã bị xoá (webhook)");
+            notifyRemoved(media);
             marked++;
         }
         return marked;
+    }
+
+    /** Bài AIMA không còn trên nền tảng (webhook remove) → báo user (bài tự đăng ngoài AIMA thì không). Một lần mỗi bài. */
+    private void notifyRemoved(PlatformMedia media) {
+        Post post = media.getPost();
+        if (post == null || post.getSchedule() == null) {
+            return;
+        }
+        PlatformAccount account = media.getPlatformAccount();
+        notificationService.send(account.getUser(), NotificationDraft.builder()
+                .type(NotificationType.POST_REMOVED_BY_PLATFORM)
+                .title("Bài không còn trên nền tảng")
+                .message("Một bài AIMA đã đăng lên " + account.getPlatformName() + " (" + account.getAccountName()
+                        + ") không còn trên nền tảng — bạn đã tự xoá hoặc nền tảng đã gỡ (Meta không cho biết lý do). "
+                        + "Số liệu của bài dừng ở lần thu gần nhất.")
+                .refType(NotificationRefType.SCHEDULE).refId(post.getSchedule().getId())
+                .params(NotificationParams.of("platform", account.getPlatformName(), "accountName", account.getAccountName(),
+                        "postId", post.getId()))
+                .dedupeKey("post-removed:" + post.getId())
+                .build());
     }
 
     // ===== Làm mới thủ công =====

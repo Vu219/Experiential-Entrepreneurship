@@ -225,7 +225,7 @@ class SubscriptionLifecycleTest {
 
         assertFalse(service.expireToFreePlan(sub, NOW));
         assertEquals("PRO", sub.getPlan().getCode());
-        verify(notificationService, never()).notify(any(), any(), anyString(), anyString(), any());
+        verify(notificationService, never()).send(any(), any());
     }
 
     /** activatePaidPlan khoá dòng subscription TRƯỚC khi đọc/ghi (cùng khoá với job hạ gói). */
@@ -313,8 +313,8 @@ class SubscriptionLifecycleTest {
         assertEquals(PlanSource.FREE, sub.getPlanSource());
         assertNull(sub.getPlanExpiresAt());
         assertEquals(UserPlan.FREE, user.getPlan(), "nhãn cache phải ghi CÙNG transaction");
-        verify(notificationService).notify(eq(user), eq(NotificationType.PLAN_EXPIRED),
-                anyString(), anyString(), any());
+        verify(notificationService).send(eq(user), org.mockito.ArgumentMatchers.argThat(
+                d -> d.type() == NotificationType.PLAN_EXPIRED && d.title() != null && d.message() != null));
         verify(activityLogService).record(any());
     }
 
@@ -351,7 +351,7 @@ class SubscriptionLifecycleTest {
         Subscription result = service.getOrCreate(user);
 
         assertEquals("PRO", result.getPlan().getCode());
-        verify(notificationService, never()).notify(any(), any(), anyString(), anyString(), any());
+        verify(notificationService, never()).send(any(), any());
     }
 
     /**

@@ -25,7 +25,8 @@ public class IsolatedStackConfig {
         require(env.getProperty("spring.flyway.url", "").isBlank(), "separate Flyway datasource");
         require(env.getProperty("spring.datasource.hikari.jdbc-url", "").isBlank(), "Hikari URL override");
         require(env.getProperty("spring.config.import", "").isBlank(), "config imports");
-        require("8092".equals(env.getProperty("server.port")), "backend port");
+        // 8093 = instance thứ hai CHUNG PG/Redis cô lập, chỉ để kiểm thử realtime nhiều instance.
+        require(List.of("8092", "8093").contains(env.getProperty("server.port")), "backend port");
         require("127.0.0.1".equals(env.getProperty("spring.data.redis.host"))
                 && "56379".equals(env.getProperty("spring.data.redis.port")), "Redis");
         require("mock".equals(env.getProperty("payment.gateway")), "payment gateway");

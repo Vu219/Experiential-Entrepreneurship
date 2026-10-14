@@ -72,6 +72,19 @@
 ### StrategyAdjustment
 `AdjustmentID, StrategyID, InsightID, AdjustmentContent, AppliedStatus, CreatedAt`
 
+### Notification (FR-75..FR-79 — V1, V4, V17)
+`NotificationID, UserID, Type, Title, Message, RefType, RefID, Params (jsonb), ReadAt, DedupeKey, CreatedAt, DeletedAt`
+- `Type` ∈ `NotificationType` (21 loại, mỗi loại thuộc một nhóm `NotificationCategory`: PUBLISH_ISSUES / ACCOUNTS / PUBLISHING /
+  AI_CONTENT / BILLING / REMINDERS / ADMIN) — CHECK `notifications_type_check`.
+- `Params` + `RefType` (V17): FE dựng câu theo ngôn ngữ (khoá `ntf_<TYPE>_*`) và deep link; `Title`/`Message` tiếng Việt giữ làm
+  dự phòng (bản ghi cũ, email). `DedupeKey` unique khi khác null (gửi một lần).
+- Cập nhật trực tiếp qua SSE `GET /realtime/stream` (`notification.created/read/deleted`).
+
+### UserNotificationPreference (V14, V17)
+`UserID (PK), EmailPublishErrors, EmailPromptStatus, ConsentAt, Channels (jsonb), UpdatedAt`
+- `Channels` = `{"<CATEGORY>":{"inApp":bool,"toast":bool}}`; khoá thiếu = mặc định trong code; PUBLISH_ISSUES/ACCOUNTS luôn bật
+  "trong app". Email chỉ cho lỗi đăng bài + tài khoản, dùng chung `EmailPublishErrors` (đồng ý + link huỷ nhận).
+
 ---
 
 ## Entity Relationships
@@ -91,6 +104,8 @@
 | PostAnalytics → OptimizationInsight | 1–N | |
 | ContentIdea → ContentItem | 1–N | |
 | Trend → ContentIdea | 1–N | |
+| User → Notification | 1–N | |
+| User → UserNotificationPreference | 1–1 | Thiếu dòng = mặc định |
 
 ---
 
@@ -103,5 +118,6 @@
 | Delete ContentItem | Related ContentVersion, MediaAsset | Only when `Draft`/`Generated`/`Formatted` (no active schedule) and review NONE/CHANGES_REQUESTED |
 | Delete PlatformAccount | `Scheduled` PostSchedules → `On Hold` (reason ACCOUNT_REMOVED; retarget to another account of the same platform removes it) | Do NOT delete `Posted` posts |
 | Delete User | All data (soft delete) | Keep anonymized data for aggregate analytics |
+| Delete Notification | — | Soft delete (user xoá / "Xoá đã đọc"); `NotificationRetentionJob` XOÁ CỨNG: đã đọc > 90 ngày, mọi thông báo > 180 ngày, đã xoá mềm > 30 ngày (D6) |
 
 > Hard delete only when the user requests full account deletion under GDPR.

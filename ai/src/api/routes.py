@@ -16,11 +16,13 @@ SECURITY:
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 
 from ..agents import (
     content_generator,
@@ -117,6 +119,33 @@ def generate(
     """FR-24..FR-30, FR-32 — generate one content item (+ tokens_used)."""
     _apply_llm_config(req.llm_config)
     return _run("content generation", content_generator.generate_content, req)
+
+
+@router.post("/generate/stream")
+async def generate_stream(req: GenerateRequest) -> StreamingResponse:
+    """FR-24..FR-30 streamed (NDJSON, one JSON event per line) for the backend worker:
+    ``start`` · ``delta{path, append}`` · ``reset{reason}`` · ``done{result}`` (= /generate body) ·
+    ``error{error_code, message, attempts}``. Errors after the stream began are an ``error`` event (the
+    HTTP status is already 200). Client disconnect closes the provider stream (generation stops).
+    ``/generate`` stays as the non-stream path / fallback."""
+
+    async def events():
+        _apply_llm_config(req.llm_config)  # set inside the streaming task's own context
+        try:
+            async for event in content_generator.generate_content_stream(req):
+                yield json.dumps(event, ensure_ascii=False) + "\n"
+        except LlmChainError as e:
+            logger.warning("content generation (stream) failed: %s after %d attempt(s)", e.error_code, len(e.attempts))
+            yield json.dumps({"type": "error", "error_code": e.error_code,
+                              "message": f"content generation failed: {e.error_code}",
+                              "attempts": [a.model_dump(mode="json") for a in e.attempts]}) + "\n"
+        except Exception as e:  # noqa: BLE001 — config/parse failures → clean error event, type only in logs
+            logger.error("content generation (stream) error: %s", type(e).__name__)
+            yield json.dumps({"type": "error", "error_code": None,
+                              "message": f"content generation failed: {type(e).__name__}"}) + "\n"
+
+    return StreamingResponse(events(), media_type="application/x-ndjson",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @router.post("/format", response_model=FormatResult)

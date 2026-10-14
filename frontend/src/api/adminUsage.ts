@@ -184,7 +184,7 @@ export async function getUsageHeatmap(params?: { days?: number; userId?: string;
 // ===== Tab Nhật ký sử dụng (event ai_usage — phân trang offset, có số trang) =====
 // Retention BE: SUCCESS 90 ngày, ERROR/TIMEOUT 180 ngày (LogRetentionJob) — UI phải nói rõ.
 
-export type AiUsageEventStatus = 'SUCCESS' | 'ERROR' | 'TIMEOUT';
+export type AiUsageEventStatus = 'SUCCESS' | 'ERROR' | 'TIMEOUT' | 'CANCELLED';
 
 export interface UsageEvent {
   id: string;
