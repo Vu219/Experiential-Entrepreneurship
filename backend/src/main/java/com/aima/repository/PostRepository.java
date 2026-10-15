@@ -51,14 +51,29 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
     // FR-82/FR-83: admin xem bài thất bại CHUNG CUỘC (lịch FAILED — bài chờ retry không tính);
     // violationOnly = true → chỉ bài mà job FAILED MỚI NHẤT (chu kỳ hiện tại) bị từ chối do vi phạm chính sách.
-    @Query("select p from Post p where p.status = com.aima.enums.PostStatus.FAILED and p.deletedAt is null "
-            + "and p.schedule.status = com.aima.enums.ScheduleStatus.FAILED "
-            + "and (:violationOnly = false or exists (select j from PostingJob j where j.post = p "
-            + "and j.status = com.aima.enums.PostingJobStatus.FAILED "
-            + "and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION "
-            + "and not exists (select j2 from PostingJob j2 where j2.post = p "
-            + "and j2.status = com.aima.enums.PostingJobStatus.FAILED and j2.endTime > j.endTime))) "
-            + "order by p.updatedAt desc")
+    /*
+     * Job FAILED MỚI NHẤT của bài (chu kỳ hiện tại): job FAILED không có job FAILED nào kết thúc muộn hơn — dùng
+     * trong `exists (... and <điều kiện trên j>)`. Các truy vấn dùng nó là NATIVE SQL có chủ đích: bản JPQL lồng
+     * exists/not exists nhiều tầng làm parser ANTLR (Spring Data HqlParser + Hibernate) cấp phát ~2,3GB cho MỖI câu
+     * lúc tạo bean postRepository → OOM/treo khi khởi động trên container 512MB. Đừng chuyển lại sang JPQL.
+     */
+    String LAST_FAILED_JOB = """
+            select 1 from posting_jobs j where j.post_id = p.id and j.status = 'FAILED'
+              and not exists (select 1 from posting_jobs j2 where j2.post_id = p.id
+                              and j2.status = 'FAILED' and j2.end_time > j.end_time)
+            """;
+
+    String ADMIN_VIOLATION_FROM = """
+            from posts p
+            join post_schedules ps on ps.id = p.schedule_id
+            where p.status = 'FAILED' and p.deleted_at is null and ps.status = 'FAILED'
+              and (cast(:violationOnly as boolean) = false or exists (""" + LAST_FAILED_JOB + """
+                   and j.error_type = 'POLICY_VIOLATION'))
+            """;
+
+    @Query(value = "select p.* " + ADMIN_VIOLATION_FROM + "order by p.updated_at desc",
+            countQuery = "select count(*) " + ADMIN_VIOLATION_FROM,
+            nativeQuery = true)
     Page<Post> findFailedForAdmin(@Param("violationOnly") boolean violationOnly, Pageable pageable);
 
     /*
@@ -215,36 +230,36 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
      *  - ACTIVE = NEEDS_ACTION + AUTO_RETRYING; ALL = cả ba.
      * Hủy/đặt lại/đăng lại đổi lịch khỏi FAILED → tự rời danh sách. `mode` = ALL | POLICY | TECHNICAL lọc theo
      * errorType của job FAILED MỚI NHẤT (chu kỳ hiện tại). Mọi tham số đều là chuỗi khác null (không dính lỗi suy
-     * kiểu tham số null của PostgreSQL).
+     * kiểu tham số null của PostgreSQL). Native SQL — xem LAST_FAILED_JOB; cast varchar để chạy cả PG lẫn H2.
      */
-    String LAST_FAILED_JOB = "select j from PostingJob j where j.post = p "
-            + "and j.status = com.aima.enums.PostingJobStatus.FAILED "
-            + "and not exists (select j2 from PostingJob j2 where j2.post = p "
-            + "and j2.status = com.aima.enums.PostingJobStatus.FAILED and j2.endTime > j.endTime)";
+    String USER_FAILED_FROM = """
+            from posts p
+            join post_schedules ps on ps.id = p.schedule_id
+            join platform_accounts pa on pa.id = ps.platform_account_id
+            where p.status = 'FAILED' and p.deleted_at is null
+              and pa.user_id = :userId
+              and ((cast(:state as varchar) in ('AUTO_RETRYING', 'ACTIVE', 'ALL')
+                    and ps.status = 'POSTING'
+                    and exists (select 1 from posting_jobs r where r.post_id = p.id and r.status = 'RETRYING'))
+                or (ps.status = 'FAILED'
+                    and ((cast(:state as varchar) in ('NEEDS_ACTION', 'ACTIVE', 'ALL') and not exists (""" + LAST_FAILED_JOB + """
+                          and j.resolution = 'DISMISSED'))
+                      or (cast(:state as varchar) in ('DISMISSED', 'ALL') and exists (""" + LAST_FAILED_JOB + """
+                          and j.resolution = 'DISMISSED')))))
+              and (cast(:mode as varchar) = 'ALL'
+                or (cast(:mode as varchar) = 'POLICY' and exists (""" + LAST_FAILED_JOB + """
+                    and j.error_type = 'POLICY_VIOLATION'))
+                or (cast(:mode as varchar) = 'TECHNICAL' and not exists (""" + LAST_FAILED_JOB + """
+                    and j.error_type = 'POLICY_VIOLATION')))
+            """;
 
-    String USER_FAILED_WHERE = "from Post p where p.status = com.aima.enums.PostStatus.FAILED and p.deletedAt is null "
-            + "and p.schedule.platformAccount.user.id = :userId "
-            + "and ((:state in ('AUTO_RETRYING', 'ACTIVE', 'ALL') "
-            + "      and p.schedule.status = com.aima.enums.ScheduleStatus.POSTING "
-            + "      and exists (select r from PostingJob r where r.post = p "
-            + "                  and r.status = com.aima.enums.PostingJobStatus.RETRYING)) "
-            + "  or (p.schedule.status = com.aima.enums.ScheduleStatus.FAILED "
-            + "      and ((:state in ('NEEDS_ACTION', 'ACTIVE', 'ALL') and not exists (" + LAST_FAILED_JOB
-            + "            and j.resolution = com.aima.enums.FailureResolution.DISMISSED)) "
-            + "        or (:state in ('DISMISSED', 'ALL') and exists (" + LAST_FAILED_JOB
-            + "            and j.resolution = com.aima.enums.FailureResolution.DISMISSED))))) "
-            + "and (:mode = 'ALL' "
-            + "  or (:mode = 'POLICY' and exists (" + LAST_FAILED_JOB
-            + "      and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION)) "
-            + "  or (:mode = 'TECHNICAL' and not exists (" + LAST_FAILED_JOB
-            + "      and j.errorType = com.aima.enums.PublishErrorType.POLICY_VIOLATION))) ";
-
-    @Query(value = "select p " + USER_FAILED_WHERE + "order by p.updatedAt desc",
-            countQuery = "select count(p) " + USER_FAILED_WHERE)
+    @Query(value = "select p.* " + USER_FAILED_FROM + "order by p.updated_at desc",
+            countQuery = "select count(*) " + USER_FAILED_FROM,
+            nativeQuery = true)
     Page<Post> findFailedForUser(@Param("userId") UUID userId, @Param("mode") String mode,
                                  @Param("state") String state, Pageable pageable);
 
-    @Query("select count(p) " + USER_FAILED_WHERE)
+    @Query(value = "select count(*) " + USER_FAILED_FROM, nativeQuery = true)
     long countFailedForUserByState(@Param("userId") UUID userId, @Param("mode") String mode,
                                    @Param("state") String state);
 
