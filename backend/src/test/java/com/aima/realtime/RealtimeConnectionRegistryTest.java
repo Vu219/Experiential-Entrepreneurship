@@ -143,6 +143,22 @@ class RealtimeConnectionRegistryTest {
     }
 
     @Test
+    void clientDisconnectOnHeartbeat_onlyRemovesConnection_neverCompletesWithError() throws Exception {
+        UUID user = UUID.randomUUID();
+        Opened gone = open(user, false, FAR);
+        Opened alive = open(user, false, FAR);
+        gone.capture().failNextWrite();
+
+        registry.heartbeat();
+        registry.deliver(message(user, null, "notification.created"));
+
+        // completeWithError trên response SSE đã commit = dispatch lỗi vào GlobalExceptionHandler (log ERROR + 500 hỏng).
+        assertFalse(gone.capture().completedWithError());
+        assertEquals(1, registry.connectionCount());
+        assertTrue(alive.capture().text().contains("event:notification.created"));
+    }
+
+    @Test
     void eventsKeepTheirOrderAndId() throws Exception {
         UUID user = UUID.randomUUID();
         Opened conn = open(user, false, FAR);

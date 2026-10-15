@@ -16,6 +16,7 @@ public final class EmitterCapture implements ResponseBodyEmitter.Handler {
 
     private final List<String> chunks = new CopyOnWriteArrayList<>();
     private volatile boolean completed;
+    private volatile boolean completedWithError;
     private volatile boolean failNextWrite;
     private volatile Runnable completionCallback;
 
@@ -31,6 +32,10 @@ public final class EmitterCapture implements ResponseBodyEmitter.Handler {
 
     public boolean completed() {
         return completed;
+    }
+
+    public boolean completedWithError() {
+        return completedWithError;
     }
 
     public void failNextWrite() {
@@ -57,6 +62,7 @@ public final class EmitterCapture implements ResponseBodyEmitter.Handler {
 
     @Override
     public void completeWithError(Throwable failure) {
+        completedWithError = true;
         complete();
     }
 

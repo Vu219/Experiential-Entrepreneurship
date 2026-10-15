@@ -241,7 +241,7 @@ public class RealtimeConnectionRegistryImpl implements RealtimeConnectionRegistr
             if (closed || closing) return;
             if (queued.incrementAndGet() > properties.maxQueuedEvents()) {
                 log.warn("[Realtime] kết nối {} đọc quá chậm ({} sự kiện chờ) — đóng để client resync", id, queued.get());
-                fail(null);
+                close();
                 return;
             }
             queue.add(em -> {
@@ -258,7 +258,7 @@ public class RealtimeConnectionRegistryImpl implements RealtimeConnectionRegistr
             } catch (RejectedExecutionException e) {
                 draining.set(false);
                 log.warn("[Realtime] pool gửi đầy — đóng kết nối {}", id);
-                fail(e);
+                close();
             }
         }
 
@@ -268,22 +268,29 @@ public class RealtimeConnectionRegistryImpl implements RealtimeConnectionRegistr
                 while (!closed && (op = queue.poll()) != null) {
                     op.apply(emitter);
                 }
-            } catch (Exception e) {
-                // IOException = client đã ngắt; IllegalStateException = emitter đã complete.
-                fail(e);
+            } catch (IOException | IllegalStateException e) {
+                // IOException = client đã ngắt; IllegalStateException = emitter đã complete. KHÔNG completeWithError:
+                // nó dispatch lỗi vào GlobalExceptionHandler trên response text/event-stream đã commit (log ERROR,
+                // HttpMessageNotWritableException). complete() thường để giải phóng async request — Tomcat không phải
+                // lúc nào cũng báo onError cho socket chết, thiếu bước này request treo tới timeout (30 phút).
+                log.debug("[Realtime] kết nối {} đã ngắt: {}", id, e.toString());
+                close();
+            } catch (RuntimeException e) {
+                log.warn("[Realtime] gửi sự kiện lỗi, đóng kết nối {}: {}", id, e.toString());
+                close();
             } finally {
                 draining.set(false);
                 if (!closed && !queue.isEmpty()) schedule();
             }
         }
 
-        private void fail(Exception e) {
+        /** Gỡ khỏi registry, bỏ hàng gửi rồi kết thúc async request bình thường (không kèm lỗi). */
+        private void close() {
             closed = true;
             queue.clear();
             remove(this);
             try {
-                if (e == null) emitter.complete();
-                else emitter.completeWithError(e);
+                emitter.complete();
             } catch (Exception ignored) {
                 // emitter đã đóng
             }

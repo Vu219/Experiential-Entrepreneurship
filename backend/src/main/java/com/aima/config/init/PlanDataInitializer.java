@@ -92,7 +92,7 @@ public class PlanDataInitializer implements CommandLineRunner {
 
         Plan plus = Plan.builder()
                 .code("PLUS").nameVi("Plus").nameEn("Plus")
-                .price(499_000L).billingCycleVi("/tháng").billingCycleEn("/month")
+                .price(199_000L).billingCycleVi("/tháng").billingCycleEn("/month")
                 .tokenQuota(100L)
                 .monthlyTokenLimit(CORE_MONTHLY_TOKEN_LIMITS.get("PLUS"))
                 .policyCheckAiMonthlyLimit(CORE_POLICY_CHECK_AI_LIMITS.get("PLUS"))
@@ -108,7 +108,7 @@ public class PlanDataInitializer implements CommandLineRunner {
 
         Plan pro = Plan.builder()
                 .code("PRO").nameVi("Pro").nameEn("Pro")
-                .price(1_990_000L).billingCycleVi("/tháng").billingCycleEn("/month")
+                .price(499_000L).billingCycleVi("/tháng").billingCycleEn("/month")
                 .tokenQuota(null) // không giới hạn (hiển thị)
                 .monthlyTokenLimit(CORE_MONTHLY_TOKEN_LIMITS.get("PRO"))
                 .policyCheckAiMonthlyLimit(CORE_POLICY_CHECK_AI_LIMITS.get("PRO"))
