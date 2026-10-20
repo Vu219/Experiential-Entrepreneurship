@@ -8,6 +8,7 @@ import { Icon } from '../../components/ui.tsx';
 import PageContainer from '../../components/PageContainer.tsx';
 import BrandProfileList from '../../components/brand/BrandProfileList.tsx';
 import StrategyManager, { type StrategyIntent } from '../../components/brand/StrategyManager.tsx';
+import StrategyGuideModal from '../../components/brand/StrategyGuideModal.tsx';
 import { C } from '../../styles/colors';
 
 type Tab = 'brand' | 'strategy';
@@ -28,6 +29,7 @@ export default function Brand() {
   const [params, setParams] = useSearchParams();
   const [tab, setTab] = useState<Tab>(() => tabOf(params.get('tab')) ?? useUiStore.getState().brandInitialTab ?? 'brand');
   const [strategyIntent, setStrategyIntent] = useState<StrategyIntent | null>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
   const setSidebarCollapsed = useUiStore((s) => s.setSidebarCollapsed);
   const requestStrategyCreate = useUiStore((s) => s.requestStrategyCreate);
   useEffect(() => {
@@ -84,9 +86,9 @@ export default function Brand() {
         </div>
         {tab === 'strategy' && (
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <a href="#" onClick={(e) => e.preventDefault()} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: C.primary, background: C.accentSoft, border: `1px solid ${C.accentLine}`, borderRadius: 10, padding: '9px 14px', cursor: 'pointer' }}>
+            <button type="button" onClick={() => setGuideOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: C.primary, background: C.accentSoft, border: `1px solid ${C.accentLine}`, borderRadius: 10, padding: '9px 14px', cursor: 'pointer' }}>
               <Icon icon={HelpCircle} size={16} stroke={C.primary} />{t.csGuide}
-            </a>
+            </button>
             {/* Nút tạo chiến lược chuyển lên header (cạnh Hướng dẫn); logic mở form vẫn ở StrategyManager qua store. */}
             <button onClick={requestStrategyCreate} className="btn-grad" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>
               <Icon icon={Plus} size={15} stroke={C.onBrand} />{t.csCreate}
@@ -98,6 +100,16 @@ export default function Brand() {
       {tab === 'brand'
         ? <BrandProfileList />
         : <StrategyManager intent={strategyIntent} onIntentHandled={() => setStrategyIntent(null)} />}
+
+      {guideOpen && (
+        <StrategyGuideModal
+          onClose={() => setGuideOpen(false)}
+          onCreateNew={() => {
+            setGuideOpen(false);
+            requestStrategyCreate();
+          }}
+        />
+      )}
     </PageContainer>
   );
 }

@@ -20,7 +20,7 @@ function SetupChecklist({ onboarding, id }: { onboarding: DashboardOnboarding; i
 
   const steps: { key: keyof DashboardOnboarding; label: string; onClick: () => void }[] = [
     { key: 'brand', label: t.dbsBrand, onClick: () => go('brand') },
-    { key: 'connection', label: t.dbsConnect, onClick: () => go('settings') },
+    { key: 'connection', label: t.dbsConnect, onClick: () => go('settings', '?tab=connections') },
     { key: 'strategy', label: t.dbsStrategy, onClick: () => { setBrandInitialTab('strategy'); go('brand'); } },
     { key: 'content', label: t.dbsContent, onClick: () => go('create') },
   ];

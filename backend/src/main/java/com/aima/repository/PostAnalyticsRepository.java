@@ -38,14 +38,15 @@ public interface PostAnalyticsRepository extends JpaRepository<PostAnalytics, UU
      * <p>{@code totalReach} cộng lượt xem của snapshot MỚI NHẤT mỗi bài (= tổng số phát sinh từ trước tới nay,
      * cùng nguồn với trang Phân tích). Bài chưa có snapshot nào (mới đăng, hoặc nền tảng không trả lượt xem)
      * vẫn được đếm ở {@code postsPublished} và góp 0 vào reach.
-     * Scope theo user qua posts → post_schedules → platform_accounts.user_id (API-03).
+     * Scope theo user qua posts → post_schedules → platform_accounts.user_id (API-03, không lọc {@code pa.deleted_at}
+     * để bài đăng trước khi ngắt/kết nối lại mạng xã hội vẫn được tính vào số liệu tích luỹ của user).
      */
     @Query(value = """
             select cast(count(*) as bigint) as postsPublished,
                    cast(coalesce(sum(la.views), 0) as bigint) as totalReach
             from posts p
             join post_schedules ps on ps.id = p.schedule_id and ps.deleted_at is null
-            join platform_accounts pa on pa.id = ps.platform_account_id and pa.deleted_at is null
+            join platform_accounts pa on pa.id = ps.platform_account_id
             left join lateral (
                 select s.views, s.reactions as likes, s.comments, s.shares
                 from platform_media m

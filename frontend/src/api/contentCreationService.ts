@@ -84,6 +84,7 @@ export const emptyScript = (): VideoScript => ({ hook: emptySection(), steps: []
 /** Kết quả "Kiểm tra brand voice" — % phù hợp + nhận xét từng khía cạnh. */
 export interface BrandVoiceCheck {
   score: number; // 0–100
+  aligned?: boolean | null;
   tone: string;
   wording: string;
   message: string;
@@ -329,12 +330,21 @@ export async function saveVersionEdit(
   itemId: string,
   version: ContentVersion,
 ): Promise<{ item: ContentListItem; versions: ContentVersion[] }> {
+  const hasVoice =
+    (version.brandVoice?.score !== undefined && version.brandVoice.score > 0) ||
+    (version.brandVoice?.aligned !== undefined && version.brandVoice.aligned !== null);
+
   const r = await updateContentVersion(itemId, version.id, {
     script: toScriptPayload(version.script),
     caption: version.caption,
     hashtags: version.hashtags.map((h) => h.replace(/^#+/, "")),
     cta: version.cta,
     mediaPrompt: version.mediaPrompt,
+    voiceScore: hasVoice ? version.brandVoice.score : undefined,
+    voiceAligned: hasVoice
+      ? (version.brandVoice.aligned ?? (version.brandVoice.score >= 70))
+      : undefined,
+    voiceNotes: hasVoice && version.brandVoice.summary ? version.brandVoice.summary : undefined,
   });
   return { item: toContentListItem(r), versions: (r.versions ?? []).map(toContentVersion) };
 }
@@ -444,6 +454,7 @@ function toContentVersion(v: ContentVersionResponse): ContentVersion {
     imageUrl: null,
     brandVoice: {
       score: v.voiceScore ?? 0,
+      aligned: v.voiceAligned ?? (v.voiceScore != null && v.voiceScore > 0 ? v.voiceScore >= 70 : null),
       summary: v.voiceNotes ?? "",
       tone: "",
       wording: "",
@@ -652,7 +663,11 @@ export async function generateImage(input: GenerateImageInput): Promise<{ imageU
 // → BrandVoiceCheck. Backend cần bổ sung endpoint.
 export async function checkBrandVoice(input: CheckBrandVoiceInput): Promise<BrandVoiceCheck> {
   await delay(900);
-  return mockBrandVoice(lang(), (input.script.hook.content.length + input.caption.length) % 4);
+  const check = mockBrandVoice(lang(), (input.script.hook.content.length + input.caption.length) % 4);
+  return {
+    ...check,
+    aligned: check.score >= 70,
+  };
 }
 
 /**

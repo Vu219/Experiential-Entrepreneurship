@@ -244,8 +244,8 @@ public class ContentFormattingWorkerServiceImpl implements ContentFormattingWork
                 .filter(v -> v.getDeletedAt() == null && v.getPlatformName() == platform)
                 .forEach(v -> v.setDeletedAt(now));
 
-        // Bản GỐC để giữ nguyên kịch bản video (FR-25) + media prompt (FR-29) — format chỉ đổi
-        // trình bày caption/hashtag/CTA, KHÔNG sinh mới các trường này.
+        // Bản GỐC để giữ nguyên kịch bản video (FR-25) + media prompt (FR-29) + image prompt +
+        // brand voice metrics (FR-30) — format chỉ đổi trình bày caption/hashtag/CTA, KHÔNG sinh mới các trường này.
         ContentVersion source = contentVersionRepository.findById(sourceVersionId).orElse(null);
 
         List<ContentVersion> created = new ArrayList<>();
@@ -257,6 +257,10 @@ public class ContentFormattingWorkerServiceImpl implements ContentFormattingWork
             if (source != null) {
                 version.setScript(source.getScript());
                 version.setMediaPrompt(source.getMediaPrompt());
+                version.setImagePrompt(source.getImagePrompt());
+                version.setVoiceAligned(source.getVoiceAligned());
+                version.setVoiceScore(source.getVoiceScore());
+                version.setVoiceNotes(source.getVoiceNotes());
             }
             item.getContentVersions().add(version);
             created.add(version);

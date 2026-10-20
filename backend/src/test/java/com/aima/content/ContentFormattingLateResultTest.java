@@ -96,6 +96,11 @@ class ContentFormattingLateResultTest {
         version.setContentItem(item);
         version.setPlatformName(Platform.FACEBOOK);
         version.setFormattedCaption("Ban goc");
+        version.setMediaPrompt("Media prompt ban goc");
+        version.setImagePrompt("Anh vuong ban trang diem toi gian, tong pastel.");
+        version.setVoiceAligned(true);
+        version.setVoiceScore(92);
+        version.setVoiceNotes("Giong van tu tin, chuyen nghiep");
         version.setStatus(ContentVersionStatus.FORMATTED);
         version = contentVersionRepository.save(version);
         page = new PlatformAccount();
@@ -141,6 +146,11 @@ class ContentFormattingLateResultTest {
         assertEquals(1, active.size());
         ContentVersion replacement = active.getFirst();
         assertNotEquals(version.getId(), replacement.getId());
+        assertEquals("Media prompt ban goc", replacement.getMediaPrompt());
+        assertEquals("Anh vuong ban trang diem toi gian, tong pastel.", replacement.getImagePrompt());
+        assertEquals(Boolean.TRUE, replacement.getVoiceAligned());
+        assertEquals(92, replacement.getVoiceScore());
+        assertEquals("Giong van tu tin, chuyen nghiep", replacement.getVoiceNotes());
         tx.executeWithoutResult(s -> {
             PostSchedule schedule = scheduleRepository.findByContentVersion_IdAndDeletedAtIsNull(replacement.getId()).orElseThrow();
             assertEquals(ScheduleStatus.SCHEDULED, schedule.getStatus());
@@ -148,6 +158,27 @@ class ContentFormattingLateResultTest {
             assertEquals(ReviewStatus.NEED_REVIEW, fresh.getReviewStatus(), "định dạng lại = nội dung đổi → bỏ duyệt cũ");
             assertEquals(ContentItemStatus.SCHEDULED, fresh.getStatus());
         });
+    }
+
+    @Test
+    void formattedVersionInheritsBrandVoiceAndImagePromptFromSource() {
+        when(aiServiceClient.format(any())).thenReturn(result("Ket qua dinh dang moi"));
+
+        ContentFormattingJob job = runFormatting();
+        assertEquals(GenerationJobStatus.SUCCESS, job.getStatus(), job.getErrorMessage());
+
+        List<ContentVersion> active = activeVersions();
+        assertEquals(1, active.size());
+        ContentVersion formatted = active.getFirst();
+        assertNotEquals(version.getId(), formatted.getId());
+        assertEquals(version.getId(), formatted.getSourceVersionId());
+        assertEquals(ContentVersionStatus.FORMATTED, formatted.getStatus());
+        assertEquals("Ket qua dinh dang moi", formatted.getFormattedCaption());
+        assertEquals("Media prompt ban goc", formatted.getMediaPrompt());
+        assertEquals("Anh vuong ban trang diem toi gian, tong pastel.", formatted.getImagePrompt());
+        assertEquals(Boolean.TRUE, formatted.getVoiceAligned());
+        assertEquals(92, formatted.getVoiceScore());
+        assertEquals("Giong van tu tin, chuyen nghiep", formatted.getVoiceNotes());
     }
 
     private ContentFormattingJob runFormatting() {

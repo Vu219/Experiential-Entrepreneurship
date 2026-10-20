@@ -311,6 +311,7 @@ export const STRINGS = {
     dbDemoTopic4: 'Đánh giá khách hàng', dbDemoTopic5: 'Xu hướng ngành hàng',
     navDashboard: 'Bảng điều khiển', navCreate: 'Quản lý nội dung', navCalendar: 'Lịch đăng bài', navFailedPosts: 'Bài lỗi & cần xử lý', navAnalytics: 'Phân tích',
     navTrends: 'Xu hướng', navBrand: 'Hồ sơ thương hiệu', navProfile: 'Hồ sơ', navSettings: 'Cài đặt', navAdmin: 'Quản trị hệ thống',
+    menuGroupAccount: 'Tài khoản', menuGroupNav: 'Điều hướng',
     stTotalReach: 'Tổng lượt xem', stEngagement: 'Tỷ lệ tương tác', stPosts: 'Bài đã đăng', stScheduled: 'Đang lên lịch',
     stPublished: 'Đã đăng', stScheduledS: 'Lên lịch', stDraft: 'Nháp', stReview: 'Chờ duyệt',
     // footer
@@ -1691,6 +1692,7 @@ export const STRINGS = {
     dbDemoTopic4: 'Customer reviews', dbDemoTopic5: 'Industry trends',
     navDashboard: 'Dashboard', navCreate: 'Content', navCalendar: 'Calendar', navFailedPosts: 'Failed posts', navAnalytics: 'Analytics',
     navTrends: 'Trends', navBrand: 'Brand profile', navProfile: 'Profile', navSettings: 'Settings', navAdmin: 'Administration',
+    menuGroupAccount: 'Account', menuGroupNav: 'Navigation',
     stTotalReach: 'Total views', stEngagement: 'Engagement rate', stPosts: 'Posts published', stScheduled: 'Scheduled',
     stPublished: 'Published', stScheduledS: 'Scheduled', stDraft: 'Draft', stReview: 'In review',
     ftTagline: 'Automate your entire marketing workflow — from idea to analytics, running 24/7.',

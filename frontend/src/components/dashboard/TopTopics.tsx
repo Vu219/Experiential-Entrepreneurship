@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Sparkles } from 'lucide-react';
+import { ChevronRight, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Card, Icon } from '../ui';
 import DemoBadge from './DemoBadge';
@@ -17,11 +17,27 @@ function TopTopics({ rows, demo = false, id }: { rows: DashboardTopic[]; demo?: 
 
   return (
     <Card id={id}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.dbTopicsTitle}</span>
-        {demo && <DemoBadge label={t.dbDemoData} />}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.dbTopicsTitle}</span>
+            {demo && <DemoBadge label={t.dbDemoData} />}
+          </div>
+          <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 2 }}>{t.dbTopicsSub}</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => go('trends')}
+          className="link-underline"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent',
+            padding: '4px 2px', fontSize: 13, fontWeight: 600, color: C.primary, cursor: 'pointer',
+          }}
+        >
+          {t.viewAll ?? 'Xem tất cả'}
+          <Icon icon={ChevronRight} size={15} stroke={C.primary} />
+        </button>
       </div>
-      <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 2 }}>{t.dbTopicsSub}</div>
 
       {rows.length === 0 ? (
         <div style={{

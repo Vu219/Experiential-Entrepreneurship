@@ -37,4 +37,13 @@ public class ContentVersionUpdateRequest {
 
     @Schema(description = "TEXT description of the video to film.")
     String mediaPrompt;
+
+    @Schema(description = "FR-30: whether the AI or reviewer judged this version on-brand.")
+    Boolean voiceAligned;
+
+    @Schema(description = "FR-30: brand-voice match score 0-100.")
+    Integer voiceScore;
+
+    @Schema(description = "FR-30: short brand-voice notes from the AI or reviewer.")
+    String voiceNotes;
 }

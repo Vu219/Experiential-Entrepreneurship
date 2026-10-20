@@ -123,25 +123,35 @@ export default function UserMenu({ variant = "landing" }: { variant?: "landing" 
             </div>
           </div>
 
+          {/* Cụm 1: Tài khoản cá nhân */}
           <div style={{ padding: "6px 0" }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: C.textFaint, padding: "6px 16px 4px" }}>
+              {t.menuGroupAccount}
+            </div>
+            <MenuItem icon={<UserCircle size={17} />} label={t.navProfile} onClick={pick(() => go("profile"))} />
+            <MenuItem icon={<CreditCard size={17} />} label={t.navBilling} onClick={pick(() => go("billing"))} />
+            <MenuItem icon={<Settings size={17} />} label={t.navSettings} onClick={pick(() => go("settings"))} />
+          </div>
+
+          {/* Cụm 2: Không gian làm việc & Điều hướng */}
+          <div style={{ borderTop: `1px solid ${C.surfaceMuted}`, padding: "6px 0" }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: C.textFaint, padding: "6px 16px 4px" }}>
+              {t.menuGroupNav}
+            </div>
             {isApp ? (
               <>
                 <MenuItem icon={<Home size={17} />} label={t.nHome} onClick={pick(() => go("landing"))} />
-                <MenuItem icon={<UserCircle size={17} />} label={t.navProfile} onClick={pick(() => go("profile"))} />
-                <MenuItem icon={<CreditCard size={17} />} label={t.navBilling} onClick={pick(() => go("billing"))} />
-                <MenuItem icon={<Settings size={17} />} label={t.navSettings} onClick={pick(() => go("settings"))} />
+                {role === "ADMIN" && <MenuItem icon={<Shield size={17} />} label={t.navAdmin} onClick={pick(() => go("admin"))} />}
               </>
             ) : (
               <>
-                <MenuItem icon={<UserCircle size={17} />} label={t.navProfile} onClick={pick(() => go("profile"))} />
-                <MenuItem icon={<CreditCard size={17} />} label={t.navBilling} onClick={pick(() => go("billing"))} />
-                <MenuItem icon={<Settings size={17} />} label={t.navSettings} onClick={pick(() => go("settings"))} />
                 <MenuItem icon={<LayoutDashboard size={17} />} label={t.navDashboard} onClick={pick(() => go("dashboard"))} />
                 {role === "ADMIN" && <MenuItem icon={<Shield size={17} />} label={t.navAdmin} onClick={pick(() => go("admin"))} />}
               </>
             )}
           </div>
-          {/* Đăng xuất tách riêng dưới cùng, có đường kẻ ngăn cách */}
+
+          {/* Cụm 3: Đăng xuất */}
           <div style={{ borderTop: `1px solid ${C.surfaceMuted}`, padding: "6px 0" }}>
             <MenuItem icon={<LogOut size={17} />} label={t.signOut} danger onClick={pick(logout)} />
           </div>

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { strategyGoalOptions, contentTypeOptions, contentStyleOptions, ctaSampleOptions, audienceSampleOptions, TIME_SLOT_OPTIONS, FREQUENCY_UNIT_OPTIONS } from '../../data';
@@ -36,6 +36,44 @@ export default function StrategyEditor({ strategy, brandId, brandName, onCancel,
   const [errors, setErrors] = useState<StrategyFormErrors>({});
   const [saving, setSaving] = useState<'full' | 'draft' | null>(null);
   const toast = useToast();
+
+  const [isAtBottom, setIsAtBottom] = useState(false);
+  const bottomSentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = bottomSentinelRef.current;
+    if (!el) return;
+
+    const checkBottom = () => {
+      const rect = el.getBoundingClientRect();
+      const reached = (rect.top <= window.innerHeight - 20) || (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 35);
+      setIsAtBottom(reached);
+    };
+
+    checkBottom();
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        setIsAtBottom(entry.isIntersecting);
+      },
+      {
+        root: null,
+        rootMargin: '0px 0px -20px 0px',
+        threshold: 0,
+      }
+    );
+
+    observer.observe(el);
+    window.addEventListener('scroll', checkBottom, { passive: true });
+    window.addEventListener('resize', checkBottom, { passive: true });
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('scroll', checkBottom);
+      window.removeEventListener('resize', checkBottom);
+    };
+  }, []);
 
   const summaryLike = { goals, frequencyCount, frequencyUnit, platforms, audiences, styles, ctas };
 
@@ -130,27 +168,120 @@ export default function StrategyEditor({ strategy, brandId, brandName, onCancel,
         <Box><Field label={t.csCta} required help={t.csCtaHelp}><TagInput value={ctas} onChange={setCtas} addLabel={t.csAddCta} suggestions={ctaSampleOptions(lang)} /></Field></Box>
       </div>
 
-      <div style={{
-        position: 'sticky',
-        bottom: -22,
-        margin: '32px -22px -22px -22px',
-        padding: '20px 22px',
-        background: C.surface,
-        borderTop: `1px solid ${C.border}`,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
-        zIndex: 10,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 16,
-        boxShadow: `0 -10px 30px ${C.legacyShadowrgba000003_}`
-      }}>
-        <StrategySummary s={summaryLike} />
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {strategy && onDelete && <button onClick={onDelete} disabled={busy} style={{ border: `1px solid ${C.legacyBorderf3c9d6}`, background: C.surface, borderRadius: 12, padding: '11px 18px', fontSize: 14, fontWeight: 700, color: C.legacyTextd6336c, cursor: 'pointer' }}>{t.csDeleteBtn}</button>}
-          <button onClick={onCancel} disabled={busy} className="btn-soft" style={{ marginLeft: 'auto', border: `1px solid ${C.border}`, background: C.surface, borderRadius: 12, padding: '11px 22px', fontSize: 14, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>{t.csCancel}</button>
-          <button onClick={saveDraft} disabled={busy} className="btn-outline" style={{ border: `1.5px solid ${C.legacyBorderd6cdf0}`, background: C.bg, borderRadius: 12, padding: '11px 22px', fontSize: 14, fontWeight: 700, color: C.violet, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{saving === 'draft' ? t.processing : t.bpSaveDraft}</button>
-          <button onClick={submit} disabled={busy} className="btn-grad" style={{ border: 'none', borderRadius: 12, padding: '11px 26px', fontSize: 14, fontWeight: 700, color: C.onBrand, background: 'var(--brand)', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.75 : 1 }}>{saving === 'full' ? t.processing : t.csSave}</button>
+      {/* Card Tóm tắt chiến lược hiển thị cuối cùng của form */}
+      <StrategySummary s={summaryLike} />
+
+      {/* Sentinel để nhận biết khi người dùng cuộn đến đáy card */}
+      <div ref={bottomSentinelRef} style={{ height: 1, width: '100%', pointerEvents: 'none' }} />
+
+      {/* Thanh nút bấm — khi ở trên ôm sát các nút và nổi lên (không bị che); khi cuộn xuống dưới dãn dài theo kích cỡ card */}
+      <div
+        style={{
+          position: 'sticky',
+          bottom: isAtBottom ? -22 : 18,
+          zIndex: 30,
+          margin: isAtBottom ? '24px -22px -22px -22px' : '18px 0 0 0',
+          display: 'flex',
+          justifyContent: isAtBottom ? 'stretch' : 'flex-end',
+          pointerEvents: 'none',
+          transition: 'bottom 0.38s cubic-bezier(0.16, 1, 0.3, 1), margin 0.38s cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
+      >
+        <div
+          style={{
+            pointerEvents: 'auto',
+            width: isAtBottom ? '100%' : 'auto',
+            background: C.surface,
+            borderTop: `1px solid ${C.border}`,
+            borderBottom: isAtBottom ? 'none' : `1px solid ${C.border}`,
+            borderLeft: isAtBottom ? 'none' : `1px solid ${C.border}`,
+            borderRight: isAtBottom ? 'none' : `1px solid ${C.border}`,
+            borderRadius: isAtBottom ? '0 0 20px 20px' : 16,
+            padding: isAtBottom ? '14px 22px' : '8px 12px',
+            boxShadow: isAtBottom ? 'none' : '0 10px 30px -4px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.06)',
+            backdropFilter: 'blur(12px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: isAtBottom ? 'space-between' : 'flex-end',
+            gap: 10,
+            flexWrap: 'wrap',
+            transition: 'width 0.38s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.38s cubic-bezier(0.16, 1, 0.3, 1), padding 0.38s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.38s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.38s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+        >
+          {strategy && onDelete && (
+            <button
+              onClick={onDelete}
+              disabled={busy}
+              style={{
+                border: `1px solid ${C.legacyBorderf3c9d6}`,
+                background: C.surface,
+                borderRadius: 12,
+                padding: '10px 18px',
+                fontSize: 13.5,
+                fontWeight: 700,
+                color: C.legacyTextd6336c,
+                cursor: 'pointer',
+                marginRight: isAtBottom ? 'auto' : undefined,
+              }}
+            >
+              {t.csDeleteBtn}
+            </button>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: isAtBottom && (!strategy || !onDelete) ? 'auto' : undefined, flexWrap: 'wrap' }}>
+            <button
+              onClick={onCancel}
+              disabled={busy}
+              className="btn-soft"
+              style={{
+                border: `1px solid ${C.border}`,
+                background: C.surface,
+                borderRadius: 12,
+                padding: '10px 20px',
+                fontSize: 13.5,
+                fontWeight: 700,
+                color: C.ink550,
+                cursor: 'pointer'
+              }}
+            >
+              {t.csCancel}
+            </button>
+            <button
+              onClick={saveDraft}
+              disabled={busy}
+              className="btn-outline"
+              style={{
+                border: `1.5px solid ${C.legacyBorderd6cdf0}`,
+                background: C.bg,
+                borderRadius: 12,
+                padding: '10px 20px',
+                fontSize: 13.5,
+                fontWeight: 700,
+                color: C.violet,
+                cursor: busy ? 'wait' : 'pointer',
+                opacity: busy ? 0.75 : 1
+              }}
+            >
+              {saving === 'draft' ? t.processing : t.bpSaveDraft}
+            </button>
+            <button
+              onClick={submit}
+              disabled={busy}
+              className="btn-grad"
+              style={{
+                border: 'none',
+                borderRadius: 12,
+                padding: '10px 24px',
+                fontSize: 13.5,
+                fontWeight: 700,
+                color: C.onBrand,
+                background: 'var(--brand)',
+                cursor: busy ? 'wait' : 'pointer',
+                opacity: busy ? 0.75 : 1
+              }}
+            >
+              {saving === 'full' ? t.processing : t.csSave}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { useApp } from '../../context/AppContext';
 import { PlatformTag } from '../ui';
 import { PLATFORMS } from '../../theme';
@@ -20,6 +20,43 @@ const TAG_BY_ENUM: Record<Platform, string> = { FACEBOOK: 'FB', INSTAGRAM: 'IG',
 /** Chi tiết chiến lược (read-only) — 8 mục thuộc tính + "Tóm tắt chiến lược". */
 export default function StrategyDetail({ s, onEdit, onDelete }: { s: ContentStrategy; onEdit: () => void; onDelete: () => void }) {
   const { t, lang } = useApp();
+  const [isAtBottom, setIsAtBottom] = useState(false);
+  const bottomSentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = bottomSentinelRef.current;
+    if (!el) return;
+
+    const checkBottom = () => {
+      const rect = el.getBoundingClientRect();
+      const reached = (rect.top <= window.innerHeight - 20) || (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 35);
+      setIsAtBottom(reached);
+    };
+
+    checkBottom();
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        setIsAtBottom(entry.isIntersecting);
+      },
+      {
+        root: null,
+        rootMargin: '0px 0px -20px 0px',
+        threshold: 0,
+      }
+    );
+
+    observer.observe(el);
+    window.addEventListener('scroll', checkBottom, { passive: true });
+    window.addEventListener('resize', checkBottom, { passive: true });
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('scroll', checkBottom);
+      window.removeEventListener('resize', checkBottom);
+    };
+  }, []);
   const meta = statusMeta(s.status, t);
   const unitLabel = FREQUENCY_UNIT_OPTIONS(lang).find((u) => u.value === (s.frequencyUnit ?? 'WEEK'))?.label ?? '';
 
@@ -53,25 +90,48 @@ export default function StrategyDetail({ s, onEdit, onDelete }: { s: ContentStra
       {/* FR-65..FR-68: đề xuất tối ưu từ dữ liệu + duyệt/từ chối + lịch sử */}
       <StrategyOptimization strategyId={s.id} />
 
-      <div style={{
-        position: 'sticky',
-        bottom: -22,
-        margin: '32px -22px -22px -22px',
-        padding: '20px 22px',
-        background: C.surface,
-        borderTop: `1px solid ${C.border}`,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
-        zIndex: 10,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 16,
-        boxShadow: `0 -10px 30px ${C.legacyShadowrgba000003_}`
-      }}>
-        <StrategySummary s={s} />
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button onClick={onDelete} style={{ border: `1px solid ${C.legacyBorderf3c9d6}`, background: C.surface, borderRadius: 12, padding: '11px 18px', fontSize: 14, fontWeight: 700, color: C.legacyTextd6336c, cursor: 'pointer' }}>{t.csDeleteBtn}</button>
-          <button onClick={onEdit} className="btn-grad" style={{ border: 'none', borderRadius: 12, padding: '11px 26px', fontSize: 14, fontWeight: 700, color: C.onBrand, background: 'var(--brand)', cursor: 'pointer' }}>{t.csEditBtn}</button>
+      {/* Card Tóm tắt chiến lược */}
+      <StrategySummary s={s} />
+
+      {/* Sentinel để nhận biết khi người dùng cuộn đến đáy card */}
+      <div ref={bottomSentinelRef} style={{ height: 1, width: '100%', pointerEvents: 'none' }} />
+
+      {/* Thanh nút bấm — khi ở trên ôm sát các nút và nổi lên; khi cuộn xuống dưới dãn dài theo kích cỡ card */}
+      <div
+        style={{
+          position: 'sticky',
+          bottom: isAtBottom ? -22 : 18,
+          zIndex: 30,
+          margin: isAtBottom ? '24px -22px -22px -22px' : '18px 0 0 0',
+          display: 'flex',
+          justifyContent: isAtBottom ? 'stretch' : 'flex-end',
+          pointerEvents: 'none',
+          transition: 'bottom 0.38s cubic-bezier(0.16, 1, 0.3, 1), margin 0.38s cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
+      >
+        <div
+          style={{
+            pointerEvents: 'auto',
+            width: isAtBottom ? '100%' : 'auto',
+            background: C.surface,
+            borderTop: `1px solid ${C.border}`,
+            borderBottom: isAtBottom ? 'none' : `1px solid ${C.border}`,
+            borderLeft: isAtBottom ? 'none' : `1px solid ${C.border}`,
+            borderRight: isAtBottom ? 'none' : `1px solid ${C.border}`,
+            borderRadius: isAtBottom ? '0 0 20px 20px' : 16,
+            padding: isAtBottom ? '14px 22px' : '8px 12px',
+            boxShadow: isAtBottom ? 'none' : '0 10px 30px -4px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.06)',
+            backdropFilter: 'blur(12px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: isAtBottom ? 'space-between' : 'flex-end',
+            gap: 10,
+            flexWrap: 'wrap',
+            transition: 'width 0.38s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.38s cubic-bezier(0.16, 1, 0.3, 1), padding 0.38s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.38s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.38s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+        >
+          <button onClick={onDelete} style={{ border: `1px solid ${C.legacyBorderf3c9d6}`, background: C.surface, borderRadius: 12, padding: '10px 18px', fontSize: 13.5, fontWeight: 700, color: C.legacyTextd6336c, cursor: 'pointer', marginRight: isAtBottom ? 'auto' : undefined }}>{t.csDeleteBtn}</button>
+          <button onClick={onEdit} className="btn-grad" style={{ border: 'none', borderRadius: 12, padding: '10px 24px', fontSize: 13.5, fontWeight: 700, color: C.onBrand, background: 'var(--brand)', cursor: 'pointer' }}>{t.csEditBtn}</button>
         </div>
       </div>
     </div>
