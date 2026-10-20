@@ -1,5 +1,8 @@
 import axios, { type InternalAxiosRequestConfig } from "axios";
 import { globalToast } from "../components/toast/ToastProvider";
+import { getDict } from "../i18n";
+import { useAppStore } from "../store/useAppStore";
+import { PLAN_LIMIT_EVENT, isPlanLimitCode, planLimitMessage } from "../utils/planLimitText";
 import { createSessionRefresher, isProfileProbe, isRefreshExempt, type LockManagerLike } from "./sessionRefresh";
 
 // Unified backend response format (API-01)
@@ -97,7 +100,20 @@ client.interceptors.response.use(
       globalToast?.error("Máy chủ hiện không phản hồi. Vui lòng thử lại sau.", { title: "Lỗi hệ thống" });
     }
 
-    const err: ApiError = new Error(message);
+    let finalMessage = message;
+    if (isPlanLimitCode(data?.code)) {
+      // Chạm giới hạn gói: câu theo ngôn ngữ đang bật + nút "Nâng cấp gói". Component toast lại e.message thì
+      // ToastProvider bỏ bản trùng.
+      const t = getDict(useAppStore.getState().lang) as unknown as Record<string, string>;
+      finalMessage = planLimitMessage(t, data.code, data.result);
+      globalToast?.warning(finalMessage, {
+        title: t.plgTitle,
+        action: { label: t.plgUpgrade, onClick: () => window.location.assign("/billing") },
+      });
+      window.dispatchEvent(new CustomEvent(PLAN_LIMIT_EVENT));
+    }
+
+    const err: ApiError = new Error(finalMessage);
     if (typeof data?.code === "number") err.code = data.code;
     return Promise.reject(err);
   }

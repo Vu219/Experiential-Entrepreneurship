@@ -1,6 +1,7 @@
 package com.aima.config.init;
 
 import com.aima.entity.Plan;
+import com.aima.entity.PlanFeatureLimits;
 import com.aima.entity.PlanFeature;
 import com.aima.entity.PlanFeatureValue;
 import com.aima.repository.PlanFeatureRepository;
@@ -48,6 +49,28 @@ public class PlanDataInitializer implements CommandLineRunner {
             "PRO", 200
     );
 
+    /** Giới hạn tính năng của 3 gói lõi khi DB mới seed — cùng giá trị Flyway V18 backfill cho DB cũ. */
+    static final Map<String, PlanFeatureLimits> CORE_FEATURE_LIMITS = Map.of(
+            "FREE", PlanFeatureLimits.builder()
+                    .brandProfiles(1).strategiesPerBrand(1).connectedChannels(1)
+                    .trendResearchPerPeriod(3).autoTrendResearch(false).ideasPerResearch(5)
+                    .scheduling(true).scheduledPostsPerPeriod(10).activeSchedules(5).scheduleHorizonDays(7)
+                    .goldenHours(false).analyticsHistoryDays(7).analyticsAdvanced(false).analyticsExport(false)
+                    .strategyOptimizationPerPeriod(0).build(),
+            "PLUS", PlanFeatureLimits.builder()
+                    .brandProfiles(3).strategiesPerBrand(5).connectedChannels(3)
+                    .trendResearchPerPeriod(30).autoTrendResearch(true).ideasPerResearch(10)
+                    .scheduling(true).scheduledPostsPerPeriod(100).activeSchedules(50).scheduleHorizonDays(30)
+                    .goldenHours(true).analyticsHistoryDays(90).analyticsAdvanced(true).analyticsExport(false)
+                    .strategyOptimizationPerPeriod(5).build(),
+            "PRO", PlanFeatureLimits.builder()
+                    .brandProfiles(-1).strategiesPerBrand(-1).connectedChannels(10)
+                    .trendResearchPerPeriod(-1).autoTrendResearch(true).ideasPerResearch(20)
+                    .scheduling(true).scheduledPostsPerPeriod(-1).activeSchedules(-1).scheduleHorizonDays(90)
+                    .goldenHours(true).analyticsHistoryDays(365).analyticsAdvanced(true).analyticsExport(true)
+                    .strategyOptimizationPerPeriod(-1).build()
+    );
+
     @Override
     public void run(String... args) {
         seedPlans();
@@ -80,6 +103,7 @@ public class PlanDataInitializer implements CommandLineRunner {
                 .tokenQuota(5L)
                 .monthlyTokenLimit(CORE_MONTHLY_TOKEN_LIMITS.get("FREE"))
                 .policyCheckAiMonthlyLimit(CORE_POLICY_CHECK_AI_LIMITS.get("FREE"))
+                .featureLimits(CORE_FEATURE_LIMITS.get("FREE"))
                 .descriptionVi("Trải nghiệm quy trình AI với một thương hiệu.")
                 .descriptionEn("Try the AI pipeline with one brand.")
                 .featuresVi("1 hồ sơ thương hiệu\n5 bài viết AI mỗi tháng\nKết nối 1 nền tảng\nNghiên cứu xu hướng cơ bản")
@@ -96,6 +120,7 @@ public class PlanDataInitializer implements CommandLineRunner {
                 .tokenQuota(100L)
                 .monthlyTokenLimit(CORE_MONTHLY_TOKEN_LIMITS.get("PLUS"))
                 .policyCheckAiMonthlyLimit(CORE_POLICY_CHECK_AI_LIMITS.get("PLUS"))
+                .featureLimits(CORE_FEATURE_LIMITS.get("PLUS"))
                 .descriptionVi("Cho creator & shop cần nội dung đều đặn mỗi ngày.")
                 .descriptionEn("For creators & shops posting every day.")
                 .featuresVi("3 hồ sơ thương hiệu\n100 bài viết AI mỗi tháng\nĐủ 3 nền tảng: Facebook · Instagram · Threads\nLên lịch & tự động đăng bài\nPhân tích hiệu quả sau đăng")
@@ -112,6 +137,7 @@ public class PlanDataInitializer implements CommandLineRunner {
                 .tokenQuota(null) // không giới hạn (hiển thị)
                 .monthlyTokenLimit(CORE_MONTHLY_TOKEN_LIMITS.get("PRO"))
                 .policyCheckAiMonthlyLimit(CORE_POLICY_CHECK_AI_LIMITS.get("PRO"))
+                .featureLimits(CORE_FEATURE_LIMITS.get("PRO"))
                 .descriptionVi("Cho doanh nghiệp nhỏ chạy nhiều thương hiệu cùng lúc.")
                 .descriptionEn("For small businesses running multiple brands.")
                 .featuresVi("Không giới hạn hồ sơ thương hiệu\nKhông giới hạn bài viết AI\nAI tối ưu chiến lược từ dữ liệu\nBáo cáo hiệu quả chuyên sâu\nHỗ trợ ưu tiên")

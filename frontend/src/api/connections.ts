@@ -52,6 +52,12 @@ const PLATFORM_URL: Record<PlatformEnum, string> = {
   THREADS: 'threads',
 };
 
+/**
+ * Nền tảng đang mở kết nối — khớp `aima.connections.enabled-platforms` của backend (mặc định chỉ FACEBOOK).
+ * Instagram/Threads tạm khoá: card hiện "Sắp hỗ trợ", nút kết nối/kết nối lại bị vô hiệu.
+ */
+export const CONNECTABLE_PLATFORMS: ReadonlySet<PlatformEnum> = new Set<PlatformEnum>(['FACEBOOK']);
+
 /** FE tag (FB/IG/TH) → BE enum (FACEBOOK/INSTAGRAM/THREADS) */
 export const TAG_TO_PLATFORM: Record<string, PlatformEnum> = {
   FB: 'FACEBOOK',

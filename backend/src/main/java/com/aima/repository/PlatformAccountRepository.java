@@ -53,4 +53,7 @@ public interface PlatformAccountRepository extends JpaRepository<PlatformAccount
 
     // FR-81: tổng kết nối ACTIVE toàn hệ thống (trang System status của admin).
     long countByConnectionStatusAndDeletedAtIsNull(ConnectionStatus status);
+
+    /** Giới hạn gói CONNECTED_CHANNELS: kênh đăng được (không tính kết nối USER gốc). */
+    long countByUser_IdAndAccountTypeNotAndDeletedAtIsNull(UUID userId, PlatformAccountType accountType);
 }

@@ -8,6 +8,8 @@ import { Card } from '../../components/ui.tsx';
 import PageContainer from '../../components/PageContainer.tsx';
 import KpiCard from '../../components/analytics/KpiCard.tsx';
 import AnalyticsFilterBar from '../../components/analytics/AnalyticsFilterBar.tsx';
+import PlanLockedCard from '../../components/PlanLockedCard';
+import { usePlanUsage } from '../../hooks/usePlanUsage';
 import AnalyticsSyncBar from '../../components/analytics/AnalyticsSyncBar.tsx';
 import AnalyticsTrendChart from '../../components/analytics/AnalyticsTrendChart.tsx';
 import PlatformBreakdown from '../../components/analytics/PlatformBreakdown.tsx';
@@ -198,15 +200,20 @@ export default function Analytics() {
   const byPlatform = useBlock(
     useCallback(() => getAnalyticsByPlatform(stableFilter), [stableFilter]),
     useCallback(() => mockByPlatform(stableFilter), [stableFilter]), demo);
+  // Gói (V18): khối nâng cao (loại nội dung, heatmap, insights) + xuất dữ liệu chỉ khi gói gồm — không gọi API để
+  // khỏi nhận lỗi giới hạn; dữ liệu mẫu (chưa kết nối) vẫn hiện để người dùng thấy tính năng.
+  const { included: planIncludes } = usePlanUsage();
+  const advancedLocked = demo === false && !planIncludes('ANALYTICS_ADVANCED');
+  const exportLocked = demo === false && !planIncludes('ANALYTICS_EXPORT');
   const byContentType = useBlock(
     useCallback(() => getAnalyticsByContentType(stableFilter), [stableFilter]),
-    useCallback(() => mockByContentType(stableFilter), [stableFilter]), demo);
+    useCallback(() => mockByContentType(stableFilter), [stableFilter]), demo, advancedLocked);
   const heatmap = useBlock(
     useCallback(() => getAnalyticsHeatmap(stableFilter), [stableFilter]),
-    useCallback(() => mockHeatmap(stableFilter), [stableFilter]), demo);
+    useCallback(() => mockHeatmap(stableFilter), [stableFilter]), demo, advancedLocked);
   const insights = useBlock(
     useCallback(() => getAnalyticsInsights(stableFilter), [stableFilter]),
-    useCallback(() => mockInsights(stableFilter), [stableFilter]), demo);
+    useCallback(() => mockInsights(stableFilter), [stableFilter]), demo, advancedLocked);
   // Top bài viết lấy tối đa 50 (trần backend) để modal "Xem tất cả" phân trang tại chỗ.
   const topPosts = useBlock<AnalyticsTopPost[]>(
     useCallback(() => getAnalyticsTopPosts(stableFilter, sort, 50), [stableFilter, sort.field, sort.asc]), // eslint-disable-line react-hooks/exhaustive-deps
@@ -272,6 +279,12 @@ export default function Analytics() {
   // ---- Xuất báo cáo ----
   const [exporting, setExporting] = useState(false);
   const onExportCsv = async () => {
+    if (exportLocked) {
+      toast.warning(t.plgLockedDesc.replace('{feature}', t.plk_ANALYTICS_EXPORT), {
+        title: t.plgLockedTitle, action: { label: t.plgUpgrade, onClick: () => navigate('/billing') },
+      });
+      return;
+    }
     setExporting(true);
     try {
       // Chế độ dữ liệu mẫu chưa có gì thật để xuất → dựng CSV ngay từ bảng đang hiển thị.
@@ -361,15 +374,17 @@ export default function Analytics() {
     : byPlatform.status === 'error' ? <BlockError onRetry={byPlatform.reload} />
       : <PlatformBreakdown rows={byPlatform.data ?? []} from={filter.from} to={filter.to} />;
 
-  const contentTypeBlock = byContentType.status === 'loading' ? <ContentTypeSkeleton />
+  const lockedCard = (key: 'ANALYTICS_ADVANCED') => <PlanLockedCard feature={key} />;
+  const contentTypeBlock = advancedLocked ? lockedCard('ANALYTICS_ADVANCED')
+    : byContentType.status === 'loading' ? <ContentTypeSkeleton />
     : byContentType.status === 'error' ? <BlockError onRetry={byContentType.reload} />
       : <ContentTypeBreakdown rows={byContentType.data ?? []} from={filter.from} to={filter.to} />;
 
-  const heatmapBlock = heatmap.status === 'loading' ? <HeatmapSkeleton />
+  const heatmapBlock = advancedLocked ? null : heatmap.status === 'loading' ? <HeatmapSkeleton />
     : heatmap.status === 'error' ? <BlockError onRetry={heatmap.reload} />
       : heatmap.data ? <ActivityHeatmap data={heatmap.data} from={filter.from} to={filter.to} /> : null;
 
-  const insightsBlock = insights.status === 'loading' ? <InsightsSkeleton cols={insightsCols} />
+  const insightsBlock = advancedLocked ? null : insights.status === 'loading' ? <InsightsSkeleton cols={insightsCols} />
     : insights.status === 'error' ? <BlockError onRetry={insights.reload} minHeight={140} />
       : insights.data ? <InsightsStrip data={insights.data} onOpenFailed={openFailedPosts} /> : null;
 
@@ -460,7 +475,7 @@ export default function Analytics() {
  * gọi API thật hoặc lấy dữ liệu mẫu. Lỗi ở chế độ THẬT không nuốt im lặng — trả `status = 'error'` để
  * khối hiện nút "Thử lại" mà không ảnh hưởng các khối khác.
  */
-function useBlock<T>(fetcher: () => Promise<T>, mocker: () => T, demo: boolean | null) {
+function useBlock<T>(fetcher: () => Promise<T>, mocker: () => T, demo: boolean | null, skip = false) {
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
   const [data, setData] = useState<T | null>(null);
   const [nonce, setNonce] = useState(0);
@@ -468,13 +483,14 @@ function useBlock<T>(fetcher: () => Promise<T>, mocker: () => T, demo: boolean |
   useEffect(() => {
     if (demo === null) return;
     if (demo) { setData(mocker()); setStatus('ok'); return; }
+    if (skip) { setData(null); setStatus('ok'); return; } // gói không gồm khối này
     let alive = true;
     setStatus('loading');
     fetcher()
       .then((d) => { if (alive) { setData(d); setStatus('ok'); } })
       .catch(() => { if (alive) setStatus('error'); });
     return () => { alive = false; };
-  }, [fetcher, mocker, demo, nonce]);
+  }, [fetcher, mocker, demo, nonce, skip]);
 
   return { status, data, reload: useCallback(() => setNonce((n) => n + 1), []) };
 }

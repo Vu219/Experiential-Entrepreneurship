@@ -96,6 +96,7 @@ class ScheduleApiIntegrationTest {
     @Autowired PostScheduleRepository scheduleRepository;
     @Autowired PostRepository postRepository;
     @Autowired TransactionTemplate tx;
+    @Autowired com.aima.service.SubscriptionService subscriptionService;
 
     String email;
     User user;
@@ -155,6 +156,9 @@ class ScheduleApiIntegrationTest {
     void concurrentRequestsWithTheSameKeyCreateOneSchedule() throws Exception {
         ContentVersion version = version(item(ReviewStatus.NONE), Platform.FACEBOOK);
         ScheduleBatchRowRequest row = row("c1", version, page, ScheduleMode.SCHEDULE, in(3));
+        // Lên lịch đọc gói (V18) → subscription. Tạo trước: H2 không có unique index một-subscription-mỗi-user (V12,
+        // chỉ PG) nên hai request đầu tiên song song sẽ tạo hai dòng — PG thì chặn bằng index.
+        tx.executeWithoutResult(s -> subscriptionService.getOrCreate(userRepository.findById(user.getId()).orElseThrow()));
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
             CompletableFuture<ScheduleRowResult> a = CompletableFuture.supplyAsync(() -> rowOf(service.createBatch(email, batch(row)).getResult(), "c1"), pool);
@@ -305,7 +309,8 @@ class ScheduleApiIntegrationTest {
         return userRepository.save(User.builder()
                 .username(mail).email(mail).fullName("API IT").password("{noop}x")
                 .role(roleRepository.findByRoleName("USER").orElseThrow())
-                .status(UserStatus.ACTIVE).plan(UserPlan.FREE).build());
+                // PRO: test API lịch, không phải giới hạn gói (V18 — FREE không gồm giờ vàng, hàng chờ 5 lịch).
+                .status(UserStatus.ACTIVE).plan(UserPlan.PRO).build());
     }
 
     private BrandProfile brand(User owner) {

@@ -98,9 +98,15 @@ src/
 │                           song song mã 1912 — + số ý tưởng + bộ lọc nâng cao áp cho kết quả).
 │                           Modal chi tiết: IdeaDetailModal (ý tưởng + ngày ghi nhận trend),
 │                           SessionDetailModal (phiên thật fetch theo id / phiên mock hiện trend demo),
-│                           ScheduleModal (lịch research tự động — cấu hình lưu localStorage qua
-│                           src/trendsSchedule.ts; job backend 02:00 là nguồn chạy thật).
-│                           "Lưu ý tưởng" bền vững qua localStorage (key aima_saved_ideas).
+│                           ScheduleModal (lịch research tự động — lưu backend GET/PUT /trend-research/schedule
+│                           qua src/trendsSchedule.ts; job chạy mỗi giờ theo lịch, chưa đặt = 02:00).
+│                           "Lưu ý tưởng" lưu backend (PUT /trend-research/ideas/{id}/saved, cờ `saved`);
+│                           danh sách localStorage cũ aima_saved_ideas được chuyển lên một lần.
+│   ├── planLimits.ts     — giới hạn tính năng theo gói (BE V18): danh mục PLAN_LIMIT_FIELDS (một nguồn cho form admin
+│                           "Giới hạn tính năng", thẻ "Mức sử dụng trong kỳ" ở /billing, câu báo lỗi), GET /users/me/plan-usage
+│                           (hooks/usePlanUsage cache theo phiên). Lỗi 2205/2206: apiClient dựng câu theo ngôn ngữ
+│                           (utils/planLimitText) + toast "Nâng cấp gói"; khối không có trong gói dùng components/PlanLockedCard.
+│                           Kết nối: CONNECTABLE_PLATFORMS ở connections.ts (hiện chỉ FACEBOOK — IG/Threads "Sắp hỗ trợ").
 │   └── search.ts         — ô tìm kiếm toàn cục: GET /search (nội dung/chiến lược/lịch đăng của chính user, khớp
 │                           không dấu); mục nội dung map bằng `toContentListItem` như trang Tạo nội dung.
 ├── search/               — lõi ô tìm kiếm toàn cục (Command Palette, Ctrl/⌘+K) — module thuần, test ở
@@ -110,6 +116,8 @@ src/
 │                           registry.ts (trang lấy từ config/appNav.ts + config/adminNav.ts, tab/khu vực trong
 │                           trang, hành động nhanh + TỪ ĐỒNG NGHĨA vi/en). Thêm trang vào menu = tự tìm được;
 │                           thêm khu vực = đặt `id` trên khối + một dòng `block(...)` trong registry.
+├── analytics/            — GA4 cho web AIMA (ga4.ts + Ga4Tracker gắn ở App): bật khi có VITE_GA4_MEASUREMENT_ID; page_view theo
+│                           pathname (KHÔNG query string), bỏ qua /admin, sự kiện sign_up/purchase không kèm dữ liệu cá nhân.
 ├── realtime/             — luồng SSE GET /realtime/stream (một kết nối / tab): sseParser.ts (parser thuần + backoff),
 │                           realtimeClient.ts (fetch + ReadableStream — NGOẠI LỆ của quy tắc "chỉ gọi qua axios client", xem §4;
 │                           401 → refreshSession, watchdog 45s, tab ẩn > 5 phút đóng), events.ts (kiểu sự kiện = hợp đồng với enum

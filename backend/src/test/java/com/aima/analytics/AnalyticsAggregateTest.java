@@ -79,6 +79,7 @@ class AnalyticsAggregateTest {
     @Mock com.aima.repository.AccountInsightsDailyRepository accountInsightsDailyRepository;
     @Mock com.aima.repository.AccountSyncStateRepository accountSyncStateRepository;
 
+    @Mock com.aima.service.PlanUsageService planUsageService;
     @InjectMocks AnalyticsServiceImpl service;
 
     @BeforeEach

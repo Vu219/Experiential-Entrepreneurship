@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { RefreshCw, ShieldCheck, ShieldUser, Link, PlugZap, Activity, ShieldAlert, Users, Info, type LucideIcon } from 'lucide-react';
+import { RefreshCw, ShieldCheck, ShieldUser, Link, Lock, PlugZap, Activity, ShieldAlert, Users, Info, type LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useUiStore } from '../store/useUiStore';
@@ -21,6 +21,7 @@ import {
   disconnectConnection,
   PLATFORM_TO_TAG,
   TAG_TO_PLATFORM,
+  CONNECTABLE_PLATFORMS,
   type PlatformConnection,
   type ConnectionStats,
   type PlatformEnum,
@@ -294,6 +295,13 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
     const error = searchParams.get('error');
     if (status === 'success') {
       toast.success(t.seConnOk);
+      // Gói đã đủ số kênh: backend bỏ qua các Trang mới (kết nối lại kênh cũ vẫn được) — báo số bị bỏ + nâng cấp.
+      const skipped = Number(searchParams.get('channel_limit') ?? 0);
+      if (skipped > 0) {
+        toast.warning(t.seChannelLimitSkipped.replace('{n}', String(skipped)), {
+          title: t.plgTitle, action: { label: t.plgUpgrade, onClick: () => window.location.assign('/billing') },
+        });
+      }
       // Clean URL
       setSearchParams({ tab: 'connections' }, { replace: true });
     } else if (error) {
@@ -305,6 +313,10 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
 
   // ——— Actions ———
   const handleConnect = async (platform: PlatformEnum) => {
+    if (!CONNECTABLE_PLATFORMS.has(platform)) {
+      toast.info(t.seConnLockedHint);
+      return;
+    }
     const tag = PLATFORM_TO_TAG[platform];
     setConnectingPlatform(tag);
     try {
@@ -388,7 +400,8 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
   // Chưa có Instagram nào: Trang Facebook không có IG Doanh nghiệp/Nhà sáng tạo liên kết → hướng dẫn chuyển IG sang
   // tài khoản chuyên nghiệp; Trang đã liên kết (sau lần kết nối trước) → nhắc kết nối lại để thêm IG (analytics GĐ2).
   const hasInstagram = connections.some((c) => c.platform === 'INSTAGRAM' && c.connectionStatus === 'ACTIVE');
-  const instagramHints = hasInstagram ? [] : connections
+  // Instagram đang khoá kết nối → không nhắc "kết nối lại để thêm IG".
+  const instagramHints = hasInstagram || !CONNECTABLE_PLATFORMS.has('INSTAGRAM') ? [] : connections
     .filter((c) => c.platform === 'FACEBOOK' && c.accountType === 'PAGE' && c.instagramLinkStatus)
     .map((c) => ({
       id: c.id,
@@ -522,6 +535,9 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                 connectLabel={t.seConnect}
                 processingLabel={t.processing}
                 connecting={connectingPlatform === pl.tag}
+                locked={!CONNECTABLE_PLATFORMS.has(TAG_TO_PLATFORM[pl.tag])}
+                lockedLabel={t.seConnLocked}
+                lockedHint={t.seConnLockedHint}
                 onConnect={() => handleConnect(TAG_TO_PLATFORM[pl.tag])}
               />
             ))}
@@ -900,10 +916,10 @@ function StatMini({ icon: IconCmp, label, value, color, bg }: { icon: LucideIcon
 }
 
 // Card 1 nền tảng: dải accent brand trên đỉnh + logo + badge số liên kết + tên + mô tả + nút "+ Kết nối".
-function PlatformConnectCard({ tag, name, bg, accent, desc, linkedCount, linkedLabel, connectLabel, processingLabel, connecting, onConnect }: {
+function PlatformConnectCard({ tag, name, bg, accent, desc, linkedCount, linkedLabel, connectLabel, processingLabel, connecting, locked, lockedLabel, lockedHint, onConnect }: {
   tag: string; name: string; bg: string; accent: string; desc: string;
   linkedCount: number; linkedLabel: string; connectLabel: string; processingLabel: string;
-  connecting: boolean; onConnect: () => void;
+  connecting: boolean; locked: boolean; lockedLabel: string; lockedHint: string; onConnect: () => void;
 }) {
   const [hover, setHover] = useState(false);
   return (
@@ -935,19 +951,34 @@ function PlatformConnectCard({ tag, name, bg, accent, desc, linkedCount, linkedL
       </div>
 
       {/* Nút "+ Kết nối" full width — outline primary, hover thành filled nhạt. */}
-      <button
-        onClick={onConnect}
-        disabled={connecting}
-        style={{
-          width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          border: `1.5px solid ${STATUS_COLORS.info.color}`, borderRadius: 11, padding: '9px 14px',
-          fontSize: 13.5, fontWeight: 700, color: STATUS_COLORS.info.color,
-          background: hover && !connecting ? STATUS_COLORS.info.bg : C.surface,
-          cursor: connecting ? 'wait' : 'pointer', opacity: connecting ? 0.6 : 1, transition: 'background .15s',
-        }}
-      >
-        {connecting ? <span>{processingLabel}</span> : <><Link size={15} strokeWidth={2.4} />{connectLabel}</>}
-      </button>
+      {locked ? (
+        <button
+          disabled
+          title={lockedHint}
+          aria-label={`${name}: ${lockedHint}`}
+          style={{
+            width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            border: `1.5px solid ${C.border}`, borderRadius: 11, padding: '9px 14px',
+            fontSize: 13.5, fontWeight: 700, color: C.textMuted, background: C.surfaceMuted, cursor: 'not-allowed',
+          }}
+        >
+          <Lock size={14} strokeWidth={2.4} />{lockedLabel}
+        </button>
+      ) : (
+        <button
+          onClick={onConnect}
+          disabled={connecting}
+          style={{
+            width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            border: `1.5px solid ${STATUS_COLORS.info.color}`, borderRadius: 11, padding: '9px 14px',
+            fontSize: 13.5, fontWeight: 700, color: STATUS_COLORS.info.color,
+            background: hover && !connecting ? STATUS_COLORS.info.bg : C.surface,
+            cursor: connecting ? 'wait' : 'pointer', opacity: connecting ? 0.6 : 1, transition: 'background .15s',
+          }}
+        >
+          {connecting ? <span>{processingLabel}</span> : <><Link size={15} strokeWidth={2.4} />{connectLabel}</>}
+        </button>
+      )}
     </div>
   );
 }

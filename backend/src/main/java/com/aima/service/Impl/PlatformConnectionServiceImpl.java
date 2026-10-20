@@ -41,6 +41,9 @@ public class PlatformConnectionServiceImpl implements PlatformConnectionService 
     // Mã lỗi gắn vào ?error= của FE_OAUTH_ERROR_URL — FE (Settings.tsx) khớp nguyên văn.
     static final String MISSING_PERMISSIONS_ERROR = "missing_permissions";
 
+    // Số kênh mới bị bỏ qua vì đủ giới hạn gói — gắn vào FE_OAUTH_SUCCESS_URL.
+    static final String CHANNEL_LIMIT_PARAM = "channel_limit";
+
     MetaOAuthService metaOAuthService;
     PlatformAccountRepository accountRepository;
     UserRepository userRepository;
@@ -66,11 +69,15 @@ public class PlatformConnectionServiceImpl implements PlatformConnectionService 
             if (code == null || code.isBlank() || state == null || state.isBlank()) {
                 return aimaProperties.oauth().frontendErrorRedirect();
             }
-            List<PlatformAccount> created = metaOAuthService.handleCallback(platform, code, state);
-            log.info("[OAuth] Đã tạo/cập nhật {} kết nối cho nền tảng {}", created.size(), platform);
-            return UriComponentsBuilder.fromUriString(aimaProperties.oauth().frontendSuccessRedirect())
-                    .replaceQueryParam("status", "success")
-                    .build().toUriString();
+            MetaOAuthService.CallbackResult result = metaOAuthService.handleCallback(platform, code, state);
+            log.info("[OAuth] Đã tạo/cập nhật {} kết nối cho nền tảng {}", result.connected().size(), platform);
+            UriComponentsBuilder redirect = UriComponentsBuilder.fromUriString(aimaProperties.oauth().frontendSuccessRedirect())
+                    .replaceQueryParam("status", "success");
+            if (result.skippedByPlan() > 0) {
+                // FE (Settings.tsx) báo số kênh mới chưa thêm vì gói đã đủ giới hạn CONNECTED_CHANNELS.
+                redirect.replaceQueryParam(CHANNEL_LIMIT_PARAM, result.skippedByPlan());
+            }
+            return redirect.build().toUriString();
         } catch (AppException e) {
             if (e.getErrorCode() == ErrorCode.META_MISSING_PERMISSIONS) {
                 // FE hiện thông báo riêng: user bỏ tick quyền Page trong dialog → cần liên kết lại.

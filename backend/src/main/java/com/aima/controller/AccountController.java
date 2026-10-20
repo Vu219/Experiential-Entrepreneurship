@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.*;
 import com.aima.config.swagger.SwaggerExamples;
 import com.aima.dto.response.PageResponse;
 import com.aima.dto.response.SubscriptionHistoryResponse;
+import com.aima.dto.response.PlanFeatureUsageResponse;
 import com.aima.dto.response.TokenUsageResponse;
 import com.aima.dto.response.UserResponse;
 import com.aima.dto.response.UserSubscriptionResponse;
@@ -39,6 +40,7 @@ import com.aima.dto.response.UserUsageResponse;
 import com.aima.service.ActivityLogService;
 import com.aima.service.RegistrationService;
 import com.aima.service.AdminSubscriptionService;
+import com.aima.service.PlanUsageService;
 import com.aima.service.TokenUsageService;
 import com.aima.service.UsageQueryService;
 import com.aima.service.UserService;
@@ -55,6 +57,7 @@ public class AccountController {
     RegistrationService registrationService;
     AdminSubscriptionService adminSubscriptionService;
     TokenUsageService tokenUsageService;
+    PlanUsageService planUsageService;
     UsageQueryService usageQueryService;
     ActivityLogService activityLogService;
 
@@ -298,6 +301,18 @@ public class AccountController {
     public ApiResponse<TokenUsageResponse> getTokenUsage(
             @AuthenticationPrincipal UserDetails userDetails) {
         return tokenUsageService.getMyUsage(userDetails.getUsername());
+    }
+
+    @GetMapping("/me/plan-usage")
+    @Operation(
+            summary = "Get the current user's plan feature limits and usage",
+            description = "Feature limits of the user's current plan (Flyway V18: brand profiles, channels, trend " +
+                    "research, scheduling, golden hours, analytics, optimization) with usage counted in the current " +
+                    "subscription period. limit null = unlimited / enabled, 0 = not included."
+    )
+    public ApiResponse<PlanFeatureUsageResponse> getPlanUsage(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return planUsageService.getMyUsage(userDetails.getUsername());
     }
 
     @GetMapping("/me/usage")

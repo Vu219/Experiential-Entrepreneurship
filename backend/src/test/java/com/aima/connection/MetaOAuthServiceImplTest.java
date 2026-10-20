@@ -19,6 +19,7 @@ import com.aima.service.MetaApiClient;
 import com.aima.service.MetaOAuthService;
 import com.aima.service.NotificationService;
 import com.aima.service.Impl.MetaOAuthServiceImpl;
+import com.aima.service.PlanUsageService;
 import com.aima.service.PlatformVersionService;
 import com.aima.service.ScheduleHoldService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,10 +27,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -49,6 +52,7 @@ class MetaOAuthServiceImplTest {
     private ScheduleHoldService holdService;
     private NotificationService notificationService;
     private AnalyticsAccountSyncService analyticsAccountSyncService;
+    private PlanUsageService planUsageService;
     @SuppressWarnings("unchecked")
     private final RedisTemplate<String, String> redisTemplate = mock(RedisTemplate.class);
     @SuppressWarnings("unchecked")
@@ -65,10 +69,13 @@ class MetaOAuthServiceImplTest {
         holdService = mock(ScheduleHoldService.class);
         notificationService = mock(NotificationService.class);
         analyticsAccountSyncService = mock(AnalyticsAccountSyncService.class);
+        planUsageService = mock(PlanUsageService.class);
         service = newService(null);
 
         lenient().when(redisTemplate.opsForValue()).thenReturn(valueOps);
         lenient().when(versionService.getCurrentVersion(any())).thenReturn("v25.0");
+        // Mockito trả 0L cho Long — đặt rõ null = gói không giới hạn kênh.
+        lenient().when(planUsageService.remainingChannels(any())).thenReturn(null);
     }
 
     private MetaOAuthServiceImpl newService(String facebookConfigId) {
@@ -83,7 +90,7 @@ class MetaOAuthServiceImplTest {
                 new AimaProperties.OAuth(10, "http://fe/success", "http://fe/error"));
         return new MetaOAuthServiceImpl(mock(ActivityLogService.class), metaApiClient, versionService,
                 accountRepository, userRepository, props, aima, redisTemplate, new ObjectMapper(),
-                holdService, notificationService, analyticsAccountSyncService);
+                holdService, notificationService, analyticsAccountSyncService, planUsageService);
     }
 
     @Test
@@ -110,7 +117,41 @@ class MetaOAuthServiceImplTest {
     }
 
     @Test
+    void buildAuthorizationUrl_instagramAndThreadsLockedByDefault() {
+        for (Platform locked : List.of(Platform.INSTAGRAM, Platform.THREADS)) {
+            AppException ex = assertThrows(AppException.class,
+                    () -> service.buildAuthorizationUrl(locked, UUID.randomUUID()));
+            assertEquals(ErrorCode.PLATFORM_CONNECTION_DISABLED, ex.getErrorCode());
+        }
+        verify(valueOps, never()).set(anyString(), anyString(), any());
+    }
+
+    @Test
+    void handleCallback_facebook_instagramLocked_skipsInstagramChild() {
+        stubFacebookCallback(List.of("pages_show_list", "pages_manage_posts"));
+        when(metaApiClient.getInstagramBusinessAccount("p1", "ptok"))
+                .thenReturn(Optional.of(new MetaApiClient.MetaIgAccount("ig1", "brand", "Brand", null)));
+
+        List<PlatformAccount> created = service.handleCallback(Platform.FACEBOOK, "code", "state").connected();
+
+        assertEquals(2, created.size(), "USER + Page, không tạo kết nối Instagram khi IG đang khoá");
+        verify(analyticsAccountSyncService).recordInstagramLink(created.get(1), true);
+    }
+
+    @Test
+    void handleCallback_facebook_channelLimitReached_skipsNewPageButKeepsUser() {
+        stubFacebookCallback(List.of("pages_show_list", "pages_manage_posts"));
+        when(planUsageService.remainingChannels(any())).thenReturn(0L);
+
+        MetaOAuthService.CallbackResult result = service.handleCallback(Platform.FACEBOOK, "code", "state");
+
+        assertEquals(1, result.connected().size(), "chỉ còn kết nối USER — Trang mới bị bỏ vì đủ giới hạn gói");
+        assertEquals(1, result.skippedByPlan());
+    }
+
+    @Test
     void buildAuthorizationUrl_threads_usesThreadsDomain() {
+        ReflectionTestUtils.setField(service, "enabledPlatforms", EnumSet.allOf(Platform.class));
         String url = service.buildAuthorizationUrl(Platform.THREADS, UUID.randomUUID());
         assertTrue(url.contains("threads.net/oauth/authorize"));
         assertTrue(url.contains("client_id=thid"));
@@ -152,7 +193,7 @@ class MetaOAuthServiceImplTest {
     void handleCallback_facebook_persistsUserAndPageWithGrantedScopes() {
         stubFacebookCallback(List.of("pages_show_list", "pages_manage_posts", "public_profile"));
 
-        List<PlatformAccount> created = service.handleCallback(Platform.FACEBOOK, "code", "state");
+        List<PlatformAccount> created = service.handleCallback(Platform.FACEBOOK, "code", "state").connected();
 
         assertEquals(2, created.size()); // user-level + 1 page
         verify(redisTemplate).delete(startsWith("oauth_state:"));
@@ -172,7 +213,7 @@ class MetaOAuthServiceImplTest {
         when(metaApiClient.getInstagramBusinessAccount("p1", "ptok"))
                 .thenThrow(new AppException(ErrorCode.META_API_ERROR));
 
-        List<PlatformAccount> created = service.handleCallback(Platform.FACEBOOK, "code", "state");
+        List<PlatformAccount> created = service.handleCallback(Platform.FACEBOOK, "code", "state").connected();
 
         assertEquals(2, created.size(), "USER + Page vẫn được lưu, chỉ bỏ qua IG");
         assertEquals(PlatformAccountType.PAGE, created.get(1).getAccountType());

@@ -41,4 +41,7 @@ public class ContentIdeaResponse {
 
     @Schema(description = "Brand goals the idea serves.")
     List<String> relatedGoals;
+
+    @Schema(description = "Người dùng đã lưu ý tưởng này (V19).")
+    boolean saved;
 }

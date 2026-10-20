@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
+import Ga4Tracker from "./analytics/Ga4Tracker";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { useApp } from "./context/AppContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
@@ -153,6 +154,7 @@ export default function App() {
 
   return (
     <div>
+      <Ga4Tracker />
       <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/" element={<LandingPage />} />

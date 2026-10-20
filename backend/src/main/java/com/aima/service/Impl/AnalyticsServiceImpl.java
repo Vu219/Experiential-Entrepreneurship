@@ -1,5 +1,7 @@
 package com.aima.service.Impl;
 
+import com.aima.enums.PlanLimitKey;
+import com.aima.service.PlanUsageService;
 import com.aima.dto.response.AnalyticsContentTypeResponse;
 import com.aima.dto.response.AnalyticsGoldenHourResponse;
 import com.aima.dto.response.AnalyticsHeatmapCellResponse;
@@ -142,6 +144,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     AnalyticsAccountSyncService analyticsAccountSyncService;
     AccountInsightsDailyRepository accountInsightsDailyRepository;
     AccountSyncStateRepository accountSyncStateRepository;
+    PlanUsageService planUsageService;
 
     // Có khởi tạo sẵn nên KHÔNG vào constructor của @RequiredArgsConstructor (Lombok bỏ qua final
     // đã gán giá trị) — đây là state cục bộ của service, không phải dependency.
@@ -158,8 +161,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     public ApiResponse<AnalyticsSummaryResponse> summary(String email, AnalyticsQuery query) {
-        UUID userId = currentUser(email).getId();
-        ResolvedRange range = resolveRange(query);
+        User user = currentUser(email);
+        UUID userId = user.getId();
+        ResolvedRange range = resolveRange(user, query);
         Filters filters = filters(query);
 
         AnalyticsSummaryResponse summary = cached(key("summary", userId, range, filters), () -> {
@@ -185,8 +189,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     public ApiResponse<AnalyticsTimeseriesResponse> timeseries(String email, AnalyticsQuery query) {
-        UUID userId = currentUser(email).getId();
-        ResolvedRange range = resolveRange(query);
+        User user = currentUser(email);
+        UUID userId = user.getId();
+        ResolvedRange range = resolveRange(user, query);
         Filters filters = filters(query);
 
         AnalyticsTimeseriesResponse response = cached(key("timeseries", userId, range, filters), () ->
@@ -254,8 +259,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     public ApiResponse<List<AnalyticsPlatformResponse>> byPlatform(String email, AnalyticsQuery query) {
-        UUID userId = currentUser(email).getId();
-        ResolvedRange range = resolveRange(query);
+        User user = currentUser(email);
+        UUID userId = user.getId();
+        ResolvedRange range = resolveRange(user, query);
         // NGOẠI LỆ 1/2 của trang: bỏ qua bộ lọc NỀN TẢNG (đó là chiều của chính donut này), vẫn áp
         // bộ lọc loại nội dung. Ngoại lệ còn lại là byContentType — xem docs/Analytics.md.
         Filters filters = filters(query);
@@ -283,8 +289,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     public ApiResponse<List<AnalyticsContentTypeResponse>> byContentType(String email, AnalyticsQuery query) {
-        UUID userId = currentUser(email).getId();
-        ResolvedRange range = resolveRange(query);
+        User user = currentUser(email);
+        UUID userId = user.getId();
+        planUsageService.requireIncluded(user, PlanLimitKey.ANALYTICS_ADVANCED);
+        ResolvedRange range = resolveRange(user, query);
         // NGOẠI LỆ 2/2: bỏ qua bộ lọc LOẠI NỘI DUNG (chiều của chính donut này), vẫn áp lọc nền tảng.
         Filters filters = filters(query);
 
@@ -305,8 +313,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     public ApiResponse<AnalyticsHeatmapResponse> activityHeatmap(String email, AnalyticsQuery query) {
-        UUID userId = currentUser(email).getId();
-        ResolvedRange range = resolveRange(query);
+        User user = currentUser(email);
+        UUID userId = user.getId();
+        planUsageService.requireIncluded(user, PlanLimitKey.ANALYTICS_ADVANCED);
+        ResolvedRange range = resolveRange(user, query);
         Filters filters = filters(query);
 
         AnalyticsHeatmapResponse response = cached(key("heatmap", userId, range, filters),
@@ -356,8 +366,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     public ApiResponse<AnalyticsInsightsResponse> insights(String email, AnalyticsQuery query) {
-        UUID userId = currentUser(email).getId();
-        ResolvedRange range = resolveRange(query);
+        User user = currentUser(email);
+        UUID userId = user.getId();
+        planUsageService.requireIncluded(user, PlanLimitKey.ANALYTICS_ADVANCED);
+        ResolvedRange range = resolveRange(user, query);
         Filters filters = filters(query);
         ComparePeriod previousPeriod = comparePeriod(range);
 
@@ -459,8 +471,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     public ApiResponse<String> export(String email, AnalyticsQuery query, String sort) {
-        UUID userId = currentUser(email).getId();
-        ResolvedRange range = resolveRange(query);
+        User user = currentUser(email);
+        UUID userId = user.getId();
+        planUsageService.requireIncluded(user, PlanLimitKey.ANALYTICS_EXPORT);
+        ResolvedRange range = resolveRange(user, query);
         Filters filters = filters(query);
         LocalDateTime start = range.from().atStartOfDay();
         LocalDateTime end = range.to().plusDays(1).atStartOfDay();
@@ -535,8 +549,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     @Override
     public ApiResponse<List<AnalyticsTopPostResponse>> topPosts(String email, AnalyticsQuery query,
                                                                 String sort, int limit) {
-        UUID userId = currentUser(email).getId();
-        ResolvedRange range = resolveRange(query);
+        User user = currentUser(email);
+        UUID userId = user.getId();
+        ResolvedRange range = resolveRange(user, query);
         Filters filters = filters(query);
         int cappedLimit = Math.min(Math.max(limit, 1), MAX_TOP_POSTS);
 
@@ -808,9 +823,17 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     // ===== Phân giải & validate bộ lọc =====
 
-    private ResolvedRange resolveRange(AnalyticsQuery query) {
+    private ResolvedRange resolveRange(User user, AnalyticsQuery query) {
         LocalDate to = query.to() == null ? LocalDate.now() : query.to();
         LocalDate from = query.from() == null ? to.minusDays(DEFAULT_RANGE_DAYS - 1L) : query.from();
+        // Gói (V18): chỉ xem được N ngày gần nhất — kẹp đầu khoảng (FE cũng khoá lịch chọn ngày theo cùng mốc).
+        LocalDate earliest = planUsageService.analyticsEarliestDate(user, LocalDate.now());
+        if (earliest != null && from.isBefore(earliest)) {
+            from = earliest;
+            if (to.isBefore(from)) {
+                to = from;
+            }
+        }
         if (from.isAfter(to)) {
             throw new AppException(ErrorCode.ANALYTICS_RANGE_INVALID);
         }

@@ -4,7 +4,9 @@ import com.aima.dto.ai.ContentIdeaPayload;
 import com.aima.dto.ai.PreviousTrendPayload;
 import com.aima.dto.ai.ResearchResultPayload;
 import com.aima.dto.ai.TrendPayload;
+import com.aima.dto.request.TrendResearchScheduleRequest;
 import com.aima.dto.response.ContentIdeaResponse;
+import com.aima.dto.response.TrendResearchScheduleResponse;
 import com.aima.dto.response.ResearchSourceResponse;
 import com.aima.dto.response.TrendEvidenceResponse;
 import com.aima.dto.response.TrendResearchSessionResponse;
@@ -14,6 +16,7 @@ import com.aima.entity.BrandProfile;
 import com.aima.entity.ContentIdea;
 import com.aima.entity.ContentStrategy;
 import com.aima.entity.Trend;
+import com.aima.entity.TrendResearchSchedule;
 import com.aima.entity.TrendResearchSession;
 import com.aima.enums.Platform;
 import com.aima.enums.ResearchTrigger;
@@ -29,6 +32,11 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
@@ -47,7 +55,69 @@ public interface TrendResearchMapper {
 
     @Mapping(target = "executionSuggestions", source = "executionSuggestions", qualifiedByName = "readStrings")
     @Mapping(target = "relatedGoals", source = "relatedGoals", qualifiedByName = "readStrings")
+    @Mapping(target = "saved", expression = "java(idea.getSavedAt() != null)")
     ContentIdeaResponse toContentIdeaResponse(ContentIdea idea);
+
+    // ===== Lịch nghiên cứu tự động (V19) =====
+
+    @Mapping(target = "brandProfileId", source = "brandProfile.id")
+    @Mapping(target = "brandName", source = "brandProfile.brandName")
+    @Mapping(target = "strategyId", source = "contentStrategy.id")
+    @Mapping(target = "strategyName", source = "contentStrategy.name")
+    @Mapping(target = "platforms", source = "platforms", qualifiedByName = "readPlatformCsv")
+    @Mapping(target = "days", source = "days", qualifiedByName = "readDayCsv")
+    @Mapping(target = "time", source = "runTime", qualifiedByName = "formatRunTime")
+    TrendResearchScheduleResponse toScheduleResponse(TrendResearchSchedule schedule);
+
+    // Hồ sơ / chiến lược do service tra theo id (kiểm sở hữu); user + lastRunAt không đổi qua request.
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
+    @Mapping(target = "user", ignore = true)
+    @Mapping(target = "brandProfile", ignore = true)
+    @Mapping(target = "contentStrategy", ignore = true)
+    @Mapping(target = "lastRunAt", ignore = true)
+    @Mapping(target = "platforms", source = "platforms", qualifiedByName = "writePlatformCsv")
+    @Mapping(target = "days", source = "days", qualifiedByName = "writeDayCsv")
+    @Mapping(target = "runTime", source = "time", qualifiedByName = "parseRunTime")
+    void updateSchedule(TrendResearchScheduleRequest request, @MappingTarget TrendResearchSchedule schedule);
+
+    @Named("readPlatformCsv")
+    default List<Platform> readPlatformCsv(String csv) {
+        if (csv == null || csv.isBlank()) return new ArrayList<>();
+        return Arrays.stream(csv.split(",")).map(String::trim).filter(v -> !v.isEmpty())
+                .map(Platform::valueOf).toList();
+    }
+
+    @Named("writePlatformCsv")
+    default String writePlatformCsv(List<Platform> platforms) {
+        if (platforms == null) return "";
+        return platforms.stream().distinct().map(Platform::name).collect(Collectors.joining(","));
+    }
+
+    @Named("readDayCsv")
+    default List<Integer> readDayCsv(String csv) {
+        if (csv == null || csv.isBlank()) return new ArrayList<>();
+        return Arrays.stream(csv.split(",")).map(String::trim).filter(v -> !v.isEmpty())
+                .map(Integer::valueOf).toList();
+    }
+
+    @Named("writeDayCsv")
+    default String writeDayCsv(List<Integer> days) {
+        if (days == null || days.isEmpty()) return null;
+        return days.stream().distinct().sorted().map(String::valueOf).collect(Collectors.joining(","));
+    }
+
+    @Named("formatRunTime")
+    default String formatRunTime(LocalTime time) {
+        return time == null ? null : time.format(DateTimeFormatter.ofPattern("HH:mm"));
+    }
+
+    @Named("parseRunTime")
+    default LocalTime parseRunTime(String time) {
+        return time == null ? null : LocalTime.parse(time, DateTimeFormatter.ofPattern("HH:mm"));
+    }
 
     @Mapping(target = "trendsFound", expression = "java(session.getTrends().size())")
     @Mapping(target = "ideasCreated",

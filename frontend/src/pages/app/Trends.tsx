@@ -16,6 +16,7 @@ import {
   deleteTrends as apiDeleteTrends,
   getTrendResearchSession,
   listTrendResearchSessions,
+  setIdeaSaved,
   startTrendResearch,
   type ResearchSessionDetail,
   type ResearchSessionSummary,
@@ -32,7 +33,7 @@ import TrendsSkeleton from '../../components/trends/TrendsSkeleton.tsx';
 import HowItWorks from '../../components/trends/HowItWorks.tsx';
 import ResearchStartModal, { type ResearchStartConfig } from '../../components/trends/ResearchStartModal.tsx';
 import ScheduleModal from '../../components/trends/ScheduleModal.tsx';
-import { loadTrendSchedule, saveTrendSchedule, type TrendSchedule } from '../../trendsSchedule.ts';
+import { clearLegacyTrendSchedule, loadTrendSchedule, saveTrendSchedule, type TrendSchedule } from '../../trendsSchedule.ts';
 import { FilterSelect } from '../../components/trends/filters.tsx';
 import { C } from '../../styles/colors';
 
@@ -106,8 +107,9 @@ export default function Trends() {
   // Phân trang + trạng thái cục bộ khác
   const [ideaPage, setIdeaPage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
-  // "Lưu ý tưởng" bền vững qua localStorage (mất backend endpoint riêng cho saved-idea)
-  const [savedIds, setSavedIds] = useState<Set<string>>(() => loadIdSet(SAVED_IDS_KEY));
+  // "Lưu ý tưởng": ý tưởng thật lưu ở backend (V19, cờ `saved`); dữ liệu mẫu (chưa có backend) chỉ nhớ tại chỗ.
+  // Danh sách localStorage cũ được chuyển lên backend một lần khi tải dữ liệu thật (xem effect bên dưới).
+  const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set());
   // Ghim trend (nổi lên đầu bảng) + trend đã xóa (ẩn ngay; dữ liệu thật còn soft delete backend)
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => loadIdSet(PINNED_KEY));
   const [deletedIds, setDeletedIds] = useState<Set<string>>(() => loadIdSet(DELETED_KEY));
@@ -137,7 +139,11 @@ export default function Trends() {
   const [detailIdea, setDetailIdea] = useState<ContentIdea | null>(null);
   const [detailSession, setDetailSession] = useState<ResearchSession | null>(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [schedule, setSchedule] = useState<TrendSchedule | null>(loadTrendSchedule);
+  const [schedule, setSchedule] = useState<TrendSchedule | null>(null);
+  useEffect(() => {
+    clearLegacyTrendSchedule();
+    loadTrendSchedule().then(setSchedule).catch(() => undefined); // lỗi → hiện như chưa cấu hình (mặc định 02:00)
+  }, []);
 
   // Tải dữ liệu thật từ backend (/trend-research); backend chưa chạy / lỗi → giữ mock demo.
   useEffect(() => {
@@ -162,7 +168,10 @@ export default function Trends() {
           .flat()
           .sort((a, b) => new Date(b.researchTime).getTime() - new Date(a.researchTime).getTime());
         const sessions = await Promise.all(picked.map((s) => getTrendResearchSession(s.id)));
-        if (!cancelled) setLive({ sessions, summaries });
+        if (!cancelled) {
+          setLive({ sessions, summaries });
+          syncSavedIdeas(sessions);
+        }
       } catch {
         if (!cancelled) setLive(null);
       }
@@ -320,21 +329,39 @@ export default function Trends() {
     setTab('ideas');
   }, []);
 
+  // Cờ `saved` từ backend + chuyển một lần danh sách localStorage cũ (chỉ id còn tồn tại trong dữ liệu thật).
+  function syncSavedIdeas(sessions: ResearchSessionDetail[]) {
+    const ideas = sessions.flatMap((ses) => ses.trends.flatMap((tr) => tr.contentIdeas));
+    const server = new Set(ideas.filter((i) => i.saved).map((i) => i.id));
+    const legacy = loadIdSet(SAVED_IDS_KEY);
+    const known = new Set(ideas.map((i) => i.id));
+    const toMigrate = [...legacy].filter((id) => known.has(id) && !server.has(id));
+    toMigrate.forEach((id) => server.add(id));
+    setSavedIds(server);
+    if (legacy.size > 0) {
+      Promise.all(toMigrate.map((id) => setIdeaSaved(id, true)))
+        .then(() => localStorage.removeItem(SAVED_IDS_KEY))
+        .catch(() => undefined); // lần sau thử lại
+    }
+  }
+
   const toggleSave = useCallback(
-    (id: string) =>
-      setSavedIds((prev) => {
+    (id: string) => {
+      const willSave = !savedIds.has(id);
+      const apply = (save: boolean) => setSavedIds((prev) => {
         const next = new Set(prev);
-        if (next.has(id)) {
-          next.delete(id);
-          toast.info(t.trUnsavedToast);
-        } else {
-          next.add(id);
-          toast.success(t.trSavedToast);
-        }
-        localStorage.setItem(SAVED_IDS_KEY, JSON.stringify([...next]));
+        if (save) next.add(id); else next.delete(id);
         return next;
-      }),
-    [toast, t],
+      });
+      apply(willSave);
+      if (willSave) toast.success(t.trSavedToast); else toast.info(t.trUnsavedToast);
+      if (!live) return; // dữ liệu mẫu: không có gì để lưu ở backend
+      setIdeaSaved(id, willSave).catch((e) => {
+        apply(!willSave);
+        toast.error((e as Error).message);
+      });
+    },
+    [savedIds, live, toast, t],
   );
 
   const togglePin = useCallback(
@@ -416,10 +443,13 @@ export default function Trends() {
   const trendDateLabel = sessions[0] ? `${sessions[0].date} · ${sessions[0].time}` : '—';
 
   const saveSchedule = (s: TrendSchedule) => {
-    saveTrendSchedule(s);
-    setSchedule(s);
-    setScheduleOpen(false);
-    toast.success(t.trScheduleSaved);
+    saveTrendSchedule(s)
+      .then((saved) => {
+        setSchedule(saved);
+        setScheduleOpen(false);
+        toast.success(t.trScheduleSaved);
+      })
+      .catch((e) => toast.error((e as Error).message));
   };
 
   const platformOptions = [{ value: 'all', label: t.trAllPlatforms }, ...PLATFORMS.map((p) => ({ value: p.tag, label: p.name }))];

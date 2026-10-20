@@ -1,5 +1,6 @@
 package com.aima.dto.request;
 
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -69,6 +70,10 @@ public class PlanCreateRequest {
     @Schema(description = "Số lần AI sửa bài tối đa mỗi bản nền tảng. null = mặc định hệ thống, -1 = không giới hạn, "
             + "0 = tắt.", example = "3")
     Integer aiFixMaxPerVersion;
+
+    @Valid
+    @Schema(description = "Giới hạn tính năng theo gói. null = toàn bộ về mặc định hệ thống.")
+    PlanFeatureLimitsRequest featureLimits;
 
     String descriptionVi;
     String descriptionEn;

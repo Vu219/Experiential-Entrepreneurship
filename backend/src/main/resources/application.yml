@@ -253,6 +253,10 @@ aima:
     state-ttl-minutes: ${OAUTH_STATE_TTL_MINUTES:10}
     frontend-success-redirect: ${FE_OAUTH_SUCCESS_URL:http://localhost:3000/settings?tab=connections}
     frontend-error-redirect: ${FE_OAUTH_ERROR_URL:http://localhost:3000/settings?tab=connections&error=oauth_failed}
+  connections:
+    # Nền tảng được phép kết nối (CSV, tên enum Platform). Hiện chỉ Facebook chạy được —
+    # Instagram/Threads khoá tới khi luồng đăng bài của chúng hoàn thiện.
+    enabled-platforms: ${AIMA_CONNECTION_ENABLED_PLATFORMS:FACEBOOK}
   logging:
     # Cửa sổ chống trùng activity log (giây): cùng userId + action + targetId trong khoảng này
     # chỉ ghi 1 lần. 0 = tắt dedup.
@@ -310,6 +314,25 @@ aima:
   # Giới hạn AI theo GÓI nằm trên bảng plans (admin → Quản lý gói, Flyway V15). Hai giá trị dưới đây chỉ là
   # MẶC ĐỊNH HỆ THỐNG cho gói để "Mặc định" (cột null): -1 = không giới hạn, 0 = tắt. Đọc ở PlanLimitServiceImpl.
   # AIMA_POLICY_CHECK_AI_LIMIT_FREE/PLUS/PRO đã DEPRECATED (còn đọc tạm cho gói cùng mã + log WARN khi khởi động).
+  # Giới hạn tính năng theo gói (Flyway V18) — mặc định cho gói để ô "Mặc định" (cột null, vd gói admin tự tạo).
+  # -1 = không giới hạn, 0 = tắt, > 0 = hạn mức; cờ true/false. Không đặt = không giới hạn / bật (hành vi trước V18).
+  plan-limits:
+    defaults:
+      brand-profiles: ${AIMA_PLAN_LIMIT_BRAND_PROFILES:-1}
+      strategies-per-brand: ${AIMA_PLAN_LIMIT_STRATEGIES_PER_BRAND:-1}
+      connected-channels: ${AIMA_PLAN_LIMIT_CONNECTED_CHANNELS:-1}
+      trend-research-per-period: ${AIMA_PLAN_LIMIT_TREND_RESEARCH_PER_PERIOD:-1}
+      auto-trend-research: ${AIMA_PLAN_LIMIT_AUTO_TREND_RESEARCH:true}
+      ideas-per-research: ${AIMA_PLAN_LIMIT_IDEAS_PER_RESEARCH:-1}
+      scheduling: ${AIMA_PLAN_LIMIT_SCHEDULING:true}
+      scheduled-posts-per-period: ${AIMA_PLAN_LIMIT_SCHEDULED_POSTS_PER_PERIOD:-1}
+      active-schedules: ${AIMA_PLAN_LIMIT_ACTIVE_SCHEDULES:-1}
+      schedule-horizon-days: ${AIMA_PLAN_LIMIT_SCHEDULE_HORIZON_DAYS:-1}
+      golden-hours: ${AIMA_PLAN_LIMIT_GOLDEN_HOURS:true}
+      analytics-history-days: ${AIMA_PLAN_LIMIT_ANALYTICS_HISTORY_DAYS:-1}
+      analytics-advanced: ${AIMA_PLAN_LIMIT_ANALYTICS_ADVANCED:true}
+      analytics-export: ${AIMA_PLAN_LIMIT_ANALYTICS_EXPORT:true}
+      strategy-optimization-per-period: ${AIMA_PLAN_LIMIT_STRATEGY_OPTIMIZATION_PER_PERIOD:-1}
   ai-assist:
     # AI sửa bài vi phạm: số lần tối đa mỗi bản nền tảng (job lỗi không tính).
     fix-max-per-version: ${AIMA_AI_FIX_MAX_PER_VERSION:3}

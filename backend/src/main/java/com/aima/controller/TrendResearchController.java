@@ -1,11 +1,16 @@
 package com.aima.controller;
 
+import com.aima.dto.request.IdeaSavedRequest;
 import com.aima.dto.request.TrendDeleteRequest;
+import com.aima.dto.request.TrendResearchScheduleRequest;
 import com.aima.dto.request.TrendResearchRequest;
 import com.aima.dto.response.ApiResponse;
+import com.aima.dto.response.ContentIdeaResponse;
+import com.aima.dto.response.TrendResearchScheduleResponse;
 import com.aima.dto.response.TrendResearchSessionResponse;
 import com.aima.dto.response.TrendResearchSessionSummaryResponse;
 import com.aima.service.TrendResearchService;
+import com.aima.service.TrendResearchSettingsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -18,6 +23,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,6 +39,7 @@ import java.util.UUID;
 public class TrendResearchController {
 
     TrendResearchService trendResearchService;
+    TrendResearchSettingsService trendResearchSettingsService;
 
     // NFR-04: trả về phiên PENDING ngay lập tức, phân tích chạy nền qua AI service.
     @PostMapping("/sessions")
@@ -64,5 +71,29 @@ public class TrendResearchController {
     public ApiResponse<Integer> deleteTrends(@AuthenticationPrincipal UserDetails principal,
                                              @Valid @RequestBody TrendDeleteRequest request) {
         return trendResearchService.deleteTrends(principal.getUsername(), request);
+    }
+
+    @GetMapping("/schedule")
+    @Operation(summary = "Get the caller's automatic trend-research schedule",
+            description = "result null = not configured (default: daily 02:00 on the active brand profile).")
+    public ApiResponse<TrendResearchScheduleResponse> getSchedule(@AuthenticationPrincipal UserDetails principal) {
+        return trendResearchSettingsService.getSchedule(principal.getUsername());
+    }
+
+    @PutMapping("/schedule")
+    @Operation(summary = "Create or replace the automatic trend-research schedule",
+            description = "Runs at the chosen hour (minutes ignored) daily or on chosen weekdays (0 = Monday). "
+                    + "Enabling requires a plan that includes automatic research (PLAN_FEATURE_NOT_INCLUDED 2206).")
+    public ApiResponse<TrendResearchScheduleResponse> saveSchedule(@AuthenticationPrincipal UserDetails principal,
+                                                                   @Valid @RequestBody TrendResearchScheduleRequest request) {
+        return trendResearchSettingsService.saveSchedule(principal.getUsername(), request);
+    }
+
+    @PutMapping("/ideas/{ideaId}/saved")
+    @Operation(summary = "Save or unsave a content idea", description = "Persists \"Lưu ý tưởng\" on the server (was localStorage).")
+    public ApiResponse<ContentIdeaResponse> setIdeaSaved(@AuthenticationPrincipal UserDetails principal,
+                                                         @PathVariable UUID ideaId,
+                                                         @Valid @RequestBody IdeaSavedRequest request) {
+        return trendResearchSettingsService.setIdeaSaved(principal.getUsername(), ideaId, request);
     }
 }

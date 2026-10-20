@@ -1,5 +1,7 @@
 package com.aima.service.Impl;
 
+import com.aima.service.PlanUsageService;
+import com.aima.enums.PlanLimitKey;
 import com.aima.config.storage.StorageBuckets;
 import com.aima.dto.request.BrandProfileRequest;
 import com.aima.dto.response.ApiResponse;
@@ -55,6 +57,7 @@ public class BrandProfileServiceImpl implements BrandProfileService {
     BrandProfileMapper brandProfileMapper;
     StorageService storageService;
     TransactionTemplate transactionTemplate;
+    PlanUsageService planUsageService;
 
     // Lịch CHƯA đăng của hồ sơ bị xóa → CANCELLED (cùng tập với hủy lịch FR-51) để không bao giờ được dispatch.
     private static final Set<ScheduleStatus> UNPUBLISHED_SCHEDULE_STATUSES =
@@ -77,6 +80,7 @@ public class BrandProfileServiceImpl implements BrandProfileService {
         BrandProfileResponse response;
         try {
             response = transactionTemplate.execute(tx -> {
+                planUsageService.requireQuota(user, PlanLimitKey.BRAND_PROFILES, null);
                 BrandProfile profile = brandProfileMapper.toBrandProfile(request);
                 profile.setUser(user);
 

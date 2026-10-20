@@ -86,6 +86,10 @@ public class Plan extends BaseEntity {
     @Column(name = "ai_fix_max_per_version")
     Integer aiFixMaxPerVersion;
 
+    /** Giới hạn tính năng theo gói (V18) — null khi mọi cột null = toàn bộ mặc định hệ thống. */
+    @Embedded
+    PlanFeatureLimits featureLimits;
+
     @Column(name = "description_vi", length = 500)
     String descriptionVi;
 

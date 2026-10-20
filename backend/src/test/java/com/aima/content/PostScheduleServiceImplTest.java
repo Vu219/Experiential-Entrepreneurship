@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 class PostScheduleServiceImplTest {
-    private final PostScheduleServiceImpl unwired = new PostScheduleServiceImpl(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+    private final PostScheduleServiceImpl unwired = new PostScheduleServiceImpl(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
 
     @Autowired PostScheduleService service;
     @Autowired com.aima.service.ScheduleHoldService holdService;

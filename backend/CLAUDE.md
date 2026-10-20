@@ -249,6 +249,17 @@ backend/
 >   Env cũ `AIMA_POLICY_CHECK_AI_LIMIT_FREE/PLUS/PRO` deprecated (còn đọc cho gói cùng mã khi cột null, WARN). PUT gói là full update (null = về mặc định);
 >   `GET /admin/plans` trả `limitDefaults`. ErrorCode 2176 `PLAN_AI_LIMIT_INVALID`. `MeResponse.plan`
 >   trả gói của user cho FE (header/sidebar upgrade card).
+>   **Giới hạn TÍNH NĂNG theo gói (Flyway V18, 2026-10-20 — `../docs/plan-limits-proposal.md`)**: 15 cột `plans.limit_*` gom
+>   trong embeddable `entity/PlanFeatureLimits` (null = mặc định `aima.plan-limits.defaults.*`, mặc định không giới hạn/bật;
+>   -1 = không giới hạn; 0 = tắt), khoá `enums/PlanLimitKey` (QUOTA/CAP/FLAG). Quy đổi DUY NHẤT ở `PlanLimitService.features`;
+>   áp tại điểm tạo mới qua `PlanUsageService` (`requireQuota` khoá dòng subscription rồi đếm từ bảng nguồn trong kỳ
+>   subscription, `requireIncluded`, `requireCap`, `requireScheduleHorizon`, `analyticsEarliestDate`, `remainingChannels`).
+>   Điểm chặn: tạo hồ sơ thương hiệu / chiến lược, OAuth callback (kênh MỚI vượt hạn mức bị bỏ qua, kết nối lại kênh cũ
+>   luôn được; redirect thêm `channel_limit=N`), "Research ngay" + số ý tưởng, lượt 2:00/lịch tự động, tạo lịch
+>   (số lịch trong kỳ, hàng chờ, số ngày tối đa, chế độ hẹn giờ), giờ vàng + slot gợi ý, Phân tích (kẹp `from`, khối nâng cao,
+>   xuất CSV), tối ưu chiến lược. Lỗi: `exception/PlanLimitException` → `PLAN_LIMIT_REACHED` 2205 / `PLAN_FEATURE_NOT_INCLUDED`
+>   2206 (403) kèm `result` = `PlanLimitViolationResponse{limitKey, limit, used, planCode}`; 2207 `PLAN_FEATURE_LIMIT_INVALID`.
+>   `GET /users/me/plan-usage` (AccountController). Hạ gói KHÔNG xoá dữ liệu — chỉ chặn tạo mới; analytics vẫn thu thập.
 > - **Landing Page CMS (2026-09-26)**: `controller/LandingContentController` (`GET /landing/public` — public,
 >   trong `PUBLIC_ENDPOINTS`, chỉ bản ĐÃ XUẤT BẢN) + `controller/LandingContentAdminController` (`/admin/landing`:
 >   list / `PUT /{key}` lưu nháp kèm `version` / `POST /{key}/publish` / `POST /publish` tất cả / `POST /{key}/discard`),
@@ -672,6 +683,13 @@ A `PENDING_DELETE` user can still log in (only `LOCKED` is blocked) so they can 
 **Nền tảng đích của phiên (fix 2026-07-19)** — worker gửi `platform` (= `session.platform.name()`) trong `ResearchPayload`; phía AI (`ai/src/agents/trend_research.py`) đưa target platform vào prompt VÀ ép `platform` của mọi trend/idea trả về đúng nền tảng phiên (payload cũ không có `platform` giữ hành vi cũ — trend/idea tự do trong 3 nền tảng). Worker cũng ưu tiên `session.contentStrategy` (nếu còn ACTIVE) thay vì luôn lấy chiến lược ACTIVE mới nhất, và gửi `maxIdeas` = `articleCount` (clamp 1–20, mặc định 10). `TrendResearchSessionResponse` trả thêm `strategyName` + `articleCount` cho modal chi tiết phiên phía FE.
 
 **Scheduler 2:00 AM (FR-19)** — `scheduler/DailyTrendResearchJob` (`@Scheduled(cron = "0 0 2 * * *")`): quét mọi brand profile `isActive`; mỗi hồ sơ tạo session trong MỘT `TransactionTemplate` ngắn (đọc collection lazy `platforms` an toàn) — yêu cầu strategy ACTIVE, user ACTIVE (bỏ LOCKED/PENDING_DELETE), không có phiên PENDING/RUNNING, còn quota; nền tảng = nền tảng đầu tiên của chiến lược (rồi của hồ sơ) theo thứ tự FB → IG → Threads; `trigger_type = SCHEDULED`; dispatch `processScheduled` SAU commit. Resilient: lỗi từng hồ sơ log + bỏ qua.
+
+**Lịch tự động + ý tưởng đã lưu (Flyway V19, 2026-10-20)** — `entity/TrendResearchSchedule` (một lịch/user: hồ sơ, chiến lược,
+nền tảng CSV, DAILY/WEEKLY + thứ 0=T2…6=CN, `run_time`, `last_run_at`) qua `TrendResearchSettingsService` (`GET/PUT
+/trend-research/schedule`; bật cần gói gồm AUTO_TREND_RESEARCH) và `content_ideas.saved_at` (`PUT /trend-research/ideas/{id}/saved`,
+`ContentIdeaResponse.saved`). `DailyTrendResearchJob` nay chạy MỖI GIỜ: lịch riêng đến giờ (phút bỏ qua, mỗi ngày tối đa một
+lượt) + lúc 02:00 lượt mặc định cho user CHƯA có dòng lịch (có dòng tắt = không chạy). ErrorCode 2208 `TREND_SCHEDULE_INVALID`,
+2209 `CONTENT_IDEA_NOT_FOUND`.
 
 **ErrorCodes** 1910–1916: `ACTIVE_BRAND_PROFILE_REQUIRED`, `ACTIVE_STRATEGY_REQUIRED`, `RESEARCH_ALREADY_RUNNING`, `RESEARCH_SESSION_NOT_FOUND`, `RESEARCH_ARTICLE_COUNT_INVALID`, `TREND_IDS_REQUIRED`, `TREND_NOT_FOUND`.
 

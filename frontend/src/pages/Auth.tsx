@@ -1,4 +1,5 @@
 import ColorModeToggle from '../components/ColorModeToggle';
+import { trackEvent } from "../analytics/ga4";
 import { useIsDark } from '../hooks/useIsDark';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -243,6 +244,7 @@ export default function Auth() {
     setOtpError('');
     try {
       await verifyRegister(f.email.trim(), otpCode);
+      trackEvent('sign_up', { method: 'email' });
       const me = await refreshUser();
       toast.success(t.regSuccessMsg, { title: t.regSuccessTitle });
       if (me) afterAuth(me);

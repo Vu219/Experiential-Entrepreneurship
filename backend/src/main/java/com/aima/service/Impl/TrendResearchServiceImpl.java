@@ -1,5 +1,7 @@
 package com.aima.service.Impl;
 
+import com.aima.service.PlanUsageService;
+import com.aima.enums.PlanLimitKey;
 import com.aima.dto.request.TrendDeleteRequest;
 import com.aima.dto.request.TrendResearchRequest;
 import com.aima.dto.response.ApiResponse;
@@ -55,6 +57,7 @@ public class TrendResearchServiceImpl implements TrendResearchService {
     TrendResearchMapper trendResearchMapper;
     TrendResearchWorkerService trendResearchWorkerService;
     TokenUsageService tokenUsageService;
+    PlanUsageService planUsageService;
 
     static final String SUPERSEDED_MESSAGE = "Đã thay bằng phiên nghiên cứu bạn chủ động bắt đầu";
     static final String QUEUE_FULL_MESSAGE = "Hệ thống đang bận, vui lòng thử lại sau ít phút";
@@ -92,6 +95,16 @@ public class TrendResearchServiceImpl implements TrendResearchService {
 
         Platform platform = (request != null && request.getPlatform() != null) ? request.getPlatform() : Platform.FACEBOOK;
         Integer articleCount = request != null ? request.getArticleCount() : null;
+        // Gói: số phiên thủ công trong kỳ + trần số ý tưởng. Không gửi số → mặc định worker, kẹp về trần của gói.
+        planUsageService.requireQuota(user, PlanLimitKey.TREND_RESEARCH_PER_PERIOD, null);
+        if (articleCount != null) {
+            planUsageService.requireCap(user, PlanLimitKey.IDEAS_PER_RESEARCH, articleCount);
+        } else {
+            Long ideaCap = planUsageService.cap(user, PlanLimitKey.IDEAS_PER_RESEARCH);
+            if (ideaCap != null && ideaCap > 0 && ideaCap < TrendResearchWorkerServiceImpl.MAX_IDEAS) {
+                articleCount = ideaCap.intValue();
+            }
+        }
         TrendResearchSession session = trendResearchMapper.toSession(brand, platform, strategy, articleCount,
                 ResearchTrigger.MANUAL);
         session.setClientIp(RequestMeta.clientIp());

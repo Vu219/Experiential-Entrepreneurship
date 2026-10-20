@@ -17,6 +17,7 @@ import {
   PLAN_AI_UNLIMITED, PLAN_AI_LIMIT_MAX,
 } from '../../api/plans';
 import type { ApiError } from '../../api/apiClient';
+import { PLAN_LIMIT_FIELDS, PLAN_LIMIT_GROUPS, type PlanFeatureLimits } from '../../api/planLimits';
 import type { Lang } from '../../types';
 import { useToast } from '../../components/toast/ToastProvider';
 import PageContainer from '../../components/PageContainer';
@@ -42,6 +43,7 @@ const toSaveInput = (p: PlanDto): PlanSaveInput => ({
   billingIntervalMonths: p.billingIntervalMonths,
   tokenQuota: p.tokenQuota, monthlyTokenLimit: p.monthlyTokenLimit,
   policyCheckAiMonthlyLimit: p.policyCheckAiMonthlyLimit, aiFixMaxPerVersion: p.aiFixMaxPerVersion,
+  featureLimits: p.featureLimits ?? null,
   descriptionVi: p.descriptionVi, descriptionEn: p.descriptionEn,
   featuresVi: p.featuresVi, featuresEn: p.featuresEn,
   teaserFeaturesVi: p.teaserFeaturesVi, teaserFeaturesEn: p.teaserFeaturesEn,
@@ -67,6 +69,26 @@ const aiLimitDraftValid = (d: AiLimitDraft) => {
   const n = Number(d.n);
   return /^\d+$/.test(d.n) && n >= 1 && n <= PLAN_AI_LIMIT_MAX;
 };
+
+// Giới hạn tính năng (V18) dùng lại draft của giới hạn AI: số theo đúng 4 chế độ; cờ chỉ 3 chế độ
+// (Mặc định / Bật = 'unlimited' / Tắt = 'off').
+const toLimitDrafts = (v: PlanFeatureLimits | null | undefined): Record<string, AiLimitDraft> =>
+  Object.fromEntries(PLAN_LIMIT_FIELDS.map(({ field, type }) => {
+    const raw = v?.[field] ?? null;
+    if (type === 'FLAG') return [field, { mode: raw == null ? 'default' : raw ? 'unlimited' : 'off', n: '' } as AiLimitDraft];
+    return [field, toAiLimitDraft(raw as number | null)];
+  }));
+
+const fromLimitDrafts = (d: Record<string, AiLimitDraft>): PlanFeatureLimits =>
+  Object.fromEntries(PLAN_LIMIT_FIELDS.map(({ field, type }) => {
+    const draft = d[field];
+    if (type === 'FLAG') return [field, draft.mode === 'default' ? null : draft.mode !== 'off'];
+    return [field, fromAiLimitDraft(draft)];
+  })) as unknown as PlanFeatureLimits;
+
+/** Mặc định hệ thống THÔ (-1 = không giới hạn) → dạng hiển thị của AiLimitField (null = không giới hạn). */
+const effectiveDefault = (raw: number | boolean | null | undefined): number | null | undefined =>
+  raw === undefined || typeof raw === 'boolean' ? undefined : raw === null || raw === PLAN_AI_UNLIMITED ? null : raw;
 
 const fieldStyle = { width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 12px', fontSize: 13.5, color: C.textStrong, outline: 'none', background: C.surface } as const;
 const labelStyle = { fontSize: 11.5, fontWeight: 700, letterSpacing: '.04em', color: C.textFaint, marginBottom: 5, display: 'block' } as const;
@@ -423,7 +445,7 @@ function PreviewTab({ payload }: { payload: PlansPayload }) {
 }
 
 // ===== Modal Sửa/Tạo gói =====
-type PlanFormSection = 'basic' | 'content' | 'features' | 'display';
+type PlanFormSection = 'basic' | 'limits' | 'content' | 'features' | 'display';
 
 function PlanFormModal({ plan, limitDefaults, onClose, onSaved }: {
   plan: PlanDto | null;
@@ -459,11 +481,13 @@ function PlanFormModal({ plan, limitDefaults, onClose, onSaved }: {
   const [isActive, setIsActive] = useState(plan?.isActive ?? true);
   const [aiCheck, setAiCheck] = useState<AiLimitDraft>(toAiLimitDraft(plan?.policyCheckAiMonthlyLimit ?? null));
   const [aiFix, setAiFix] = useState<AiLimitDraft>(toAiLimitDraft(plan?.aiFixMaxPerVersion ?? null));
+  const [limitDrafts, setLimitDrafts] = useState<Record<string, AiLimitDraft>>(() => toLimitDrafts(plan?.featureLimits));
 
   const codeOk = !isNew || /^[A-Z0-9_]{2,20}$/.test(code.trim().toUpperCase());
   // Gói đang bán (có giá) phải có hạn mức token thật — nếu không user mua gói sẽ dùng AI không giới hạn.
   const tokenLimitMissing = isActive && (Number(price) || 0) > 0 && tokenLimit.trim() === '';
-  const aiLimitsOk = aiLimitDraftValid(aiCheck) && aiLimitDraftValid(aiFix);
+  const aiLimitsOk = aiLimitDraftValid(aiCheck) && aiLimitDraftValid(aiFix)
+    && Object.values(limitDrafts).every(aiLimitDraftValid);
   const canSave = !!nameVi.trim() && !!nameEn.trim() && (!isNew || (!!code.trim() && codeOk)) && !tokenLimitMissing && aiLimitsOk;
 
   const lines = (s: string) => s.split('\n').map((x) => x.trim()).filter(Boolean);
@@ -481,6 +505,7 @@ function PlanFormModal({ plan, limitDefaults, onClose, onSaved }: {
       monthlyTokenLimit: tokenLimit.trim() === '' ? null : Number(tokenLimit) || null,
       policyCheckAiMonthlyLimit: fromAiLimitDraft(aiCheck),
       aiFixMaxPerVersion: fromAiLimitDraft(aiFix),
+      featureLimits: fromLimitDrafts(limitDrafts),
       descriptionVi: descVi.trim() || null, descriptionEn: descEn.trim() || null,
       featuresVi: lines(featuresVi), featuresEn: lines(featuresEn),
       teaserFeaturesVi: lines(teaserVi), teaserFeaturesEn: lines(teaserEn),
@@ -504,6 +529,7 @@ function PlanFormModal({ plan, limitDefaults, onClose, onSaved }: {
   // trong mỗi nhóm giữ 2 cột VI (trái) / EN (phải).
   const sections: { key: PlanFormSection; label: string }[] = [
     { key: 'basic', label: t.plSecBasic },
+    { key: 'limits', label: t.plSecLimits },
     { key: 'content', label: t.plSecContent },
     { key: 'features', label: t.plSecFeatures },
     { key: 'display', label: t.plSecDisplay },
@@ -574,6 +600,32 @@ function PlanFormModal({ plan, limitDefaults, onClose, onSaved }: {
               <input value={order} onChange={(e) => setOrder(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" style={fieldStyle} />
             </div>
           </div>
+        </>
+      )}
+
+      {section === 'limits' && (
+        <>
+          <div style={{ ...hintStyle, fontSize: 12, marginTop: 0, marginBottom: 12 }}>{t.plLimitsIntro}</div>
+          {PLAN_LIMIT_GROUPS.map((group) => (
+            <div key={group} style={{ marginBottom: 6 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 800, color: C.textStrong, margin: '4px 0 8px' }}>
+                {(t as Record<string, string>)[`plGroup_${group}`]}
+              </div>
+              <div style={two}>
+                {PLAN_LIMIT_FIELDS.filter((f) => f.group === group).map(({ key, field, type }) => {
+                  const label = (t as Record<string, string>)[`plk_${key}`];
+                  const onChange = (next: AiLimitDraft) => setLimitDrafts((d) => ({ ...d, [field]: next }));
+                  const systemDefault = limitDefaults?.featureLimits?.[field];
+                  return type === 'FLAG'
+                    ? <FlagLimitField key={field} label={label} value={limitDrafts[field]} onChange={onChange}
+                        systemDefault={typeof systemDefault === 'boolean' ? systemDefault : undefined} />
+                    : <AiLimitField key={field} label={label} hint=""
+                        unit={key.endsWith('_DAYS') ? t.plLimitDays : t.plLimitUnit}
+                        value={limitDrafts[field]} onChange={onChange} systemDefault={effectiveDefault(systemDefault)} />;
+                })}
+              </div>
+            </div>
+          ))}
         </>
       )}
 
@@ -684,6 +736,28 @@ function AiLimitField({ label, hint, unit, value, onChange, systemDefault }: {
         )}
       </div>
       <div style={{ ...hintStyle, ...(invalid ? { color: C.danger } : {}) }}>{help}</div>
+    </div>
+  );
+}
+
+/** Cờ giới hạn tính năng: Mặc định hệ thống / Bật / Tắt (draft dùng chung AiLimitDraft: 'unlimited' = bật). */
+function FlagLimitField({ label, value, onChange, systemDefault }: {
+  label: string;
+  value: AiLimitDraft;
+  onChange: (next: AiLimitDraft) => void;
+  systemDefault: boolean | undefined;
+}) {
+  const { t } = useApp();
+  const defaultText = systemDefault === undefined ? '' : systemDefault ? t.plFlagOn : t.plFlagOff;
+  return (
+    <div>
+      <label style={labelStyle}>{label}</label>
+      <select value={value.mode === 'limit' ? 'unlimited' : value.mode} aria-label={label}
+        onChange={(e) => onChange({ mode: e.target.value as AiLimitMode, n: '' })} style={fieldStyle}>
+        <option value="default">{defaultText ? `${t.plAiModeDefault} (${defaultText})` : t.plAiModeDefault}</option>
+        <option value="unlimited">{t.plFlagOn}</option>
+        <option value="off">{t.plFlagOff}</option>
+      </select>
     </div>
   );
 }

@@ -8,7 +8,11 @@ import com.aima.dto.response.PlanFeatureResponse;
 import com.aima.dto.response.PlanFeatureValueResponse;
 import com.aima.dto.response.PlanLimitDefaultsResponse;
 import com.aima.dto.response.PlanResponse;
+import com.aima.dto.response.PlanLimitViolationResponse;
+import com.aima.dto.response.PlanFeatureUsageItemResponse;
+import com.aima.dto.response.PlanFeatureUsageResponse;
 import com.aima.entity.Plan;
+import com.aima.entity.PlanFeatureLimits;
 import com.aima.entity.PlanFeature;
 import com.aima.entity.PlanFeatureValue;
 import com.aima.service.PlanLimitService;
@@ -17,6 +21,8 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
+import com.aima.enums.PlanLimitKey;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -38,9 +44,19 @@ public interface PlanMapper {
 
     List<PlanResponse> toResponseList(List<Plan> plans);
 
-    @Mapping(target = "policyCheckAiMonthlyLimit", source = "policyCheckAiMonthly")
-    @Mapping(target = "aiFixMaxPerVersion", source = "aiFixPerVersion")
-    PlanLimitDefaultsResponse toLimitDefaults(PlanLimitService.PlanLimits limits);
+    @Mapping(target = "policyCheckAiMonthlyLimit", source = "limits.policyCheckAiMonthly")
+    @Mapping(target = "aiFixMaxPerVersion", source = "limits.aiFixPerVersion")
+    @Mapping(target = "featureLimits", source = "featureLimits")
+    PlanLimitDefaultsResponse toLimitDefaults(PlanLimitService.PlanLimits limits, PlanFeatureLimits featureLimits);
+
+    // ===== Giới hạn tính năng (V18) =====
+
+    PlanFeatureUsageItemResponse toUsageItem(PlanLimitKey key, PlanLimitKey.Type type, Long limit, Long used, boolean included);
+
+    PlanFeatureUsageResponse toUsageResponse(String planCode, LocalDateTime periodStart, LocalDateTime periodEnd,
+                                      List<PlanFeatureUsageItemResponse> items);
+
+    PlanLimitViolationResponse toViolation(PlanLimitKey limitKey, Long limit, Long used, String planCode);
 
     // ===== PlanFeature (values do service reconcile theo planCode — mapper bỏ qua) =====
 

@@ -1,5 +1,7 @@
 package com.aima.service.Impl;
 
+import com.aima.service.PlanUsageService;
+import com.aima.enums.PlanLimitKey;
 import com.aima.dto.request.ContentStrategyRequest;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.ContentStrategyResponse;
@@ -39,11 +41,13 @@ public class ContentStrategyServiceImpl implements ContentStrategyService {
     BrandProfileRepository brandProfileRepository;
     UserRepository userRepository;
     ContentStrategyMapper contentStrategyMapper;
+    PlanUsageService planUsageService;
 
     @Override
     public ApiResponse<ContentStrategyResponse> create(String email, ContentStrategyRequest request) {
         User user = currentUser(email);
         BrandProfile brand = findBrand(user.getId(), request.getBrandId());
+        planUsageService.requireQuota(user, PlanLimitKey.STRATEGIES_PER_BRAND, brand.getId());
 
         ContentStrategy strategy = contentStrategyMapper.toContentStrategy(request);
         strategy.setBrandProfile(brand);

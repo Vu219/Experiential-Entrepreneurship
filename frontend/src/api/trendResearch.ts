@@ -35,6 +35,8 @@ export interface ResearchContentIdea {
   suitabilityLevel: ResearchSuitability | null;
   executionSuggestions?: string[];
   relatedGoals?: string[];
+  /** Người dùng đã lưu (V19 — trước đây chỉ ở localStorage). */
+  saved?: boolean;
 }
 
 export interface ResearchTrend {
@@ -111,5 +113,42 @@ export async function listTrendResearchSessions(): Promise<ResearchSessionSummar
 // DELETE /trend-research/trends — xóa (soft delete) nhiều trend không phù hợp; trả số đã xóa
 export async function deleteTrends(trendIds: string[]): Promise<number> {
   const { data } = await client.delete<ApiResponse<number>>("/trend-research/trends", { data: { trendIds } });
+  return data.result;
+}
+
+// PUT /trend-research/ideas/{id}/saved — "Lưu ý tưởng" lưu ở backend (V19).
+export async function setIdeaSaved(ideaId: string, saved: boolean): Promise<ResearchContentIdea> {
+  const { data } = await client.put<ApiResponse<ResearchContentIdea>>(`/trend-research/ideas/${ideaId}/saved`, { saved });
+  return data.result;
+}
+
+// ===== Lịch nghiên cứu tự động (V19) — backend chạy đúng giờ đã chọn (mỗi giờ quét, phút bỏ qua) =====
+export type TrendScheduleFrequency = "DAILY" | "WEEKLY";
+
+export interface TrendResearchScheduleDto {
+  enabled: boolean;
+  brandProfileId: string | null;
+  brandName: string | null;
+  strategyId: string | null;
+  strategyName: string | null;
+  platforms: ResearchPlatform[];
+  frequency: TrendScheduleFrequency;
+  /** 0 = Thứ Hai … 6 = Chủ nhật (chỉ WEEKLY). */
+  days: number[];
+  /** "HH:mm". */
+  time: string;
+  lastRunAt: string | null;
+}
+
+export type TrendResearchScheduleInput = Omit<TrendResearchScheduleDto, "brandName" | "strategyName" | "lastRunAt">;
+
+/** null = chưa cấu hình (backend chạy mặc định 02:00 hằng ngày cho hồ sơ đang hoạt động). */
+export async function getTrendResearchSchedule(): Promise<TrendResearchScheduleDto | null> {
+  const { data } = await client.get<ApiResponse<TrendResearchScheduleDto | null>>("/trend-research/schedule");
+  return data.result ?? null;
+}
+
+export async function saveTrendResearchSchedule(input: TrendResearchScheduleInput): Promise<TrendResearchScheduleDto> {
+  const { data } = await client.put<ApiResponse<TrendResearchScheduleDto>>("/trend-research/schedule", input);
   return data.result;
 }

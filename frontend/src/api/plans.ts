@@ -1,5 +1,6 @@
 import type { Lang } from '../types';
 import client, { type ApiResponse } from './apiClient';
+import type { PlanFeatureLimits } from './planLimits';
 import type { PricingPlan, ComparisonGroup } from '../config/plans';
 
 // 2026-07-12: Gói dịch vụ chuyển từ hardcode (config/plans.ts) sang DB — bảng plans +
@@ -26,6 +27,8 @@ export interface PlanDto {
   policyCheckAiMonthlyLimit: PlanAiLimit;
   /** Số lần AI sửa bài tối đa mỗi bản nền tảng — xem {@link PlanAiLimit}. */
   aiFixMaxPerVersion: PlanAiLimit;
+  /** Giới hạn tính năng (V18, giá trị thô) — null khi BE cũ chưa trả. */
+  featureLimits: PlanFeatureLimits | null;
   descriptionVi: string | null;
   descriptionEn: string | null;
   featuresVi: string[];
@@ -68,6 +71,8 @@ export const PLAN_AI_LIMIT_MAX = 100_000;
 export interface PlanLimitDefaults {
   policyCheckAiMonthlyLimit: number | null;
   aiFixMaxPerVersion: number | null;
+  /** Mặc định hệ thống của giới hạn tính năng (giá trị THÔ: -1 = không giới hạn, 0 = tắt). */
+  featureLimits?: PlanFeatureLimits;
 }
 
 export interface PlansPayload {
@@ -102,6 +107,8 @@ export interface PlanSaveInput {
   /** FULL update: null = về mặc định hệ thống (khác monthlyTokenLimit). */
   policyCheckAiMonthlyLimit: PlanAiLimit;
   aiFixMaxPerVersion: PlanAiLimit;
+  /** Giới hạn tính năng (V18, giá trị thô) — null khi BE cũ chưa trả. */
+  featureLimits: PlanFeatureLimits | null;
   descriptionVi: string | null;
   descriptionEn: string | null;
   featuresVi: string[];

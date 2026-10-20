@@ -1,5 +1,7 @@
 package com.aima.service.Impl;
 
+import com.aima.service.PlanUsageService;
+import com.aima.enums.PlanLimitKey;
 import com.aima.dto.request.AdjustmentDecisionRequest;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.StrategyAdjustmentResponse;
@@ -62,6 +64,7 @@ public class StrategyOptimizationServiceImpl implements StrategyOptimizationServ
     StrategyOptimizationMapper strategyOptimizationMapper;
     StrategyOptimizationWorkerService workerService;
     TokenUsageService tokenUsageService;
+    PlanUsageService planUsageService;
 
     @Override
     public ApiResponse<StrategyOptimizationJobResponse> start(String email, UUID strategyId) {
@@ -88,6 +91,8 @@ public class StrategyOptimizationServiceImpl implements StrategyOptimizationServ
             return ApiResponse.success("Chiến lược này đang được tối ưu — trả về tác vụ đang chạy", existing);
         }
 
+        // Gói: lượt tối ưu trong kỳ — kiểm SAU nhánh trả lại job đang chạy để bấm lại không tốn lượt.
+        planUsageService.requireQuota(user, PlanLimitKey.STRATEGY_OPTIMIZATION_PER_PERIOD, null);
         StrategyOptimizationJob job = strategyOptimizationMapper.toJob(strategy);
         job.setClientIp(RequestMeta.clientIp());
         job.setUserAgent(RequestMeta.userAgent());

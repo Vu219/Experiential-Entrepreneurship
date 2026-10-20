@@ -111,6 +111,9 @@ public class GlobalExceptionHandler {
 
         apiResponse.setCode(errorCode.getCode());
         apiResponse.setMessage(errorCode.getMessage());
+        if (exception instanceof PlanLimitException planLimit) {
+            apiResponse.setResult(planLimit.getDetail());
+        }
 
         return ResponseEntity
                 .status(errorCode.getStatusCode())

@@ -130,6 +130,7 @@ public enum ErrorCode {
     META_TOKEN_INVALID(1829, "Token nền tảng đã hết hạn hoặc bị thu hồi. Vui lòng kết nối lại.", HttpStatus.BAD_REQUEST),
     INVALID_SIGNED_REQUEST(1833, "signed_request không hợp lệ", HttpStatus.BAD_REQUEST),
     DATA_DELETION_REQUEST_NOT_FOUND(1834, "Không tìm thấy yêu cầu xóa dữ liệu", HttpStatus.NOT_FOUND),
+    PLATFORM_CONNECTION_DISABLED(1835, "Nền tảng này tạm thời chưa hỗ trợ kết nối. Hiện chỉ kết nối được Facebook.", HttpStatus.BAD_REQUEST),
 
     // PLATFORM API VERSION (ADMIN) ERRORS
     VERSION_REQUIRED(1830, "Version không được để trống", HttpStatus.BAD_REQUEST),
@@ -522,6 +523,15 @@ public enum ErrorCode {
     NOTIFICATION_CATEGORY_INVALID(2202, "Nhóm thông báo không hợp lệ", HttpStatus.BAD_REQUEST),
     NOTIFICATION_FILTER_INVALID(2203, "Bộ lọc thông báo không hợp lệ (status = all | unread)", HttpStatus.BAD_REQUEST),
     NOTIFICATION_PREFERENCE_EMPTY(2204, "Chưa có thay đổi cài đặt thông báo nào để lưu", HttpStatus.BAD_REQUEST),
+    // Giới hạn tính năng theo gói (V18) — response kèm result {limitKey, limit, used} để FE dựng câu + nút nâng cấp.
+    PLAN_LIMIT_REACHED(2205, "Bạn đã dùng hết hạn mức của gói hiện tại cho tính năng này. Nâng cấp gói để dùng tiếp.",
+            HttpStatus.FORBIDDEN),
+    PLAN_FEATURE_NOT_INCLUDED(2206, "Gói hiện tại chưa gồm tính năng này. Nâng cấp gói để sử dụng.", HttpStatus.FORBIDDEN),
+    TREND_SCHEDULE_INVALID(2208, "Lịch nghiên cứu tự động không hợp lệ: chọn nền tảng, tần suất, giờ chạy (và thứ khi chạy hằng tuần)",
+            HttpStatus.BAD_REQUEST),
+    CONTENT_IDEA_NOT_FOUND(2209, "Không tìm thấy ý tưởng nội dung", HttpStatus.NOT_FOUND),
+    PLAN_FEATURE_LIMIT_INVALID(2207, "Giới hạn tính năng phải là -1 (không giới hạn), 0 (tắt) hoặc số dương",
+            HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

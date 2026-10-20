@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { trackEvent } from "../../analytics/ga4";
 import { CircleCheck, CircleX, Clock, RotateCcw } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../auth/AuthContext';
@@ -53,6 +54,8 @@ export default function BillingReturn() {
         forgetPendingPayment();
       }
       if (result.status === 'PAID') {
+        // GA4: chỉ mã gói + số tiền, không có thông tin người mua.
+        trackEvent('purchase', { currency: 'VND', value: result.amount, items_plan: result.planCode ?? '' });
         // Nhãn gói trên topbar/menu đọc từ /users/me — làm mới để hiện gói mới ngay.
         void refreshUser();
       }

@@ -16,6 +16,7 @@ import com.aima.repository.TrendRepository;
 import com.aima.repository.TrendResearchSessionRepository;
 import com.aima.repository.UserRepository;
 import com.aima.scheduler.DailyTrendResearchJob;
+import com.aima.service.PlanUsageService;
 import com.aima.service.TokenUsageService;
 import com.aima.service.TrendResearchWorkerService;
 import com.aima.service.Impl.TrendResearchServiceImpl;
@@ -72,7 +73,8 @@ class TrendResearchStartTest {
         });
 
         service = new TrendResearchServiceImpl(sessionRepository, mock(TrendRepository.class), brandRepository,
-                strategyRepository, userRepository, mapper, worker, mock(TokenUsageService.class));
+                strategyRepository, userRepository, mapper, worker, mock(TokenUsageService.class),
+                mock(PlanUsageService.class));
     }
 
     @Test

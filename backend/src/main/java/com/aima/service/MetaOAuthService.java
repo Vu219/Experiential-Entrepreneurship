@@ -15,8 +15,14 @@ public interface MetaOAuthService {
     /** Sinh state (lưu Redis TTL) và build URL OAuth dialog cho nền tảng. */
     String buildAuthorizationUrl(Platform platform, UUID userId);
 
-    /** Xử lý callback: đổi code → token → lưu các kết nối. Trả về danh sách kết nối vừa tạo/cập nhật. */
-    List<PlatformAccount> handleCallback(Platform platform, String code, String state);
+    /**
+     * Xử lý callback: đổi code → token → lưu các kết nối. Trả về các kết nối vừa tạo/cập nhật + số kênh MỚI bị bỏ qua
+     * vì đã đủ giới hạn CONNECTED_CHANNELS của gói (kết nối lại kênh cũ luôn được phép).
+     */
+    CallbackResult handleCallback(Platform platform, String code, String state);
+
+    record CallbackResult(List<PlatformAccount> connected, int skippedByPlan) {
+    }
 
     /** Ping /me, cập nhật trạng thái + lastValidatedAt. Nhận ID: entity được load lại trong transaction. */
     PlatformAccount validate(UUID connectionId);

@@ -106,6 +106,21 @@ export default function UserPlanTab({ userId, userName, onPlanChanged }: {
     return CORE_CODES.has(code) ? userPlanMeta(code as UserPlan).label : code;
   }, [plans, lang]);
 
+  // Gia hạn / đổi gói mặc định đúng MỘT chu kỳ của gói (billingIntervalMonths) — cùng thời lượng user tự
+  // mua gói đó; admin vẫn sửa được số + đơn vị nếu cần tặng lẻ.
+  const planCycle = useCallback((code: string | undefined) => {
+    const p = plans.find((x) => x.code === code);
+    return p ? Math.min(Math.max(p.billingIntervalMonths || 1, 1), DURATION_MAX.MONTH) : null;
+  }, [plans]);
+  const applyPlanCycle = useCallback((code: string | undefined) => {
+    const months = planCycle(code);
+    if (months == null) return;
+    setUnit('MONTH');
+    setAmount(String(months));
+  }, [planCycle]);
+  useEffect(() => { applyPlanCycle(sub?.planCode); }, [sub?.planCode, applyPlanCycle]);
+  const currentCycle = planCycle(sub?.planCode);
+
   const isFree = sub?.planCode === 'FREE';
   const canExtend = !!sub && !isFree && !!sub.planExpiresAt;
   // Trùng gói đang có hạn là việc của Gia hạn — không liệt kê để admin khỏi ghi đè hạn cũ.
@@ -243,6 +258,9 @@ export default function UserPlanTab({ userId, userName, onPlanChanged }: {
             <>
               <DurationFields amount={amount} unit={unit} error={errors.amount}
                 onAmount={setAmount} onUnit={setUnit} label={t.upAmount} />
+              {currentCycle != null && (
+                <div style={{ fontSize: 12, color: C.textMuted }}>{fill(t.upPlanCycleHint, { n: currentCycle })}</div>
+              )}
               {extendPreview && (
                 <div style={previewBox}>
                   {t.upNewExpiry}: <b>{formatDateTimeVN(extendPreview)}</b>
@@ -255,7 +273,10 @@ export default function UserPlanTab({ userId, userName, onPlanChanged }: {
           {action === 'change' && (
             <>
               <Field label={t.upTargetPlan} error={errors.plan}>
-                <select value={planId} onChange={(e) => setPlanId(e.target.value)} style={input}>
+                <select value={planId} style={input} onChange={(e) => {
+                  setPlanId(e.target.value);
+                  applyPlanCycle(plans.find((p) => p.id === e.target.value)?.code);
+                }}>
                   <option value="">{t.upPickPlan}</option>
                   {targetPlans.map((p) => (
                     <option key={p.id} value={p.id}>{lang === 'en' ? p.nameEn : p.nameVi}</option>

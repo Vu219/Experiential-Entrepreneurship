@@ -9,6 +9,8 @@ interface ImportMetaEnv {
   /** "true" = hiện nút chuyển Sáng/Tối/Theo hệ thống cho app/admin/public.
    *  Vite mặc định true; false giữ giao diện sáng và ẩn nút. Xem store/colorMode.ts. */
   readonly VITE_ENABLE_DARK_MODE?: string;
+  /** Google Analytics 4 measurement id (G-XXXXXXX). Trống = tắt GA4. Xem analytics/ga4.ts. */
+  readonly VITE_GA4_MEASUREMENT_ID?: string;
 }
 
 interface ImportMeta {

@@ -54,7 +54,7 @@ import java.util.UUID;
 public class TrendResearchWorkerServiceImpl implements TrendResearchWorkerService {
 
     static final int MAX_TRENDS = 8;
-    static final int MAX_IDEAS = 10;
+    public static final int MAX_IDEAS = 10;
     // Trend các phiên trước gửi kèm AI (momentum, tránh lặp): trong 30 ngày, tối đa 40 tên.
     static final int PREVIOUS_TRENDS_DAYS = 30;
     static final int PREVIOUS_TRENDS_LIMIT = 40;

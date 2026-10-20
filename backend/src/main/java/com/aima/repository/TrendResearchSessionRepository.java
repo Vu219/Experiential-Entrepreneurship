@@ -1,5 +1,6 @@
 package com.aima.repository;
 
+import com.aima.enums.ResearchTrigger;
 import com.aima.entity.TrendResearchSession;
 import com.aima.enums.ResearchStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -68,4 +69,11 @@ public interface TrendResearchSessionRepository extends JpaRepository<TrendResea
             + "s.errorMessage = :message, s.updatedAt = :now "
             + "where s.id = :id and s.status = com.aima.enums.ResearchStatus.PENDING")
     int failPending(@Param("id") UUID id, @Param("now") LocalDateTime now, @Param("message") String message);
+
+    /** Giới hạn gói TREND_RESEARCH_PER_PERIOD: phiên theo nguồn trong kỳ, phiên FAILED không tính (lỗi hệ thống). */
+    @Query("select count(s) from TrendResearchSession s where s.brandProfile.user.id = :userId "
+            + "and s.triggerType = :trigger and s.status <> com.aima.enums.ResearchStatus.FAILED "
+            + "and s.createdAt >= :from and s.createdAt < :to and s.deletedAt is null")
+    long countInPeriod(@Param("userId") UUID userId, @Param("trigger") ResearchTrigger trigger,
+                       @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

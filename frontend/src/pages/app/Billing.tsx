@@ -10,6 +10,8 @@ import PendingOrderCard from '../../components/billing/PendingOrderCard';
 import PlanChoiceGrid from '../../components/billing/PlanChoiceGrid';
 import BillingSkeleton from '../../components/billing/BillingSkeleton';
 import PaymentHistory from '../../components/billing/PaymentHistory';
+import PlanUsageCard from '../../components/billing/PlanUsageCard';
+import { usePlanUsage } from '../../hooks/usePlanUsage';
 import { getPublicPlans, type PlanDto } from '../../api/plans';
 import {
   cancelPayment,
@@ -40,6 +42,9 @@ export default function Billing() {
   const { refreshUser } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const { usage, reload: reloadUsage } = usePlanUsage();
+  // Gói có thể vừa đổi (thanh toán / admin) — trang này luôn lấy mức sử dụng mới, không dùng cache phiên.
+  useEffect(() => { void reloadUsage(); }, [reloadUsage]);
 
   const [billing, setBilling] = useState<BillingOverview | null>(null);
   const [plans, setPlans] = useState<PlanDto[]>([]);
@@ -141,6 +146,8 @@ export default function Billing() {
       </div>
 
       {billing && <CurrentPlanCard billing={billing} />}
+
+      {usage && <PlanUsageCard usage={usage} />}
 
       {billing?.pendingPayment && (
         <PendingOrderCard

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { CalendarDays, Loader2, RotateCcw } from 'lucide-react';
+import { usePlanUsage } from '../../hooks/usePlanUsage';
 import { useApp } from '../../context/AppContext.tsx';
 import Switch from '../admin/Switch.tsx';
 import { PlatformTag } from '../ui.tsx';
@@ -137,13 +138,17 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
     return () => { cancelled = true; };
   }, [load, selectedItemId, itemId, items, accounts, initialDate, accountZone]);
 
-  // FR-48: khung giờ vàng theo từng nền tảng có dòng đủ điều kiện.
+  // FR-48: khung giờ vàng theo từng nền tảng có dòng đủ điều kiện — chỉ khi gói gồm "Gợi ý khung giờ vàng"
+  // (chưa biết gói thì chờ, tránh gọi rồi nhận lỗi giới hạn gói ngay khi mở).
+  const { usage: planUsage, included: planIncludes } = usePlanUsage();
+  const goldenAllowed = planUsage !== null && planIncludes('GOLDEN_HOURS');
   useEffect(() => {
+    if (!goldenAllowed) return;
     const platforms = [...new Set(rows.filter((r) => !r.block).map((r) => r.platform))];
     platforms.filter((p) => !golden[p]).forEach((p) => {
       getGoldenHours(p).then((g) => setGolden((prev) => ({ ...prev, [p]: g.suggestedHours }))).catch(() => undefined);
     });
-  }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [rows, goldenAllowed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const patchRow = useCallback((versionId: string, patch: Partial<PlannerRow>) => {
     setRows((prev) => prev.map((r) => (r.versionId === versionId ? { ...r, ...patch } : r)));

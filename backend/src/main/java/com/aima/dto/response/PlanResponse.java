@@ -48,6 +48,9 @@ public class PlanResponse {
             + "0 = tắt.", example = "3")
     Integer aiFixMaxPerVersion;
 
+    @Schema(description = "Giới hạn tính năng theo gói (giá trị thô).")
+    PlanFeatureLimitsResponse featureLimits;
+
     String descriptionVi;
     String descriptionEn;
 

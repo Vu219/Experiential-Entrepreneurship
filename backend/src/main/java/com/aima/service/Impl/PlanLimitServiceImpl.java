@@ -1,8 +1,10 @@
 package com.aima.service.Impl;
 
 import com.aima.entity.Plan;
+import com.aima.entity.PlanFeatureLimits;
 import com.aima.entity.Subscription;
 import com.aima.entity.User;
+import com.aima.enums.PlanLimitKey;
 import com.aima.enums.UserPlan;
 import com.aima.repository.PlanRepository;
 import com.aima.service.PlanLimitService;
@@ -17,6 +19,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,6 +32,9 @@ public class PlanLimitServiceImpl implements PlanLimitService {
 
     /** Biến env cũ theo TÊN gói (trước V15) — chỉ còn đọc để tương thích ngược, sẽ bỏ ở bản sau. */
     static final String LEGACY_POLICY_CHECK_ENV_PREFIX = "AIMA_POLICY_CHECK_AI_LIMIT_";
+
+    /** Mặc định hệ thống của giới hạn tính năng (V18) — một thuộc tính mỗi {@link PlanLimitKey}. */
+    static final String DEFAULTS_PREFIX = "aima.plan-limits.defaults.";
 
     SubscriptionService subscriptionService;
     PlanRepository planRepository;
@@ -82,6 +89,59 @@ public class PlanLimitServiceImpl implements PlanLimitService {
     @Override
     public PlanLimits defaults() {
         return new PlanLimits(null, effective(policyCheckDefault), effective(aiFixDefault));
+    }
+
+    @Override
+    public FeatureLimits features(User user) {
+        Plan plan = currentPlan(user);
+        PlanFeatureLimits columns = plan == null ? null : plan.getFeatureLimits();
+        Map<PlanLimitKey, Long> values = new EnumMap<>(PlanLimitKey.class);
+        for (PlanLimitKey key : PlanLimitKey.values()) {
+            Object raw = key.rawValue(columns);
+            values.put(key, effectiveFeature(key, raw != null ? raw : defaultValue(key)));
+        }
+        return new FeatureLimits(plan == null ? null : plan.getCode(), Collections.unmodifiableMap(values));
+    }
+
+    @Override
+    public PlanFeatureLimits defaultFeatureLimits() {
+        return PlanFeatureLimits.builder()
+                .brandProfiles((Integer) defaultValue(PlanLimitKey.BRAND_PROFILES))
+                .strategiesPerBrand((Integer) defaultValue(PlanLimitKey.STRATEGIES_PER_BRAND))
+                .connectedChannels((Integer) defaultValue(PlanLimitKey.CONNECTED_CHANNELS))
+                .trendResearchPerPeriod((Integer) defaultValue(PlanLimitKey.TREND_RESEARCH_PER_PERIOD))
+                .autoTrendResearch((Boolean) defaultValue(PlanLimitKey.AUTO_TREND_RESEARCH))
+                .ideasPerResearch((Integer) defaultValue(PlanLimitKey.IDEAS_PER_RESEARCH))
+                .scheduling((Boolean) defaultValue(PlanLimitKey.SCHEDULING))
+                .scheduledPostsPerPeriod((Integer) defaultValue(PlanLimitKey.SCHEDULED_POSTS_PER_PERIOD))
+                .activeSchedules((Integer) defaultValue(PlanLimitKey.ACTIVE_SCHEDULES))
+                .scheduleHorizonDays((Integer) defaultValue(PlanLimitKey.SCHEDULE_HORIZON_DAYS))
+                .goldenHours((Boolean) defaultValue(PlanLimitKey.GOLDEN_HOURS))
+                .analyticsHistoryDays((Integer) defaultValue(PlanLimitKey.ANALYTICS_HISTORY_DAYS))
+                .analyticsAdvanced((Boolean) defaultValue(PlanLimitKey.ANALYTICS_ADVANCED))
+                .analyticsExport((Boolean) defaultValue(PlanLimitKey.ANALYTICS_EXPORT))
+                .strategyOptimizationPerPeriod((Integer) defaultValue(PlanLimitKey.STRATEGY_OPTIMIZATION_PER_PERIOD))
+                .build();
+    }
+
+    /**
+     * Mặc định hệ thống của một khoá: {@code aima.plan-limits.defaults.<khoá>} — không đặt thì KHÔNG giới hạn / BẬT,
+     * để gói admin tự tạo (cột null) giữ đúng hành vi trước V18.
+     */
+    private Object defaultValue(PlanLimitKey key) {
+        String property = DEFAULTS_PREFIX + key.propertyName();
+        if (key.type() == PlanLimitKey.Type.FLAG) {
+            return environment.getProperty(property, Boolean.class, Boolean.TRUE);
+        }
+        return environment.getProperty(property, Integer.class, UNLIMITED);
+    }
+
+    /** FLAG: false → 0 (tắt), true → null; số: cùng quy đổi với {@link #effective(int)}. */
+    private static Long effectiveFeature(PlanLimitKey key, Object raw) {
+        if (raw instanceof Boolean flag) {
+            return flag ? null : 0L;
+        }
+        return effective((Integer) raw);
     }
 
     /** Gói của subscription hiện hành; chưa có subscription (DB chưa seed) → gói theo nhãn, như TokenUsageService. */

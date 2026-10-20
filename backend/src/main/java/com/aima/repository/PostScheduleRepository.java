@@ -1,5 +1,6 @@
 package com.aima.repository;
 
+import java.time.LocalDateTime;
 import com.aima.entity.PostSchedule;
 import com.aima.enums.Platform;
 import com.aima.enums.ScheduleStatus;
@@ -133,4 +134,13 @@ public interface PostScheduleRepository extends JpaRepository<PostSchedule, UUID
               and (""" + SearchSql.VERSION_TEXT_MATCHES + " or" + SearchSql.ACCOUNT_NAME_MATCHES + ")",
             nativeQuery = true)
     Page<PostSchedule> searchText(@Param("userId") UUID userId, @Param("q") String q, Pageable pageable);
+
+    /** Giới hạn gói SCHEDULED_POSTS_PER_PERIOD: lịch TẠO trong kỳ (mọi trạng thái — huỷ không trả lại lượt). */
+    @Query("select count(s) from PostSchedule s where s.platformAccount.user.id = :userId "
+            + "and s.createdAt >= :from and s.createdAt < :to and s.deletedAt is null")
+    long countCreatedInPeriod(@Param("userId") UUID userId, @Param("from") LocalDateTime from,
+                              @Param("to") LocalDateTime to);
+
+    /** Giới hạn gói ACTIVE_SCHEDULES. */
+    long countByPlatformAccount_User_IdAndStatusInAndDeletedAtIsNull(UUID userId, Collection<ScheduleStatus> statuses);
 }

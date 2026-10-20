@@ -1,5 +1,6 @@
 package com.aima.entity;
 
+import java.time.LocalDateTime;
 import com.aima.enums.Platform;
 import com.aima.enums.SuitabilityLevel;
 import jakarta.persistence.*;
@@ -27,6 +28,10 @@ public class ContentIdea extends BaseEntity {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     Trend trend;
+
+    /** Người dùng bấm "Lưu ý tưởng" lúc nào (V19); null = chưa lưu. */
+    @Column(name = "saved_at")
+    LocalDateTime savedAt;
 
     @Column(name = "idea_title", nullable = false, length = 255)
     String ideaTitle;

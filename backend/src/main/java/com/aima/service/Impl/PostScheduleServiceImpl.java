@@ -1,5 +1,7 @@
 package com.aima.service.Impl;
 
+import com.aima.enums.PlanLimitKey;
+import com.aima.service.PlanUsageService;
 import com.aima.dto.ai.AnalyzedPostPayload;
 import com.aima.dto.ai.GoldenHourPayload;
 import com.aima.dto.ai.GoldenHourResultPayload;
@@ -151,6 +153,7 @@ public class PostScheduleServiceImpl implements PostScheduleService {
     PostRepository postRepository;
     StrategyOptimizationMapper strategyOptimizationMapper;
     PublishRecoveryService recoveryService;
+    PlanUsageService planUsageService;
 
     /** Đầu vào chuẩn hoá của MỘT dòng tạo lịch (đơn hay batch). */
     private record RowInput(UUID contentVersionId, UUID platformAccountId, ScheduleMode mode, Instant scheduledTime) {
@@ -234,6 +237,7 @@ public class PostScheduleServiceImpl implements PostScheduleService {
             }
         }
         requireNotPendingDelete(user);
+        requirePlanAllows(user, in);
 
         // Khóa bài trước khi nạp bản/lịch (thứ tự item → version → schedule) — bản và lịch đọc sau khóa là mới nhất.
         UUID itemId = contentVersionRepository
@@ -283,6 +287,19 @@ public class PostScheduleServiceImpl implements PostScheduleService {
                 Map.of("scheduledTime", String.valueOf(saved.getScheduledTime()), "mode", in.mode().name())));
         remember(user, IdempotencyOperation.SCHEDULE_CREATE, key, hash, scheduleId, jobId);
         return new RowOutcome(toResponse(saved, jobId), jobId);
+    }
+
+    /**
+     * Giới hạn gói (V18): số lịch tạo trong kỳ (cả "Đăng ngay"); riêng chế độ hẹn giờ còn cần gói có lên lịch,
+     * trong số ngày tối đa và còn chỗ trong hàng chờ. Replay idempotency đã trả trước đó nên không tốn lượt.
+     */
+    private void requirePlanAllows(User user, RowInput in) {
+        planUsageService.requireQuota(user, PlanLimitKey.SCHEDULED_POSTS_PER_PERIOD, null);
+        if (in.mode() == ScheduleMode.SCHEDULE) {
+            planUsageService.requireIncluded(user, PlanLimitKey.SCHEDULING);
+            planUsageService.requireScheduleHorizon(user, in.scheduledTime());
+            planUsageService.requireQuota(user, PlanLimitKey.ACTIVE_SCHEDULES, null);
+        }
     }
 
     // ===================================================================== đăng ngay (Calendar)
@@ -489,6 +506,7 @@ public class PostScheduleServiceImpl implements PostScheduleService {
     public ApiResponse<PostScheduleResponse> update(String email, UUID scheduleId, PostScheduleUpdateRequest request) {
         requireFuture(request.getScheduledTime());
         User user = currentUser(email);
+        planUsageService.requireScheduleHorizon(user, request.getScheduledTime());
         LockedSchedule locked = lockedOwnedSchedule(user, scheduleId);
         PostSchedule schedule = locked.schedule();
         // Tài khoản chờ xoá: không kích hoạt lại / dời lịch — khôi phục tài khoản trước.
@@ -555,6 +573,7 @@ public class PostScheduleServiceImpl implements PostScheduleService {
     @Override
     public ApiResponse<GoldenHourResponse> suggestGoldenHours(String email, Platform platform) {
         User user = currentUser(email);
+        planUsageService.requireIncluded(user, PlanLimitKey.GOLDEN_HOURS);
         GoldenHourResponse response = goldenHours(user.getId(), platform);
         return ApiResponse.success("Lấy gợi ý khung giờ vàng thành công", response);
     }
@@ -635,6 +654,7 @@ public class PostScheduleServiceImpl implements PostScheduleService {
             throw new AppException(ErrorCode.SUGGESTED_SLOT_COUNT_INVALID);
         }
         User user = currentUser(email);
+        planUsageService.requireIncluded(user, PlanLimitKey.GOLDEN_HOURS);
         PlatformAccount account = platformAccountRepository.findByIdAndUser_IdAndDeletedAtIsNull(accountId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.CONNECTION_NOT_FOUND));
         if (account.getConnectionStatus() != ConnectionStatus.ACTIVE) {

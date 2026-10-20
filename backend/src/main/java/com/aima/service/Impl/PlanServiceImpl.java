@@ -62,7 +62,7 @@ public class PlanServiceImpl implements PlanService {
     public ApiResponse<PlansResponse> list() {
         List<Plan> plans = planRepository.findByDeletedAtIsNullOrderByDisplayOrderAscCreatedAtAsc();
         PlansResponse result = buildResponse(plans);
-        result.setLimitDefaults(planMapper.toLimitDefaults(planLimitService.defaults()));
+        result.setLimitDefaults(planMapper.toLimitDefaults(planLimitService.defaults(), planLimitService.defaultFeatureLimits()));
         return ApiResponse.success("Danh sách gói (admin)", result);
     }
 

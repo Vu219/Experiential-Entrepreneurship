@@ -22,4 +22,7 @@ public class PlanLimitDefaultsResponse {
 
     @Schema(description = "AIMA_AI_FIX_MAX_PER_VERSION đã quy đổi.", example = "3")
     Long aiFixMaxPerVersion;
+
+    @Schema(description = "Mặc định hệ thống của giới hạn tính năng (aima.plan-limits.defaults.*), giá trị thô.")
+    PlanFeatureLimitsResponse featureLimits;
 }

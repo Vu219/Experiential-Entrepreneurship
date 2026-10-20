@@ -117,6 +117,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const id = opts?.id ?? nextId.current++;
     setToasts((list) => {
       const idx = list.findIndex((t) => t.id === id);
+      // Cùng một câu đang hiện (vd interceptor đã báo lỗi giới hạn gói, component lại toast e.message) → không xếp chồng.
+      if (idx < 0 && variant !== 'loading' && list.some((t) => t.message === message && t.variant !== 'loading')) {
+        return list;
+      }
       const newToast: ToastData = {
         id,
         variant,
