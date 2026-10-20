@@ -499,7 +499,7 @@ export const STRINGS = {
     rdVoiceLow: 'Điểm brand voice {score} thấp hơn ngưỡng {threshold} — sẽ không lên lịch được.',
     rdApprovalNeeded: 'Đang bật bắt buộc duyệt — bài chưa duyệt sẽ bị tạm giữ khi lên lịch.', rdApproveNow: 'Chọn Đã duyệt',
     // Bài lỗi & cần xử lý (FR-35..FR-39)
-    fpSub: 'Theo dõi và xử lý các bài đăng bị nền tảng từ chối hoặc lỗi khi đăng.',
+    fpSub: 'Xử lý bài đăng lỗi & từ chối',
     fpNavFailed: 'Bài lỗi & cần xử lý',
     fpTabNeedsAction: 'Cần xử lý', fpTabAutoRetrying: 'Đang tự thử lại', fpTabDismissed: 'Đã bỏ qua',
     fpStateNeedsAction: 'Cần xử lý', fpStateAutoRetrying: 'Đang tự thử lại', fpStateDismissed: 'Đã bỏ qua', fpStateResolved: 'Đã xử lý',
@@ -1876,7 +1876,7 @@ export const STRINGS = {
     rdVoiceLow: 'Brand voice score {score} is below your threshold {threshold} — it cannot be scheduled.',
     rdApprovalNeeded: 'Approval is required — unapproved posts are held when scheduled.', rdApproveNow: 'Choose Approved',
     // Failed posts & recovery (FR-35..FR-39)
-    fpSub: 'Track and resolve posts the platform rejected or that failed to publish.',
+    fpSub: 'Resolve rejected & failed posts',
     fpNavFailed: 'Failed posts & recovery',
     fpTabNeedsAction: 'Needs action', fpTabAutoRetrying: 'Retrying automatically', fpTabDismissed: 'Dismissed',
     fpStateNeedsAction: 'Needs action', fpStateAutoRetrying: 'Retrying automatically', fpStateDismissed: 'Dismissed', fpStateResolved: 'Resolved',

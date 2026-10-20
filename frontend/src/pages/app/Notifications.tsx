@@ -6,7 +6,7 @@ import { useAuth } from '../../auth/AuthContext';
 import PageContainer from '../../components/PageContainer';
 import ConfirmModal from '../../components/ConfirmModal';
 import { Card } from '../../components/ui';
-import { NotificationRow } from '../../components/NotificationBell';
+import { NotificationRow, NotificationSkeletonRow } from '../../components/NotificationBell';
 import { openNotificationTarget } from '../../components/notificationMeta';
 import { useToast } from '../../components/toast/ToastProvider';
 import { useNotificationFeed } from '../../hooks/useNotificationFeed';
@@ -149,6 +149,16 @@ export default function Notifications() {
               {status === 'unread' ? t.ntfEmptyUnread : t.ntfEmpty}
             </div>
           )}
+          {feed.loading && feed.items.length === 0 && (
+            <div role="status" aria-busy="true" aria-label={t.listLoading}>
+              <NotificationSkeletonRow titleWidth="60%" bodyWidth="85%" />
+              <NotificationSkeletonRow titleWidth="40%" bodyWidth="70%" />
+              <NotificationSkeletonRow titleWidth="50%" bodyWidth="90%" />
+              <NotificationSkeletonRow titleWidth="65%" bodyWidth="75%" />
+              <NotificationSkeletonRow titleWidth="45%" bodyWidth="80%" />
+              <NotificationSkeletonRow titleWidth="55%" bodyWidth="65%" />
+            </div>
+          )}
           <div role="list">
             {feed.items.map((n) => (
               <div key={n.id} role="listitem" style={{ display: 'flex', alignItems: 'stretch' }}>
@@ -167,8 +177,8 @@ export default function Notifications() {
               </div>
             ))}
           </div>
-          {feed.loading && (
-            <div style={{ padding: '16px', textAlign: 'center', fontSize: 12.5, color: C.ink350 }}>…</div>
+          {feed.loading && feed.items.length > 0 && (
+            <NotificationSkeletonRow titleWidth="50%" bodyWidth="75%" />
           )}
           {!feed.loading && feed.loaded && feed.last && feed.items.length > PAGE_SIZE / 2 && (
             <div style={{ padding: '14px', textAlign: 'center', fontSize: 12, color: C.ink350 }}>{t.ntfEnd}</div>

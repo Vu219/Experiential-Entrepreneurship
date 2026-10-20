@@ -454,8 +454,7 @@ export default function FailedPosts() {
 
   return (
     <PageContainer>
-      {/* Thanh công cụ: tìm kiếm + xuất báo cáo. Tiêu đề + mô tả trang giờ do header
-          dùng chung ở Topbar lo (PAGE_KEYS.failedPosts) — không lặp lại trong trang. */}
+      {/* Thanh công cụ: tìm kiếm + xuất báo cáo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
         <SearchInput value={search} onChange={changeSearch} placeholder={t.fpSearchPh} />
         <button
