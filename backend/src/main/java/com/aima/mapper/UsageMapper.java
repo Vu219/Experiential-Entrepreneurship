@@ -103,6 +103,7 @@ public interface UsageMapper {
     @Mapping(target = "planNameVi", source = "plan.nameVi")
     @Mapping(target = "planNameEn", source = "plan.nameEn")
     @Mapping(target = "planPrice", source = "plan.price")
+    @Mapping(target = "unlimitedPlan", expression = "java(plan != null && plan.isUnlimited())")
     UserUsageResponse toUsageResponse(String billingPeriod, LocalDateTime periodStart, LocalDateTime periodEnd,
                                       TokenUsageService.QuotaState quota, Plan plan,
                                       String effectivePlanForQuota, LocalDateTime pendingPlanChangeAt,
@@ -116,6 +117,7 @@ public interface UsageMapper {
     @Mapping(target = "planCode", source = "plan.code")
     @Mapping(target = "planNameVi", source = "plan.nameVi")
     @Mapping(target = "planNameEn", source = "plan.nameEn")
+    @Mapping(target = "monthlyTokenLimit", expression = "java(plan.effectiveMonthlyTokenLimit())")
     PlanUsageResponse toPlanUsage(Plan plan, Long userCount, Long totalTokens, BigDecimal estimatedCost);
 
     @Mapping(target = "userId", source = "subscription.user.id")
@@ -123,7 +125,7 @@ public interface UsageMapper {
     @Mapping(target = "fullName", source = "subscription.user.fullName")
     @Mapping(target = "avatarUrl", source = "subscription.user.avatarUrl")
     @Mapping(target = "planCode", source = "subscription.plan.code")
-    @Mapping(target = "limit", source = "subscription.plan.monthlyTokenLimit")
+    @Mapping(target = "limit", expression = "java(subscription.getPlan().effectiveMonthlyTokenLimit())")
     UserUsageRowResponse toUserRow(Subscription subscription, Long used);
 
     @Mapping(target = "actorEmail", source = "actor.email")

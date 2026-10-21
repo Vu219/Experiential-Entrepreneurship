@@ -99,7 +99,7 @@ public class TokenUsageServiceImpl implements TokenUsageService {
         if (subscription != null) {
             start = subscription.getCurrentPeriodStart();
             end = subscription.getCurrentPeriodEnd();
-            limit = subscription.getPlan().getMonthlyTokenLimit();
+            limit = subscription.getPlan().effectiveMonthlyTokenLimit();
         } else {
             // DB chưa seed gói của user — rơi về tháng lịch + hạn mức tra theo User.plan.
             YearMonth month = YearMonth.now();
@@ -202,7 +202,7 @@ public class TokenUsageServiceImpl implements TokenUsageService {
     private Long resolveLimit(User user) {
         String code = user.getPlan() == null ? UserPlan.FREE.name() : user.getPlan().name();
         return planRepository.findByCodeAndDeletedAtIsNull(code)
-                .map(Plan::getMonthlyTokenLimit)
+                .map(Plan::effectiveMonthlyTokenLimit)
                 .orElseGet(() -> {
                     log.warn("[TokenUsage] Không tìm thấy gói {} — bỏ qua hạn mức token", code);
                     return null;

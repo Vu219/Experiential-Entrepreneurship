@@ -301,7 +301,7 @@ function RangePanel({
  * gốc luôn theo locale trình duyệt và có bề rộng tối thiểu lớn (từng làm tràn popover). Gõ tự do,
  * chốt khi Enter/blur; sai định dạng hoặc ngoài [min, max] thì trả về giá trị cũ.
  */
-function DateField({
+export function DateField({
   value, min, max, label, onCommit,
 }: {
   value: string;
@@ -485,7 +485,7 @@ const triggerStyle = (open: boolean, isMobile: boolean): CSSProperties => ({
   borderRadius: 12, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
 });
 
-const presetBtn = (active: boolean): CSSProperties => ({
+export const presetBtn = (active: boolean): CSSProperties => ({
   border: '1px solid', borderColor: active ? 'transparent' : C.border,
   background: active ? 'linear-gradient(135deg,#8b5cf6,#d946ef)' : C.surface,
   color: active ? '#fff' : C.ink550,

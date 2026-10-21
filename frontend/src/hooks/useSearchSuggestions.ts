@@ -18,7 +18,7 @@ async function load(): Promise<SearchSuggestion[]> {
   // Dùng lại API sẵn có (không thêm endpoint): tổng hợp Bảng điều khiển + đếm bài lỗi cần xử lý. Mỗi nguồn lỗi
   // thì chỉ bỏ gợi ý của nguồn đó.
   const [summary, failed] = await Promise.allSettled([
-    getDashboardSummary(7),
+    getDashboardSummary(),
     listFailedPosts({ filter: 'ALL', state: 'NEEDS_ACTION', page: 0, size: 1 }),
   ]);
   const items: SearchSuggestion[] = [];

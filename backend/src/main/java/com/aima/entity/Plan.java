@@ -25,6 +25,13 @@ public class Plan extends BaseEntity {
     /** Các gói lõi được seed sẵn — bất biến, không cho xóa (SEC: check trong service). */
     public static final Set<String> CORE_CODES = Set.of("FREE", "PLUS", "PRO");
 
+    /**
+     * Gói KHÔNG GIỚI HẠN của hệ thống (chốt 2026-10-21): PRO — admin cấp cho tài khoản không giới hạn. Quyền cao nhất:
+     * mọi giới hạn tính năng mở hết + token AI không giới hạn, bất kể các cột giới hạn đang lưu. Là mã gói lõi nên không
+     * đổi/xoá được. Khoá nền tảng TOÀN HỆ THỐNG của admin vẫn áp dụng.
+     */
+    public static final String UNLIMITED_CODE = "PRO";
+
     /** Mã gói (FREE/PLUS/PRO/...) — khớp enum UserPlan cho 3 gói lõi; không đổi sau khi tạo. */
     @Column(name = "code", nullable = false, length = 20, updatable = false)
     String code;
@@ -73,6 +80,16 @@ public class Plan extends BaseEntity {
      */
     @Column(name = "monthly_token_limit")
     Long monthlyTokenLimit;
+
+    /** Gói không giới hạn của hệ thống — xem {@link #UNLIMITED_CODE}. */
+    public boolean isUnlimited() {
+        return UNLIMITED_CODE.equals(code);
+    }
+
+    /** Hạn mức token THỰC THI (chặn + hiển thị cho user): gói không giới hạn → null, còn lại {@link #monthlyTokenLimit}. */
+    public Long effectiveMonthlyTokenLimit() {
+        return isUnlimited() ? null : monthlyTokenLimit;
+    }
 
     /**
      * Mọi giới hạn theo gói (V15 + V18 + V20, gồm 2 giới hạn AI) — null khi mọi cột null = toàn bộ mặc định hệ thống.

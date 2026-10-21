@@ -133,6 +133,52 @@ public interface ContentItemRepository extends JpaRepository<ContentItem, UUID> 
     List<DailyStatusCountProjection> countDailyByStatusForUser(@Param("userId") UUID userId,
                                                                @Param("from") LocalDateTime from);
 
+    // Bảng điều khiển — thẻ "Đã đăng": số bài lên nền tảng LẦN ĐẦU mỗi ngày (published_at là timestamptz →
+    // đổi về :zone trước khi cắt ngày). Theo ngày tạo bài thì bài tạo tuần trước, đăng tuần này bị tính sai kỳ.
+    // Chỉ bài hiện đang POSTED/PARTIALLY_POSTED để chuỗi cùng tập với con số tổng của thẻ.
+    @Query(value = """
+            select to_char(f.first_published, 'YYYY-MM-DD') as day, count(*) as total
+            from (
+                select i.id, min(p.published_at at time zone cast(:zone as text)) as first_published
+                from content_items i
+                join brand_profiles bp on bp.id = i.brand_profile_id and bp.deleted_at is null
+                join content_versions cv on cv.content_item_id = i.id
+                join post_schedules ps on ps.content_version_id = cv.id and ps.deleted_at is null
+                join posts p on p.schedule_id = ps.id and p.deleted_at is null
+                where bp.user_id = :userId and i.deleted_at is null
+                  and i.status in ('POSTED', 'PARTIALLY_POSTED')
+                  and p.status = 'POSTED' and p.published_at is not null
+                group by i.id
+            ) f
+            where f.first_published >= :from
+            group by 1
+            """, nativeQuery = true)
+    List<DailyCountProjection> countDailyFirstPublishedForUser(@Param("userId") UUID userId,
+                                                               @Param("zone") String zone,
+                                                               @Param("from") LocalDateTime from);
+
+    // Bảng điều khiển — thẻ "Đăng thất bại": bài đang FAILED theo THỜI ĐIỂM THẤT BẠI (end_time của job FAILED
+    // muộn nhất, cùng mốc với trang "Bài lỗi & cần xử lý"); bài không có job lỗi nào thì lấy lần cập nhật cuối.
+    @Query(value = """
+            select to_char(f.failed_at, 'YYYY-MM-DD') as day, count(*) as total
+            from (
+                select i.id, coalesce(max(j.end_time at time zone cast(:zone as text)), i.updated_at) as failed_at
+                from content_items i
+                join brand_profiles bp on bp.id = i.brand_profile_id and bp.deleted_at is null
+                left join content_versions cv on cv.content_item_id = i.id
+                left join post_schedules ps on ps.content_version_id = cv.id and ps.deleted_at is null
+                left join posts p on p.schedule_id = ps.id and p.deleted_at is null
+                left join posting_jobs j on j.post_id = p.id and j.status = 'FAILED' and j.deleted_at is null
+                where bp.user_id = :userId and i.deleted_at is null and i.status = 'FAILED'
+                group by i.id, i.updated_at
+            ) f
+            where f.failed_at >= :from
+            group by 1
+            """, nativeQuery = true)
+    List<DailyCountProjection> countDailyFailedForUser(@Param("userId") UUID userId,
+                                                       @Param("zone") String zone,
+                                                       @Param("from") LocalDateTime from);
+
     // ===== Tổng quan quản trị (UI-10) — phạm vi TOÀN HỆ THỐNG, không lọc theo user =====
 
     /** Tổng nội dung tích lũy tới một mốc — mẫu số % thay đổi "so với tuần trước". */

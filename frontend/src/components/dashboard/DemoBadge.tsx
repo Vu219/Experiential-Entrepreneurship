@@ -2,7 +2,7 @@ import { C } from '../../styles/colors';
 
 /**
  * Nhãn "Dữ liệu mẫu" — đánh dấu rõ những khối đang hiển thị dữ liệu demo fallback (khi tài khoản
- * chưa có số liệu thật), để không nhầm là số liệu thật. Dùng ở PerformanceChart và TopTopics.
+ * chưa có số liệu thật), để không nhầm là số liệu thật. Dùng ở thanh lọc trang Phân tích.
  */
 export default function DemoBadge({ label }: { label: string }) {
   return (

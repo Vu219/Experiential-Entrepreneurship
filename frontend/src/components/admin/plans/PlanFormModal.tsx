@@ -338,9 +338,13 @@ export default function PlanFormModal({ plan, plans, limitDefaults, lockedPlatfo
                       </Field>
                     </div>
                     <p style={note}>{t.plfTokenQuotaNote}</p>
+                    {plan?.code === UNLIMITED_PLAN_CODE && <p style={{ ...note, color: C.success }}>{t.plfUnlimitedNote}</p>}
                   </SectionBody>
                 )}
 
+                {section === 'limits' && plan?.code === UNLIMITED_PLAN_CODE && (
+                  <p style={{ ...note, color: C.success, marginBottom: 10 }}>{t.plfUnlimitedNote}</p>
+                )}
                 {section === 'limits' && (
                   <LimitsSection drafts={form.limits} onChange={setLimit} isCore={isCore} errors={limitErrs}
                     defaults={limitDefaults} lockedPlatforms={lockedPlatforms} scroller={scrollerRef} />
@@ -461,10 +465,16 @@ function LimitsSection({ drafts, onChange, isCore, errors, defaults, lockedPlatf
 }) {
   const { t } = useApp();
   const dict = t as unknown as Record<string, string>;
+  const navRef = useRef<HTMLDivElement>(null);
+  // Đích tính THEO VÙNG CUỘN (offsetTop đo theo khung modal nên lệch phần đầu modal) và trừ chiều cao mục lục
+  // dính — trước đây tiêu đề nhóm bị cuộn khuất dưới mục lục.
   const jump = (g: PlanLimitGroup) => {
     const el = document.getElementById(`plf-group-${g}`);
     const box = scroller.current;
-    if (el && box) box.scrollTo({ top: el.offsetTop - 60, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    if (!el || !box) return;
+    const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop
+      - (navRef.current?.offsetHeight ?? 0);
+    box.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   };
   const defaultText = (key: PlanLimitKey): string | undefined => {
     const f = PLAN_LIMIT_FIELDS.find((x) => x.key === key)!;
@@ -482,7 +492,7 @@ function LimitsSection({ drafts, onChange, isCore, errors, defaults, lockedPlatf
         <p style={{ ...note, marginTop: 4 }}>{isCore ? t.plfLimitsDescCore : t.plfLimitsDesc}</p>
       </div>
       {/* Mục lục dính trên cùng — nhảy nhanh tới từng nhóm */}
-      <div role="navigation" aria-label={t.plfLimitsToc} style={{
+      <div ref={navRef} role="navigation" aria-label={t.plfLimitsToc} style={{
         position: 'sticky', top: -20, zIndex: 2, display: 'flex', gap: 6, flexWrap: 'wrap', padding: '10px 0',
         margin: '0 0 6px', background: C.surface, borderBottom: `1px solid ${C.surfaceMuted}`,
       }}>
@@ -523,6 +533,9 @@ const input: CSSProperties = {
   fontSize: 13.5, color: C.textStrong, outline: 'none', background: C.surface, textOverflow: 'ellipsis',
 };
 const grid2: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))', gap: 14 };
+/** Gói không giới hạn của hệ thống — khớp `Plan.UNLIMITED_CODE` backend: token + mọi giới hạn bị bỏ qua. */
+const UNLIMITED_PLAN_CODE = 'PRO';
+
 const note: CSSProperties = { margin: 0, fontSize: 12, color: C.textMuted, lineHeight: 1.5 };
 const pill: CSSProperties = { fontSize: 10.5, fontWeight: 800, letterSpacing: '.06em', color: C.primaryStrong, background: C.primarySoft, border: `1px solid ${C.accentLine}`, borderRadius: 999, padding: '1px 8px' };
 const sectionTitle: CSSProperties = { margin: 0, fontFamily: "'Plus Jakarta Sans'", fontSize: 16, fontWeight: 800, color: C.textStrong };

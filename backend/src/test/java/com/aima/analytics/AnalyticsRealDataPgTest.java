@@ -9,6 +9,8 @@ import com.aima.dto.response.AnalyticsSyncAccountResponse;
 import com.aima.dto.response.AnalyticsSyncStatusResponse;
 import com.aima.dto.response.AnalyticsTimeseriesResponse;
 import com.aima.dto.response.AnalyticsTopPostResponse;
+import com.aima.exception.AppException;
+import com.aima.exception.ErrorCode;
 import com.aima.entity.BrandProfile;
 import com.aima.entity.ContentItem;
 import com.aima.entity.ContentVersion;
@@ -336,6 +338,54 @@ class AnalyticsRealDataPgTest {
                 List.of("TEXT")), "views,desc", 10).getResult().size());
         assertEquals(0, analyticsService.topPosts(email, new AnalyticsQuery(today.minusDays(6), today, null,
                 List.of("VIDEO")), "views,desc", 10).getResult().size());
+    }
+
+    @Test
+    void dashboard_statSeriesFollowEventDates_andContentTypesMatchAnalytics() {
+        String email = "dash-" + UUID.randomUUID() + "@it.local";
+        PlatformAccount page = newPage(email);
+        // Hai bài tạo HÔM NAY nhưng đăng 2 ngày và 9 ngày trước → chuỗi "Đã đăng" theo ngày đăng, không theo ngày tạo.
+        newPost(page, "d2", Duration.ofDays(2), 0, 0, 0, 0);
+        newPost(page, "d9", Duration.ofDays(9), 0, 0, 0, 0);
+        UUID failedPost = newPost(page, "f3", Duration.ofDays(5), 0, 0, 0, 0);
+        jdbcTemplate.update("update posts set status = 'FAILED', published_at = null where id = ?", failedPost);
+        jdbcTemplate.update("update content_items set status = 'FAILED' where id = (select cv.content_item_id from posts p "
+                + "join post_schedules ps on ps.id = p.schedule_id join content_versions cv on cv.id = ps.content_version_id "
+                + "where p.id = ?)", failedPost);
+        jdbcTemplate.update("insert into posting_jobs(id, created_at, post_id, status, retry_count, end_time) "
+                + "values (gen_random_uuid(), now(), ?, 'FAILED', 0, now() - interval '3 days')", failedPost);
+        syncService.prepare(1000); // bài POSTED → platform_media (nguồn "loại nội dung" của trang Phân tích)
+
+        var dashboard = dashboardService.getSummary(email, 7).getResult();
+
+        assertEquals(2, dashboard.getStats().getPosted().getTotal());
+        assertEquals(List.of(0L, 0L, 0L, 0L, 1L, 0L, 0L), dashboard.getStats().getPosted().getSeries(),
+                "đã đăng = ngày đăng lần đầu (2 ngày trước)");
+        assertEquals(0.0, dashboard.getStats().getPosted().getDeltaPct(), "1 bài kỳ này vs 1 bài (9 ngày trước) kỳ trước");
+        assertEquals(1, dashboard.getStats().getRejected().getTotal());
+        assertEquals(List.of(0L, 0L, 0L, 1L, 0L, 0L, 0L), dashboard.getStats().getRejected().getSeries(),
+                "đăng thất bại = thời điểm job FAILED muộn nhất (3 ngày trước)");
+        // Loại nội dung = loại bài trên nền tảng của bài ĐĂNG trong kỳ (cùng truy vấn trang Phân tích), KHÔNG theo
+        // media_format "video" AI gợi ý: 7 ngày chỉ có bài d2 (bài AIMA chưa có nhãn nền tảng = TEXT).
+        assertEquals(List.of("TEXT"), dashboard.getContentTypes().stream().map(t -> t.getLabel()).toList());
+        assertEquals(1, dashboard.getContentTypes().getFirst().getPosts());
+
+        // Bộ lọc biểu đồ: "đến ngày" ở tương lai kẹp về hôm nay; gói FREE chỉ xem 7 ngày lịch sử → "từ ngày" bị kẹp
+        // (bài d9 nằm ngoài khoảng xem được); từ > đến bị từ chối.
+        LocalDate today = LocalDate.now(java.time.ZoneId.of("UTC"));
+        var custom = dashboardService.getPerformance(email, today.minusDays(9), today.plusDays(3)).getResult();
+        assertEquals(today.toString(), custom.getTo());
+        assertEquals(today.minusDays(6).toString(), custom.getFrom());
+        assertEquals(7, custom.getPoints().size());
+        var threeDays = dashboardService.getPerformance(email, today.minusDays(2), today).getResult();
+        assertEquals(3, threeDays.getPoints().size(), "khoảng tùy chỉnh zero-fill đủ ngày");
+        assertEquals(1, threeDays.getContentTypes().getFirst().getPosts(), "donut theo cùng khoảng lọc của biểu đồ");
+        assertTrue(dashboardService.getPerformance(email, today.minusDays(1), today).getResult().getContentTypes().isEmpty(),
+                "không bài nào đăng trong khoảng → donut rỗng");
+        assertEquals(7, dashboardService.getPerformance(email, null, null).getResult().getRangeDays(), "mặc định 7 ngày");
+        AppException invalid = assertThrows(AppException.class,
+                () -> dashboardService.getPerformance(email, today, today.minusDays(1)));
+        assertEquals(ErrorCode.ANALYTICS_RANGE_INVALID, invalid.getErrorCode());
     }
 
     private void snapshot(UUID mediaId, int daysAgo) {

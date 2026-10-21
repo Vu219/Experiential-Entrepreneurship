@@ -2,7 +2,6 @@ import { memo } from 'react';
 import { ChevronRight, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Card, Icon } from '../ui';
-import DemoBadge from './DemoBadge';
 import { formatCompactNumber } from '../../utils/format';
 import type { DashboardTopic } from '../../api/dashboard';
 import { C } from '../../styles/colors';
@@ -11,7 +10,7 @@ import { C } from '../../styles/colors';
  * Khối "Top chủ đề hiệu quả": chủ đề = trend gắn với bài. Thanh tỉ lệ so với chủ đề tương tác cao
  * nhất; chủ đề chưa đăng bài (engagement = 0) vẫn hiện để user thấy chủ đề đã dùng.
  */
-function TopTopics({ rows, demo = false, id }: { rows: DashboardTopic[]; demo?: boolean; id?: string }) {
+function TopTopics({ rows, id }: { rows: DashboardTopic[]; id?: string }) {
   const { t, brandGradient, go } = useApp();
   const max = Math.max(1, ...rows.map((r) => r.engagement));
 
@@ -19,10 +18,7 @@ function TopTopics({ rows, demo = false, id }: { rows: DashboardTopic[]; demo?: 
     <Card id={id}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.dbTopicsTitle}</span>
-            {demo && <DemoBadge label={t.dbDemoData} />}
-          </div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.dbTopicsTitle}</div>
           <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 2 }}>{t.dbTopicsSub}</div>
         </div>
         <button

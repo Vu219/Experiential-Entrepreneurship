@@ -97,7 +97,7 @@ const brandName = (t: Dict) => t.navBrand;
 const sections: StaticSearchItem[] = [
   // Bảng điều khiển — id phải khớp prop `id` gắn trên từng khối ở pages/app/Dashboard.tsx.
   block('dashboard-stats', 'dashboard', (t) => t.gsSecStats, dashboardName, ListChecks,
-    ['thống kê', 'số bài', 'đã đăng', 'chờ duyệt', 'bị từ chối', 'stats', 'kpi', 'posted', 'pending']),
+    ['thống kê', 'số bài', 'đã đăng', 'chờ duyệt', 'bị từ chối', 'thất bại', 'stats', 'kpi', 'posted', 'pending', 'failed']),
   block('dashboard-setup', 'dashboard', (t) => t.dbsTitle, dashboardName, Target,
     ['thiết lập', 'bắt đầu', 'hướng dẫn', 'onboarding', 'checklist', 'getting started']),
   block('dashboard-performance', 'dashboard', (t) => t.perfTitle, dashboardName, BarChart3,

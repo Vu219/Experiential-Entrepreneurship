@@ -87,6 +87,9 @@ public class PlanLimitServiceImpl implements PlanLimitService {
 
     @Override
     public FeatureLimits featuresOf(Plan plan) {
+        if (isUnlimitedPlan(plan)) {
+            return unlimitedFeatures(plan.getCode());
+        }
         // Fail-closed: không tra được gói → giới hạn gói FREE lõi, không bao giờ "toàn mặc định = không giới hạn".
         PlanFeatureLimits columns = plan == null
                 ? PlanDataInitializer.coreFeatureLimits(UserPlan.FREE.name())
@@ -135,6 +138,24 @@ public class PlanLimitServiceImpl implements PlanLimitService {
                 default -> environment.getProperty(DEFAULTS_PREFIX + key.propertyName(), Integer.class, UNLIMITED);
             };
         };
+    }
+
+    /** Gói không giới hạn của hệ thống ({@link Plan#UNLIMITED_CODE}). */
+    private static boolean isUnlimitedPlan(Plan plan) {
+        return plan != null && plan.isUnlimited();
+    }
+
+    /**
+     * Quyền cao nhất: mọi hạn mức/trần không giới hạn, mọi cờ bật, đủ mọi nền tảng — bỏ qua cột giới hạn của gói. Khoá
+     * nền tảng TOÀN HỆ THỐNG (admin) vẫn thắng ở {@code PlatformAvailabilityService} như mọi gói.
+     */
+    private static FeatureLimits unlimitedFeatures(String planCode) {
+        Set<Platform> platforms = Set.of(Platform.values());
+        Map<PlanLimitKey, Long> values = new EnumMap<>(PlanLimitKey.class);
+        for (PlanLimitKey key : PlanLimitKey.values()) {
+            values.put(key, key.type() == PlanLimitKey.Type.SET ? Long.valueOf(platforms.size()) : null);
+        }
+        return new FeatureLimits(planCode, Collections.unmodifiableMap(values), platforms);
     }
 
     /** FLAG: false → 0 (tắt), true → null; số: -1 → null (không giới hạn), âm khác (cấu hình sai) → 0 = tắt. */

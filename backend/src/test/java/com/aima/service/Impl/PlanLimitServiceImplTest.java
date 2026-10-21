@@ -146,17 +146,37 @@ class PlanLimitServiceImplTest {
     /** Biến env cũ theo tên gói (deprecated) chỉ thay mặc định cho gói CÙNG MÃ khi gói chưa cấu hình. */
     @Test
     void legacyPerPlanEnv_onlyFillsUnconfiguredPlanWithSameCode() {
-        environment.setProperty("AIMA_POLICY_CHECK_AI_LIMIT_PRO", "200");
+        environment.setProperty("AIMA_POLICY_CHECK_AI_LIMIT_PLUS", "200");
         service = newService();
 
-        subscribedTo(plan("PRO", null, null));
+        subscribedTo(plan("PLUS", null, null));
         assertEquals(200L, policy(service.features(user)));
 
-        subscribedTo(plan("PRO", 50, null));
+        subscribedTo(plan("PLUS", 50, null));
         assertEquals(50L, policy(service.features(user)), "giá trị trên gói luôn thắng env cũ");
 
         subscribedTo(plan("TEAM", null, null));
         assertEquals(10L, policy(service.features(user)));
+    }
+
+    /** Gói không giới hạn của hệ thống (PRO): mọi giới hạn mở hết, đủ mọi nền tảng — bỏ qua cột giới hạn đang lưu. */
+    @Test
+    void unlimitedPlan_pro_ignoresStoredLimits_andAllowsEverything() {
+        subscribedTo(Plan.builder().code("PRO").monthlyTokenLimit(1_000_000L).featureLimits(PlanFeatureLimits.builder()
+                .policyCheckAiPerPeriod(0).aiFixPerVersion(3).ideasPerResearch(20).scheduleHorizonDays(90)
+                .analyticsHistoryDays(365).analyticsAdvanced(false).allowedPlatforms("FACEBOOK").build()).build());
+
+        FeatureLimits limits = service.features(user);
+        for (PlanLimitKey key : PlanLimitKey.values()) {
+            assertTrue(limits.included(key), key + " phải được bật");
+            if (key.type() != PlanLimitKey.Type.SET) {
+                assertNull(limits.limit(key), key + " phải không giới hạn");
+            }
+        }
+        assertEquals(Set.of(Platform.values()), limits.allowedPlatforms());
+        assertNull(Plan.builder().code("PRO").monthlyTokenLimit(1_000_000L).build().effectiveMonthlyTokenLimit(),
+                "token AI không giới hạn");
+        assertEquals(100_000L, Plan.builder().code("PLUS").monthlyTokenLimit(100_000L).build().effectiveMonthlyTokenLimit());
     }
 
     /** Cấu hình sai (âm khác -1) không bao giờ thành "không giới hạn" ngoài ý muốn. */

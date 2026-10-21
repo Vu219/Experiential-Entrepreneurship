@@ -18,8 +18,9 @@ import TopTopics from '../../components/dashboard/TopTopics.tsx';
 import ContentTypeDonut from '../../components/dashboard/ContentTypeDonut.tsx';
 import ActivityTimeline from '../../components/dashboard/ActivityTimeline.tsx';
 import DashboardSkeleton from '../../components/dashboard/DashboardSkeleton.tsx';
-import { buildMockPerformance, buildMockTopics } from '../../components/dashboard/dashboardMock.ts';
-import { getDashboardSummary, type DashboardRange, type DashboardSummary } from '../../api/dashboard.ts';
+import { getDashboardPerformance, getDashboardSummary, type DashboardPerformance, type DashboardSummary } from '../../api/dashboard.ts';
+import { DEFAULT_PERF_FILTER, type PerfFilter } from '../../components/dashboard/PerformanceFilter.tsx';
+import { rangeOfPreset } from '../../components/analytics/dateRange.ts';
 import { listNotifications, type AppNotification } from '../../api/notifications.ts';
 import { C } from '../../styles/colors';
 
@@ -29,7 +30,8 @@ import { C } from '../../styles/colors';
 //
 // Thứ tự khối: banner chào mừng (giữ nguyên) → tiến độ thiết lập (FR-86, tự ẩn khi 4/4) →
 // 4 thẻ số liệu → nền tảng đã kết nối → biểu đồ hiệu suất → top chủ đề + loại nội dung →
-// hoạt động gần đây. Mỗi khối tự lo empty state của mình nên số liệu = 0 không làm vỡ layout.
+// hoạt động gần đây. Mọi khối CHỈ hiển thị số liệu thật; chưa có
+// số thì hiện empty state của chính khối (không còn dữ liệu mẫu) nên số liệu = 0 không làm vỡ layout.
 
 type Status = 'loading' | 'error' | 'ready';
 
@@ -52,35 +54,37 @@ export default function Dashboard() {
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [activity, setActivity] = useState<AppNotification[]>([]);
   const [activityTotal, setActivityTotal] = useState(0);
-  const [range, setRange] = useState<DashboardRange>(7);
   const [reloadKey, setReloadKey] = useState(0);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
-  // Đổi khoảng thời gian KHÔNG dựng lại skeleton — giữ nội dung cũ để trang không nháy.
+  // Làm mới (realtime / "Thử lại") KHÔNG dựng lại skeleton — giữ nội dung cũ để trang không nháy.
   const loadedRef = useRef(false);
   // Realtime: bài đổi trạng thái / thông báo mới → làm mới số liệu + "Hoạt động gần đây" (không hiện skeleton lại).
   useRealtimeRefresh(['post.updated', 'notification.created', 'ready'], () => setReloadKey((k) => k + 1), 1500);
-  // Khoảng thời gian ĐANG hiển thị (chỉ cập nhật khi tải thành công) — dùng để trả bộ lọc về
-  // đúng dữ liệu trên biểu đồ nếu lần đổi khoảng bị lỗi.
-  const appliedRangeRef = useRef<DashboardRange>(7);
+
+  // Biểu đồ "Hiệu quả nội dung" + donut "Loại nội dung" theo cùng bộ lọc: mặc định 7 ngày dùng luôn số trong
+  // /dashboard/summary; 30 ngày / tùy chỉnh gọi /dashboard/performance riêng, chỉ khi bấm "Lọc" — đổi khoảng
+  // không tải lại cả trang.
+  const [perfFilter, setPerfFilter] = useState<PerfFilter>(DEFAULT_PERF_FILTER);
+  const [perf, setPerf] = useState<DashboardPerformance | null>(null);
+  const [perfLoading, setPerfLoading] = useState(false);
+  // Bộ lọc đang hiển thị trên biểu đồ (chỉ cập nhật khi tải thành công) — lọc hỏng thì trả nút về đúng khoảng này.
+  const appliedPerfRef = useRef<PerfFilter>(DEFAULT_PERF_FILTER);
 
   useEffect(() => {
     let alive = true;
     if (!loadedRef.current) setStatus('loading');
-    // Timeline hoạt động KHÔNG phụ thuộc khoảng thời gian → chỉ nạp ở lần tải đầu (và khi
-    // bấm "Thử lại" từ trạng thái lỗi), tránh gọi lại /notifications mỗi lần đổi 7↔30 ngày.
-    const fetchActivity = !loadedRef.current;
     (async () => {
       try {
         // Timeline là phần phụ: lỗi riêng của nó không được phá cả bảng điều khiển.
         const [summary, notifications] = await Promise.all([
-          getDashboardSummary(range),
-          fetchActivity ? listNotifications({ size: ACTIVITY_SIZE }).catch(() => null) : Promise.resolve(null),
+          getDashboardSummary(),
+          listNotifications({ size: ACTIVITY_SIZE }).catch(() => null),
         ]);
         if (!alive) return;
         setData(summary);
-        if (fetchActivity) {
-          setActivity(notifications?.content ?? []);
-          setActivityTotal(notifications?.totalElements ?? 0);
+        if (notifications) {
+          setActivity(notifications.content);
+          setActivityTotal(notifications.totalElements);
         }
         setStatus('ready');
         // FR-85: chào mừng lần đầu — chỉ khi CHƯA làm bước thiết lập nào và chưa từng đóng.
@@ -88,21 +92,39 @@ export default function Dashboard() {
           setOnboardingOpen(true);
         }
         loadedRef.current = true;
-        appliedRangeRef.current = summary.rangeDays === 30 ? 30 : 7;
       } catch {
         if (!alive) return;
-        if (loadedRef.current) {
-          // Đã có dữ liệu trên màn hình: đổi khoảng thời gian hỏng KHÔNG được xóa cả trang.
-          // Giữ nguyên nội dung, báo bằng toast và trả nút lọc về đúng khoảng đang hiển thị.
-          toast.error(t.dashErrMsg, { title: t.dashErrTitle });
-          setRange(appliedRangeRef.current);
-        } else {
-          setStatus('error');
-        }
+        // Đã có dữ liệu trên màn hình: lần làm mới hỏng KHÔNG được xóa cả trang — giữ nội dung, báo bằng toast.
+        if (loadedRef.current) toast.error(t.dashErrMsg, { title: t.dashErrTitle });
+        else setStatus('error');
       }
     })();
     return () => { alive = false; };
-  }, [range, reloadKey, toast, t]);
+  }, [reloadKey, toast, t]);
+
+  useEffect(() => {
+    if (perfFilter.preset === 'd7') {
+      appliedPerfRef.current = perfFilter;
+      setPerf(null);
+      return;
+    }
+    let alive = true;
+    setPerfLoading(true);
+    getDashboardPerformance(perfFilter.from, perfFilter.to)
+      .then((res) => {
+        if (!alive) return;
+        appliedPerfRef.current = perfFilter;
+        setPerf(res);
+      })
+      .catch(() => {
+        if (!alive) return;
+        toast.error(t.dashErrMsg, { title: t.dashErrTitle });
+        setPerfFilter(appliedPerfRef.current);
+      })
+      .finally(() => { if (alive) setPerfLoading(false); });
+    return () => { alive = false; };
+    // reloadKey: realtime làm mới cả biểu đồ đang lọc, không chỉ các thẻ.
+  }, [perfFilter, reloadKey, toast, t]);
 
   if (status === 'loading') {
     return (
@@ -137,15 +159,9 @@ export default function Dashboard() {
   // Cặp "Top chủ đề | Loại nội dung": 2-up từ tablet trở lên, 1 cột ở mobile.
   // (minmax(0,..) để biểu đồ recharts co theo cột, không đẩy tràn ngang.)
   const pairCols = isMobile ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)';
-
-  // Fallback DỮ LIỆU MẪU khi tài khoản chưa có số liệu thật (xem dashboardMock.ts): chỉ để xem
-  // trước giao diện, luôn kèm nhãn "Dữ liệu mẫu" (prop demo). Có dữ liệu thật thì dùng dữ liệu thật.
-  const perfHasData = data.performance.some((p) => p.reach > 0 || p.engagement > 0);
-  const perfPoints = perfHasData ? data.performance : buildMockPerformance(range);
-  const topicsDemo = data.topTopics.length === 0;
-  const topicRows = topicsDemo
-    ? buildMockTopics([t.dbDemoTopic1, t.dbDemoTopic2, t.dbDemoTopic3, t.dbDemoTopic4, t.dbDemoTopic5])
-    : data.topTopics;
+  // Khoảng thật của donut: bộ lọc 30 ngày / tùy chỉnh lấy từ backend (đã kẹp theo gói), mặc định = 7 ngày của summary.
+  const typesRange = perf ? { from: perf.from, to: perf.to } : rangeOfPreset(data.rangeDays);
+  const contentTypes = perf ? perf.contentTypes : data.contentTypes;
 
   return (
     <PageContainer>
@@ -195,11 +211,12 @@ export default function Dashboard() {
         // alignItems:start để mỗi cột cao tự nhiên; minmax(0,..) chặn tràn ngang do biểu đồ.
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
-            <PerformanceChart id="dashboard-performance" points={perfPoints} range={range} onRangeChange={setRange} demo={!perfHasData} />
+            <PerformanceChart id="dashboard-performance" points={perf ? perf.points : data.performance} filter={perfFilter}
+            onFilterChange={setPerfFilter} loading={perfLoading} />
             {/* alignItems:stretch để 2 card con cao bằng nhau. */}
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18, alignItems: 'stretch' }}>
-              <TopTopics id="dashboard-topics" rows={topicRows} demo={topicsDemo} />
-              <ContentTypeDonut id="dashboard-types" rows={data.contentTypes} />
+              <TopTopics id="dashboard-topics" rows={data.topTopics} />
+              <ContentTypeDonut id="dashboard-types" rows={contentTypes} from={typesRange.from} to={typesRange.to} />
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
@@ -210,11 +227,12 @@ export default function Dashboard() {
       ) : (
         // <lg: xếp dọc theo thứ tự dễ đọc — hiệu suất → nền tảng → (top chủ đề | loại nội dung) → hoạt động.
         <>
-          <PerformanceChart id="dashboard-performance" points={perfPoints} range={range} onRangeChange={setRange} demo={!perfHasData} />
+          <PerformanceChart id="dashboard-performance" points={perf ? perf.points : data.performance} filter={perfFilter}
+            onFilterChange={setPerfFilter} loading={perfLoading} />
           <PlatformPanel id="dashboard-platforms" rows={data.platforms} />
           <div style={{ display: 'grid', gridTemplateColumns: pairCols, gap: 18, alignItems: 'stretch' }}>
-            <TopTopics id="dashboard-topics" rows={topicRows} demo={topicsDemo} />
-            <ContentTypeDonut id="dashboard-types" rows={data.contentTypes} />
+            <TopTopics id="dashboard-topics" rows={data.topTopics} />
+            <ContentTypeDonut id="dashboard-types" rows={contentTypes} from={typesRange.from} to={typesRange.to} />
           </div>
           <ActivityTimeline id="dashboard-activity" items={activity} total={activityTotal} />
         </>

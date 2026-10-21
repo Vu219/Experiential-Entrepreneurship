@@ -333,7 +333,7 @@ class PaymentEndToEndTest {
     void flow8_expiredPlan_dropsTheQuotaImmediately() {
         User user = newUser("f8");
         buyAndPay(user, "PRO");
-        assertEquals(1_000_000L, tokenUsageService.state(user).limit(), "đang PRO thì hạn mức là của PRO");
+        assertNull(tokenUsageService.state(user).limit(), "đang PRO (gói không giới hạn của hệ thống) thì không giới hạn token");
 
         // Hết hạn GIỮA THÁNG — kỳ tính hạn mức (tháng lịch) vẫn đang chạy, nên nếu việc hạ gói
         // chỉ có tác dụng từ kỳ sau thì test này đỏ. Đó chính là điểm G.

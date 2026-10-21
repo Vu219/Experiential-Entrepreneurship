@@ -371,7 +371,7 @@ export default function Calendar() {
           }
         />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: stacked ? '1fr' : width >= 1440 ? '1.55fr 1fr' : '1.45fr 1fr', gap: 20, alignItems: 'stretch' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: stacked ? '1fr' : width >= 1440 ? '1.55fr 1fr' : '1.45fr 1fr', gap: 20, alignItems: 'start' }}>
           <Card style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
               {view === 'month' ? (
@@ -454,17 +454,16 @@ export default function Calendar() {
 
           {!isMobile && (
             <Card
-              className="h-[calc(100vh-160px)] sticky top-24"
+              className="sticky top-24"
               style={{
-                height: 'calc(100vh - 160px)',
-                maxHeight: 'calc(100vh - 160px)',
-                minHeight: 480,
+                maxHeight: 'calc(100vh - 120px)',
                 display: 'flex',
                 flexDirection: 'column',
                 position: 'sticky',
                 top: 86,
                 padding: '20px 22px',
                 overflow: 'hidden',
+                alignSelf: 'start',
               }}
             >
               <UpcomingPanel

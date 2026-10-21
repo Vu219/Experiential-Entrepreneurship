@@ -41,7 +41,7 @@ public interface PaymentMapper {
     @Mapping(target = "planNameEn", source = "plan.nameEn")
     @Mapping(target = "price", source = "plan.price")
     @Mapping(target = "billingIntervalMonths", source = "plan.billingIntervalMonths")
-    @Mapping(target = "monthlyTokenLimit", source = "plan.monthlyTokenLimit")
+    @Mapping(target = "monthlyTokenLimit", expression = "java(plan == null ? null : plan.effectiveMonthlyTokenLimit())")
     @Mapping(target = "planSource", source = "subscription.planSource")
     @Mapping(target = "planStartedAt", source = "subscription.planStartedAt")
     @Mapping(target = "planExpiresAt", source = "subscription.planExpiresAt")

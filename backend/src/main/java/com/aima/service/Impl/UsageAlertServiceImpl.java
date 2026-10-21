@@ -245,8 +245,8 @@ public class UsageAlertServiceImpl implements UsageAlertService {
         }
         Map<UUID, Long> limitByUser = new HashMap<>();
         for (Subscription s : subscriptionRepository.findAllWithPlanAndUser()) {
-            if (s.getPlan().getMonthlyTokenLimit() != null) {
-                limitByUser.put(s.getUser().getId(), s.getPlan().getMonthlyTokenLimit());
+            if (s.getPlan().effectiveMonthlyTokenLimit() != null) {
+                limitByUser.put(s.getUser().getId(), s.getPlan().effectiveMonthlyTokenLimit());
             }
         }
         for (AiUsageRepository.UserActivityAgg agg : aiUsageRepository.activitySince(now.minusHours(1))) {

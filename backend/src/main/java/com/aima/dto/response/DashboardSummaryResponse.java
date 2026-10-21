@@ -40,8 +40,8 @@ public class DashboardSummaryResponse {
     @Schema(description = "Số ngày của khoảng đang xem (7 hoặc 30).", example = "7")
     int rangeDays;
 
-    @Schema(description = "Phân bổ loại nội dung cho biểu đồ donut, nhiều nhất trước.")
-    List<DashboardDistributionResponse> contentTypes;
+    @Schema(description = "Loại nội dung của bài đăng trong 7 ngày gần nhất — cùng số với khối loại nội dung trang Phân tích.")
+    List<AnalyticsContentTypeResponse> contentTypes;
 
     @Schema(description = "Top chủ đề hiệu quả (tối đa 5).")
     List<DashboardTopicResponse> topTopics;

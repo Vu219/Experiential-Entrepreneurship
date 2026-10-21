@@ -59,6 +59,9 @@ public class UserUsageResponse {
     /** Giá gói VND / chu kỳ (card gói hiện tại). */
     Long planPrice;
 
+    /** true = gói không giới hạn của hệ thống (PRO): token + mọi tính năng không giới hạn. */
+    boolean unlimitedPlan;
+
     /** Token theo ngày trong kỳ (chỉ các ngày có hoạt động — FE tự lấp ngày trống). */
     List<UsageSeriesPointResponse> series;
 

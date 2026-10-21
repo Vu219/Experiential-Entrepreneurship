@@ -1,8 +1,9 @@
 package com.aima.service.Impl;
 
 import com.aima.dto.response.ApiResponse;
-import com.aima.dto.response.DashboardDistributionResponse;
+import com.aima.dto.response.AnalyticsContentTypeResponse;
 import com.aima.dto.response.DashboardOnboardingResponse;
+import com.aima.dto.response.DashboardPerformanceResponse;
 import com.aima.dto.response.DashboardPlatformResponse;
 import com.aima.dto.response.DashboardPointResponse;
 import com.aima.dto.response.DashboardStatResponse;
@@ -17,40 +18,43 @@ import com.aima.enums.Platform;
 import com.aima.enums.ReviewStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
+import com.aima.mapper.AnalyticsMapper;
 import com.aima.mapper.DashboardMapper;
 import com.aima.repository.BrandProfileRepository;
 import com.aima.repository.ContentItemRepository;
 import com.aima.repository.ContentStrategyRepository;
-import com.aima.repository.ContentVersionRepository;
 import com.aima.repository.PlatformAccountRepository;
 import com.aima.repository.PostAnalyticsRepository;
 import com.aima.repository.UserRepository;
+import com.aima.repository.projection.DailyCountProjection;
 import com.aima.repository.projection.DailyEngagementProjection;
 import com.aima.repository.projection.DailyStatusCountProjection;
-import com.aima.repository.projection.LabelCountProjection;
 import com.aima.repository.projection.StatusCountProjection;
 import com.aima.service.DashboardService;
 import com.aima.service.PlanUsageService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -58,7 +62,7 @@ import java.util.stream.Collectors;
  * UI-02 — dữ liệu tab "Bảng điều khiển" trong MỘT endpoint tổng hợp thay cho 7 lần gọi rời rạc.
  *
  * <p>Toàn bộ số liệu được tính bằng truy vấn gộp (COUNT/GROUP BY) chứ không nạp entity rồi đếm
- * trong bộ nhớ — 9 truy vấn cố định, không phụ thuộc số bài của user (không N+1). Mọi truy vấn
+ * trong bộ nhớ — 11 truy vấn cố định, không phụ thuộc số bài của user (không N+1). Mọi truy vấn
  * đều lọc theo user đang đăng nhập (API-03/SEC-04).
  */
 @Service
@@ -74,11 +78,12 @@ public class DashboardServiceImpl implements DashboardService {
     // Biểu đồ hiệu suất chỉ nhận 7 hoặc 30 ngày (hợp đồng API); giá trị lạ được kẹp về [7, 30].
     static int MIN_RANGE_DAYS = 7;
     static int MAX_RANGE_DAYS = 30;
+    // Bộ lọc tùy chỉnh của biểu đồ: cùng trần 366 ngày với trang Phân tích (ANALYTICS_RANGE_TOO_LARGE).
+    static int MAX_CUSTOM_RANGE_DAYS = 366;
     static int TOP_TOPICS_LIMIT = 5;
     static int ONBOARDING_STEPS = 4;
 
-    /** Nhãn gộp cho bản nền tảng chưa có định dạng media (mediaFormat null). */
-    static String OTHER_LABEL = "OTHER";
+    static String DEFAULT_ZONE = "Asia/Ho_Chi_Minh";
 
     /** Một nhóm đếm: (trạng thái tổng, trạng thái duyệt) — hai chiều độc lập của bài. */
     record StatusKey(ContentItemStatus status, ReviewStatus review) {
@@ -88,7 +93,7 @@ public class DashboardServiceImpl implements DashboardService {
     static Set<ContentItemStatus> POSTED_STATUSES =
             EnumSet.of(ContentItemStatus.POSTED, ContentItemStatus.PARTIALLY_POSTED);
     // POSTING (đang đẩy lên nền tảng) tính vào "đang chờ": chưa đăng xong nên không thể là "đã đăng",
-    // cũng chưa lỗi nên không phải "bị từ chối" — bỏ ra ngoài thì bài biến mất khỏi cả 3 thẻ.
+    // cũng chưa lỗi nên không phải "đăng thất bại" — bỏ ra ngoài thì bài biến mất khỏi cả 3 thẻ.
     static Set<ContentItemStatus> PIPELINE_STATUSES =
             EnumSet.of(ContentItemStatus.SCHEDULED, ContentItemStatus.ON_HOLD, ContentItemStatus.POSTING);
     static Set<ReviewStatus> IN_REVIEW = EnumSet.of(ReviewStatus.NEED_REVIEW, ReviewStatus.APPROVED);
@@ -101,21 +106,30 @@ public class DashboardServiceImpl implements DashboardService {
     static Predicate<StatusKey> REJECTED = key -> key.status() == ContentItemStatus.FAILED;
 
     ContentItemRepository contentItemRepository;
-    ContentVersionRepository contentVersionRepository;
     PostAnalyticsRepository postAnalyticsRepository;
     PlatformAccountRepository platformAccountRepository;
     BrandProfileRepository brandProfileRepository;
     ContentStrategyRepository contentStrategyRepository;
     UserRepository userRepository;
     DashboardMapper dashboardMapper;
+    AnalyticsMapper analyticsMapper;
     PlanUsageService planUsageService;
+
+    /**
+     * Múi giờ neo "hôm nay" và mọi phép cắt ngày — cùng biến ghi cột timestamp (giống
+     * {@code AdminOverviewServiceImpl}), để ranh giới ngày không phụ thuộc múi giờ mặc định của JVM.
+     */
+    @NonFinal
+    @Value("${APP_TIMEZONE:Asia/Ho_Chi_Minh}")
+    String appTimezone;
 
     @Override
     public ApiResponse<DashboardSummaryResponse> getSummary(String email, int days) {
         User user = currentUser(email);
         UUID userId = user.getId();
         int rangeDays = Math.min(Math.max(days, MIN_RANGE_DAYS), MAX_RANGE_DAYS);
-        LocalDate today = LocalDate.now();
+        ZoneId zone = zone();
+        LocalDate today = LocalDate.now(zone);
         // Gói (ANALYTICS_HISTORY_DAYS): biểu đồ hiệu suất không vượt số ngày lịch sử — cùng mốc với trang Phân tích.
         LocalDate earliest = planUsageService.analyticsEarliestDate(user, today);
         if (earliest != null) {
@@ -123,7 +137,7 @@ public class DashboardServiceImpl implements DashboardService {
         }
 
         Map<StatusKey, Long> totals = loadStatusTotals(userId);
-        DashboardStatsResponse stats = buildStats(userId, today, totals);
+        DashboardStatsResponse stats = buildStats(userId, zone, today, totals);
         List<DashboardTopicResponse> topTopics = dashboardMapper.toTopicResponseList(
                 postAnalyticsRepository.findTopTopicsForUser(userId, TOP_TOPICS_LIMIT));
         // Một lần nạp kết nối dùng cho cả panel nền tảng lẫn bước "kết nối" của tiến độ thiết lập.
@@ -134,14 +148,46 @@ public class DashboardServiceImpl implements DashboardService {
                 .stats(stats)
                 .awaitingReview(sum(totals, key -> key.review() == ReviewStatus.NEED_REVIEW))
                 .scheduled(sum(totals, key -> key.status() == ContentItemStatus.SCHEDULED))
-                .performance(buildPerformance(userId, today, rangeDays))
+                .performance(buildPerformance(userId, today.minusDays(rangeDays - 1L), today))
                 .rangeDays(rangeDays)
-                .contentTypes(buildContentTypes(userId))
+                .contentTypes(buildContentTypes(userId, today.minusDays(rangeDays - 1L), today))
                 .topTopics(topTopics)
                 .platforms(buildPlatforms(accounts))
                 .onboarding(buildOnboarding(userId, accounts, stats.getTotal().getTotal()))
                 .build();
         return ApiResponse.success("Lấy dữ liệu bảng điều khiển thành công", summary);
+    }
+
+    @Override
+    public ApiResponse<DashboardPerformanceResponse> getPerformance(String email, LocalDate from, LocalDate to) {
+        User user = currentUser(email);
+        LocalDate today = LocalDate.now(zone());
+        LocalDate end = (to == null || to.isAfter(today)) ? today : to;
+        LocalDate start = from == null ? end.minusDays(TREND_DAYS - 1L) : from;
+        // Gói (ANALYTICS_HISTORY_DAYS): kẹp đầu khoảng như trang Phân tích (FE cũng khoá lịch theo cùng mốc).
+        LocalDate earliest = planUsageService.analyticsEarliestDate(user, today);
+        if (earliest != null && start.isBefore(earliest)) {
+            start = earliest;
+            if (end.isBefore(start)) {
+                end = start;
+            }
+        }
+        if (start.isAfter(end)) {
+            throw new AppException(ErrorCode.ANALYTICS_RANGE_INVALID);
+        }
+        long days = ChronoUnit.DAYS.between(start, end) + 1;
+        if (days > MAX_CUSTOM_RANGE_DAYS) {
+            throw new AppException(ErrorCode.ANALYTICS_RANGE_TOO_LARGE);
+        }
+
+        DashboardPerformanceResponse performance = DashboardPerformanceResponse.builder()
+                .from(start.toString())
+                .to(end.toString())
+                .rangeDays((int) days)
+                .points(buildPerformance(user.getId(), start, end))
+                .contentTypes(buildContentTypes(user.getId(), start, end))
+                .build();
+        return ApiResponse.success("Lấy biểu đồ hiệu quả nội dung thành công", performance);
     }
 
     // ===== Thẻ số liệu =====
@@ -163,17 +209,31 @@ public class DashboardServiceImpl implements DashboardService {
                 .sum();
     }
 
-    private DashboardStatsResponse buildStats(UUID userId, LocalDate today, Map<StatusKey, Long> totals) {
+    // Chuỗi 7 ngày theo ĐÚNG ngày xảy ra sự kiện của từng thẻ: tổng / đang chờ theo ngày tạo bài, đã đăng theo
+    // ngày đăng lần đầu, đăng thất bại theo thời điểm thất bại.
+    private DashboardStatsResponse buildStats(UUID userId, ZoneId zone, LocalDate today, Map<StatusKey, Long> totals) {
         LocalDate seriesStart = today.minusDays(TREND_DAYS - 1L);
         LocalDate previousStart = today.minusDays(2L * TREND_DAYS - 1);
-        Map<StatusKey, Map<LocalDate, Long>> daily = loadDailyCounts(userId, previousStart);
+        Map<StatusKey, Map<LocalDate, Long>> created = loadDailyCounts(userId, previousStart);
+        Map<LocalDate, Long> published = toDayMap(contentItemRepository
+                .countDailyFirstPublishedForUser(userId, zone.getId(), previousStart.atStartOfDay()));
+        Map<LocalDate, Long> failed = toDayMap(contentItemRepository
+                .countDailyFailedForUser(userId, zone.getId(), previousStart.atStartOfDay()));
 
         return DashboardStatsResponse.builder()
-                .total(buildStat(totals, daily, ALL, seriesStart, previousStart))
-                .posted(buildStat(totals, daily, POSTED, seriesStart, previousStart))
-                .pending(buildStat(totals, daily, PENDING, seriesStart, previousStart))
-                .rejected(buildStat(totals, daily, REJECTED, seriesStart, previousStart))
+                .total(buildStat(sum(totals, ALL), day -> countOn(created, ALL, day), seriesStart, previousStart))
+                .posted(buildStat(sum(totals, POSTED), day -> published.getOrDefault(day, 0L), seriesStart, previousStart))
+                .pending(buildStat(sum(totals, PENDING), day -> countOn(created, PENDING, day), seriesStart, previousStart))
+                .rejected(buildStat(sum(totals, REJECTED), day -> failed.getOrDefault(day, 0L), seriesStart, previousStart))
                 .build();
+    }
+
+    private Map<LocalDate, Long> toDayMap(List<DailyCountProjection> rows) {
+        Map<LocalDate, Long> byDay = new HashMap<>();
+        for (DailyCountProjection row : rows) {
+            byDay.merge(LocalDate.parse(row.getDay()), row.getTotal(), Long::sum);
+        }
+        return byDay;
     }
 
     private Map<StatusKey, Map<LocalDate, Long>> loadDailyCounts(UUID userId, LocalDate from) {
@@ -200,21 +260,18 @@ public class DashboardServiceImpl implements DashboardService {
         }
     }
 
-    private DashboardStatResponse buildStat(Map<StatusKey, Long> totals,
-                                            Map<StatusKey, Map<LocalDate, Long>> daily,
-                                            Predicate<StatusKey> bucket,
+    private DashboardStatResponse buildStat(long total,
+                                            Function<LocalDate, Long> countOnDay,
                                             LocalDate seriesStart,
                                             LocalDate previousStart) {
-        long total = sum(totals, bucket);
-
         List<Long> series = new ArrayList<>(TREND_DAYS);
         long current = 0;
         long previous = 0;
         for (int i = 0; i < TREND_DAYS; i++) {
-            long value = countOn(daily, bucket, seriesStart.plusDays(i));
+            long value = countOnDay.apply(seriesStart.plusDays(i));
             series.add(value);
             current += value;
-            previous += countOn(daily, bucket, previousStart.plusDays(i));
+            previous += countOnDay.apply(previousStart.plusDays(i));
         }
 
         return DashboardStatResponse.builder()
@@ -250,10 +307,10 @@ public class DashboardServiceImpl implements DashboardService {
 
     // CÙNG truy vấn với biểu đồ/KPI của trang Phân tích (số PHÁT SINH theo ngày, không lọc nền tảng/loại) để hai
     // trang luôn ra một con số: reach = lượt xem, engagement = cảm xúc + bình luận + chia sẻ.
-    private List<DashboardPointResponse> buildPerformance(UUID userId, LocalDate today, int rangeDays) {
-        LocalDate start = today.minusDays(rangeDays - 1L);
+    private List<DashboardPointResponse> buildPerformance(UUID userId, LocalDate start, LocalDate end) {
+        int rangeDays = (int) (ChronoUnit.DAYS.between(start, end) + 1);
         Map<String, DailyEngagementProjection> byDay = postAnalyticsRepository
-                .findDailyEngagementForUser(userId, start.atStartOfDay(), today.plusDays(1).atStartOfDay(), null, null, null)
+                .findDailyEngagementForUser(userId, start.atStartOfDay(), end.plusDays(1).atStartOfDay(), null, null, null)
                 .stream()
                 .collect(Collectors.toMap(DailyEngagementProjection::getDay, row -> row, (first, second) -> first));
 
@@ -273,27 +330,16 @@ public class DashboardServiceImpl implements DashboardService {
 
     // ===== Donut loại nội dung =====
 
-    private List<DashboardDistributionResponse> buildContentTypes(UUID userId) {
-        List<LabelCountProjection> rows = contentVersionRepository.countByMediaFormatForUser(userId);
-        long total = rows.stream().mapToLong(LabelCountProjection::getTotal).sum();
-        if (total == 0) {
-            return List.of();
-        }
-
-        Map<String, Long> merged = new LinkedHashMap<>();
-        for (LabelCountProjection row : rows) {
-            String label = (row.getLabel() == null || row.getLabel().isBlank()) ? OTHER_LABEL : row.getLabel();
-            merged.merge(label, row.getTotal(), Long::sum);
-        }
-
-        return merged.entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .map(entry -> DashboardDistributionResponse.builder()
-                        .label(entry.getKey())
-                        .value(entry.getValue())
-                        .sharePct(Math.round(entry.getValue() * 1000.0 / total) / 10.0)
-                        .build())
-                .toList();
+    // CÙNG truy vấn + cách tính với khối "Hiệu suất theo loại nội dung" của trang Phân tích (không lọc nền tảng /
+    // nguồn bài): bài ĐĂNG trong kỳ theo loại bài nền tảng báo, tỷ trọng theo tương tác — hai trang ra một con số.
+    private List<AnalyticsContentTypeResponse> buildContentTypes(UUID userId, LocalDate start, LocalDate end) {
+        List<AnalyticsContentTypeResponse> rows = analyticsMapper.toContentTypeResponseList(
+                postAnalyticsRepository.findContentTypeMetricsForUser(
+                        userId, start.atStartOfDay(), end.plusDays(1).atStartOfDay(), null, null));
+        long totalEngagement = rows.stream().mapToLong(AnalyticsContentTypeResponse::getEngagement).sum();
+        rows.forEach(row -> row.setSharePct(totalEngagement == 0
+                ? 0 : Math.round(row.getEngagement() * 1000.0 / totalEngagement) / 10.0));
+        return rows;
     }
 
     // ===== Nền tảng đã kết nối =====
@@ -335,6 +381,15 @@ public class DashboardServiceImpl implements DashboardService {
                 .completed(completed)
                 .total(ONBOARDING_STEPS)
                 .build();
+    }
+
+    private ZoneId zone() {
+        try {
+            return ZoneId.of(appTimezone);
+        } catch (Exception e) {
+            log.error("[Dashboard] APP_TIMEZONE không hợp lệ ({}) — tạm dùng {}", appTimezone, DEFAULT_ZONE);
+            return ZoneId.of(DEFAULT_ZONE);
+        }
     }
 
     private User currentUser(String email) {

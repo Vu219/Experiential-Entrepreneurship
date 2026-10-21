@@ -1,6 +1,7 @@
 import client, { type ApiResponse } from "./apiClient";
 import type { Platform } from "./brandProfile";
 import type { ConnectionStatus } from "./connections";
+import type { AnalyticsContentType } from "./analytics";
 
 // Bảng điều khiển (UI-02) — backend DashboardController (/dashboard).
 // MỘT lần gọi trả toàn bộ số liệu của trang thay cho 7 request rời rạc trước đây.
@@ -27,13 +28,6 @@ export interface DashboardPoint {
   date: string;
   reach: number;
   engagement: number;
-}
-
-export interface DashboardDistribution {
-  /** Định dạng media của bản nền tảng; "OTHER" khi bản chưa được định dạng. */
-  label: string;
-  value: number;
-  sharePct: number;
 }
 
 export interface DashboardTopic {
@@ -69,18 +63,32 @@ export interface DashboardSummary {
   /** Đủ rangeDays điểm liên tục — ngày không có bài đăng đã được backend zero-fill. */
   performance: DashboardPoint[];
   rangeDays: number;
-  contentTypes: DashboardDistribution[];
+  /** Loại nội dung của bài ĐĂNG trong 7 ngày gần nhất — cùng số với khối loại nội dung trang Phân tích. */
+  contentTypes: AnalyticsContentType[];
   topTopics: DashboardTopic[];
   /** Luôn đủ 3 nền tảng trong scope (FB/IG/Threads), kể cả chưa kết nối. */
   platforms: DashboardPlatform[];
   onboarding: DashboardOnboarding;
 }
 
-/** Khoảng thời gian của biểu đồ hiệu suất. */
-export type DashboardRange = 7 | 30;
+/** Biểu đồ "Hiệu quả nội dung" + donut "Loại nội dung" theo khoảng lọc; from/to là khoảng backend ĐÃ kẹp theo gói. */
+export interface DashboardPerformance {
+  from: string;
+  to: string;
+  rangeDays: number;
+  points: DashboardPoint[];
+  /** Loại nội dung của bài đăng trong cùng khoảng — cùng số với trang Phân tích. */
+  contentTypes: AnalyticsContentType[];
+}
 
-// GET /dashboard/summary?days=
-export async function getDashboardSummary(days: DashboardRange = 7): Promise<DashboardSummary> {
-  const { data } = await client.get<ApiResponse<DashboardSummary>>("/dashboard/summary", { params: { days } });
+// GET /dashboard/summary — biểu đồ trong đó luôn là 7 ngày gần nhất (bộ lọc mặc định).
+export async function getDashboardSummary(): Promise<DashboardSummary> {
+  const { data } = await client.get<ApiResponse<DashboardSummary>>("/dashboard/summary", { params: { days: 7 } });
+  return data.result;
+}
+
+// GET /dashboard/performance?from=&to= — nút "Bộ lọc" của biểu đồ (30 ngày / tùy chỉnh). Ngày yyyy-MM-dd.
+export async function getDashboardPerformance(from: string, to: string): Promise<DashboardPerformance> {
+  const { data } = await client.get<ApiResponse<DashboardPerformance>>("/dashboard/performance", { params: { from, to } });
   return data.result;
 }

@@ -72,7 +72,7 @@ export const PLAN_LIMIT_FIELDS: PlanLimitField[] = [
   { key: 'AI_FIX_PER_VERSION', field: 'aiFixPerVersion', type: 'CAP', group: 'ai', unit: 'times' },
 ];
 
-export const PLAN_LIMIT_GROUPS: PlanLimitGroup[] = ['brand', 'connect', 'trend', 'schedule', 'analytics', 'ai'];
+export const PLAN_LIMIT_GROUPS: PlanLimitGroup[] = ['connect', 'brand', 'trend', 'schedule', 'analytics', 'ai'];
 
 export const ALL_PLATFORMS: PlatformEnum[] = ['FACEBOOK', 'INSTAGRAM', 'THREADS'];
 

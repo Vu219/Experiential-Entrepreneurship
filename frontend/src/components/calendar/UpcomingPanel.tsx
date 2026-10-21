@@ -100,7 +100,7 @@ export default function UpcomingPanel({
 }) {
   const { t } = useApp();
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: '1 1 auto' }}>
       {/* Header cố định của Hàng đợi (flex-shrink-0) */}
       <div className="flex-shrink-0" style={{ flexShrink: 0, marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
@@ -121,11 +121,11 @@ export default function UpcomingPanel({
         </div>
       </div>
 
-      {/* Vùng danh sách bài viết cuộn nội bộ (flex-1 overflow-y-auto) */}
+      {/* Vùng danh sách bài viết cuộn nội bộ */}
       <div
-        className="flex-1 overflow-y-auto custom-scrollbar scrollbar-thin scrollbar-thumb-slate-200"
+        className="overflow-y-auto custom-scrollbar scrollbar-thin scrollbar-thumb-slate-200"
         style={{
-          flex: '1 1 0%',
+          flex: '1 1 auto',
           minHeight: 0,
           overflowY: 'auto',
           paddingRight: 6,

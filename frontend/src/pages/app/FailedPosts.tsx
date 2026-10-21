@@ -2,7 +2,7 @@ import { C } from '../../styles/colors';
 import { useRealtimeRefresh } from '../../hooks/useRealtimeRefresh';
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, Download } from 'lucide-react';
+import { AlertTriangle, Download, Info } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
 import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
 import { useTabParam } from '../../hooks/useTabParam.ts';
@@ -454,8 +454,19 @@ export default function FailedPosts() {
 
   return (
     <PageContainer>
-      {/* Thanh công cụ: tìm kiếm + xuất báo cáo */}
+      {/* Thanh công cụ: nhãn dữ liệu mẫu (khi đang demo) + tìm kiếm + xuất báo cáo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        {demo && loadState === 'ok' && (
+          // Chip cao bằng hàng công cụ (nhãn 11px chung quá dễ lướt qua cạnh ô tìm kiếm); câu đầy đủ ở tooltip.
+          <span title={t.fpDemo} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7, marginRight: 'auto', minHeight: 38, padding: '0 14px',
+            borderRadius: 999, background: C.warningSoft, color: C.amberText, fontSize: 13, fontWeight: 600,
+          }}>
+            <Info size={15} strokeWidth={2.2} aria-hidden />
+            <strong style={{ fontWeight: 800 }}>{t.dbDemoData}</strong>
+            <span>· {t.fpDemoShort}</span>
+          </span>
+        )}
         <SearchInput value={search} onChange={changeSearch} placeholder={t.fpSearchPh} />
         <button
           onClick={exportReport}

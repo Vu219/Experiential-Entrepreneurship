@@ -40,6 +40,8 @@ export interface UserUsage {
   planNameEn: string | null;
   /** Giá gói VND / chu kỳ. */
   planPrice: number | null;
+  /** true = gói không giới hạn của hệ thống (PRO): token AI + mọi tính năng không giới hạn (limit = null). */
+  unlimitedPlan: boolean;
   series: UsageSeriesPoint[];
   byFeature: UsageByFeature[];
 }
