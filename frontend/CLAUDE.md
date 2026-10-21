@@ -106,7 +106,13 @@ src/
 │                           "Giới hạn tính năng", thẻ "Mức sử dụng trong kỳ" ở /billing, câu báo lỗi), GET /users/me/plan-usage
 │                           (hooks/usePlanUsage cache theo phiên). Lỗi 2205/2206: apiClient dựng câu theo ngôn ngữ
 │                           (utils/planLimitText) + toast "Nâng cấp gói"; khối không có trong gói dùng components/PlanLockedCard.
-│                           Kết nối: CONNECTABLE_PLATFORMS ở connections.ts (hiện chỉ FACEBOOK — IG/Threads "Sắp hỗ trợ").
+│                           Danh mục khoá ở api/planLimitCatalog.ts (thuần, test được bằng node --test); logic modal gói admin
+                          ở utils/planForm.ts (components/admin/plans/{PlanFormModal,LimitRow,FeatureListEditor}); bảng so sánh
+                          DÙNG CHUNG admin/xem trước/landing: components/plans/{CompareCell,ComparisonTable} + utils/comparisonCell.ts;
+                          chặn nút/ngày theo gói: utils/planGates.ts + components/PlanLimitInline.
+                          Kết nối: quyền dùng nền tảng (hệ thống mở VÀ gói cho phép) đọc từ GET /connections/platforms qua
+                          hooks/usePlatformAccess (api/platformAvailability.ts) — KHÔNG hardcode danh sách nền tảng; mỗi
+                          PlatformConnection có `locked`/`lockReason`. Admin khoá/mở ở trang Version API (cột "Liên kết").
 │   └── search.ts         — ô tìm kiếm toàn cục: GET /search (nội dung/chiến lược/lịch đăng của chính user, khớp
 │                           không dấu); mục nội dung map bằng `toContentListItem` như trang Tạo nội dung.
 ├── search/               — lõi ô tìm kiếm toàn cục (Command Palette, Ctrl/⌘+K) — module thuần, test ở

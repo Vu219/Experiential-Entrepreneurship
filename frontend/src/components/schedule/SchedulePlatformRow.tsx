@@ -37,6 +37,8 @@ export interface SchedulePlatformRowProps {
   nowWall: string;
   error: RowError;
   todayISO: string;
+  /** Ngày xa nhất đặt được theo gói (SCHEDULE_HORIZON_DAYS). */
+  maxISO?: string;
   /** Múi giờ đang chọn trong planner / múi giờ tài khoản. */
   zone: string;
   accountZone: string;
@@ -50,7 +52,7 @@ export interface SchedulePlatformRowProps {
 export const wallShort = (wall: string) => `${wall.slice(11, 16)} · ${wall.slice(8, 10)}/${wall.slice(5, 7)}/${wall.slice(0, 4)}`;
 
 export default function SchedulePlatformRow({
-  row, accounts, shared, goldenHours, conflicts, accountSchedules, wall, nowWall, error, todayISO, zone, accountZone,
+  row, accounts, shared, goldenHours, conflicts, accountSchedules, wall, nowWall, error, todayISO, maxISO, zone, accountZone,
   onChange, onConnect, onFixInFinalize,
 }: SchedulePlatformRowProps) {
   const { t } = useApp();
@@ -78,7 +80,7 @@ export default function SchedulePlatformRow({
   // Bấm ngày trên lịch: Chọn giờ → điền ô ngày; Gợi ý giờ → lọc chip theo ngày (chưa có gợi ý ngày đó → tải từ ngày đó).
   const selectDay = (day: string) => {
     if (row.mode === 'SCHEDULE') {
-      const patch = pickCalendarDay(day, todayISO);
+      const patch = pickCalendarDay(day, todayISO, maxISO);
       if (patch) onChange(patch);
       return;
     }
@@ -138,7 +140,7 @@ export default function SchedulePlatformRow({
               <div style={lbl}>{t.schTime}</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <div style={{ flex: '1 1 160px', minWidth: 0 }}>
-                  <ScheduleDateField value={row.date} min={todayISO} onChange={(v) => onChange({ date: v })} schedules={accountSchedules}
+                  <ScheduleDateField value={row.date} min={todayISO} max={maxISO} onChange={(v) => onChange({ date: v })} schedules={accountSchedules}
                     ariaLabel={`${t.schTime} — ${name}`} invalid={!!timeError} />
                 </div>
                 <ScheduleTimeField value={row.time} onChange={(v) => onChange({ time: v, date: row.date || todayISO })}
@@ -215,6 +217,7 @@ export default function SchedulePlatformRow({
           <ScheduleCalendar
             value={row.mode === 'SUGGEST' ? dayFilter ?? row.date : cal.value}
             todayISO={todayISO}
+            maxISO={maxISO}
             mode={cal.mode}
             onSelect={selectDay}
             booked={booked}

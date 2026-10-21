@@ -1,6 +1,9 @@
 package com.aima.service.Impl;
 
 import com.aima.service.PlanUsageService;
+import com.aima.service.PlanLimitService;
+import com.aima.service.PlatformAvailabilityService;
+import com.aima.enums.OAuthSkipReason;
 import com.aima.util.NotificationParams;
 import com.aima.dto.notification.NotificationDraft;
 import com.aima.service.ActivityLogService;
@@ -73,20 +76,18 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
     NotificationService notificationService;
     AnalyticsAccountSyncService analyticsAccountSyncService;
     PlanUsageService planUsageService;
+    /**
+     * Mở/khoá nền tảng toàn hệ thống (DB, admin "Version API nền tảng") + nền tảng theo gói: nền tảng khoá → không mở
+     * dialog OAuth, callback bị từ chối, và kết nối Facebook KHÔNG tạo kết nối con Instagram (vẫn ghi trạng thái liên
+     * kết IG của Trang cho analytics).
+     */
+    PlatformAvailabilityService platformAvailabilityService;
+    PlanLimitService planLimitService;
 
     private static final String STATE_PREFIX = "oauth_state:";
 
     // Thiếu một trong hai → không liệt kê/đăng được lên Page → từ chối kết nối (missing_permissions).
     static final List<String> REQUIRED_FACEBOOK_PERMISSIONS = List.of("pages_show_list", "pages_manage_posts");
-
-    /**
-     * Nền tảng đang mở kết nối (env {@code AIMA_CONNECTION_ENABLED_PLATFORMS}, mặc định chỉ FACEBOOK).
-     * Instagram/Threads tạm khoá: không mở dialog OAuth, Threads callback bị từ chối, và kết nối Facebook
-     * KHÔNG tạo kết nối con Instagram (vẫn ghi trạng thái liên kết IG của Trang cho analytics).
-     */
-    @NonFinal
-    @Value("${aima.connections.enabled-platforms:FACEBOOK}")
-    Set<Platform> enabledPlatforms = EnumSet.of(Platform.FACEBOOK);
 
     // Giá trị ghi đè access_token khi kết nối bị xoá (cột NOT NULL, vẫn đi qua converter mã hoá).
     static final String SCRUBBED_TOKEN = "";
@@ -95,7 +96,8 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
 
     @Override
     public String buildAuthorizationUrl(Platform platform, UUID userId) {
-        requireEnabled(platform);
+        requireConnectable(platform, userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED)));
         String state = UUID.randomUUID().toString();
         redisTemplate.opsForValue().set(
                 STATE_PREFIX + state,
@@ -132,10 +134,10 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
                 .toUriString();
     }
 
-    private void requireEnabled(Platform platform) {
-        if (!enabledPlatforms.contains(platform)) {
-            throw new AppException(ErrorCode.PLATFORM_CONNECTION_DISABLED);
-        }
+    /** Kết nối mới / lại: khoá hệ thống (1835) luôn kiểm trước, rồi nền tảng theo gói (2206 ALLOWED_PLATFORMS). */
+    private void requireConnectable(Platform platform, User user) {
+        platformAvailabilityService.requireConnectable(platform);
+        planUsageService.requirePlatform(user, platform);
     }
 
     // ---------- Callback ----------
@@ -149,19 +151,19 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
         }
         redisTemplate.delete(stateKey);
 
-        // Phiên OAuth mở trước khi nền tảng bị khoá vẫn không được tạo kết nối.
-        requireEnabled(platform);
         UUID userId = UUID.fromString(stored.split("\\|")[0]);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        // Phiên OAuth mở trước khi nền tảng bị khoá / gói đổi vẫn không được tạo kết nối.
+        requireConnectable(platform, user);
 
         try {
-            ChannelSlots slots = new ChannelSlots(planUsageService.remainingChannels(user));
+            ChannelSlots slots = new ChannelSlots(planUsageService.remainingChannels(user), planLimitService.features(user));
             List<PlatformAccount> connected = platform == Platform.THREADS
                     ? handleThreadsCallback(user, code, slots)
                     : handleFacebookCallback(user, code, slots);
-            if (slots.skipped > 0) {
-                log.info("[OAuth] User {} đủ giới hạn kênh của gói — bỏ qua {} kênh mới", user.getId(), slots.skipped);
+            if (!slots.skipped.isEmpty()) {
+                log.info("[OAuth] User {} — bỏ qua {} kênh: {}", user.getId(), slots.skipped.size(), slots.skipped);
             }
             // Một lần liên kết có thể sinh nhiều kết nối (user + từng Page + IG) — ghi MỘT dòng
             // cho cả thao tác, kèm số kết nối, thay vì làm ngập log bằng mỗi Page một dòng.
@@ -171,7 +173,7 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
                     .withMetadata(Map.of("platform", platform.name(), "connections", connected.size())));
             // Kết nối lại chỉ gỡ ACCOUNT_ISSUE; lịch còn lý do khác (chưa duyệt, quá giờ...) vẫn giữ.
             holdService.releaseForAccounts(connected.stream().map(PlatformAccount::getId).toList(), HoldReason.ACCOUNT_ISSUE);
-            return new CallbackResult(connected, slots.skipped);
+            return new CallbackResult(user.getId(), connected, List.copyOf(slots.skipped));
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
@@ -181,26 +183,37 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
     }
 
     /**
-     * Chỗ trống CONNECTED_CHANNELS của gói trong một lần callback: kênh đã có (kết nối lại) không tốn chỗ, kênh mới
-     * chỉ được thêm khi còn chỗ. {@code remaining} null = không giới hạn.
+     * Chỗ trống CONNECTED_CHANNELS của gói trong một lần callback + kênh KHÔNG được thêm và vì sao: kênh đã có (kết nối
+     * lại) không tốn chỗ; kênh mới chỉ được thêm khi nền tảng mở, thuộc gói và còn chỗ. {@code remaining} null = không
+     * giới hạn.
      */
-    private static final class ChannelSlots {
+    private final class ChannelSlots {
         Long remaining;
-        int skipped;
+        final PlanLimitService.FeatureLimits limits;
+        final List<SkippedChannel> skipped = new ArrayList<>();
 
-        ChannelSlots(Long remaining) {
+        ChannelSlots(Long remaining, PlanLimitService.FeatureLimits limits) {
             this.remaining = remaining;
+            this.limits = limits;
         }
 
-        boolean take(boolean alreadyConnected) {
-            if (alreadyConnected || remaining == null) {
-                return true;
+        boolean take(Platform platform, String accountName, boolean alreadyConnected) {
+            OAuthSkipReason reason = null;
+            if (!platformAvailabilityService.isEnabled(platform)) {
+                reason = OAuthSkipReason.PLATFORM_DISABLED;
+            } else if (!limits.allows(platform)) {
+                reason = OAuthSkipReason.PLAN_PLATFORM;
+            } else if (!alreadyConnected && remaining != null) {
+                if (remaining <= 0) {
+                    reason = OAuthSkipReason.CHANNEL_LIMIT;
+                } else {
+                    remaining--;
+                }
             }
-            if (remaining <= 0) {
-                skipped++;
+            if (reason != null) {
+                skipped.add(new SkippedChannel(platform, accountName, reason));
                 return false;
             }
-            remaining--;
             return true;
         }
     }
@@ -243,7 +256,7 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
                     user.getId());
         }
         for (MetaApiClient.MetaPage page : pages) {
-            if (!slots.take(connected(user, Platform.FACEBOOK, page.id()))) {
+            if (!slots.take(Platform.FACEBOOK, page.name(), connected(user, Platform.FACEBOOK, page.id()))) {
                 continue; // gói đã đủ kênh — Trang mới không được thêm
             }
             PlatformAccount pageConn = upsert(user, Platform.FACEBOOK, page.id(),
@@ -269,8 +282,9 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
             }
             // Trang không có IG Business = IG cá nhân / chưa liên kết → Cài đặt hiện hướng dẫn (analytics GĐ2).
             analyticsAccountSyncService.recordInstagramLink(pageConn, igLinked);
-            if (ig.isPresent() && enabledPlatforms.contains(Platform.INSTAGRAM)
-                    && slots.take(connected(user, Platform.INSTAGRAM, ig.get().id()))) {
+            if (ig.isPresent() && slots.take(Platform.INSTAGRAM,
+                    ig.get().name() != null ? ig.get().name() : ig.get().username(),
+                    connected(user, Platform.INSTAGRAM, ig.get().id()))) {
                 MetaApiClient.MetaIgAccount account = ig.get();
                 PlatformAccount igConn = upsert(user, Platform.INSTAGRAM, account.id(),
                         account.name() != null ? account.name() : account.username(), account.username(),
@@ -298,7 +312,8 @@ public class MetaOAuthServiceImpl implements MetaOAuthService {
         MetaApiClient.MetaTokenResult shortToken = metaApiClient.exchangeCodeForToken(Platform.THREADS, code);
         MetaApiClient.MetaTokenResult longToken = metaApiClient.getLongLivedUserToken(Platform.THREADS, shortToken.accessToken());
         MetaApiClient.MetaUser me = metaApiClient.getMe(Platform.THREADS, longToken.accessToken());
-        if (!slots.take(connected(user, Platform.THREADS, me.id()))) {
+        if (!slots.take(Platform.THREADS, me.name() != null ? me.name() : me.username(),
+                connected(user, Platform.THREADS, me.id()))) {
             return List.of();
         }
 

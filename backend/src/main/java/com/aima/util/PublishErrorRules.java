@@ -41,6 +41,8 @@ public final class PublishErrorRules {
     public static final String CODE_INTERNAL = "INTERNAL";
     /** Kết nối không còn khả dụng lúc worker nhận job. */
     public static final String CODE_ACCOUNT_UNAVAILABLE = "ACCOUNT_UNAVAILABLE";
+    /** Nền tảng bị khoá toàn hệ thống / không thuộc gói lúc worker nhận job (V20) — không retry, lịch ON_HOLD. */
+    public static final String CODE_PLATFORM_BLOCKED = "PLATFORM_BLOCKED";
     /** Token đã quá {@code token_expired_at} — phát hiện TRƯỚC khi gọi nền tảng (pre-flight). */
     public static final String CODE_TOKEN_EXPIRED = "TOKEN_EXPIRED";
     /** Kiểm tra bài đã lên nền tảng (trước khi thử lại lỗi mơ hồ) bị từ chối vì thiếu quyền đọc bài của Trang. */
@@ -93,6 +95,7 @@ public final class PublishErrorRules {
             case CODE_STUCK_RUNNING -> PublishErrorCode.PUBLISH_INTERRUPTED;
             case CODE_INTERNAL -> PublishErrorCode.INTERNAL_ERROR;
             case CODE_ACCOUNT_UNAVAILABLE -> PublishErrorCode.ACCOUNT_DISCONNECTED;
+            case CODE_PLATFORM_BLOCKED -> PublishErrorCode.PLATFORM_UNSUPPORTED;
             case CODE_TOKEN_EXPIRED -> PublishErrorCode.AUTH_TOKEN_EXPIRED;
             case CODE_VERIFY_PERMISSION -> PublishErrorCode.AUTH_PERMISSION_MISSING;
             case CODE_VERIFY_UNAVAILABLE -> PublishErrorCode.PLATFORM_TEMPORARY;

@@ -20,6 +20,10 @@ import com.aima.repository.PlanRepository;
 import com.aima.repository.SubscriptionHistoryRepository;
 import com.aima.repository.SubscriptionRepository;
 import com.aima.repository.UserRepository;
+import com.aima.util.SubscriptionPeriods;
+import com.aima.dto.event.SubscriptionPlanChangedEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import com.aima.service.ActivityLogService;
 import com.aima.service.NotificationService;
 import com.aima.service.SubscriptionService;
@@ -36,7 +40,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
-import java.time.YearMonth;
 import java.util.Map;
 import java.util.UUID;
 
@@ -55,10 +58,43 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     SubscriptionHistoryRepository subscriptionHistoryRepository;
     EntityManager entityManager;
     PlatformTransactionManager transactionManager;
+    ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
     public Subscription getOrCreate(User user) {
+        // Gọi từ transaction READ-ONLY (vd trang Phân tích): phần ghi (tạo / hạ gói hết hạn / lăn kỳ / đồng bộ nhãn) chạy
+        // trong transaction RIÊNG (REQUIRES_NEW) rồi đọc lại — PG từ chối SELECT … FOR UPDATE / UPDATE trong read-only.
+        if (TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
+            return getOrCreateFromReadOnly(user);
+        }
+        return getOrCreateInTx(user);
+    }
+
+    private Subscription getOrCreateFromReadOnly(User user) {
+        Subscription current = subscriptionRepository.findWithPlanByUserId(user.getId()).orElse(null);
+        if (current != null && !needsWrite(user, current, LocalDateTime.now())) {
+            return current;
+        }
+        TransactionTemplate readWrite = new TransactionTemplate(transactionManager);
+        readWrite.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        readWrite.executeWithoutResult(status -> userRepository.findById(user.getId()).ifPresent(this::getOrCreateInTx));
+        Subscription fresh = subscriptionRepository.findWithPlanByUserId(user.getId()).orElse(null);
+        if (fresh != null && entityManager.contains(fresh)) {
+            entityManager.refresh(fresh); // persistence context của transaction ngoài có thể còn bản cũ
+        }
+        return fresh;
+    }
+
+    /** getOrCreateInTx sẽ GHI không (thiếu subscription / hết hạn / hết kỳ / nhãn gói lệch với nguồn FREE)? */
+    private static boolean needsWrite(User user, Subscription subscription, LocalDateTime now) {
+        String label = user.getPlan() == null ? UserPlan.FREE.name() : user.getPlan().name();
+        return (subscription.getPlanExpiresAt() != null && !subscription.getPlanExpiresAt().isAfter(now))
+                || !now.isBefore(subscription.getCurrentPeriodEnd())
+                || (subscription.getPlanSource() == PlanSource.FREE && !label.equals(subscription.getPlan().getCode()));
+    }
+
+    private Subscription getOrCreateInTx(User user) {
         Subscription subscription = subscriptionRepository.findWithPlanByUserId(user.getId()).orElse(null);
 
         // Hạ gói hết hạn NGAY TẠI ĐÂY — đường bắt hết hạn KHÔNG phụ thuộc cron.
@@ -76,13 +112,15 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             return createFirst(user, plan);
         }
 
-        // Lăn kỳ TRƯỚC khi đồng bộ gói: hết currentPeriodEnd thì kỳ mới = tháng lịch hiện tại
-        // (mở cho chu kỳ khác pha sau) — thứ tự này để gói hạ chờ được áp ngay khi sang kỳ mới.
+        // Lăn kỳ TRƯỚC khi đồng bộ gói: hết currentPeriodEnd thì kỳ mới theo chu kỳ thanh toán (mốc neo, V20) — không
+        // chồng lên kỳ cũ; thứ tự này để gói hạ chờ được áp ngay khi sang kỳ mới.
         boolean periodRolled = false;
-        if (!LocalDateTime.now().isBefore(subscription.getCurrentPeriodEnd())) {
-            YearMonth month = YearMonth.now();
-            subscription.setCurrentPeriodStart(periodStart(month));
-            subscription.setCurrentPeriodEnd(periodEnd(month));
+        LocalDateTime now = LocalDateTime.now();
+        if (!now.isBefore(subscription.getCurrentPeriodEnd())) {
+            SubscriptionPeriods.Period next = SubscriptionPeriods.periodContaining(
+                    subscription.getPeriodAnchorAt(), subscription.getCurrentPeriodEnd(), now);
+            subscription.setCurrentPeriodStart(next.start());
+            subscription.setCurrentPeriodEnd(next.end());
             periodRolled = true;
         }
 
@@ -108,6 +146,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                         planCode, subscription.getPlan().getCode());
             } else if (periodRolled || !isDowngrade(subscription.getPlan(), newPlan)) {
                 subscription.setPlan(newPlan);
+                eventPublisher.publishEvent(new SubscriptionPlanChangedEvent(user.getId(), subscription.getPlan().getId()));
             } else {
                 log.info("[Subscription] User {} hạ gói {} → {} giữa kỳ — giữ gói cũ tới hết kỳ {}",
                         user.getId(), subscription.getPlan().getCode(), planCode,
@@ -140,10 +179,32 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         return subscriptionRepository.save(newSubscription(user, plan));
     }
 
+    /** Subscription mới: chu kỳ tính lượt neo theo lúc tạo (Free theo tháng từ ngày tạo subscription). */
     private Subscription newSubscription(User user, Plan plan) {
-        YearMonth month = YearMonth.now();
+        SubscriptionPeriods.Period period = SubscriptionPeriods.firstPeriod(LocalDateTime.now());
         return usageMapper.toSubscription(user, plan, SubscriptionStatus.ACTIVE,
-                periodStart(month), periodEnd(month));
+                period.start(), period.end(), period.start());
+    }
+
+    /**
+     * Kích hoạt gói (thanh toán gói mới/nâng gói/gói đã hết hạn, admin đổi gói): kỳ tính lượt bắt đầu lại TỪ LÚC kích
+     * hoạt — lượt kỳ mới đầy đủ, mốc neo mới cho các kỳ sau.
+     */
+    /**
+     * Về Free: kỳ ĐANG chạy giữ nguyên tới hết (không reset ngang lượt), các kỳ sau theo tháng từ ngày tạo
+     * subscription.
+     */
+    private static void anchorToCreation(Subscription subscription) {
+        if (subscription.getCreatedAt() != null) {
+            subscription.setPeriodAnchorAt(subscription.getCreatedAt());
+        }
+    }
+
+    private static void restartPeriod(Subscription subscription, LocalDateTime now) {
+        SubscriptionPeriods.Period period = SubscriptionPeriods.firstPeriod(now);
+        subscription.setPeriodAnchorAt(period.start());
+        subscription.setCurrentPeriodStart(period.start());
+        subscription.setCurrentPeriodEnd(period.end());
     }
 
     /**
@@ -176,9 +237,15 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 ? currentExpiry
                 : now;
 
+        // Gia hạn CÙNG gói khi còn hạn giữ chu kỳ cũ (không reset lượt bằng cách mua lặp); gói mới / nâng gói / gói đã
+        // hết hạn → chu kỳ tính lượt bắt đầu lại từ lúc kích hoạt.
+        if (!(samePlan && currentExpiry != null && currentExpiry.isAfter(now))) {
+            restartPeriod(subscription, now);
+        }
         subscription.setPlan(plan);
         subscription.setPlanSource(PlanSource.PAYMENT);
         subscription.setPlanExpiresAt(base.plusMonths(billingMonths(plan)));
+        eventPublisher.publishEvent(new SubscriptionPlanChangedEvent(user.getId(), subscription.getPlan().getId()));
         if (!samePlan || subscription.getPlanStartedAt() == null) {
             subscription.setPlanStartedAt(now);
         }
@@ -246,6 +313,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         // gói bán được với gói tặng/đền bù, nếu không con số doanh thu sẽ nói dối.
         subscription.setPlanSource(PlanSource.ADMIN);
         subscription.setPlanStartedAt(now);
+        if (!samePlan) {
+            restartPeriod(subscription, now); // đổi gói = kích hoạt gói mới: chu kỳ tính lượt từ bây giờ
+        }
+        eventPublisher.publishEvent(new SubscriptionPlanChangedEvent(user.getId(), subscription.getPlan().getId()));
         subscription.setPlanExpiresAt(unit == null ? null : unit.addTo(now, amount));
 
         syncPlanLabel(user, plan.getCode());
@@ -275,6 +346,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         subscription.setPlanSource(PlanSource.FREE);
         subscription.setPlanStartedAt(null);
         subscription.setPlanExpiresAt(null);
+        anchorToCreation(subscription);
+        eventPublisher.publishEvent(new SubscriptionPlanChangedEvent(user.getId(), subscription.getPlan().getId()));
 
         syncPlanLabel(user, freePlan.getCode());
         subscriptionRepository.save(subscription);
@@ -319,6 +392,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         subscription.setPlanSource(PlanSource.FREE);
         subscription.setPlanStartedAt(null);
         subscription.setPlanExpiresAt(null);
+        anchorToCreation(subscription);
+        // Lịch chưa đăng ngoài quyền của gói Free (nền tảng / lên lịch) → Tạm giữ (EntitlementHoldService).
+        eventPublisher.publishEvent(new SubscriptionPlanChangedEvent(subscription.getUser().getId(), subscription.getPlan().getId()));
 
         syncPlanLabel(subscription.getUser(), freePlan.getCode());
         subscriptionRepository.save(subscription);
@@ -415,11 +491,4 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         return currentLimit == null || targetLimit < currentLimit;
     }
 
-    private static LocalDateTime periodStart(YearMonth month) {
-        return month.atDay(1).atStartOfDay();
-    }
-
-    private static LocalDateTime periodEnd(YearMonth month) {
-        return month.plusMonths(1).atDay(1).atStartOfDay();
-    }
 }

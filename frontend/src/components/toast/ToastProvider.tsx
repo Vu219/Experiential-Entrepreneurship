@@ -466,7 +466,7 @@ function ToastItem({
         <div style={{ fontSize: 15, color: C.toastTitle, fontWeight: 600, lineHeight: 1.2 }}>
           {toast.title || t[titleKey]}
         </div>
-        <div className="toast-message" style={{ fontSize: 13, color: 'var(--c-toast-text, #4b5563)', lineHeight: 1.45, overflowWrap: 'break-word' }}>
+        <div className="toast-message" style={{ fontSize: 13, color: 'var(--c-toast-text, #4b5563)', lineHeight: 1.45, overflowWrap: 'break-word', whiteSpace: 'pre-line' }}>
           {toast.message}
         </div>
       </div>

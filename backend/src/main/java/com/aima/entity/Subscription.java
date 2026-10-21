@@ -82,4 +82,11 @@ public class Subscription extends BaseEntity {
     /** Cuối kỳ hiện tại (exclusive) — chính là mốc reset usage hiển thị cho user. */
     @Column(name = "current_period_end", nullable = false)
     LocalDateTime currentPeriodEnd;
+
+    /**
+     * Mốc neo của chu kỳ tính lượt (V20): kích hoạt gói trả tiền = lúc kích hoạt, Free = ngày tạo subscription. Các kỳ
+     * dài một tháng tính từ mốc này — quy tắc lăn kỳ ở {@code util/SubscriptionPeriods}.
+     */
+    @Column(name = "period_anchor_at")
+    LocalDateTime periodAnchorAt;
 }

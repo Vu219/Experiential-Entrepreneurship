@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { CalendarDays, Loader2, RotateCcw } from 'lucide-react';
+import { latestScheduleDate } from '../../utils/planGates';
 import { usePlanUsage } from '../../hooks/usePlanUsage';
 import { useApp } from '../../context/AppContext.tsx';
 import Switch from '../admin/Switch.tsx';
@@ -103,7 +104,8 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
           itemId ? Promise.resolve(null) : listContentItems({ size: 50 }),
         ]);
         setAccounts(conns
-          .filter((c) => c.connectionStatus === 'ACTIVE' && !(c.platform === 'FACEBOOK' && c.accountType !== 'PAGE'))
+          // Tài khoản bị khoá (nền tảng khoá toàn hệ thống / ngoài gói) không chọn được để đăng.
+          .filter((c) => c.connectionStatus === 'ACTIVE' && !c.locked && !(c.platform === 'FACEBOOK' && c.accountType !== 'PAGE'))
           .map((c) => ({ id: c.id, platform: c.platform as Platform, accountName: c.accountName })));
         setWindowMinutes(settings.conflictWindowMinutes);
         setAccountZone(settings.timezone);
@@ -140,8 +142,10 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
 
   // FR-48: khung giờ vàng theo từng nền tảng có dòng đủ điều kiện — chỉ khi gói gồm "Gợi ý khung giờ vàng"
   // (chưa biết gói thì chờ, tránh gọi rồi nhận lỗi giới hạn gói ngay khi mở).
-  const { usage: planUsage, included: planIncludes } = usePlanUsage();
+  const { usage: planUsage, included: planIncludes, cap: planCap } = usePlanUsage();
   const goldenAllowed = planUsage !== null && planIncludes('GOLDEN_HOURS');
+  // Gói (SCHEDULE_HORIZON_DAYS): ngày xa nhất đặt được — lịch khoá ngày sau mốc (backend vẫn chặn 2205).
+  const maxISO = latestScheduleDate(planCap('SCHEDULE_HORIZON_DAYS'), todayISO) ?? undefined;
   useEffect(() => {
     if (!goldenAllowed) return;
     const platforms = [...new Set(rows.filter((r) => !r.block).map((r) => r.platform))];
@@ -293,7 +297,7 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <div style={{ flex: '1 1 160px', minWidth: 0 }}>
-                      <ScheduleDateField value={shared.date} min={todayISO} onChange={(v) => setShared((s) => ({ ...s, date: v }))} schedules={sharedSchedules}
+                      <ScheduleDateField value={shared.date} min={todayISO} max={maxISO} onChange={(v) => setShared((s) => ({ ...s, date: v }))} schedules={sharedSchedules}
                         ariaLabel={`${t.schTime} — ${t.planShared}`} invalid={!!sharedKind} />
                     </div>
                     <ScheduleTimeField value={shared.time} onChange={(v) => setShared((s) => ({ ...s, time: v, date: s.date || todayISO }))}
@@ -306,8 +310,9 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
                 <ScheduleCalendar
                   value={shared.date}
                   todayISO={todayISO}
+                  maxISO={maxISO}
                   mode="interactive"
-                  onSelect={(day) => { const patch = pickCalendarDay(day, todayISO); if (patch) setShared((s) => ({ ...s, ...patch })); }}
+                  onSelect={(day) => { const patch = pickCalendarDay(day, todayISO, maxISO); if (patch) setShared((s) => ({ ...s, ...patch })); }}
                   booked={sharedBooked}
                   label={t.planCalLabel.replace('{name}', t.planShared)}
                   notes={[t.planCalNote]}
@@ -323,6 +328,7 @@ export default function SchedulePlanner({ itemId, onSubmitted, onConnect, onActi
               return (
                 <div key={row.versionId} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <SchedulePlatformRow
+                    maxISO={maxISO}
                     row={row}
                     accounts={accounts.filter((a) => a.platform === row.platform)}
                     shared={shared}

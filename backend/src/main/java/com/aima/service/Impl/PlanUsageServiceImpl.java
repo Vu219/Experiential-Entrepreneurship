@@ -1,19 +1,24 @@
 package com.aima.service.Impl;
 
 import com.aima.dto.response.ApiResponse;
+import com.aima.dto.response.PlanFeatureScopeUsageResponse;
 import com.aima.dto.response.PlanLimitViolationResponse;
 import com.aima.dto.response.PlanFeatureUsageItemResponse;
 import com.aima.dto.response.PlanFeatureUsageResponse;
+import com.aima.entity.BrandProfile;
 import com.aima.entity.Subscription;
 import com.aima.entity.User;
+import com.aima.enums.AiAssistKind;
+import com.aima.enums.GenerationJobStatus;
+import com.aima.enums.Platform;
 import com.aima.enums.PlatformAccountType;
 import com.aima.enums.PlanLimitKey;
 import com.aima.enums.ResearchTrigger;
-import com.aima.enums.ScheduleStatus;
 import com.aima.exception.AppException;
 import com.aima.exception.ErrorCode;
 import com.aima.exception.PlanLimitException;
 import com.aima.mapper.PlanMapper;
+import com.aima.repository.AiAssistJobRepository;
 import com.aima.repository.BrandProfileRepository;
 import com.aima.repository.ContentStrategyRepository;
 import com.aima.repository.PlatformAccountRepository;
@@ -38,9 +43,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -48,9 +51,6 @@ import java.util.UUID;
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PlanUsageServiceImpl implements PlanUsageService {
-
-    /** Lịch "đang chờ" tính vào ACTIVE_SCHEDULES. */
-    static final Set<ScheduleStatus> ACTIVE_SCHEDULE_STATUSES = EnumSet.of(ScheduleStatus.SCHEDULED, ScheduleStatus.ON_HOLD);
 
     PlanLimitService planLimitService;
     SubscriptionService subscriptionService;
@@ -61,6 +61,7 @@ public class PlanUsageServiceImpl implements PlanUsageService {
     TrendResearchSessionRepository trendResearchSessionRepository;
     PostScheduleRepository postScheduleRepository;
     StrategyOptimizationJobRepository strategyOptimizationJobRepository;
+    AiAssistJobRepository aiAssistJobRepository;
     UserRepository userRepository;
     PlanMapper planMapper;
 
@@ -69,7 +70,16 @@ public class PlanUsageServiceImpl implements PlanUsageService {
     public void requireIncluded(User user, PlanLimitKey key) {
         FeatureLimits limits = planLimitService.features(user);
         if (!limits.included(key)) {
-            throw violation(ErrorCode.PLAN_FEATURE_NOT_INCLUDED, key, limits, null);
+            throw violation(ErrorCode.PLAN_FEATURE_NOT_INCLUDED, key, limits, null, null);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void requirePlatform(User user, Platform platform) {
+        FeatureLimits limits = planLimitService.features(user);
+        if (!limits.allows(platform)) {
+            throw violation(ErrorCode.PLAN_FEATURE_NOT_INCLUDED, PlanLimitKey.ALLOWED_PLATFORMS, limits, null, platform);
         }
     }
 
@@ -85,7 +95,7 @@ public class PlanUsageServiceImpl implements PlanUsageService {
             return;
         }
         if (limit == 0L) {
-            throw violation(ErrorCode.PLAN_FEATURE_NOT_INCLUDED, key, limits, null);
+            throw violation(ErrorCode.PLAN_FEATURE_NOT_INCLUDED, key, limits, null, null);
         }
         // Khoá dòng subscription: request song song của cùng user xếp hàng ở đây nên cùng lắm một request lọt qua lượt cuối.
         subscriptionRepository.findForUpdateByUserId(user.getId());
@@ -93,8 +103,20 @@ public class PlanUsageServiceImpl implements PlanUsageService {
         if (used >= limit) {
             log.info("[PlanLimit] User {} chạm giới hạn {} ({}/{}) — gói {}", user.getId(), key, used, limit,
                     limits.planCode());
-            throw violation(ErrorCode.PLAN_LIMIT_REACHED, key, limits, used);
+            throw violation(ErrorCode.PLAN_LIMIT_REACHED, key, limits, used, null);
         }
+    }
+
+    @Override
+    @Transactional
+    public QuotaUsage usage(User user, PlanLimitKey key) {
+        if (key.type() != PlanLimitKey.Type.QUOTA) {
+            throw new IllegalArgumentException(key + " không phải giới hạn đếm lượt");
+        }
+        FeatureLimits limits = planLimitService.features(user);
+        Period period = period(user);
+        return new QuotaUsage(limits.planCode(), limits.limit(key), countUsed(user, key, null, period),
+                period.start(), period.end());
     }
 
     @Override
@@ -106,10 +128,10 @@ public class PlanUsageServiceImpl implements PlanUsageService {
             return;
         }
         if (cap == 0L) {
-            throw violation(ErrorCode.PLAN_FEATURE_NOT_INCLUDED, key, limits, null);
+            throw violation(ErrorCode.PLAN_FEATURE_NOT_INCLUDED, key, limits, null, null);
         }
         if (requested > cap) {
-            throw violation(ErrorCode.PLAN_LIMIT_REACHED, key, limits, requested);
+            throw violation(ErrorCode.PLAN_LIMIT_REACHED, key, limits, requested, null);
         }
     }
 
@@ -160,16 +182,33 @@ public class PlanUsageServiceImpl implements PlanUsageService {
         List<PlanFeatureUsageItemResponse> items = new ArrayList<>();
         for (PlanLimitKey key : PlanLimitKey.values()) {
             Long limit = limits.limit(key);
-            // Theo từng thương hiệu thì không có một con số "đã dùng" cho cả tài khoản.
-            Long used = key.type() == PlanLimitKey.Type.QUOTA && key != PlanLimitKey.STRATEGIES_PER_BRAND
-                    ? countUsed(user, key, null, period) : null;
-            items.add(planMapper.toUsageItem(key, key.type(), limit, used, limits.included(key)));
+            Long used = null;
+            List<PlanFeatureScopeUsageResponse> scopes = null;
+            List<Platform> platforms = null;
+            if (key == PlanLimitKey.STRATEGIES_PER_BRAND) {
+                scopes = strategyScopes(user);
+            } else if (key.type() == PlanLimitKey.Type.QUOTA) {
+                used = countUsed(user, key, null, period);
+            } else if (key.type() == PlanLimitKey.Type.SET) {
+                platforms = List.copyOf(limits.allowedPlatforms());
+            }
+            items.add(planMapper.toUsageItem(key, key.type(), limit, used, limits.included(key), platforms, scopes));
         }
         PlanFeatureUsageResponse response = planMapper.toUsageResponse(limits.planCode(), period.start(), period.end(), items);
         return ApiResponse.success("Mức sử dụng gói hiện tại", response);
     }
 
     // ------------------------------------------------------------------ helpers
+
+    /** STRATEGIES_PER_BRAND không có một con số cho cả tài khoản — trả số chiến lược của TỪNG thương hiệu. */
+    private List<PlanFeatureScopeUsageResponse> strategyScopes(User user) {
+        List<PlanFeatureScopeUsageResponse> scopes = new ArrayList<>();
+        for (BrandProfile brand : brandProfileRepository.findByUser_IdAndDeletedAtIsNull(user.getId())) {
+            scopes.add(planMapper.toScopeUsage(brand.getId(), brand.getBrandName(),
+                    contentStrategyRepository.countByBrandProfile_IdAndDeletedAtIsNull(brand.getId())));
+        }
+        return scopes;
+    }
 
     private long countUsed(User user, PlanLimitKey key, UUID scopeId, Period period) {
         UUID userId = user.getId();
@@ -181,17 +220,21 @@ public class PlanUsageServiceImpl implements PlanUsageService {
                     userId, PlatformAccountType.USER);
             case TREND_RESEARCH_PER_PERIOD -> trendResearchSessionRepository.countInPeriod(
                     userId, ResearchTrigger.MANUAL, period.start(), period.end());
-            case SCHEDULED_POSTS_PER_PERIOD -> postScheduleRepository.countCreatedInPeriod(
+            // Lượt = lần TẠO hoặc TÁI SỬ DỤNG lịch trong kỳ (counted_at, V20) — lịch huỷ rồi lên lại vẫn tốn lượt mới.
+            case SCHEDULED_POSTS_PER_PERIOD -> postScheduleRepository.countCountedInPeriod(
                     userId, period.start(), period.end());
-            case ACTIVE_SCHEDULES -> postScheduleRepository.countByPlatformAccount_User_IdAndStatusInAndDeletedAtIsNull(
-                    userId, ACTIVE_SCHEDULE_STATUSES);
+            // Lịch hệ thống giữ vì quyền nền tảng/gói (PLATFORM_DISABLED, PLAN_*) không chiếm chỗ hàng chờ.
+            case ACTIVE_SCHEDULES -> postScheduleRepository.countActiveForQuota(userId);
             case STRATEGY_OPTIMIZATION_PER_PERIOD -> strategyOptimizationJobRepository.countInPeriod(
                     userId, period.start(), period.end());
+            case POLICY_CHECK_AI_PER_PERIOD -> aiAssistJobRepository
+                    .countByUser_IdAndKindAndStatusNotAndCreatedAtGreaterThanEqualAndDeletedAtIsNull(
+                            userId, AiAssistKind.POLICY_CHECK, GenerationJobStatus.FAILED, period.start());
             default -> throw new IllegalArgumentException(key + " không đếm lượt");
         };
     }
 
-    /** Kỳ tính lượt = kỳ của subscription (tháng lịch); chưa có subscription → tháng hiện tại. */
+    /** Kỳ tính lượt = kỳ hiện hành của subscription (chu kỳ thanh toán); chưa có subscription → tháng hiện tại. */
     private Period period(User user) {
         Subscription subscription = subscriptionService.getOrCreate(user);
         if (subscription != null) {
@@ -201,8 +244,9 @@ public class PlanUsageServiceImpl implements PlanUsageService {
         return new Period(start, start.plusMonths(1));
     }
 
-    private PlanLimitException violation(ErrorCode code, PlanLimitKey key, FeatureLimits limits, Long used) {
-        PlanLimitViolationResponse detail = planMapper.toViolation(key, limits.limit(key), used, limits.planCode());
+    private PlanLimitException violation(ErrorCode code, PlanLimitKey key, FeatureLimits limits, Long used,
+                                         Platform platform) {
+        PlanLimitViolationResponse detail = planMapper.toViolation(key, limits.limit(key), used, limits.planCode(), platform);
         return new PlanLimitException(code, detail);
     }
 

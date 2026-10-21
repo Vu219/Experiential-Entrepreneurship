@@ -1,5 +1,6 @@
 package com.aima.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -34,21 +35,14 @@ public class PlanResponse {
             + "tháng = 1, quý = 3, năm = 12.", example = "1")
     Short billingIntervalMonths;
 
-    @Schema(description = "Hạn mức token mô tả để hiển thị. null = không giới hạn.", example = "100")
+    @Schema(description = "Số token hiển thị — SINH TỪ monthlyTokenLimit (không còn nhập riêng). null = không giới hạn.",
+            example = "100000")
     Long tokenQuota;
 
     @Schema(description = "Hạn mức token LLM THẬT mỗi tháng. null = không giới hạn.", example = "100000")
     Long monthlyTokenLimit;
 
-    @Schema(description = "Lượt AI kiểm tra chính sách mỗi tháng. null = mặc định hệ thống, -1 = không giới hạn, "
-            + "0 = tắt (chỉ bộ lọc tự động).", example = "30")
-    Integer policyCheckAiMonthlyLimit;
-
-    @Schema(description = "Số lần AI sửa bài tối đa mỗi bản nền tảng. null = mặc định hệ thống, -1 = không giới hạn, "
-            + "0 = tắt.", example = "3")
-    Integer aiFixMaxPerVersion;
-
-    @Schema(description = "Giới hạn tính năng theo gói (giá trị thô).")
+    @Schema(description = "Giới hạn theo gói (giá trị thô, gồm 2 giới hạn AI).")
     PlanFeatureLimitsResponse featureLimits;
 
     String descriptionVi;
@@ -69,4 +63,8 @@ public class PlanResponse {
 
     @Schema(description = "true với 3 gói lõi FREE/PLUS/PRO — không cho sửa code / xóa.")
     boolean core;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @Schema(description = "CHỈ ADMIN: số người dùng đang ở gói (xác nhận \"N người bị ảnh hưởng\" khi lưu).", example = "12")
+    Long subscriberCount;
 }

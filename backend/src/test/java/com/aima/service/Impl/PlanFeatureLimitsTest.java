@@ -66,7 +66,8 @@ class PlanFeatureLimitsTest {
         usageService = new PlanUsageServiceImpl(limitService, subscriptionService, mock(SubscriptionRepository.class),
                 brandProfileRepository, mock(ContentStrategyRepository.class), mock(PlatformAccountRepository.class),
                 mock(TrendResearchSessionRepository.class), postScheduleRepository,
-                mock(StrategyOptimizationJobRepository.class), mock(UserRepository.class), new PlanMapperImpl());
+                mock(StrategyOptimizationJobRepository.class), mock(com.aima.repository.AiAssistJobRepository.class),
+                mock(UserRepository.class), new PlanMapperImpl());
 
         plan = Plan.builder().code("FREE").build();
         LocalDateTime start = LocalDate.now().withDayOfMonth(1).atStartOfDay();
@@ -119,7 +120,7 @@ class PlanFeatureLimitsTest {
         assertEquals(ErrorCode.PLAN_FEATURE_NOT_INCLUDED, ex.getErrorCode());
 
         usageService.requireQuota(user, PlanLimitKey.SCHEDULED_POSTS_PER_PERIOD, null);
-        verify(postScheduleRepository, never()).countCreatedInPeriod(eq(user.getId()), any(), any());
+        verify(postScheduleRepository, never()).countCountedInPeriod(eq(user.getId()), any(), any());
     }
 
     @Test

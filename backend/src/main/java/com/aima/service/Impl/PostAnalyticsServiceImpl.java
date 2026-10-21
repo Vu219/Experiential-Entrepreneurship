@@ -14,6 +14,8 @@ import com.aima.mapper.PostAnalyticsMapper;
 import com.aima.repository.PostRepository;
 import com.aima.repository.UserRepository;
 import com.aima.service.PostAnalyticsService;
+import com.aima.service.PlanUsageService;
+import com.aima.enums.PlanLimitKey;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -26,6 +28,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 /**
@@ -36,20 +42,26 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
-@Transactional(readOnly = true)
+@Transactional(readOnly = true) // giới hạn gói đọc subscription: phần ghi của getOrCreate tự chạy REQUIRES_NEW
 public class PostAnalyticsServiceImpl implements PostAnalyticsService {
 
     PostRepository postRepository;
     UserRepository userRepository;
     PostAnalyticsMapper postAnalyticsMapper;
+    PlanUsageService planUsageService;
 
     @Override
     public ApiResponse<PageResponse<AnalyzedPostResponse>> list(String email, int page, int size) {
         User user = currentUser(email);
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 50));
-        Page<Post> posts = postRepository
-                .findByStatusAndSchedule_PlatformAccount_User_IdAndDeletedAtIsNullOrderByPublishedAtDesc(
-                        PostStatus.POSTED, user.getId(), pageable);
+        // Gói (ANALYTICS_HISTORY_DAYS): chỉ bài đăng trong số ngày gần nhất — cùng mốc với trang Phân tích.
+        Instant earliest = earliestPublishedAt(user);
+        Page<Post> posts = earliest == null
+                ? postRepository.findByStatusAndSchedule_PlatformAccount_User_IdAndDeletedAtIsNullOrderByPublishedAtDesc(
+                        PostStatus.POSTED, user.getId(), pageable)
+                : postRepository
+                .findByStatusAndSchedule_PlatformAccount_User_IdAndPublishedAtGreaterThanEqualAndDeletedAtIsNullOrderByPublishedAtDesc(
+                        PostStatus.POSTED, user.getId(), earliest, pageable);
 
         List<AnalyzedPostResponse> content = posts.getContent().stream()
                 .map(this::toAnalyzedPost)
@@ -64,6 +76,12 @@ public class PostAnalyticsServiceImpl implements PostAnalyticsService {
         Post post = postRepository
                 .findByIdAndSchedule_PlatformAccount_User_IdAndDeletedAtIsNull(postId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
+        Instant earliest = earliestPublishedAt(user);
+        if (earliest != null && post.getPublishedAt() != null && post.getPublishedAt().isBefore(earliest)) {
+            // Bài cũ hơn số ngày lịch sử của gói — cùng envelope 2205 để FE hiện nút nâng cấp.
+            planUsageService.requireCap(user, PlanLimitKey.ANALYTICS_HISTORY_DAYS,
+                    ChronoUnit.DAYS.between(post.getPublishedAt(), Instant.now()) + 1);
+        }
         AnalyzedPostResponse response = toAnalyzedPost(post);
         return ApiResponse.success("Lấy số liệu bài đăng thành công", response);
     }
@@ -76,6 +94,12 @@ public class PostAnalyticsServiceImpl implements PostAnalyticsService {
                 .toList();
         List<PostAnalyticsResponse> analytics = postAnalyticsMapper.toResponseList(rows);
         return postAnalyticsMapper.toAnalyzedPostResponse(post, analytics);
+    }
+
+    /** Đầu ngày sớm nhất được xem theo gói (giờ hệ thống như trang Phân tích); null = không giới hạn. */
+    private Instant earliestPublishedAt(User user) {
+        LocalDate earliest = planUsageService.analyticsEarliestDate(user, LocalDate.now());
+        return earliest == null ? null : earliest.atStartOfDay(ZoneId.systemDefault()).toInstant();
     }
 
     private User currentUser(String email) {

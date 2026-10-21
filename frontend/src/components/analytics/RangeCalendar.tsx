@@ -24,12 +24,15 @@ export default function RangeCalendar({
   from,
   to,
   max = todayISO(),
+  min,
   onChange,
 }: {
   from: string;
   to: string;
   /** Ngày lớn nhất chọn được (mặc định hôm nay — không có số liệu tương lai). */
   max?: string;
+  /** Ngày nhỏ nhất chọn được (gói giới hạn số ngày lịch sử — ANALYTICS_HISTORY_DAYS); không đặt = không giới hạn. */
+  min?: string;
   onChange: (from: string, to: string) => void;
 }) {
   const { t } = useApp();
@@ -106,7 +109,7 @@ export default function RangeCalendar({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
         {cells.map((iso, idx) => {
           if (!iso) return <span key={`e${idx}`} />;
-          const disabled = iso > max;
+          const disabled = iso > max || (!!min && iso < min);
           const isEdge = iso === rangeFrom || iso === rangeTo;
           const inRange = iso > rangeFrom && iso < rangeTo;
           return (

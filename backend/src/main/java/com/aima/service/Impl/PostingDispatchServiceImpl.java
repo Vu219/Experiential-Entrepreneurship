@@ -25,6 +25,11 @@ import com.aima.service.ContentItemStatusResolver;
 import com.aima.service.NotificationService;
 import com.aima.service.PostingDispatchService;
 import com.aima.service.ScheduleHoldService;
+import com.aima.service.PlanLimitService;
+import com.aima.service.PlatformAvailabilityService;
+import com.aima.service.ScheduleHeldNotifier;
+import com.aima.enums.PlanLimitKey;
+import com.aima.enums.PlatformLockReason;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -51,9 +56,12 @@ public class PostingDispatchServiceImpl implements PostingDispatchService {
     ScheduleHoldService holdService;
     NotificationService notificationService;
     JobEventService jobEventService;
+    PlatformAvailabilityService platformAvailabilityService;
+    PlanLimitService planLimitService;
+    ScheduleHeldNotifier heldNotifier;
 
     @Override
-    public Outcome dispatch(UUID scheduleId) {
+    public Outcome dispatch(UUID scheduleId, boolean immediate) {
         // Thứ tự khóa item → schedule → job: khóa bài trước khi claim lịch.
         UUID itemId = scheduleRepository.findContentItemId(scheduleId).orElse(null);
         if (itemId == null) {
@@ -65,12 +73,14 @@ public class PostingDispatchServiceImpl implements PostingDispatchService {
         if (due == null || due.getStatus() != ScheduleStatus.SCHEDULED) {
             return new Outcome(null, null);
         }
-        HoldReason blocker = blockerOf(due, item);
+        HoldReason blocker = blockerOf(due, item, immediate);
         if (blocker != null) {
             boolean newlyHeld = holdService.hold(due, blocker);
             statusResolver.refresh(itemId);
             if (newlyHeld && (blocker == HoldReason.ACCOUNT_ISSUE || blocker == HoldReason.ACCOUNT_REMOVED)) {
                 notifyReconnect(due);
+            } else if (newlyHeld && ENTITLEMENT_HOLDS.contains(blocker)) {
+                heldNotifier.notifySchedule(due, blocker);
             }
             log.warn("[PostingDispatch] Lịch {} đến hạn nhưng bị tạm giữ ({}) — không đăng", scheduleId, blocker);
             return new Outcome(null, blocker);
@@ -122,7 +132,21 @@ public class PostingDispatchServiceImpl implements PostingDispatchService {
                 .build());
     }
 
-    private HoldReason blockerOf(PostSchedule schedule, ContentItem item) {
+    /** Lý do giữ vì quyền dùng (nền tảng khoá / không thuộc gói / gói tắt lên lịch) — báo SCHEDULE_HELD. */
+    static final java.util.Set<HoldReason> ENTITLEMENT_HOLDS = java.util.Set.of(HoldReason.PLATFORM_DISABLED,
+            HoldReason.PLAN_PLATFORM_EXCLUDED, HoldReason.PLAN_SCHEDULING_DISABLED);
+
+    private HoldReason blockerOf(PostSchedule schedule, ContentItem item, boolean immediate) {
+        // Quyền dùng kiểm lại lúc đăng: khoá hệ thống (luôn thắng) → nền tảng theo gói → gói còn chế độ lên lịch.
+        // Subscription hết hạn được hạ lười ngay trong features() nên gói ở đây là gói HIỆN TẠI.
+        PlatformAccount account = schedule.getPlatformAccount();
+        PlatformLockReason lock = platformAvailabilityService.lockReason(account.getUser(), account.getPlatformName());
+        if (lock != null) {
+            return lock.holdReason();
+        }
+        if (!immediate && !planLimitService.features(account.getUser()).included(PlanLimitKey.SCHEDULING)) {
+            return HoldReason.PLAN_SCHEDULING_DISABLED;
+        }
         if (schedule.getContentVersion().getPlatformName() == Platform.INSTAGRAM) {
             return HoldReason.UNSUPPORTED_MEDIA;
         }

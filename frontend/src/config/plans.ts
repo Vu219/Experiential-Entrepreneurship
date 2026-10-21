@@ -96,6 +96,8 @@ export const formatPrice = (value: number): string =>
 export type ComparisonValue = string | boolean;
 
 export interface ComparisonRow {
+  /** true = dòng liên kết giới hạn thật (giá trị tự động, không nhập tay). */
+  auto?: boolean;
   label: string;
   /** Một giá trị / gói, theo đúng thứ tự danh sách gói. */
   values: ComparisonValue[];

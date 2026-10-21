@@ -49,7 +49,9 @@ public class PlanCreateRequest {
             + "tháng: gói tháng = 1, quý = 3, năm = 12.", example = "1")
     Short billingIntervalMonths;
 
-    @Schema(description = "Hạn mức token mô tả để hiển thị (chưa phải số dư thật). null = không giới hạn.", example = "500")
+    @Deprecated
+    @Schema(description = "BỎ QUA — số token hiển thị nay sinh từ monthlyTokenLimit (giữ field cho client cũ).",
+            deprecated = true)
     Long tokenQuota;
 
     // Hạn mức token LLM THẬT mỗi tháng (Plan.monthlyTokenLimit) — khác tokenQuota (chỉ hiển thị).
@@ -59,20 +61,9 @@ public class PlanCreateRequest {
             + "null = không giới hạn (chỉ cho gói miễn phí/ẩn).", example = "100000")
     Long monthlyTokenLimit;
 
-    @Min(value = -1, message = "PLAN_AI_LIMIT_INVALID")
-    @Max(value = 100_000, message = "PLAN_AI_LIMIT_INVALID")
-    @Schema(description = "Lượt AI kiểm tra chính sách mỗi tháng. null = mặc định hệ thống, -1 = không giới hạn, "
-            + "0 = tắt (chỉ bộ lọc tự động).", example = "30")
-    Integer policyCheckAiMonthlyLimit;
-
-    @Min(value = -1, message = "PLAN_AI_LIMIT_INVALID")
-    @Max(value = 100_000, message = "PLAN_AI_LIMIT_INVALID")
-    @Schema(description = "Số lần AI sửa bài tối đa mỗi bản nền tảng. null = mặc định hệ thống, -1 = không giới hạn, "
-            + "0 = tắt.", example = "3")
-    Integer aiFixMaxPerVersion;
-
     @Valid
-    @Schema(description = "Giới hạn tính năng theo gói. null = toàn bộ về mặc định hệ thống.")
+    @Schema(description = "Giới hạn theo gói (gồm 2 giới hạn AI) — gói tạo mới bắt buộc điền ĐỦ mọi ô "
+            + "(PLAN_LIMIT_VALUE_REQUIRED); không có \"Mặc định hệ thống\" ngầm.")
     PlanFeatureLimitsRequest featureLimits;
 
     String descriptionVi;

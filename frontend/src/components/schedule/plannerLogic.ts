@@ -222,9 +222,12 @@ export function calendarStateFor(row: PlannerRow, sharedEnabled: boolean, todayI
   return { mode: 'interactive', value: row.date };
 }
 
-/** Bấm một ngày trên lịch (Chọn giờ / giờ chung): điền vào ô ngày; ngày đã qua → null (không đổi gì). */
-export function pickCalendarDay(day: string, todayISO: string): { date: string } | null {
-  return day && day >= todayISO ? { date: day } : null;
+/**
+ * Bấm một ngày trên lịch (Chọn giờ / giờ chung): điền vào ô ngày; ngày đã qua hoặc vượt số ngày đặt trước của gói
+ * (`maxISO`) → null (không đổi gì).
+ */
+export function pickCalendarDay(day: string, todayISO: string, maxISO?: string): { date: string } | null {
+  return day && day >= todayISO && (!maxISO || day <= maxISO) ? { date: day } : null;
 }
 
 /** Badge trạng thái của dòng: chưa đủ thông tin → 'unset' (cam); đủ → 'at' + giờ tường (error khi giờ đã qua / quá sát). */

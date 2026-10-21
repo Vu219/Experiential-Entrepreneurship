@@ -254,8 +254,8 @@ aima:
     frontend-success-redirect: ${FE_OAUTH_SUCCESS_URL:http://localhost:3000/settings?tab=connections}
     frontend-error-redirect: ${FE_OAUTH_ERROR_URL:http://localhost:3000/settings?tab=connections&error=oauth_failed}
   connections:
-    # Nền tảng được phép kết nối (CSV, tên enum Platform). Hiện chỉ Facebook chạy được —
-    # Instagram/Threads khoá tới khi luồng đăng bài của chúng hoàn thiện.
+    # CHỈ là giá trị SEED lần đầu của bảng platform_availability (V20) — sau đó admin mở/khoá ở trang
+    # "Version API nền tảng", DB là nguồn sự thật. CSV tên enum Platform; mặc định chỉ Facebook mở.
     enabled-platforms: ${AIMA_CONNECTION_ENABLED_PLATFORMS:FACEBOOK}
   logging:
     # Cửa sổ chống trùng activity log (giây): cùng userId + action + targetId trong khoảng này
@@ -314,13 +314,16 @@ aima:
   # Giới hạn AI theo GÓI nằm trên bảng plans (admin → Quản lý gói, Flyway V15). Hai giá trị dưới đây chỉ là
   # MẶC ĐỊNH HỆ THỐNG cho gói để "Mặc định" (cột null): -1 = không giới hạn, 0 = tắt. Đọc ở PlanLimitServiceImpl.
   # AIMA_POLICY_CHECK_AI_LIMIT_FREE/PLUS/PRO đã DEPRECATED (còn đọc tạm cho gói cùng mã + log WARN khi khởi động).
-  # Giới hạn tính năng theo gói (Flyway V18) — mặc định cho gói để ô "Mặc định" (cột null, vd gói admin tự tạo).
+  # Giới hạn tính năng theo gói (Flyway V18/V20) — mặc định cho ô "Mặc định" (cột null) của 3 gói lõi; gói tự tạo
+  # bắt buộc điền đủ (lúc deploy V20 các ô null của gói tự tạo được ghi cứng bằng giá trị dưới đây).
   # -1 = không giới hạn, 0 = tắt, > 0 = hạn mức; cờ true/false. Không đặt = không giới hạn / bật (hành vi trước V18).
   plan-limits:
     defaults:
       brand-profiles: ${AIMA_PLAN_LIMIT_BRAND_PROFILES:-1}
       strategies-per-brand: ${AIMA_PLAN_LIMIT_STRATEGIES_PER_BRAND:-1}
       connected-channels: ${AIMA_PLAN_LIMIT_CONNECTED_CHANNELS:-1}
+      # Nền tảng gói được dùng khi để "Mặc định" (CSV tên enum Platform) — mặc định chỉ Facebook (V20).
+      allowed-platforms: ${AIMA_PLAN_LIMIT_ALLOWED_PLATFORMS:FACEBOOK}
       trend-research-per-period: ${AIMA_PLAN_LIMIT_TREND_RESEARCH_PER_PERIOD:-1}
       auto-trend-research: ${AIMA_PLAN_LIMIT_AUTO_TREND_RESEARCH:true}
       ideas-per-research: ${AIMA_PLAN_LIMIT_IDEAS_PER_RESEARCH:-1}

@@ -14,5 +14,11 @@ public enum HoldReason {
     /** Tài khoản AIMA đang chờ xoá — gỡ khi khôi phục (lịch vẫn chờ user kích hoạt lại). */
     USER_PENDING_DELETE,
     /** Nền tảng yêu cầu ảnh/video (Instagram) mà MVP chỉ đăng chữ — không tự gỡ. */
-    UNSUPPORTED_MEDIA
+    UNSUPPORTED_MEDIA,
+    /** Admin khoá nền tảng toàn hệ thống — mở lại KHÔNG tự gỡ: user tự tiếp tục từng lịch (PUT /schedules/{id}). */
+    PLATFORM_DISABLED,
+    /** Gói hiện tại không gồm nền tảng của lịch (hạ gói / hết hạn / admin sửa gói) — user tự tiếp tục khi gói cho phép. */
+    PLAN_PLATFORM_EXCLUDED,
+    /** Gói hiện tại tắt tính năng lên lịch (SCHEDULING) — user tự tiếp tục khi gói cho phép. */
+    PLAN_SCHEDULING_DISABLED
 }

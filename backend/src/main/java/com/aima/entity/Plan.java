@@ -75,18 +75,9 @@ public class Plan extends BaseEntity {
     Long monthlyTokenLimit;
 
     /**
-     * Lượt AI kiểm tra chính sách mỗi tháng (tầng 2, chỉ khi bộ luật có nghi vấn). Đọc qua
-     * {@code PlanLimitService}: null = mặc định hệ thống, -1 = không giới hạn, 0 = tắt (chỉ bộ luật).
-     * CHECK &gt;= -1 do Flyway V15.
+     * Mọi giới hạn theo gói (V15 + V18 + V20, gồm 2 giới hạn AI) — null khi mọi cột null = toàn bộ mặc định hệ thống.
+     * Đọc DUY NHẤT qua {@code PlanLimitService}.
      */
-    @Column(name = "policy_check_ai_monthly_limit")
-    Integer policyCheckAiMonthlyLimit;
-
-    /** Số lần AI sửa bài tối đa mỗi bản nền tảng — cùng quy ước với {@link #policyCheckAiMonthlyLimit}. */
-    @Column(name = "ai_fix_max_per_version")
-    Integer aiFixMaxPerVersion;
-
-    /** Giới hạn tính năng theo gói (V18) — null khi mọi cột null = toàn bộ mặc định hệ thống. */
     @Embedded
     PlanFeatureLimits featureLimits;
 

@@ -12,11 +12,13 @@ import { C } from '../../styles/colors';
 
 const POPOVER_W = 320;
 
-export default function ScheduleDateField({ value, min, onChange, schedules, ariaLabel, invalid = false }: {
+export default function ScheduleDateField({ value, min, max, onChange, schedules, ariaLabel, invalid = false }: {
   /** yyyy-MM-dd hoặc ''. */
   value: string;
   /** Ngày sớm nhất chọn được (hôm nay theo múi giờ đăng). */
   min: string;
+  /** Ngày xa nhất chọn được (gói — SCHEDULE_HORIZON_DAYS); không đặt = không giới hạn. */
+  max?: string;
   onChange: (v: string) => void;
   /** Lịch hiện có của tài khoản đích — hiện chấm màu trên lưới. */
   schedules: PostSchedule[];
@@ -62,7 +64,7 @@ export default function ScheduleDateField({ value, min, onChange, schedules, ari
 
   const cells = useMemo(() => buildMonth(view, schedules), [view, schedules]);
   const pick = (key: string | null) => {
-    if (!key || key < min) return;
+    if (!key || key < min || (max && key > max)) return;
     onChange(key);
     setOpen(false);
   };
@@ -92,7 +94,8 @@ export default function ScheduleDateField({ value, min, onChange, schedules, ari
             <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{monthLabel}</span>
             <button type="button" onClick={() => shift(1)} aria-label={t.planNextMonth} style={navBtn}><ChevronRight size={15} aria-hidden="true" /></button>
           </div>
-          <MonthGrid cells={cells} selectedDay={value || null} onSelectDay={pick} compact minDay={min} disabledLabel={t.planDayPast} />
+          <MonthGrid cells={cells} selectedDay={value || null} onSelectDay={pick} compact minDay={min} maxDay={max} disabledLabel={t.planDayPast}
+            maxDisabledLabel={max ? t.plgHorizonCap.replace('{date}', max) : undefined} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 10 }}>
             {/* Chú thích: ngày đã qua (mờ, không chọn được) · hôm nay · chấm = ngày đã có lịch */}
             <span style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 11, color: C.textMuted }}>

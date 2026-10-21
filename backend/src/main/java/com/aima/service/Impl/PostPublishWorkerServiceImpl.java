@@ -43,6 +43,9 @@ import com.aima.service.PostPublishWorkerService;
 import com.aima.service.PublishErrorNormalizer;
 import com.aima.service.PublishFailureNotifier;
 import com.aima.service.ScheduleHoldService;
+import com.aima.service.PlatformAvailabilityService;
+import com.aima.service.ScheduleHeldNotifier;
+import com.aima.enums.PlatformLockReason;
 import com.aima.service.SystemLogService;
 import com.aima.util.PlatformTextLimits;
 import com.aima.util.PublishErrorRules;
@@ -85,6 +88,10 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
             List.of(Duration.ofMinutes(5), Duration.ofMinutes(15), Duration.ofMinutes(30));
 
     // Lý do dừng job khi tài khoản đích đã ngắt kết nối / không còn ACTIVE lúc worker nhận job.
+    // Lý do dừng job khi nền tảng bị khoá toàn hệ thống / không còn thuộc gói lúc worker nhận job.
+    static final String PLATFORM_BLOCKED_STOP_REASON =
+            "Nền tảng đang tạm khoá hoặc không còn thuộc gói — lịch được tạm giữ, không đăng";
+
     static final String ACCOUNT_UNAVAILABLE_STOP_REASON =
             "Tài khoản đăng bài đã bị ngắt kết nối hoặc không còn hiệu lực — lịch được tạm giữ";
 
@@ -125,6 +132,8 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
     ActivityLogService activityLogService;
     ContentItemStatusResolver statusResolver;
     ScheduleHoldService holdService;
+    PlatformAvailabilityService platformAvailabilityService;
+    ScheduleHeldNotifier heldNotifier;
     PublishErrorNormalizer errorNormalizer;
     PublishFailureNotifier failureNotifier;
     PlatformIncidentService incidentService;
@@ -139,6 +148,8 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
                                         ActivityLogService activityLogService,
                                         ContentItemStatusResolver statusResolver,
                                         ScheduleHoldService holdService,
+                                        PlatformAvailabilityService platformAvailabilityService,
+                                        ScheduleHeldNotifier heldNotifier,
                                         PublishErrorNormalizer errorNormalizer,
                                         PublishFailureNotifier failureNotifier,
                                         PlatformIncidentService incidentService,
@@ -155,6 +166,8 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
         this.activityLogService = activityLogService;
         this.statusResolver = statusResolver;
         this.holdService = holdService;
+        this.platformAvailabilityService = platformAvailabilityService;
+        this.heldNotifier = heldNotifier;
         this.errorNormalizer = errorNormalizer;
         this.failureNotifier = failureNotifier;
         this.incidentService = incidentService;
@@ -354,6 +367,28 @@ public class PostPublishWorkerServiceImpl implements PostPublishWorkerService {
 
         // Tài khoản đích bị ngắt kết nối / mất hiệu lực sau lúc dispatch (job PENDING, chu kỳ retry) → KHÔNG đăng:
         // dừng job, đưa lịch về ON_HOLD với lý do tương ứng (như holdAllForPendingDeletion).
+        // Kiểm tra CUỐI quyền dùng nền tảng — đọc trạng thái hệ thống THẲNG từ DB (không qua cache 30s): admin vừa khoá
+        // nền tảng / gói vừa đổi sau lúc dispatch thì job dừng (không retry), lịch ON_HOLD, không gọi nền tảng.
+        PlatformAccount target = schedule.getPlatformAccount();
+        PlatformLockReason lock = platformAvailabilityService.lockReasonNow(target.getUser(), target.getPlatformName());
+        if (lock != null) {
+            job.setStatus(PostingJobStatus.FAILED);
+            job.setEndTime(Instant.now());
+            job.setErrorMessage(PLATFORM_BLOCKED_STOP_REASON);
+            job.setErrorType(PublishErrorCode.PLATFORM_UNSUPPORTED.legacyType());
+            job.setErrorCode(PublishErrorCode.PLATFORM_UNSUPPORTED);
+            job.setPlatformErrorCode(PublishErrorRules.CODE_PLATFORM_BLOCKED);
+            schedule.setStatus(ScheduleStatus.ON_HOLD); // lịch đang POSTING (đã claim) — về ON_HOLD rồi gắn lý do
+            boolean newlyHeld = holdService.hold(schedule, lock.holdReason());
+            statusResolver.refresh(itemId);
+            if (newlyHeld) {
+                heldNotifier.notifySchedule(schedule, lock.holdReason());
+            }
+            log.warn("[PostPublish] Job {} dừng — nền tảng {} không dùng được ({}), lịch {} → ON_HOLD",
+                    jobId, target.getPlatformName(), lock, schedule.getId());
+            return false;
+        }
+
         HoldReason accountBlocker = accountBlockerOf(schedule.getPlatformAccount());
         if (accountBlocker != null) {
             job.setStatus(PostingJobStatus.FAILED);

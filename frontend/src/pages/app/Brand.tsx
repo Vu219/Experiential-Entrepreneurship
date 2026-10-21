@@ -10,6 +10,9 @@ import BrandProfileList from '../../components/brand/BrandProfileList.tsx';
 import StrategyManager, { type StrategyIntent } from '../../components/brand/StrategyManager.tsx';
 import StrategyGuideModal from '../../components/brand/StrategyGuideModal.tsx';
 import { C } from '../../styles/colors';
+import { usePlanUsage } from '../../hooks/usePlanUsage';
+import { scopeExhausted } from '../../utils/planGates';
+import PlanLimitInline from '../../components/PlanLimitInline';
 
 type Tab = 'brand' | 'strategy';
 
@@ -20,7 +23,12 @@ const tabOf = (v: string | null): Tab | null => (v === 'brand' || v === 'strateg
  * card) và "Chiến lược content" (list-left + detail-right). Tiêu đề trang do Topbar lo.
  */
 export default function Brand() {
-  const { t, brandGradient } = useApp();
+  const { t, brandGradient, activeBrandId } = useApp();
+  // Chặn trước theo gói: thương hiệu đang chọn đã đủ số chiến lược → khoá nút Tạo (backend vẫn chặn 2205).
+  const { item: planItem } = usePlanUsage();
+  const strategyQuota = planItem('STRATEGIES_PER_BRAND');
+  const strategyFull = scopeExhausted(strategyQuota, activeBrandId);
+  const strategyFullMsg = t.plgStrategyFull.replace('{limit}', String(strategyQuota?.limit ?? ''));
 
   // Tab mở sẵn do nơi khác yêu cầu (vd wizard Tạo nội dung → "Chỉnh sửa chiến lược");
   // đọc 1 lần lúc mount rồi xóa để lần vào sau trở về mặc định.
@@ -90,7 +98,9 @@ export default function Brand() {
               <Icon icon={HelpCircle} size={16} stroke={C.primary} />{t.csGuide}
             </button>
             {/* Nút tạo chiến lược chuyển lên header (cạnh Hướng dẫn); logic mở form vẫn ở StrategyManager qua store. */}
-            <button onClick={requestStrategyCreate} className="btn-grad" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>
+            {strategyFull && <PlanLimitInline message={strategyFullMsg} />}
+            <button onClick={requestStrategyCreate} disabled={strategyFull} title={strategyFull ? strategyFullMsg : undefined}
+              className="btn-grad" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: strategyFull ? 'not-allowed' : 'pointer', opacity: strategyFull ? 0.55 : 1 }}>
               <Icon icon={Plus} size={15} stroke={C.onBrand} />{t.csCreate}
             </button>
           </div>
@@ -106,7 +116,7 @@ export default function Brand() {
           onClose={() => setGuideOpen(false)}
           onCreateNew={() => {
             setGuideOpen(false);
-            requestStrategyCreate();
+            if (!strategyFull) requestStrategyCreate();
           }}
         />
       )}

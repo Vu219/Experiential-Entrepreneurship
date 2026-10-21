@@ -54,7 +54,8 @@ public interface UsageMapper {
     @Mapping(target = "plan", source = "planEntity")
     @Mapping(target = "status", source = "subStatus")
     Subscription toSubscription(User userEntity, Plan planEntity, SubscriptionStatus subStatus,
-                                LocalDateTime currentPeriodStart, LocalDateTime currentPeriodEnd);
+                                LocalDateTime currentPeriodStart, LocalDateTime currentPeriodEnd,
+                                LocalDateTime periodAnchorAt);
 
     // ===== Lịch sử gói (subscription_history) + gói của một user cho admin =====
 

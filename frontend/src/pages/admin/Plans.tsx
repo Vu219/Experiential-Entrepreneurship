@@ -1,23 +1,27 @@
-import { Fragment, useCallback, useEffect, useState } from 'react';
-import { Check, Pencil, Plus, Star, Trash2, Eye, EyeOff } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { AlertTriangle, Link2, Pencil, Plus, Star, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Card, Loader, Icon } from '../../components/ui';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/brand/ConfirmDialog';
 import StatusBadge from '../../components/admin/StatusBadge';
+import SegmentedControl from '../../components/admin/SegmentedControl';
 import PlanCard from '../../components/landing/PlanCard';
+import PlanFormModal from '../../components/admin/plans/PlanFormModal';
+import CompareCell from '../../components/plans/CompareCell';
+import ComparisonTable from '../../components/plans/ComparisonTable';
 import { formatVND } from '../../api/admin';
 import {
-  getAdminPlans, createPlan, updatePlan, deletePlan,
+  getAdminPlans, updatePlan, deletePlan,
   createFeature, updateFeature, deleteFeature,
-  toPricingPlans, toComparisonGroups,
+  toPricingPlans, toComparisonGroups, featureCellValue,
   type PlansPayload, type PlanDto, type PlanFeatureDto, type PlanSaveInput,
-  type FeatureSaveInput, type PlanFeatureValueDto, type PlanAiLimit, type PlanLimitDefaults,
-  PLAN_AI_UNLIMITED, PLAN_AI_LIMIT_MAX,
+  type FeatureSaveInput, type PlanFeatureValueDto,
 } from '../../api/plans';
-import type { ApiError } from '../../api/apiClient';
-import { PLAN_LIMIT_FIELDS, PLAN_LIMIT_GROUPS, type PlanFeatureLimits } from '../../api/planLimits';
+import { listPlatformAvailability } from '../../api/platformAvailability';
+import { PLAN_LIMIT_FIELDS, type PlanLimitKey } from '../../api/planLimits';
+import type { PlatformEnum } from '../../api/connections';
 import type { Lang } from '../../types';
 import { useToast } from '../../components/toast/ToastProvider';
 import PageContainer from '../../components/PageContainer';
@@ -34,16 +38,13 @@ type Tab = 'plans' | 'compare' | 'preview';
 export const PLANS_INTENT_KEY = 'aima.plansIntent';
 export type PlansIntent = { action: 'create' } | { action: 'edit'; id: string };
 
-const ERR_PLAN_CODE_EXISTED = 1982;
-const ERR_PLAN_AI_LIMIT_INVALID = 2176;
-
+/** Ẩn/hiện gói: chỉ đổi isActive — giới hạn null = giữ nguyên nên không cần gửi lại. */
 const toSaveInput = (p: PlanDto): PlanSaveInput => ({
   nameVi: p.nameVi, nameEn: p.nameEn, price: p.price,
   billingCycleVi: p.billingCycleVi, billingCycleEn: p.billingCycleEn,
   billingIntervalMonths: p.billingIntervalMonths,
-  tokenQuota: p.tokenQuota, monthlyTokenLimit: p.monthlyTokenLimit,
-  policyCheckAiMonthlyLimit: p.policyCheckAiMonthlyLimit, aiFixMaxPerVersion: p.aiFixMaxPerVersion,
-  featureLimits: p.featureLimits ?? null,
+  monthlyTokenLimit: null,
+  featureLimits: null,
   descriptionVi: p.descriptionVi, descriptionEn: p.descriptionEn,
   featuresVi: p.featuresVi, featuresEn: p.featuresEn,
   teaserFeaturesVi: p.teaserFeaturesVi, teaserFeaturesEn: p.teaserFeaturesEn,
@@ -51,55 +52,23 @@ const toSaveInput = (p: PlanDto): PlanSaveInput => ({
   highlight: p.highlight, displayOrder: p.displayOrder, isActive: p.isActive,
 });
 
-// Giới hạn AI theo gói (BE V15): một cột số, admin chọn chế độ — null = mặc định hệ thống, -1 = không giới hạn,
-// 0 = tắt, > 0 = số lượt. Không thêm cờ bật/tắt riêng: "Tắt" (0) chính là tắt — một nguồn sự thật.
-type AiLimitMode = 'default' | 'unlimited' | 'off' | 'limit';
-type AiLimitDraft = { mode: AiLimitMode; n: string };
-
-const toAiLimitDraft = (v: PlanAiLimit): AiLimitDraft =>
-  v == null ? { mode: 'default', n: '' }
-    : v === PLAN_AI_UNLIMITED ? { mode: 'unlimited', n: '' }
-      : v === 0 ? { mode: 'off', n: '' } : { mode: 'limit', n: String(v) };
-
-const fromAiLimitDraft = (d: AiLimitDraft): PlanAiLimit =>
-  d.mode === 'default' ? null : d.mode === 'unlimited' ? PLAN_AI_UNLIMITED : d.mode === 'off' ? 0 : Number(d.n);
-
-const aiLimitDraftValid = (d: AiLimitDraft) => {
-  if (d.mode !== 'limit') return true;
-  const n = Number(d.n);
-  return /^\d+$/.test(d.n) && n >= 1 && n <= PLAN_AI_LIMIT_MAX;
-};
-
-// Giới hạn tính năng (V18) dùng lại draft của giới hạn AI: số theo đúng 4 chế độ; cờ chỉ 3 chế độ
-// (Mặc định / Bật = 'unlimited' / Tắt = 'off').
-const toLimitDrafts = (v: PlanFeatureLimits | null | undefined): Record<string, AiLimitDraft> =>
-  Object.fromEntries(PLAN_LIMIT_FIELDS.map(({ field, type }) => {
-    const raw = v?.[field] ?? null;
-    if (type === 'FLAG') return [field, { mode: raw == null ? 'default' : raw ? 'unlimited' : 'off', n: '' } as AiLimitDraft];
-    return [field, toAiLimitDraft(raw as number | null)];
-  }));
-
-const fromLimitDrafts = (d: Record<string, AiLimitDraft>): PlanFeatureLimits =>
-  Object.fromEntries(PLAN_LIMIT_FIELDS.map(({ field, type }) => {
-    const draft = d[field];
-    if (type === 'FLAG') return [field, draft.mode === 'default' ? null : draft.mode !== 'off'];
-    return [field, fromAiLimitDraft(draft)];
-  })) as unknown as PlanFeatureLimits;
-
-/** Mặc định hệ thống THÔ (-1 = không giới hạn) → dạng hiển thị của AiLimitField (null = không giới hạn). */
-const effectiveDefault = (raw: number | boolean | null | undefined): number | null | undefined =>
-  raw === undefined || typeof raw === 'boolean' ? undefined : raw === null || raw === PLAN_AI_UNLIMITED ? null : raw;
-
-const fieldStyle = { width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 12px', fontSize: 13.5, color: C.textStrong, outline: 'none', background: C.surface } as const;
+const fieldStyle = { width: '100%', minWidth: 0, boxSizing: 'border-box', border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 12px', fontSize: 13.5, color: C.textStrong, outline: 'none', background: C.surface } as const;
 const labelStyle = { fontSize: 11.5, fontWeight: 700, letterSpacing: '.04em', color: C.textFaint, marginBottom: 5, display: 'block' } as const;
 const hintStyle = { fontSize: 11, color: C.textFaint, marginTop: 3 } as const;
+
+/** Nhãn ngắn của một giới hạn số trên thẻ gói: ∞ / Tắt / số. */
+function shortLimit(v: number | null | undefined, offLabel: string): string {
+  if (v === undefined) return '—';
+  if (v == null || v === -1) return '∞';
+  return v === 0 ? offLabel : v.toLocaleString('vi-VN');
+}
 
 export default function Plans() {
   const { t, lang, brandGradient } = useApp();
   const { isMobile } = useBreakpoint();
-  const aiLimitLabel = useAiLimitLabel();
   const [load, setLoad] = useState<'loading' | 'error' | 'ok'>('loading');
   const [payload, setPayload] = useState<PlansPayload | null>(null);
+  const [lockedPlatforms, setLockedPlatforms] = useState<PlatformEnum[]>([]);
   const [tab, setTab] = useState<Tab>('plans');
   const toast = useToast();
 
@@ -113,6 +82,10 @@ export default function Plans() {
 
   const fetchAll = useCallback(() => {
     setLoad('loading');
+    // Trạng thái khoá nền tảng toàn hệ thống: ghi chú ở chip nền tảng + cảnh báo nội dung card nhắc nền tảng đang khoá.
+    listPlatformAvailability()
+      .then((rows) => setLockedPlatforms(rows.filter((r) => !r.connectionEnabled).map((r) => r.platform)))
+      .catch(() => setLockedPlatforms([]));
     getAdminPlans()
       .then((p) => {
         setPayload(p);
@@ -138,22 +111,10 @@ export default function Plans() {
   const sortedPlans = payload ? [...payload.plans].sort((a, b) => a.displayOrder - b.displayOrder) : [];
   const sortedFeatures = payload ? [...payload.features].sort((a, b) => a.displayOrder - b.displayOrder) : [];
 
-  const replacePlan = (saved: PlanDto, isNew: boolean) =>
-    setPayload((prev) => prev && ({
-      ...prev,
-      plans: isNew ? [...prev.plans, saved] : prev.plans.map((x) => (x.id === saved.id ? saved : x)),
-    }));
-
-  const replaceFeature = (saved: PlanFeatureDto, isNew: boolean) =>
-    setPayload((prev) => prev && ({
-      ...prev,
-      features: isNew ? [...prev.features, saved] : prev.features.map((x) => (x.id === saved.id ? saved : x)),
-    }));
-
   const toggleActive = (p: PlanDto) => {
     setBusy(true);
     updatePlan(p.id, { ...toSaveInput(p), isActive: !p.isActive })
-      .then((saved) => { replacePlan(saved, false); toast.success(t.plSaved); })
+      .then(() => { fetchAll(); toast.success(t.plSaved); })
       .catch(() => toast.error(t.plSaveFail))
       .finally(() => { setBusy(false); setHidingPlan(null); });
   };
@@ -199,6 +160,15 @@ export default function Plans() {
     );
   };
 
+  const limitOf = (p: PlanDto, key: PlanLimitKey) => {
+    const f = PLAN_LIMIT_FIELDS.find((x) => x.key === key)!;
+    return p.featureLimits ? (p.featureLimits as unknown as Record<string, number | null>)[f.field] : undefined;
+  };
+
+  // Bảng so sánh admin: colgroup + table-layout fixed — cột nhóm/tên rộng cố định, cột gói chia đều, cột hành động riêng.
+  const planColWidth = 110;
+  const unlinkedCount = sortedFeatures.filter((f) => !f.limitKey).length;
+
   return (
     <PageContainer>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
@@ -237,16 +207,16 @@ export default function Plans() {
               </div>
               <div style={{ fontSize: 12.5, color: C.textSecondary, lineHeight: 1.5, minHeight: 36 }}>{lang === 'en' ? p.descriptionEn : p.descriptionVi}</div>
               <div style={{ fontSize: 12, color: C.accentTextMuted }}>
-                {t.plTokenQuota}: <b>{p.tokenQuota === null ? '∞' : p.tokenQuota.toLocaleString('vi-VN')}</b>
-                <span style={{ margin: '0 8px', color: C.legacyTexte3ddf2 }}>|</span>
                 {t.plTokenLimit}: <b>{p.monthlyTokenLimit == null ? '∞' : p.monthlyTokenLimit.toLocaleString('vi-VN')}</b>
+                <span style={{ margin: '0 8px', color: C.legacyTexte3ddf2 }}>|</span>
+                {t.plfSubscribersShort}: <b>{p.subscriberCount ?? 0}</b>
                 <span style={{ margin: '0 8px', color: C.legacyTexte3ddf2 }}>|</span>
                 {t.plOrder}: <b>{p.displayOrder}</b>
               </div>
               <div style={{ fontSize: 12, color: C.accentTextMuted }}>
-                {t.plAiCheckLimit}: <b>{aiLimitLabel(p.policyCheckAiMonthlyLimit, payload.limitDefaults?.policyCheckAiMonthlyLimit)}</b>
+                {t.plAiCheckLimit}: <b>{shortLimit(limitOf(p, 'POLICY_CHECK_AI_PER_PERIOD'), t.plModeOff)}</b>
                 <span style={{ margin: '0 8px', color: C.legacyTexte3ddf2 }}>|</span>
-                {t.plAiFixLimit}: <b>{aiLimitLabel(p.aiFixMaxPerVersion, payload.limitDefaults?.aiFixMaxPerVersion)}</b>
+                {t.plAiFixLimit}: <b>{shortLimit(limitOf(p, 'AI_FIX_PER_VERSION'), t.plModeOff)}</b>
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 6 }}>
                 <button onClick={() => setEditingPlan(p)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '7px 0', fontSize: 12.5, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>
@@ -274,52 +244,71 @@ export default function Plans() {
       )}
 
       {tab === 'compare' && (
-        <Card style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${C.surfaceMuted}` }}>
-                  <th style={{ padding: '13px 16px', textAlign: 'left', fontSize: 12.5, fontWeight: 700, color: C.textMuted }}>{t.plColGroup}</th>
-                  <th style={{ padding: '13px 16px', textAlign: 'left', fontSize: 12.5, fontWeight: 700, color: C.textMuted }}>{t.plColFeature}</th>
-                  {sortedPlans.map((p) => (
-                    <th key={p.id} style={{ padding: '13px 12px', textAlign: 'center', fontSize: 12.5, fontWeight: 800, color: p.highlight ? C.primaryStrong : C.textStrong, minWidth: 90 }}>{p.code}</th>
-                  ))}
-                  <th style={{ padding: '13px 16px' }} />
-                </tr>
-              </thead>
-              <tbody>
-                {sortedFeatures.length === 0 && (
-                  <tr><td colSpan={sortedPlans.length + 3} style={{ padding: '30px 16px', textAlign: 'center', fontSize: 13, color: C.textMuted }}>{t.listEmpty}</td></tr>
-                )}
-                {sortedFeatures.map((f) => (
-                  <tr key={f.id} style={{ borderTop: `1px solid ${C.bg}` }}>
-                    <td style={{ padding: '11px 16px', fontSize: 12.5, fontWeight: 700, color: C.primary, whiteSpace: 'nowrap' }}>{lang === 'en' ? f.groupEn : f.groupVi}</td>
-                    <td style={{ padding: '11px 16px', fontSize: 13, color: C.ink650 }}>{lang === 'en' ? f.nameEn : f.nameVi}</td>
-                    {sortedPlans.map((p) => {
-                      const v = f.values.find((x) => x.planCode === p.code);
-                      return (
-                        <td key={p.id} style={{ padding: '11px 12px', textAlign: 'center' }}>
-                          {!v || (v.boolValue === null && !v.textVi && !v.textEn) ? <span style={{ color: C.ink200 }}>·</span>
-                            : v.boolValue === true ? <Check size={15} strokeWidth={3} color={C.primary} style={{ verticalAlign: 'middle' }} />
-                            : v.boolValue === false ? <span style={{ color: C.ink200, fontWeight: 600 }}>—</span>
-                            : <span style={{ fontSize: 12.5, fontWeight: 600, color: C.ink650 }}>{lang === 'en' ? v.textEn || v.textVi : v.textVi || v.textEn}</span>}
-                        </td>
-                      );
-                    })}
-                    <td style={{ padding: '11px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <button onClick={() => setEditingFeature(f)} title={t.plEditFeature} style={{ border: `1px solid ${C.border}`, background: C.surface, borderRadius: 8, padding: '5px 9px', cursor: 'pointer', marginRight: 6 }}>
-                        <Icon icon={Pencil} size={13} stroke={C.violetLight} />
-                      </button>
-                      <button onClick={() => setDeletingFeature(f)} title={t.plDeleteRow} aria-label={t.plDeleteRow} style={{ border: `1px solid ${C.legacyBorderfbdce7}`, background: C.surface, borderRadius: 8, padding: '5px 9px', cursor: 'pointer' }}>
-                        <Icon icon={Trash2} size={13} stroke={C.legacyTexte25c84} />
-                      </button>
-                    </td>
+        <>
+          {unlinkedCount > 0 && (
+            <div role="note" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 14px', borderRadius: 12,
+              background: C.amberSoft, color: C.amberText, fontSize: 12.5, lineHeight: 1.5 }}>
+              <AlertTriangle size={15} strokeWidth={2.2} aria-hidden style={{ flex: 'none', marginTop: 2 }} />
+              <span>{t.plCmpManualWarning.replace('{n}', String(unlinkedCount))}</span>
+            </div>
+          )}
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', minWidth: 420 + planColWidth * sortedPlans.length, borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                <colgroup>
+                  <col style={{ width: 150 }} />
+                  <col style={{ width: 230 }} />
+                  {sortedPlans.map((p) => <col key={p.id} />)}
+                  <col style={{ width: 96 }} />
+                </colgroup>
+                <thead>
+                  <tr style={{ borderBottom: `1px solid ${C.surfaceMuted}` }}>
+                    <th style={{ padding: '13px 16px', textAlign: 'left', fontSize: 12.5, fontWeight: 700, color: C.textMuted }}>{t.plColGroup}</th>
+                    <th style={{ padding: '13px 16px', textAlign: 'left', fontSize: 12.5, fontWeight: 700, color: C.textMuted }}>{t.plColFeature}</th>
+                    {sortedPlans.map((p) => (
+                      <th key={p.id} style={{ padding: '13px 8px', textAlign: 'center', verticalAlign: 'middle', fontSize: 12.5, fontWeight: 800, color: p.highlight ? C.primaryStrong : C.textStrong }}>{p.code}</th>
+                    ))}
+                    <th style={{ padding: '13px 16px' }} />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                </thead>
+                <tbody>
+                  {sortedFeatures.length === 0 && (
+                    <tr><td colSpan={sortedPlans.length + 3} style={{ padding: '30px 16px', textAlign: 'center', fontSize: 13, color: C.textMuted }}>{t.listEmpty}</td></tr>
+                  )}
+                  {sortedFeatures.map((f) => (
+                    <tr key={f.id} style={{ borderTop: `1px solid ${C.bg}` }}>
+                      <td style={{ padding: '11px 16px', fontSize: 12.5, fontWeight: 700, color: C.primary, overflowWrap: 'anywhere' }}>{lang === 'en' ? f.groupEn : f.groupVi}</td>
+                      <td style={{ padding: '11px 16px', fontSize: 13, color: C.ink650, overflowWrap: 'anywhere' }}>
+                        <div>{lang === 'en' ? f.nameEn : f.nameVi}</div>
+                        <div style={{ marginTop: 4 }}>
+                          {f.limitKey ? (
+                            <span title={t.plCmpAutoTip} style={autoBadge}><Link2 size={11} strokeWidth={2.4} aria-hidden />{t.plCmpAuto}</span>
+                          ) : (
+                            <span title={t.plCmpManualTip} style={manualBadge}><AlertTriangle size={11} strokeWidth={2.4} aria-hidden />{t.plCmpManual}</span>
+                          )}
+                        </div>
+                      </td>
+                      {sortedPlans.map((p) => (
+                        <td key={p.id} style={{ padding: '11px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                          <CompareCell compact value={f.limitKey || f.values.some((x) => x.planCode === p.code && (x.boolValue !== null || x.textVi || x.textEn))
+                            ? featureCellValue(f, p.code, lang) : null} />
+                        </td>
+                      ))}
+                      <td style={{ padding: '11px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <button onClick={() => setEditingFeature(f)} title={t.plEditFeature} aria-label={t.plEditFeature} style={{ border: `1px solid ${C.border}`, background: C.surface, borderRadius: 8, padding: '5px 9px', cursor: 'pointer', marginRight: 6 }}>
+                          <Icon icon={Pencil} size={13} stroke={C.violetLight} />
+                        </button>
+                        <button onClick={() => setDeletingFeature(f)} title={t.plDeleteRow} aria-label={t.plDeleteRow} style={{ border: `1px solid ${C.legacyBorderfbdce7}`, background: C.surface, borderRadius: 8, padding: '5px 9px', cursor: 'pointer' }}>
+                          <Icon icon={Trash2} size={13} stroke={C.legacyTexte25c84} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
       )}
 
       {tab === 'preview' && <PreviewTab payload={payload} />}
@@ -327,9 +316,11 @@ export default function Plans() {
       {editingPlan && (
         <PlanFormModal
           plan={editingPlan === 'new' ? null : editingPlan}
+          plans={sortedPlans}
           limitDefaults={payload?.limitDefaults}
+          lockedPlatforms={lockedPlatforms}
           onClose={() => setEditingPlan(null)}
-          onSaved={(saved, isNew) => { replacePlan(saved, isNew); setEditingPlan(null); toast.success(t.plSaved); }}
+          onSaved={() => { setEditingPlan(null); toast.success(t.plSaved); fetchAll(); }}
         />
       )}
       {editingFeature && (
@@ -337,7 +328,7 @@ export default function Plans() {
           feature={editingFeature === 'new' ? null : editingFeature}
           plans={sortedPlans}
           onClose={() => setEditingFeature(null)}
-          onSaved={(saved, isNew) => { replaceFeature(saved, isNew); setEditingFeature(null); toast.success(t.plSaved); }}
+          onSaved={() => { setEditingFeature(null); toast.success(t.plSaved); fetchAll(); }}
         />
       )}
       {deletingPlan && (
@@ -353,7 +344,16 @@ export default function Plans() {
   );
 }
 
-// ===== Tab Xem trước: render đúng UI landing (card + bảng so sánh), chỉ gói đang bật =====
+const autoBadge = {
+  display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 800, color: C.primaryStrong,
+  background: C.primarySoft, border: `1px solid ${C.accentLine}`, borderRadius: 999, padding: '1px 7px',
+} as const;
+const manualBadge = {
+  display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 700, color: C.amberText,
+  background: C.amberSoft, borderRadius: 999, padding: '1px 7px',
+} as const;
+
+// ===== Tab Xem trước: render đúng UI landing (card + bảng so sánh — CÙNG component với /pricing), chỉ gói đang bật =====
 function PreviewTab({ payload }: { payload: PlansPayload }) {
   const { t, lang, brandGradient } = useApp();
   const { isMobile, isTablet } = useBreakpoint();
@@ -397,367 +397,7 @@ function PreviewTab({ payload }: { payload: PlansPayload }) {
         ))}
       </div>
 
-      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, boxShadow: `0 22px 44px -34px ${C.legacyShadowrgba8040140_5_}` }}>
-        <table style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th style={{ padding: '14px 18px', textAlign: 'left', fontSize: 13, fontWeight: 700, color: C.textMuted, borderBottom: `1px solid ${C.surfaceMuted}` }}>{t.ppColFeature}</th>
-              {plans.map((p) => (
-                <th key={p.id} style={{ padding: '14px 18px', textAlign: 'center', borderBottom: `1px solid ${C.surfaceMuted}`, minWidth: 130 }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: p.featured ? C.primaryStrong : C.textStrong }}>
-                    {p.name}
-                    {p.featured && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.primaryStrong, background: C.primarySoft, border: `1px solid ${C.accentLine}`, borderRadius: 999, padding: '2px 8px', whiteSpace: 'nowrap' }}>★ {t.prPopular}</span>}
-                  </span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {groups.map((g) => (
-              <Fragment key={g.title}>
-                {g.title && (
-                  <tr>
-                    <td colSpan={plans.length + 1} style={{ padding: '18px 18px 8px', fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 13.5, color: C.primary }}>{g.title}</td>
-                  </tr>
-                )}
-                {g.rows.map((row) => (
-                  <tr key={row.label} style={{ borderBottom: `1px solid ${C.bg}` }}>
-                    <td style={{ padding: '14px 18px', fontSize: 13.5, color: C.ink650 }}>{row.label}</td>
-                    {row.values.map((v, i) => (
-                      <td key={i} style={{ padding: '14px 18px', textAlign: 'center', background: plans[i]?.featured ? C.legacyBgrgba12458237_035_ : undefined }}>
-                        {v === true ? (
-                          <span style={{ display: 'inline-flex', width: 22, height: 22, borderRadius: '50%', background: C.primarySoft, alignItems: 'center', justifyContent: 'center' }}>
-                            <Check size={13} strokeWidth={3} color={C.primary} />
-                          </span>
-                        ) : v === false ? <span style={{ color: C.ink200, fontWeight: 600 }}>—</span>
-                          : <span style={{ fontSize: 13.5, fontWeight: 600, color: C.ink650 }}>{v}</span>}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// ===== Modal Sửa/Tạo gói =====
-type PlanFormSection = 'basic' | 'limits' | 'content' | 'features' | 'display';
-
-function PlanFormModal({ plan, limitDefaults, onClose, onSaved }: {
-  plan: PlanDto | null;
-  limitDefaults?: PlanLimitDefaults;
-  onClose: () => void;
-  onSaved: (saved: PlanDto, isNew: boolean) => void;
-}) {
-  const { t, brandGradient } = useApp();
-  const toast = useToast();
-  const isNew = !plan;
-  const [busy, setBusy] = useState(false);
-  const [section, setSection] = useState<PlanFormSection>('basic');
-
-  const [code, setCode] = useState(plan?.code ?? '');
-  const [nameVi, setNameVi] = useState(plan?.nameVi ?? '');
-  const [nameEn, setNameEn] = useState(plan?.nameEn ?? '');
-  const [price, setPrice] = useState(String(plan?.price ?? 0));
-  const [cycleVi, setCycleVi] = useState(plan?.billingCycleVi ?? '/tháng');
-  const [cycleEn, setCycleEn] = useState(plan?.billingCycleEn ?? '/month');
-  const [interval, setInterval] = useState(String(plan?.billingIntervalMonths ?? 1));
-  const [tokenQuota, setTokenQuota] = useState(plan?.tokenQuota === null || plan?.tokenQuota === undefined ? '' : String(plan.tokenQuota));
-  const [tokenLimit, setTokenLimit] = useState(plan?.monthlyTokenLimit == null ? '' : String(plan.monthlyTokenLimit));
-  const [descVi, setDescVi] = useState(plan?.descriptionVi ?? '');
-  const [descEn, setDescEn] = useState(plan?.descriptionEn ?? '');
-  const [featuresVi, setFeaturesVi] = useState((plan?.featuresVi ?? []).join('\n'));
-  const [featuresEn, setFeaturesEn] = useState((plan?.featuresEn ?? []).join('\n'));
-  const [teaserVi, setTeaserVi] = useState((plan?.teaserFeaturesVi ?? []).join('\n'));
-  const [teaserEn, setTeaserEn] = useState((plan?.teaserFeaturesEn ?? []).join('\n'));
-  const [ctaVi, setCtaVi] = useState(plan?.ctaVi ?? '');
-  const [ctaEn, setCtaEn] = useState(plan?.ctaEn ?? '');
-  const [highlight, setHighlight] = useState(plan?.highlight ?? false);
-  const [order, setOrder] = useState(String(plan?.displayOrder ?? 0));
-  const [isActive, setIsActive] = useState(plan?.isActive ?? true);
-  const [aiCheck, setAiCheck] = useState<AiLimitDraft>(toAiLimitDraft(plan?.policyCheckAiMonthlyLimit ?? null));
-  const [aiFix, setAiFix] = useState<AiLimitDraft>(toAiLimitDraft(plan?.aiFixMaxPerVersion ?? null));
-  const [limitDrafts, setLimitDrafts] = useState<Record<string, AiLimitDraft>>(() => toLimitDrafts(plan?.featureLimits));
-
-  const codeOk = !isNew || /^[A-Z0-9_]{2,20}$/.test(code.trim().toUpperCase());
-  // Gói đang bán (có giá) phải có hạn mức token thật — nếu không user mua gói sẽ dùng AI không giới hạn.
-  const tokenLimitMissing = isActive && (Number(price) || 0) > 0 && tokenLimit.trim() === '';
-  const aiLimitsOk = aiLimitDraftValid(aiCheck) && aiLimitDraftValid(aiFix)
-    && Object.values(limitDrafts).every(aiLimitDraftValid);
-  const canSave = !!nameVi.trim() && !!nameEn.trim() && (!isNew || (!!code.trim() && codeOk)) && !tokenLimitMissing && aiLimitsOk;
-
-  const lines = (s: string) => s.split('\n').map((x) => x.trim()).filter(Boolean);
-
-  const submit = () => {
-    if (!canSave || busy) return;
-    setBusy(true);
-    const input: PlanSaveInput = {
-      nameVi: nameVi.trim(), nameEn: nameEn.trim(),
-      price: Number(price) || 0,
-      billingCycleVi: cycleVi.trim() || null, billingCycleEn: cycleEn.trim() || null,
-      // BE chặn 1..60; ô rỗng coi như gói tháng để không gửi 0 xuống.
-      billingIntervalMonths: Number(interval) || 1,
-      tokenQuota: tokenQuota.trim() === '' ? null : Number(tokenQuota) || 0,
-      monthlyTokenLimit: tokenLimit.trim() === '' ? null : Number(tokenLimit) || null,
-      policyCheckAiMonthlyLimit: fromAiLimitDraft(aiCheck),
-      aiFixMaxPerVersion: fromAiLimitDraft(aiFix),
-      featureLimits: fromLimitDrafts(limitDrafts),
-      descriptionVi: descVi.trim() || null, descriptionEn: descEn.trim() || null,
-      featuresVi: lines(featuresVi), featuresEn: lines(featuresEn),
-      teaserFeaturesVi: lines(teaserVi), teaserFeaturesEn: lines(teaserEn),
-      ctaVi: ctaVi.trim() || null, ctaEn: ctaEn.trim() || null,
-      highlight, displayOrder: Number(order) || 0, isActive,
-    };
-    const req = isNew
-      ? createPlan({ ...input, code: code.trim().toUpperCase() }).then((saved) => onSaved(saved, true))
-      : updatePlan(plan.id, input).then((saved) => onSaved(saved, false));
-    req
-      .catch((e) => {
-        const code = (e as ApiError).code;
-        toast.error(code === ERR_PLAN_CODE_EXISTED ? t.plCodeExists : code === ERR_PLAN_AI_LIMIT_INVALID ? t.plAiLimitInvalid : t.plSaveFail);
-      })
-      .finally(() => setBusy(false));
-  };
-
-  const two = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 } as const;
-
-  // Bố cục theo 4 tab (Cơ bản · Nội dung · Tính năng · Hiển thị) thay vì 1 cột dài;
-  // trong mỗi nhóm giữ 2 cột VI (trái) / EN (phải).
-  const sections: { key: PlanFormSection; label: string }[] = [
-    { key: 'basic', label: t.plSecBasic },
-    { key: 'limits', label: t.plSecLimits },
-    { key: 'content', label: t.plSecContent },
-    { key: 'features', label: t.plSecFeatures },
-    { key: 'display', label: t.plSecDisplay },
-  ];
-  const sectionBtn = (s: { key: PlanFormSection; label: string }) => {
-    const active = section === s.key;
-    return (
-      <button key={s.key} onClick={() => setSection(s.key)} style={{ border: '1px solid', borderColor: active ? 'transparent' : C.border, background: active ? C.primarySoft : C.surface, color: active ? C.primaryStrong : C.textMuted, borderRadius: 999, padding: '6px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{s.label}</button>
-    );
-  };
-
-  return (
-    <Modal title={isNew ? t.plNewPlan : `${t.plEditPlan}: ${plan.nameVi}`} onClose={onClose} maxWidth={620}>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingBottom: 14, marginBottom: 14, borderBottom: `1px solid ${C.surfaceMuted}` }}>
-        {sections.map(sectionBtn)}
-      </div>
-
-      {section === 'basic' && (
-        <>
-          <div style={two}>
-            <div>
-              <label style={labelStyle}>{t.plCode}</label>
-              <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} disabled={!isNew} style={{ ...fieldStyle, background: isNew ? C.surface : C.surfaceMuted, color: isNew ? C.textStrong : C.textMuted, textTransform: 'uppercase' }} placeholder="TEAM" />
-              <div style={hintStyle}>{isNew ? t.plCodeHint : t.plCore}</div>
-            </div>
-            <div>
-              <label style={labelStyle}>{t.plPrice}</label>
-              <input value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" style={fieldStyle} placeholder="499000" />
-            </div>
-          </div>
-          <div style={two}>
-            <div><label style={labelStyle}>{t.plNameVi}</label><input value={nameVi} onChange={(e) => setNameVi(e.target.value)} style={fieldStyle} /></div>
-            <div><label style={labelStyle}>{t.plNameEn}</label><input value={nameEn} onChange={(e) => setNameEn(e.target.value)} style={fieldStyle} /></div>
-          </div>
-          <div style={two}>
-            <div><label style={labelStyle}>{t.plCycleVi}</label><input value={cycleVi} onChange={(e) => setCycleVi(e.target.value)} style={fieldStyle} placeholder="/tháng" /></div>
-            <div><label style={labelStyle}>{t.plCycleEn}</label><input value={cycleEn} onChange={(e) => setCycleEn(e.target.value)} style={fieldStyle} placeholder="/month" /></div>
-          </div>
-          <div style={two}>
-            {/* Chu kỳ THẬT (số) — tách khỏi hai nhãn hiển thị ở trên: nhãn để hiện, số này để tính doanh thu. */}
-            <div>
-              <label style={labelStyle}>{t.plInterval}</label>
-              <input value={interval} onChange={(e) => setInterval(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" style={fieldStyle} placeholder="1" />
-              <div style={hintStyle}>{t.plIntervalHint}</div>
-            </div>
-          </div>
-          <div style={two}>
-            <div>
-              <label style={labelStyle}>{t.plTokenQuota}</label>
-              <input value={tokenQuota} onChange={(e) => setTokenQuota(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" style={fieldStyle} placeholder="100" />
-              <div style={hintStyle}>{t.plTokenQuotaHint}</div>
-            </div>
-            <div>
-              <label style={labelStyle}>{t.plTokenLimit}</label>
-              <input value={tokenLimit} onChange={(e) => setTokenLimit(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" style={fieldStyle} placeholder="100000" aria-invalid={tokenLimitMissing} />
-              <div style={{ ...hintStyle, ...(tokenLimitMissing ? { color: C.danger } : {}) }}>{tokenLimitMissing ? t.plTokenLimitRequired : t.plTokenLimitHint}</div>
-            </div>
-          </div>
-          <div style={two}>
-            <AiLimitField label={t.plAiCheckLimit} hint={t.plAiCheckLimitHint} unit={t.plAiPerMonth}
-              value={aiCheck} onChange={setAiCheck} systemDefault={limitDefaults?.policyCheckAiMonthlyLimit} />
-            <AiLimitField label={t.plAiFixLimit} hint={t.plAiFixLimitHint} unit={t.plAiPerVersion}
-              value={aiFix} onChange={setAiFix} systemDefault={limitDefaults?.aiFixMaxPerVersion} />
-          </div>
-          <div style={two}>
-            <div>
-              <label style={labelStyle}>{t.plOrder}</label>
-              <input value={order} onChange={(e) => setOrder(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" style={fieldStyle} />
-            </div>
-          </div>
-        </>
-      )}
-
-      {section === 'limits' && (
-        <>
-          <div style={{ ...hintStyle, fontSize: 12, marginTop: 0, marginBottom: 12 }}>{t.plLimitsIntro}</div>
-          {PLAN_LIMIT_GROUPS.map((group) => (
-            <div key={group} style={{ marginBottom: 6 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 800, color: C.textStrong, margin: '4px 0 8px' }}>
-                {(t as Record<string, string>)[`plGroup_${group}`]}
-              </div>
-              <div style={two}>
-                {PLAN_LIMIT_FIELDS.filter((f) => f.group === group).map(({ key, field, type }) => {
-                  const label = (t as Record<string, string>)[`plk_${key}`];
-                  const onChange = (next: AiLimitDraft) => setLimitDrafts((d) => ({ ...d, [field]: next }));
-                  const systemDefault = limitDefaults?.featureLimits?.[field];
-                  return type === 'FLAG'
-                    ? <FlagLimitField key={field} label={label} value={limitDrafts[field]} onChange={onChange}
-                        systemDefault={typeof systemDefault === 'boolean' ? systemDefault : undefined} />
-                    : <AiLimitField key={field} label={label} hint=""
-                        unit={key.endsWith('_DAYS') ? t.plLimitDays : t.plLimitUnit}
-                        value={limitDrafts[field]} onChange={onChange} systemDefault={effectiveDefault(systemDefault)} />;
-                })}
-              </div>
-            </div>
-          ))}
-        </>
-      )}
-
-      {section === 'content' && (
-        <div style={two}>
-          <div><label style={labelStyle}>{t.plDescVi}</label><textarea value={descVi} onChange={(e) => setDescVi(e.target.value)} rows={4} style={{ ...fieldStyle, resize: 'vertical' }} /></div>
-          <div><label style={labelStyle}>{t.plDescEn}</label><textarea value={descEn} onChange={(e) => setDescEn(e.target.value)} rows={4} style={{ ...fieldStyle, resize: 'vertical' }} /></div>
-        </div>
-      )}
-
-      {section === 'features' && (
-        <>
-          <div style={two}>
-            <div>
-              <label style={labelStyle}>{t.plFeaturesVi}</label>
-              <textarea value={featuresVi} onChange={(e) => setFeaturesVi(e.target.value)} rows={5} style={{ ...fieldStyle, resize: 'vertical' }} />
-              <div style={hintStyle}>{t.plLinesHint}</div>
-            </div>
-            <div>
-              <label style={labelStyle}>{t.plFeaturesEn}</label>
-              <textarea value={featuresEn} onChange={(e) => setFeaturesEn(e.target.value)} rows={5} style={{ ...fieldStyle, resize: 'vertical' }} />
-              <div style={hintStyle}>{t.plLinesHint}</div>
-            </div>
-          </div>
-          <div style={two}>
-            <div>
-              <label style={labelStyle}>{t.plTeaserVi}</label>
-              <textarea value={teaserVi} onChange={(e) => setTeaserVi(e.target.value)} rows={3} style={{ ...fieldStyle, resize: 'vertical' }} />
-              <div style={hintStyle}>{t.plLinesHint}</div>
-            </div>
-            <div>
-              <label style={labelStyle}>{t.plTeaserEn}</label>
-              <textarea value={teaserEn} onChange={(e) => setTeaserEn(e.target.value)} rows={3} style={{ ...fieldStyle, resize: 'vertical' }} />
-              <div style={hintStyle}>{t.plLinesHint}</div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {section === 'display' && (
-        <>
-          <div style={two}>
-            <div><label style={labelStyle}>{t.plCtaVi}</label><input value={ctaVi} onChange={(e) => setCtaVi(e.target.value)} style={fieldStyle} /></div>
-            <div><label style={labelStyle}>{t.plCtaEn}</label><input value={ctaEn} onChange={(e) => setCtaEn(e.target.value)} style={fieldStyle} /></div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: C.ink650, cursor: 'pointer' }}>
-              <input type="checkbox" checked={highlight} onChange={(e) => setHighlight(e.target.checked)} /> {t.plHighlight}
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: C.ink650, cursor: 'pointer' }}>
-              <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} /> {t.plActive}
-            </label>
-          </div>
-        </>
-      )}
-
-      {/* Footer sticky: luôn thấy Lưu/Hủy không cần scroll (bù padding 26 của Modal bằng margin âm) */}
-      <div style={{ position: 'sticky', bottom: -26, background: C.surface, margin: '16px -26px -26px', padding: '14px 26px 20px', borderTop: `1px solid ${C.surfaceMuted}`, display: 'flex', gap: 10 }}>
-        <button onClick={onClose} style={{ flex: 1, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '10px 0', fontSize: 14, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>{t.cancel}</button>
-        <button onClick={submit} disabled={!canSave || busy} style={{ flex: 1, border: 'none', borderRadius: 10, padding: '10px 0', fontSize: 14, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: canSave && !busy ? 'pointer' : 'default', opacity: canSave && !busy ? 1 : 0.6 }}>{t.save}</button>
-      </div>
-    </Modal>
-  );
-}
-
-// ===== Giới hạn AI của gói =====
-
-/** Nhãn ngắn trên thẻ gói: "Mặc định (30)", "∞", "Tắt", "30". Giới hạn đã quy đổi: null = không giới hạn. */
-function useAiLimitLabel() {
-  const { t } = useApp();
-  const effective = (v: number | null | undefined) =>
-    v === undefined ? '' : v === null ? '∞' : v === 0 ? t.plAiModeOff : v.toLocaleString('vi-VN');
-  return (v: PlanAiLimit, systemDefault: number | null | undefined) => {
-    if (v != null) return effective(v === PLAN_AI_UNLIMITED ? null : v);
-    return systemDefault === undefined ? t.plAiModeDefault : `${t.plAiModeDefault} (${effective(systemDefault)})`;
-  };
-}
-
-function AiLimitField({ label, hint, unit, value, onChange, systemDefault }: {
-  label: string;
-  hint: string;
-  unit: string;
-  value: AiLimitDraft;
-  onChange: (next: AiLimitDraft) => void;
-  systemDefault: number | null | undefined;
-}) {
-  const { t } = useApp();
-  const invalid = !aiLimitDraftValid(value);
-  const defaultText = systemDefault === undefined ? '' : systemDefault === null ? t.plAiModeUnlimited
-    : systemDefault === 0 ? t.plAiModeOff : `${systemDefault.toLocaleString('vi-VN')} ${unit}`;
-  const help = invalid ? t.plAiLimitInvalid
-    : value.mode === 'default' && defaultText ? `${hint} ${t.plAiDefaultIs.replace('{value}', defaultText)}` : hint;
-  return (
-    <div>
-      <label style={labelStyle}>{label}</label>
-      <div style={{ display: 'flex', gap: 6 }}>
-        <select value={value.mode} aria-label={label}
-          onChange={(e) => onChange({ mode: e.target.value as AiLimitMode, n: value.n })}
-          style={{ ...fieldStyle, flex: value.mode === 'limit' ? '0 0 52%' : 1 }}>
-          <option value="default">{t.plAiModeDefault}</option>
-          <option value="limit">{t.plAiModeLimit}</option>
-          <option value="unlimited">{t.plAiModeUnlimited}</option>
-          <option value="off">{t.plAiModeOff}</option>
-        </select>
-        {value.mode === 'limit' && (
-          <input value={value.n} onChange={(e) => onChange({ mode: 'limit', n: e.target.value.replace(/[^\d]/g, '') })}
-            inputMode="numeric" style={fieldStyle} placeholder="30" aria-label={`${label} (${unit})`} aria-invalid={invalid} />
-        )}
-      </div>
-      <div style={{ ...hintStyle, ...(invalid ? { color: C.danger } : {}) }}>{help}</div>
-    </div>
-  );
-}
-
-/** Cờ giới hạn tính năng: Mặc định hệ thống / Bật / Tắt (draft dùng chung AiLimitDraft: 'unlimited' = bật). */
-function FlagLimitField({ label, value, onChange, systemDefault }: {
-  label: string;
-  value: AiLimitDraft;
-  onChange: (next: AiLimitDraft) => void;
-  systemDefault: boolean | undefined;
-}) {
-  const { t } = useApp();
-  const defaultText = systemDefault === undefined ? '' : systemDefault ? t.plFlagOn : t.plFlagOff;
-  return (
-    <div>
-      <label style={labelStyle}>{label}</label>
-      <select value={value.mode === 'limit' ? 'unlimited' : value.mode} aria-label={label}
-        onChange={(e) => onChange({ mode: e.target.value as AiLimitMode, n: '' })} style={fieldStyle}>
-        <option value="default">{defaultText ? `${t.plAiModeDefault} (${defaultText})` : t.plAiModeDefault}</option>
-        <option value="unlimited">{t.plFlagOn}</option>
-        <option value="off">{t.plFlagOff}</option>
-      </select>
+      <ComparisonTable plans={plans} groups={groups} />
     </div>
   );
 }
@@ -771,7 +411,8 @@ function FeatureFormModal({ feature, plans, onClose, onSaved }: {
   onClose: () => void;
   onSaved: (saved: PlanFeatureDto, isNew: boolean) => void;
 }) {
-  const { t, brandGradient } = useApp();
+  const { t, lang, brandGradient } = useApp();
+  const dict = t as unknown as Record<string, string>;
   const toast = useToast();
   const isNew = !feature;
   const [busy, setBusy] = useState(false);
@@ -781,6 +422,8 @@ function FeatureFormModal({ feature, plans, onClose, onSaved }: {
   const [nameVi, setNameVi] = useState(feature?.nameVi ?? '');
   const [nameEn, setNameEn] = useState(feature?.nameEn ?? '');
   const [order, setOrder] = useState(String(feature?.displayOrder ?? 0));
+  // Liên kết giới hạn thật: giá trị cột tự động, không nhập tay (ô nhập tay cũ được giữ nếu gỡ liên kết).
+  const [limitKey, setLimitKey] = useState<PlanLimitKey | ''>(feature?.limitKey ?? '');
   const [cells, setCells] = useState<Record<string, CellDraft>>(() => {
     const init: Record<string, CellDraft> = {};
     for (const p of plans) {
@@ -811,6 +454,7 @@ function FeatureFormModal({ feature, plans, onClose, onSaved }: {
       nameVi: nameVi.trim(), nameEn: nameEn.trim(),
       displayOrder: Number(order) || 0,
       values,
+      limitKey: limitKey || null,
     };
     const req = isNew
       ? createFeature(input).then((saved) => onSaved(saved, true))
@@ -818,15 +462,10 @@ function FeatureFormModal({ feature, plans, onClose, onSaved }: {
     req.catch(() => toast.error(t.plSaveFail)).finally(() => setBusy(false));
   };
 
-  const two = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 } as const;
-  const segBtn = (active: boolean) => ({
-    border: '1px solid', borderColor: active ? 'transparent' : C.border,
-    background: active ? C.primarySoft : C.surface, color: active ? C.primaryStrong : C.textMuted,
-    borderRadius: 8, padding: '4px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-  } as const);
+  const two = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))', gap: 10, marginBottom: 12 } as const;
 
   return (
-    <Modal title={isNew ? t.plAddFeature : `${t.plEditFeature}: ${feature.nameVi}`} onClose={onClose} maxWidth={620}>
+    <Modal title={isNew ? t.plAddFeature : `${t.plEditFeature}: ${feature.nameVi}`} onClose={onClose} maxWidth={680}>
       <div style={two}>
         <div>
           <label style={labelStyle}>{t.plGroupVi}</label>
@@ -839,40 +478,68 @@ function FeatureFormModal({ feature, plans, onClose, onSaved }: {
         <div><label style={labelStyle}>{t.plFeatNameVi}</label><input value={nameVi} onChange={(e) => setNameVi(e.target.value)} style={fieldStyle} /></div>
         <div><label style={labelStyle}>{t.plFeatNameEn}</label><input value={nameEn} onChange={(e) => setNameEn(e.target.value)} style={fieldStyle} /></div>
       </div>
-      <div style={{ marginBottom: 12, maxWidth: 180 }}>
-        <label style={labelStyle}>{t.plOrder}</label>
-        <input value={order} onChange={(e) => setOrder(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" style={fieldStyle} />
+      <div style={two}>
+        <div>
+          <label style={labelStyle}>{t.plOrder}</label>
+          <input value={order} onChange={(e) => setOrder(e.target.value.replace(/[^\d]/g, ''))} inputMode="numeric" style={fieldStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>{t.plCmpLinkLabel}</label>
+          <select value={limitKey} onChange={(e) => setLimitKey(e.target.value as PlanLimitKey | '')} style={{ ...fieldStyle, cursor: 'pointer' }}>
+            <option value="">{t.plCmpLinkNone}</option>
+            {PLAN_LIMIT_FIELDS.map((f) => <option key={f.key} value={f.key}>{dict[`plk_${f.key}`] ?? f.key}</option>)}
+          </select>
+          <div style={hintStyle}>{limitKey ? t.plCmpAutoTip : t.plCmpManualTip}</div>
+        </div>
       </div>
 
       <div style={{ ...labelStyle, marginBottom: 8 }}>{t.plValuesTitle}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-        {plans.map((p) => {
-          const c = cells[p.code];
-          return (
-            <div key={p.code} style={{ border: `1px solid ${C.surfaceMuted}`, borderRadius: 12, padding: '10px 12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 800, color: C.primaryStrong }}>{p.code}</span>
-                <span style={{ fontSize: 11.5, color: C.textFaint }}>{p.nameVi}</span>
-                <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-                  <button onClick={() => setCell(p.code, { type: 'tick' })} style={segBtn(c.type === 'tick')}>{t.plTypeTick}</button>
-                  <button onClick={() => setCell(p.code, { type: 'text' })} style={segBtn(c.type === 'text')}>{t.plTypeText}</button>
-                </span>
-              </div>
-              {c.type === 'tick' ? (
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => setCell(p.code, { tick: true })} style={segBtn(c.tick)}>{t.plTickYes}</button>
-                  <button onClick={() => setCell(p.code, { tick: false })} style={segBtn(!c.tick)}>{t.plTickNo}</button>
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <input value={c.textVi} onChange={(e) => setCell(p.code, { textVi: e.target.value })} style={fieldStyle} placeholder={t.plTextViPh} />
-                  <input value={c.textEn} onChange={(e) => setCell(p.code, { textEn: e.target.value })} style={fieldStyle} placeholder={t.plTextEnPh} />
-                </div>
-              )}
+      {limitKey ? (
+        // Dòng liên kết: xem giá trị tự động lấy từ giới hạn thật của từng gói (đọc theo DB sau khi lưu).
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+          {plans.map((p) => (
+            <div key={p.code} style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1px solid ${C.surfaceMuted}`, borderRadius: 12, padding: '9px 12px' }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: C.primaryStrong, minWidth: 60 }}>{p.code}</span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <CompareCell compact value={feature?.limitKey === limitKey ? featureCellValue(feature, p.code, lang) : t.plCmpAutoAfterSave} />
+              </span>
+              <span style={autoBadge}><Link2 size={11} strokeWidth={2.4} aria-hidden />{t.plCmpAuto}</span>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+          {plans.map((p) => {
+            const c = cells[p.code];
+            return (
+              <div key={p.code} style={{ border: `1px solid ${C.surfaceMuted}`, borderRadius: 12, padding: '10px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: C.primaryStrong }}>{p.code}</span>
+                  <span style={{ fontSize: 11.5, color: C.textFaint }}>{p.nameVi}</span>
+                  <span style={{ marginLeft: 'auto' }}>
+                    <SegmentedControl size="sm" ariaLabel={`${p.code} — ${t.plValuesTitle}`} value={c.type}
+                      options={[{ value: 'tick', label: t.plTypeTick }, { value: 'text', label: t.plTypeText }]}
+                      onChange={(v) => setCell(p.code, { type: v })} />
+                  </span>
+                </div>
+                {c.type === 'tick' ? (
+                  <SegmentedControl size="sm" ariaLabel={`${p.code} ✓`} value={c.tick ? 'yes' : 'no'}
+                    options={[{ value: 'yes', label: t.plTickYes }, { value: 'no', label: t.plTickNo }]}
+                    onChange={(v) => setCell(p.code, { tick: v === 'yes' })} />
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))', gap: 8 }}>
+                    <input value={c.textVi} onChange={(e) => setCell(p.code, { textVi: e.target.value })} style={fieldStyle} placeholder={t.plTextViPh} />
+                    <input value={c.textEn} onChange={(e) => setCell(p.code, { textEn: e.target.value })} style={fieldStyle} placeholder={t.plTextEnPh} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <div role="note" style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 12, color: C.amberText, lineHeight: 1.45 }}>
+            <AlertTriangle size={13} strokeWidth={2.2} aria-hidden style={{ flex: 'none', marginTop: 2 }} />{t.plCmpManualTip}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 10 }}>
         <button onClick={onClose} style={{ flex: 1, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '10px 0', fontSize: 14, fontWeight: 700, color: C.ink550, cursor: 'pointer' }}>{t.cancel}</button>

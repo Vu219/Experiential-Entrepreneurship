@@ -38,6 +38,10 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
     Optional<Post> findByIdAndSchedule_PlatformAccount_User_IdAndDeletedAtIsNull(UUID id, UUID userId);
 
+    /** /analytics/posts trong số ngày lịch sử gói cho phép (ANALYTICS_HISTORY_DAYS). */
+    Page<Post> findByStatusAndSchedule_PlatformAccount_User_IdAndPublishedAtGreaterThanEqualAndDeletedAtIsNullOrderByPublishedAtDesc(
+            PostStatus status, UUID userId, Instant publishedFrom, Pageable pageable);
+
     // FR-63..FR-65: bài đã đăng của một brand profile (qua version → item) cho luồng tối ưu chiến lược.
     List<Post> findBySchedule_ContentVersion_ContentItem_BrandProfile_IdAndStatusAndDeletedAtIsNullOrderByPublishedAtDesc(
             UUID brandProfileId, PostStatus status);

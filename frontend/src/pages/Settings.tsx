@@ -21,13 +21,14 @@ import {
   disconnectConnection,
   PLATFORM_TO_TAG,
   TAG_TO_PLATFORM,
-  CONNECTABLE_PLATFORMS,
   type PlatformConnection,
   type ConnectionStats,
   type PlatformEnum,
   type ConnectionStatus,
 } from '../api/connections';
 import { useToast } from '../components/toast/ToastProvider';
+import { usePlatformAccess, invalidatePlatformAccess } from '../hooks/usePlatformAccess';
+import { getOAuthResult, lockReasonText, type OAuthSkipReason, type PlatformAccess } from '../api/platformAvailability';
 import PageContainer from '../components/PageContainer';
 import UsageTab from '../components/settings/UsageTab';
 import PublishingTab from '../components/settings/PublishingTab';
@@ -270,6 +271,15 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
   const toast = useToast();
+  // Nền tảng dùng được = mở toàn hệ thống (admin) VÀ thuộc gói — đọc từ backend, không hardcode.
+  const { access, of: accessOf, usable } = usePlatformAccess();
+  const lockedHint = (a: PlatformAccess | undefined): string => {
+    if (!a) return t.seConnLockedHint;
+    if (a.lockReason === 'PLAN_EXCLUDED') return t.seConnNotInPlanHint;
+    return lockReasonText(a, lang) ?? t.seConnLockedHint;
+  };
+  const skipReasonLabel = (r: OAuthSkipReason): string =>
+    r === 'CHANNEL_LIMIT' ? t.seSkipChannelLimit : r === 'PLAN_PLATFORM' ? t.seSkipPlanPlatform : t.seSkipPlatformDisabled;
 
   // ——— Fetch data ———
   const fetchData = useCallback(async () => {
@@ -295,17 +305,36 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
     const error = searchParams.get('error');
     if (status === 'success') {
       toast.success(t.seConnOk);
-      // Gói đã đủ số kênh: backend bỏ qua các Trang mới (kết nối lại kênh cũ vẫn được) — báo số bị bỏ + nâng cấp.
-      const skipped = Number(searchParams.get('channel_limit') ?? 0);
-      if (skipped > 0) {
-        toast.warning(t.seChannelLimitSkipped.replace('{n}', String(skipped)), {
-          title: t.plgTitle, action: { label: t.plgUpgrade, onClick: () => window.location.assign('/billing') },
+      invalidatePlatformAccess(); // số kênh còn lại đổi
+      const resultId = searchParams.get('result');
+      const skippedCount = Number(searchParams.get('channel_limit') ?? 0);
+      const upgrade = { label: t.plgUpgrade, onClick: () => window.location.assign('/billing') };
+      if (resultId) {
+        // Kênh KHÔNG được thêm + lý do (đủ số kênh / ngoài gói / nền tảng khoá) — hiện rõ từng kênh.
+        getOAuthResult(resultId).then((r) => {
+          if (r.skipped.length === 0) return;
+          const lines = r.skipped.map((s) => `• ${s.accountName ?? s.platform} (${s.platform}) — ${skipReasonLabel(s.reason)}`);
+          const planRelated = r.skipped.some((s) => s.reason !== 'PLATFORM_DISABLED');
+          toast.warning(`${t.seSkippedTitle}\n${lines.join('\n')}`, {
+            title: t.seSkippedHeading.replace('{n}', String(r.skipped.length)),
+            action: planRelated ? upgrade : undefined,
+            duration: 12000,
+          });
+        }).catch(() => {
+          if (skippedCount > 0) toast.warning(t.seChannelLimitSkipped.replace('{n}', String(skippedCount)), { title: t.plgTitle, action: upgrade });
         });
+      } else if (skippedCount > 0) {
+        toast.warning(t.seChannelLimitSkipped.replace('{n}', String(skippedCount)), { title: t.plgTitle, action: upgrade });
       }
       // Clean URL
       setSearchParams({ tab: 'connections' }, { replace: true });
     } else if (error) {
-      toast.error(error === 'missing_permissions' ? t.seConnMissingPerms : t.seConnFail);
+      if (error === 'plan_platform') {
+        toast.warning(t.seConnPlanPlatform, { title: t.plgTitle, action: { label: t.plgUpgrade, onClick: () => window.location.assign('/billing') } });
+      } else {
+        toast.error(error === 'missing_permissions' ? t.seConnMissingPerms
+          : error === 'platform_disabled' ? t.seConnPlatformDisabled : t.seConnFail);
+      }
       setSearchParams({ tab: 'connections' }, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -313,8 +342,8 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
 
   // ——— Actions ———
   const handleConnect = async (platform: PlatformEnum) => {
-    if (!CONNECTABLE_PLATFORMS.has(platform)) {
-      toast.info(t.seConnLockedHint);
+    if (!usable(platform)) {
+      toast.info(lockedHint(accessOf(platform)));
       return;
     }
     const tag = PLATFORM_TO_TAG[platform];
@@ -401,7 +430,7 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
   // tài khoản chuyên nghiệp; Trang đã liên kết (sau lần kết nối trước) → nhắc kết nối lại để thêm IG (analytics GĐ2).
   const hasInstagram = connections.some((c) => c.platform === 'INSTAGRAM' && c.connectionStatus === 'ACTIVE');
   // Instagram đang khoá kết nối → không nhắc "kết nối lại để thêm IG".
-  const instagramHints = hasInstagram || !CONNECTABLE_PLATFORMS.has('INSTAGRAM') ? [] : connections
+  const instagramHints = hasInstagram || !usable('INSTAGRAM') ? [] : connections
     .filter((c) => c.platform === 'FACEBOOK' && c.accountType === 'PAGE' && c.instagramLinkStatus)
     .map((c) => ({
       id: c.id,
@@ -535,13 +564,24 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                 connectLabel={t.seConnect}
                 processingLabel={t.processing}
                 connecting={connectingPlatform === pl.tag}
-                locked={!CONNECTABLE_PLATFORMS.has(TAG_TO_PLATFORM[pl.tag])}
-                lockedLabel={t.seConnLocked}
-                lockedHint={t.seConnLockedHint}
+                locked={!usable(TAG_TO_PLATFORM[pl.tag])}
+                lockedLabel={accessOf(TAG_TO_PLATFORM[pl.tag])?.lockReason === 'PLAN_EXCLUDED' ? t.seConnNotInPlan : t.seConnLocked}
+                lockedHint={lockedHint(accessOf(TAG_TO_PLATFORM[pl.tag]))}
                 onConnect={() => handleConnect(TAG_TO_PLATFORM[pl.tag])}
               />
             ))}
           </div>
+          {/* Số kênh còn được kết nối theo gói — biết trước khi bấm Kết nối. */}
+          {access && access.channelLimit != null && (
+            <div role="status" style={{
+              display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, fontSize: 12.5, color: C.textMuted,
+            }}>
+              <Info size={14} strokeWidth={2} color={C.info} aria-hidden style={{ flex: 'none' }} />
+              <span>{t.seChannelsRemaining
+                .replace('{n}', String(access.remainingChannels ?? 0))
+                .replace('{limit}', String(access.channelLimit))}</span>
+            </div>
+          )}
           {instagramHints.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 14 }}>
               {instagramHints.map((h) => (
@@ -680,6 +720,19 @@ function ConnectionsTab({ t, lang, isMobile, brandGradient, searchParams, setSea
                             display: 'inline-block', padding: '3px 10px', borderRadius: 8,
                             fontSize: 11.5, fontWeight: 700, background: st.bg, color: st.color,
                           }}>{statusLabel(c.connectionStatus)}</span>
+                          {c.locked && (
+                            <span
+                              title={c.lockReason === 'PLAN_EXCLUDED' ? t.seConnNotInPlanHint : lockedHint(accessOf(c.platform))}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 6, padding: '3px 8px',
+                                borderRadius: 8, fontSize: 11.5, fontWeight: 700,
+                                background: STATUS_NEUTRAL.bg, color: STATUS_NEUTRAL.color,
+                              }}
+                            >
+                              <Lock size={11} strokeWidth={2.4} aria-hidden />
+                              {c.lockReason === 'PLAN_EXCLUDED' ? t.seAccountNotInPlan : t.seAccountLocked}
+                            </span>
+                          )}
                         </td>
 
                         {/* Date */}

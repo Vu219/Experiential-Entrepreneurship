@@ -14,6 +14,7 @@ public enum NotificationType {
     POST_FAILED(NotificationCategory.PUBLISH_ISSUES),          // FR-76: thất bại chung cuộc (gồm vi phạm chính sách — FR-38)
     POST_REMOVED_BY_PLATFORM(NotificationCategory.PUBLISH_ISSUES), // nền tảng báo bài đã bị gỡ (webhook)
     SCHEDULE_OVERDUE(NotificationCategory.PUBLISH_ISSUES),     // lịch tạm giữ đã quá giờ — không tự đăng (một lần/lịch)
+    SCHEDULE_HELD(NotificationCategory.PUBLISH_ISSUES),        // lịch bị giữ vì nền tảng bị khoá / không thuộc gói / gói tắt lên lịch
     RECONNECT_NEEDED(NotificationCategory.ACCOUNTS),           // FR-78: token hết hạn/thu hồi — cần kết nối lại
     TOKEN_EXPIRING(NotificationCategory.ACCOUNTS),             // kết nối sắp hết hạn mà chưa tự gia hạn được (≤ 3 ngày)
     REVIEW_NEEDED(NotificationCategory.AI_CONTENT),            // FR-77: nội dung mới cần xem xét/duyệt

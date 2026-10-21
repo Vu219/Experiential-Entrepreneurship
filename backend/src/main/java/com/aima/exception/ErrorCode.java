@@ -130,7 +130,7 @@ public enum ErrorCode {
     META_TOKEN_INVALID(1829, "Token nền tảng đã hết hạn hoặc bị thu hồi. Vui lòng kết nối lại.", HttpStatus.BAD_REQUEST),
     INVALID_SIGNED_REQUEST(1833, "signed_request không hợp lệ", HttpStatus.BAD_REQUEST),
     DATA_DELETION_REQUEST_NOT_FOUND(1834, "Không tìm thấy yêu cầu xóa dữ liệu", HttpStatus.NOT_FOUND),
-    PLATFORM_CONNECTION_DISABLED(1835, "Nền tảng này tạm thời chưa hỗ trợ kết nối. Hiện chỉ kết nối được Facebook.", HttpStatus.BAD_REQUEST),
+    PLATFORM_CONNECTION_DISABLED(1835, "Nền tảng này đang tạm khoá liên kết trên toàn hệ thống.", HttpStatus.BAD_REQUEST),
 
     // PLATFORM API VERSION (ADMIN) ERRORS
     VERSION_REQUIRED(1830, "Version không được để trống", HttpStatus.BAD_REQUEST),
@@ -238,7 +238,7 @@ public enum ErrorCode {
     PLAN_BILLING_INTERVAL_INVALID(1989, "Chu kỳ thanh toán phải từ 1 đến 60 tháng", HttpStatus.BAD_REQUEST),
 
     // TOKEN USAGE (hạn mức token LLM theo tháng — Plan.monthlyTokenLimit)
-    TOKEN_QUOTA_EXCEEDED(1990, "Bạn đã dùng hết hạn mức token của tháng này. Nâng cấp gói hoặc chờ sang tháng sau.", HttpStatus.TOO_MANY_REQUESTS),
+    TOKEN_QUOTA_EXCEEDED(1990, "Bạn đã dùng hết hạn mức token của kỳ này. Nâng cấp gói hoặc chờ sang kỳ sau.", HttpStatus.FORBIDDEN),
 
     // AI CONFIG (cấu hình AI theo DB — admin quản lý provider/model/routing)
     AI_PROVIDER_NOT_FOUND(2010, "Không tìm thấy nhà cung cấp AI", HttpStatus.NOT_FOUND),
@@ -500,7 +500,7 @@ public enum ErrorCode {
             HttpStatus.BAD_REQUEST),
     AI_FIX_LIMIT_REACHED(2193,
             "Bài này đã dùng hết số lần AI sửa nội dung — hãy chỉnh tay hoặc dùng một gợi ý đã có",
-            HttpStatus.TOO_MANY_REQUESTS),
+            HttpStatus.FORBIDDEN),
     AI_FIX_NOT_READY(2194, "Gợi ý của AI chưa sẵn sàng hoặc đã lỗi — không áp dụng được", HttpStatus.CONFLICT),
     AI_FIX_NO_FAILED_POST(2195, "Gợi ý này không gắn với bài lỗi nào để đăng lại — hãy lưu rồi lên lịch",
             HttpStatus.BAD_REQUEST),
@@ -532,6 +532,16 @@ public enum ErrorCode {
     CONTENT_IDEA_NOT_FOUND(2209, "Không tìm thấy ý tưởng nội dung", HttpStatus.NOT_FOUND),
     PLAN_FEATURE_LIMIT_INVALID(2207, "Giới hạn tính năng phải là -1 (không giới hạn), 0 (tắt) hoặc số dương",
             HttpStatus.BAD_REQUEST),
+    // Khoá nền tảng toàn hệ thống (V20) — phía kết nối dùng PLATFORM_CONNECTION_DISABLED 1835.
+    SCHEDULE_PLATFORM_DISABLED(2210, "Nền tảng này đang tạm khoá trên toàn hệ thống nên không lên lịch hay đăng bài được.",
+            HttpStatus.BAD_REQUEST),
+    PLATFORM_LOCK_REASON_REQUIRED(2212, "Hãy nhập lý do khoá nền tảng (tiếng Việt và tiếng Anh) để hiển thị cho người dùng.",
+            HttpStatus.BAD_REQUEST),
+    PLAN_LIMIT_VALUE_REQUIRED(2211, "Gói tự tạo phải có giá trị cụ thể cho mọi giới hạn (không dùng \"Mặc định hệ thống\").",
+            HttpStatus.BAD_REQUEST),
+    OAUTH_RESULT_NOT_FOUND(2213, "Kết quả liên kết đã hết hạn hoặc không tồn tại.", HttpStatus.NOT_FOUND),
+    PLATFORM_LOCK_REASON_TOO_LONG(2214, "Lý do khoá nền tảng tối đa 300 ký tự.", HttpStatus.BAD_REQUEST),
+    PLATFORM_AVAILABILITY_ENABLED_REQUIRED(2215, "Thiếu trạng thái mở/khoá của nền tảng.", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

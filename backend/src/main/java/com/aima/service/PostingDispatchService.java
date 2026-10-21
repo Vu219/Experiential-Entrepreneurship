@@ -18,5 +18,14 @@ public interface PostingDispatchService {
     record Outcome(UUID jobId, HoldReason heldFor) {
     }
 
-    Outcome dispatch(UUID scheduleId);
+    /** Dispatcher theo lịch: kiểm cả quyền "lên lịch" (SCHEDULING) của gói hiện tại. */
+    default Outcome dispatch(UUID scheduleId) {
+        return dispatch(scheduleId, false);
+    }
+
+    /**
+     * @param immediate true = user bấm đăng ngay / thử lại — không cần chế độ lên lịch của gói (gói tắt SCHEDULING vẫn
+     *                  "Đăng ngay" được); nền tảng khoá / không thuộc gói vẫn bị chặn.
+     */
+    Outcome dispatch(UUID scheduleId, boolean immediate);
 }

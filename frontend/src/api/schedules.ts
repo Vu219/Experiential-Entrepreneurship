@@ -41,7 +41,9 @@ const inPublishingTimezone = (schedule: PostSchedule): PostSchedule => ({
 export type ScheduleStatus = "SCHEDULED" | "ON_HOLD" | "POSTING" | "POSTED" | "FAILED" | "CANCELLED";
 
 /** Lý do tạm giữ — một lịch có thể có nhiều lý do cùng lúc (mirror HoldReason backend). */
-export type HoldReason = "ACCOUNT_ISSUE" | "PENDING_REVIEW" | "ACCOUNT_REMOVED" | "USER_PENDING_DELETE" | "UNSUPPORTED_MEDIA";
+export type HoldReason = "ACCOUNT_ISSUE" | "PENDING_REVIEW" | "ACCOUNT_REMOVED" | "USER_PENDING_DELETE" | "UNSUPPORTED_MEDIA"
+  /** Hệ thống giữ vì quyền dùng (V20): nền tảng khoá toàn hệ thống / ngoài gói / gói tắt lên lịch — user tự tiếp tục. */
+  | "PLATFORM_DISABLED" | "PLAN_PLATFORM_EXCLUDED" | "PLAN_SCHEDULING_DISABLED";
 
 export interface PostSchedule {
   id: string;

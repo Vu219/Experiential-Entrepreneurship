@@ -11,7 +11,8 @@ import PlanChoiceGrid from '../../components/billing/PlanChoiceGrid';
 import BillingSkeleton from '../../components/billing/BillingSkeleton';
 import PaymentHistory from '../../components/billing/PaymentHistory';
 import PlanUsageCard from '../../components/billing/PlanUsageCard';
-import { usePlanUsage } from '../../hooks/usePlanUsage';
+import { usePlanUsage, invalidatePlanUsage } from '../../hooks/usePlanUsage';
+import { invalidatePlatformAccess } from '../../hooks/usePlatformAccess';
 import { getPublicPlans, type PlanDto } from '../../api/plans';
 import {
   cancelPayment,
@@ -113,6 +114,8 @@ export default function Billing() {
       if (updated.status === 'PAID') {
         toast.success(t.blReturnPaid);
         void refreshUser();
+        invalidatePlanUsage();
+        invalidatePlatformAccess();
       }
     } catch (e) {
       toast.error((e as ApiError).message || t.blErrGeneric);

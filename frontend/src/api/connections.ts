@@ -28,6 +28,9 @@ export interface PlatformConnection {
   createdAt: string;
   /** Chỉ Trang Facebook: có liên kết Instagram Doanh nghiệp/Nhà sáng tạo không; null = chưa kiểm tra. */
   instagramLinkStatus?: 'LINKED' | 'NOT_LINKED' | null;
+  /** Tài khoản bị khoá (vẫn hiển thị, không lên lịch/đăng được): nền tảng khoá toàn hệ thống hoặc ngoài gói. */
+  locked?: boolean;
+  lockReason?: 'PLATFORM_DISABLED' | 'PLAN_EXCLUDED' | null;
 }
 
 export interface ConnectionStats {
@@ -52,11 +55,8 @@ const PLATFORM_URL: Record<PlatformEnum, string> = {
   THREADS: 'threads',
 };
 
-/**
- * Nền tảng đang mở kết nối — khớp `aima.connections.enabled-platforms` của backend (mặc định chỉ FACEBOOK).
- * Instagram/Threads tạm khoá: card hiện "Sắp hỗ trợ", nút kết nối/kết nối lại bị vô hiệu.
- */
-export const CONNECTABLE_PLATFORMS: ReadonlySet<PlatformEnum> = new Set<PlatformEnum>(['FACEBOOK']);
+// Nền tảng nào được kết nối/dùng KHÔNG còn hardcode ở FE: đọc GET /connections/platforms (hooks/usePlatformAccess) —
+// admin mở/khoá ở trang "Version API nền tảng", gói giới hạn bằng ALLOWED_PLATFORMS.
 
 /** FE tag (FB/IG/TH) → BE enum (FACEBOOK/INSTAGRAM/THREADS) */
 export const TAG_TO_PLATFORM: Record<string, PlatformEnum> = {

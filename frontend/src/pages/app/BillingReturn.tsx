@@ -14,6 +14,8 @@ import {
 } from '../../api/payments';
 import type { ApiError } from '../../api/apiClient';
 import { C } from '../../styles/colors';
+import { invalidatePlanUsage } from '../../hooks/usePlanUsage';
+import { invalidatePlatformAccess } from '../../hooks/usePlatformAccess';
 
 /**
  * Trang cổng thanh toán đưa TRÌNH DUYỆT quay về ({@code /billing/return}).
@@ -58,6 +60,9 @@ export default function BillingReturn() {
         trackEvent('purchase', { currency: 'VND', value: result.amount, items_plan: result.planCode ?? '' });
         // Nhãn gói trên topbar/menu đọc từ /users/me — làm mới để hiện gói mới ngay.
         void refreshUser();
+        // Giới hạn + nền tảng của gói mới: mọi màn hình đang mở (khoá nút, bộ chọn ngày...) tải lại ngay.
+        invalidatePlanUsage();
+        invalidatePlatformAccess();
       }
     } catch (e) {
       setError((e as ApiError).message || t.blErrGeneric);

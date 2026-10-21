@@ -14,6 +14,9 @@ import BrandProfileView from './BrandProfileView';
 import ConfirmDialog from './ConfirmDialog';
 import { BrandListSkeleton, brandGridCols } from './BrandSkeleton';
 import { C } from '../../styles/colors';
+import { usePlanUsage } from '../../hooks/usePlanUsage';
+import { quotaExhausted } from '../../utils/planGates';
+import PlanLimitInline from '../PlanLimitInline';
 
 type Panel = { mode: 'create' } | { mode: 'edit'; profile: BrandProfile } | { mode: 'view'; profile: BrandProfile } | null;
 
@@ -71,7 +74,11 @@ export default function BrandProfileList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submittedQ, industry, page, reloadKey]);
 
-  const refresh = () => setReloadKey((k) => k + 1);
+  // Chặn trước theo gói: đủ số hồ sơ thì khoá nút Tạo (backend vẫn chặn 2205 nếu gọi thẳng API).
+  const { item: planItem, reload: reloadPlanUsage } = usePlanUsage();
+  const brandQuota = planItem('BRAND_PROFILES');
+  const brandFull = quotaExhausted(brandQuota);
+  const refresh = () => { setReloadKey((k) => k + 1); void reloadPlanUsage(); };
 
   const confirmDelete = async () => {
     if (!deleting) return;
@@ -113,9 +120,20 @@ export default function BrandProfileList() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
         <SearchSuggestInput value={query} onChange={setQuery} onSubmit={setSubmittedQ} suggestions={suggestNames} placeholder={t.bpSearchPh} />
         <FilterSelect value={industry} onChange={setIndustry} options={[['all', `${t.bpFilterIndustry}: ${t.bpAllIndustries}`], ...industries.map((i) => [i, i] as [string, string])]} />
-        <button onClick={() => setPanel({ mode: 'create' })} className="btn-grad" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, border: 'none', borderRadius: 11, padding: '10px 18px', fontSize: 14, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>
-          <Icon icon={Plus} size={17} stroke={C.onBrand} />{t.bpCreate}
-        </button>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {brandFull && brandQuota?.limit != null && (
+            <PlanLimitInline message={t.plgBrandFull.replace('{limit}', String(brandQuota.limit))} />
+          )}
+          <button
+            onClick={() => setPanel({ mode: 'create' })}
+            disabled={brandFull}
+            title={brandFull ? t.plgBrandFull.replace('{limit}', String(brandQuota?.limit ?? '')) : undefined}
+            className="btn-grad"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: 'none', borderRadius: 11, padding: '10px 18px', fontSize: 14, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: brandFull ? 'not-allowed' : 'pointer', opacity: brandFull ? 0.55 : 1 }}
+          >
+            <Icon icon={Plus} size={17} stroke={C.onBrand} />{t.bpCreate}
+          </button>
+        </div>
       </div>
 
       {total === 0 && noFilters ? (

@@ -25,7 +25,6 @@ import com.aima.enums.Platform;
 import com.aima.enums.PolicyCheckAiStatus;
 import com.aima.enums.PolicyRiskLevel;
 import com.aima.enums.PublishErrorCode;
-import com.aima.service.PlanLimitService;
 import com.aima.service.PolicyRuleEngine;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -151,9 +150,8 @@ public interface AiAssistMapper {
                 .build();
     }
 
-    @Mapping(target = "policyCheckAiLimit", source = "limits.policyCheckAiMonthly")
-    @Mapping(target = "aiFixMaxPerVersion", source = "limits.aiFixPerVersion")
-    AiAssistUsageResponse toUsageResponse(PlanLimitService.PlanLimits limits, long policyCheckAiUsed, LocalDateTime resetAt);
+    AiAssistUsageResponse toUsageResponse(String planCode, long policyCheckAiUsed, Long policyCheckAiLimit,
+                                          Long aiFixMaxPerVersion, LocalDateTime resetAt);
 
     default AiFixApplyResponse toApplyResponse(ContentVersion version, FailedPostRetryResponse retry) {
         return AiFixApplyResponse.builder()

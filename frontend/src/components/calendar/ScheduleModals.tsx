@@ -1,4 +1,6 @@
 import { getPublishingTimezone } from '../../utils/publishingTime';
+import { usePlanUsage } from '../../hooks/usePlanUsage';
+import { latestScheduleDate } from '../../utils/planGates';
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext.tsx';
 import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
@@ -36,12 +38,20 @@ export function CreateScheduleModal({ onClose, onCreated, initialDate }: { onClo
 export function RescheduleModal({ schedule, onClose, onSaved }: { schedule: PostSchedule; onClose: () => void; onSaved: () => void }) {
   const { t } = useApp();
   const [time, setTime] = useState(schedule.scheduledTime.slice(0, 16));
+  // Gói (SCHEDULE_HORIZON_DAYS): giờ xa nhất được dời tới — backend vẫn chặn 2205 nếu vượt.
+  const { cap } = usePlanUsage();
+  const maxDay = latestScheduleDate(cap('SCHEDULE_HORIZON_DAYS'), nowLocal().slice(0, 10));
+  const maxLocal = maxDay ? `${maxDay}T23:59` : undefined;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
     if (time <= nowLocal()) {
       setError(t.schErrPast);
+      return;
+    }
+    if (maxLocal && time > maxLocal) {
+      setError(t.plgHorizonCap.replace('{date}', maxDay!));
       return;
     }
     setSaving(true);
@@ -65,7 +75,7 @@ export function RescheduleModal({ schedule, onClose, onSaved }: { schedule: Post
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
           <label style={lbl}>{t.schTime}</label>
-          <input type="datetime-local" value={time} min={nowLocal()} onChange={(e) => setTime(e.target.value)} style={inp} />
+          <input type="datetime-local" value={time} min={nowLocal()} max={maxLocal} onChange={(e) => setTime(e.target.value)} style={inp} />
         </div>
         {error && <div style={{ fontSize: 12.5, color: C.rose, background: C.roseSoft, borderRadius: 9, padding: '8px 11px' }}>{error}</div>}
         <button

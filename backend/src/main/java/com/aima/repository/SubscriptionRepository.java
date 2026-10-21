@@ -102,4 +102,11 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
             where s.deletedAt is null and u.deletedAt is null
             """)
     List<Subscription> findAllWithPlanAndUser();
+
+    /** User đang ở một gói — admin sửa quyền của gói thì đồng bộ lịch của họ (EntitlementHoldService). */
+    @Query("select s.user.id from Subscription s where s.plan.id = :planId and s.deletedAt is null")
+    List<UUID> findUserIdsByPlanId(@Param("planId") UUID planId);
+
+    /** Số user đang ở một gói — xác nhận "N người dùng bị ảnh hưởng" khi admin lưu gói. */
+    long countByPlan_IdAndDeletedAtIsNull(UUID planId);
 }

@@ -15,7 +15,14 @@ import com.aima.entity.Plan;
 import com.aima.entity.PlanFeatureLimits;
 import com.aima.entity.PlanFeature;
 import com.aima.entity.PlanFeatureValue;
-import com.aima.service.PlanLimitService;
+import com.aima.dto.request.PlanFeatureLimitsRequest;
+import com.aima.dto.response.PlanFeatureAutoValueResponse;
+import com.aima.dto.response.PlanFeatureLimitsResponse;
+import com.aima.dto.response.PlanFeatureScopeUsageResponse;
+import com.aima.enums.Platform;
+import com.aima.util.PlatformCsv;
+import org.mapstruct.BeanMapping;
+import org.mapstruct.Named;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -26,6 +33,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")
@@ -33,30 +42,65 @@ public interface PlanMapper {
 
     // ===== Plan =====
 
+    // Giới hạn (featureLimits) do PlanServiceImpl áp qua updateLimits — kiểm "điền đủ" + reset về mặc định.
+    // tokenQuota KHÔNG ghi nữa: số token hiển thị sinh từ monthlyTokenLimit (toResponse).
+    @Mapping(target = "featureLimits", ignore = true)
+    @Mapping(target = "tokenQuota", ignore = true)
     Plan toPlan(PlanCreateRequest request);
 
-    // monthlyTokenLimit null = giữ nguyên (FE cũ chưa gửi) — các field khác vẫn FULL update.
+    // Thông tin hiển thị FULL update; monthlyTokenLimit null = giữ nguyên (-1 = không giới hạn, xử lý ở service).
     @Mapping(target = "monthlyTokenLimit", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "featureLimits", ignore = true)
+    @Mapping(target = "tokenQuota", ignore = true)
     void update(PlanUpdateRequest request, @MappingTarget Plan plan);
 
+    /** Ô giới hạn trong request: null = giữ nguyên; danh sách nền tảng → CSV (rỗng = không nền tảng nào). */
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "allowedPlatforms", source = "allowedPlatforms", qualifiedByName = "platformsToCsv")
+    void updateLimits(PlanFeatureLimitsRequest request, @MappingTarget PlanFeatureLimits limits);
+
+    @Mapping(target = "allowedPlatforms", source = "allowedPlatforms", qualifiedByName = "csvToPlatforms")
+    PlanFeatureLimitsResponse toLimitsResponse(PlanFeatureLimits limits);
+
     @Mapping(target = "core", expression = "java(Plan.CORE_CODES.contains(plan.getCode()))")
+    @Mapping(target = "tokenQuota", source = "monthlyTokenLimit")
+    @Mapping(target = "subscriberCount", ignore = true)
     PlanResponse toResponse(Plan plan);
 
     List<PlanResponse> toResponseList(List<Plan> plans);
 
-    @Mapping(target = "policyCheckAiMonthlyLimit", source = "limits.policyCheckAiMonthly")
-    @Mapping(target = "aiFixMaxPerVersion", source = "limits.aiFixPerVersion")
-    @Mapping(target = "featureLimits", source = "featureLimits")
-    PlanLimitDefaultsResponse toLimitDefaults(PlanLimitService.PlanLimits limits, PlanFeatureLimits featureLimits);
+    /** Danh sách admin: kèm số người dùng đang ở từng gói. */
+    default List<PlanResponse> toResponseList(List<Plan> plans, Map<UUID, Long> subscriberCounts) {
+        return plans.stream().map(plan -> {
+            PlanResponse response = toResponse(plan);
+            response.setSubscriberCount(subscriberCounts.getOrDefault(plan.getId(), 0L));
+            return response;
+        }).toList();
+    }
+
+    PlanLimitDefaultsResponse toLimitDefaults(PlanFeatureLimits featureLimits);
+
+    @Named("platformsToCsv")
+    default String platformsToCsv(List<Platform> platforms) {
+        return PlatformCsv.format(platforms);
+    }
+
+    @Named("csvToPlatforms")
+    default List<Platform> csvToPlatforms(String csv) {
+        return csv == null ? null : List.copyOf(PlatformCsv.parse(csv));
+    }
 
     // ===== Giới hạn tính năng (V18) =====
 
-    PlanFeatureUsageItemResponse toUsageItem(PlanLimitKey key, PlanLimitKey.Type type, Long limit, Long used, boolean included);
+    PlanFeatureUsageItemResponse toUsageItem(PlanLimitKey key, PlanLimitKey.Type type, Long limit, Long used, boolean included,
+                                             List<Platform> platforms, List<PlanFeatureScopeUsageResponse> scopes);
+
+    PlanFeatureScopeUsageResponse toScopeUsage(UUID scopeId, String scopeName, long used);
 
     PlanFeatureUsageResponse toUsageResponse(String planCode, LocalDateTime periodStart, LocalDateTime periodEnd,
                                       List<PlanFeatureUsageItemResponse> items);
 
-    PlanLimitViolationResponse toViolation(PlanLimitKey limitKey, Long limit, Long used, String planCode);
+    PlanLimitViolationResponse toViolation(PlanLimitKey limitKey, Long limit, Long used, String planCode, Platform platform);
 
     // ===== PlanFeature (values do service reconcile theo planCode — mapper bỏ qua) =====
 
@@ -66,9 +110,25 @@ public interface PlanMapper {
     @Mapping(target = "values", ignore = true)
     void update(PlanFeatureRequest request, @MappingTarget PlanFeature feature);
 
+    @Mapping(target = "autoValues", ignore = true)
     PlanFeatureResponse toFeatureResponse(PlanFeature feature);
 
     List<PlanFeatureResponse> toFeatureResponseList(List<PlanFeature> features);
+
+    /** Dòng liên kết giới hạn: kèm ô tự động theo từng gói (service tính từ giới hạn hiệu lực). */
+    default List<PlanFeatureResponse> toFeatureResponseList(List<PlanFeature> features,
+                                                           Map<UUID, List<PlanFeatureAutoValueResponse>> autoValues) {
+        return features.stream().map(feature -> {
+            PlanFeatureResponse response = toFeatureResponse(feature);
+            response.setAutoValues(autoValues.get(feature.getId()));
+            return response;
+        }).toList();
+    }
+
+    PlanFeatureAutoValueResponse toAutoValue(String planCode, PlanFeatureAutoValueResponse.Kind kind, Long value,
+                                             List<PlanFeatureAutoValueResponse.PlatformCell> platforms);
+
+    PlanFeatureAutoValueResponse.PlatformCell toPlatformCell(Platform platform, boolean comingSoon);
 
     @Mapping(target = "planCode", source = "plan.code")
     PlanFeatureValueResponse toValueResponse(PlanFeatureValue value);

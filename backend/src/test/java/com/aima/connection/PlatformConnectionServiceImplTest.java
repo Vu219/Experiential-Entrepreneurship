@@ -33,7 +33,10 @@ class PlatformConnectionServiceImplTest {
                         "http://fe/settings?tab=connections&error=oauth_failed"));
         service = new PlatformConnectionServiceImpl(metaOAuthService, mock(PlatformAccountRepository.class),
                 mock(UserRepository.class), mock(PlatformConnectionMapper.class), aima,
-                mock(com.aima.repository.AccountSyncStateRepository.class));
+                mock(com.aima.repository.AccountSyncStateRepository.class),
+                mock(com.aima.service.PlatformAvailabilityService.class),
+                mock(org.springframework.data.redis.core.RedisTemplate.class),
+                new com.fasterxml.jackson.databind.ObjectMapper());
     }
 
     @Test
@@ -44,6 +47,19 @@ class PlatformConnectionServiceImplTest {
         String redirect = service.handleCallbackRedirect(Platform.FACEBOOK, "code", "state", null);
 
         assertEquals("http://fe/settings?tab=connections&error=missing_permissions", redirect);
+    }
+
+    /** Nền tảng vừa bị khoá toàn hệ thống / gói không gồm nền tảng trong lúc user ở dialog Meta → mã lỗi riêng cho FE. */
+    @Test
+    void callback_platformLockedOrNotInPlan_redirectsWithDedicatedErrorCodes() {
+        when(metaOAuthService.handleCallback(any(), anyString(), anyString()))
+                .thenThrow(new AppException(ErrorCode.PLATFORM_CONNECTION_DISABLED))
+                .thenThrow(new AppException(ErrorCode.PLAN_FEATURE_NOT_INCLUDED));
+
+        assertEquals("http://fe/settings?tab=connections&error=platform_disabled",
+                service.handleCallbackRedirect(Platform.THREADS, "code", "state", null));
+        assertEquals("http://fe/settings?tab=connections&error=plan_platform",
+                service.handleCallbackRedirect(Platform.THREADS, "code", "state", null));
     }
 
     @Test

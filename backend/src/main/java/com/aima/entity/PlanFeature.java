@@ -3,6 +3,7 @@ package com.aima.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import com.aima.enums.PlanLimitKey;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +38,14 @@ public class PlanFeature extends BaseEntity {
     @Column(name = "display_order", nullable = false)
     @Builder.Default
     Integer displayOrder = 0;
+
+    /**
+     * Dòng LIÊN KẾT một giới hạn thật (V21): giá trị từng cột lấy từ giới hạn hiệu lực của gói (+ trạng thái khoá nền
+     * tảng với ALLOWED_PLATFORMS), không nhập tay — {@code values} bị bỏ qua. null = dòng nhập tay như cũ.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "limit_key", length = 50)
+    PlanLimitKey limitKey;
 
     @OneToMany(mappedBy = "feature", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

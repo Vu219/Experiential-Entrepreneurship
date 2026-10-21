@@ -3,6 +3,7 @@ package com.aima.dto.response;
 import com.aima.enums.ConnectionStatus;
 import com.aima.enums.InstagramLinkStatus;
 import com.aima.enums.Platform;
+import com.aima.enums.PlatformLockReason;
 import com.aima.enums.PlatformAccountType;
 import com.aima.enums.TokenType;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -53,6 +54,13 @@ public class PlatformConnectionResponse {
     @Schema(description = "Chỉ Trang Facebook: Trang có liên kết Instagram Doanh nghiệp/Nhà sáng tạo (LINKED) hay không "
             + "(NOT_LINKED → FE hướng dẫn chuyển IG sang tài khoản chuyên nghiệp); null = chưa kiểm tra / không áp dụng.")
     InstagramLinkStatus instagramLinkStatus;
+
+    @Schema(description = "Tài khoản bị khoá (hiển thị nhưng không dùng được để lên lịch/đăng) — tính khi đọc.")
+    boolean locked;
+
+    @Schema(description = "Lý do khoá: PLATFORM_DISABLED (khoá toàn hệ thống) / PLAN_EXCLUDED (gói không gồm nền tảng); "
+            + "null khi dùng được.", example = "PLATFORM_DISABLED")
+    PlatformLockReason lockReason;
 
     LocalDateTime createdAt;
 }

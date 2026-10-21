@@ -149,7 +149,7 @@ public class PublishRecoveryServiceImpl implements PublishRecoveryService {
         // Flush TRƯỚC dispatch: claim là bulk update clearAutomatically — thay đổi chưa flush sẽ bị bỏ.
         scheduleRepository.saveAndFlush(schedule);
 
-        PostingDispatchService.Outcome dispatched = dispatchService.dispatch(schedule.getId());
+        PostingDispatchService.Outcome dispatched = dispatchService.dispatch(schedule.getId(), true);
         if (dispatched.jobId() == null && dispatched.heldFor() == null) {
             throw new AppException(ErrorCode.FAILED_POST_NOT_ACTIONABLE);
         }

@@ -1,14 +1,17 @@
 package com.aima.service.Impl;
 
+import com.aima.config.init.PlanDataInitializer;
 import com.aima.entity.Plan;
 import com.aima.entity.PlanFeatureLimits;
 import com.aima.entity.Subscription;
 import com.aima.entity.User;
+import com.aima.enums.Platform;
 import com.aima.enums.PlanLimitKey;
 import com.aima.enums.UserPlan;
 import com.aima.repository.PlanRepository;
 import com.aima.service.PlanLimitService;
 import com.aima.service.SubscriptionService;
+import com.aima.util.PlatformCsv;
 import jakarta.annotation.PostConstruct;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +26,7 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -33,8 +37,11 @@ public class PlanLimitServiceImpl implements PlanLimitService {
     /** Biến env cũ theo TÊN gói (trước V15) — chỉ còn đọc để tương thích ngược, sẽ bỏ ở bản sau. */
     static final String LEGACY_POLICY_CHECK_ENV_PREFIX = "AIMA_POLICY_CHECK_AI_LIMIT_";
 
-    /** Mặc định hệ thống của giới hạn tính năng (V18) — một thuộc tính mỗi {@link PlanLimitKey}. */
+    /** Mặc định hệ thống của giới hạn tính năng (V18/V20) — một thuộc tính mỗi {@link PlanLimitKey}. */
     static final String DEFAULTS_PREFIX = "aima.plan-limits.defaults.";
+
+    /** Mặc định nền tảng khi không cấu hình: chỉ Facebook (V20) — không mở nền tảng mới ngoài ý muốn. */
+    static final String DEFAULT_ALLOWED_PLATFORMS = "FACEBOOK";
 
     SubscriptionService subscriptionService;
     PlanRepository planRepository;
@@ -74,88 +81,83 @@ public class PlanLimitServiceImpl implements PlanLimitService {
     }
 
     @Override
-    public PlanLimits resolve(User user) {
-        Plan plan = currentPlan(user);
-        if (plan == null) {
-            return defaults();
-        }
-        Integer policyCheck = plan.getPolicyCheckAiMonthlyLimit() != null
-                ? plan.getPolicyCheckAiMonthlyLimit()
-                : legacyPolicyCheckLimits.getOrDefault(plan.getCode(), policyCheckDefault);
-        Integer aiFix = plan.getAiFixMaxPerVersion() != null ? plan.getAiFixMaxPerVersion() : aiFixDefault;
-        return new PlanLimits(plan.getCode(), effective(policyCheck), effective(aiFix));
-    }
-
-    @Override
-    public PlanLimits defaults() {
-        return new PlanLimits(null, effective(policyCheckDefault), effective(aiFixDefault));
-    }
-
-    @Override
     public FeatureLimits features(User user) {
-        Plan plan = currentPlan(user);
-        PlanFeatureLimits columns = plan == null ? null : plan.getFeatureLimits();
+        return featuresOf(currentPlan(user));
+    }
+
+    @Override
+    public FeatureLimits featuresOf(Plan plan) {
+        // Fail-closed: không tra được gói → giới hạn gói FREE lõi, không bao giờ "toàn mặc định = không giới hạn".
+        PlanFeatureLimits columns = plan == null
+                ? PlanDataInitializer.coreFeatureLimits(UserPlan.FREE.name())
+                : plan.getFeatureLimits();
+        String planCode = plan == null ? UserPlan.FREE.name() : plan.getCode();
         Map<PlanLimitKey, Long> values = new EnumMap<>(PlanLimitKey.class);
+        Set<Platform> platforms = Set.of();
         for (PlanLimitKey key : PlanLimitKey.values()) {
             Object raw = key.rawValue(columns);
-            values.put(key, effectiveFeature(key, raw != null ? raw : defaultValue(key)));
+            if (raw == null) {
+                raw = defaultValue(key, planCode);
+            }
+            if (key.type() == PlanLimitKey.Type.SET) {
+                platforms = PlatformCsv.parse((String) raw);
+                values.put(key, (long) platforms.size());
+            } else {
+                values.put(key, effectiveFeature(raw));
+            }
         }
-        return new FeatureLimits(plan == null ? null : plan.getCode(), Collections.unmodifiableMap(values));
+        return new FeatureLimits(planCode, Collections.unmodifiableMap(values), platforms);
     }
 
     @Override
     public PlanFeatureLimits defaultFeatureLimits() {
-        return PlanFeatureLimits.builder()
-                .brandProfiles((Integer) defaultValue(PlanLimitKey.BRAND_PROFILES))
-                .strategiesPerBrand((Integer) defaultValue(PlanLimitKey.STRATEGIES_PER_BRAND))
-                .connectedChannels((Integer) defaultValue(PlanLimitKey.CONNECTED_CHANNELS))
-                .trendResearchPerPeriod((Integer) defaultValue(PlanLimitKey.TREND_RESEARCH_PER_PERIOD))
-                .autoTrendResearch((Boolean) defaultValue(PlanLimitKey.AUTO_TREND_RESEARCH))
-                .ideasPerResearch((Integer) defaultValue(PlanLimitKey.IDEAS_PER_RESEARCH))
-                .scheduling((Boolean) defaultValue(PlanLimitKey.SCHEDULING))
-                .scheduledPostsPerPeriod((Integer) defaultValue(PlanLimitKey.SCHEDULED_POSTS_PER_PERIOD))
-                .activeSchedules((Integer) defaultValue(PlanLimitKey.ACTIVE_SCHEDULES))
-                .scheduleHorizonDays((Integer) defaultValue(PlanLimitKey.SCHEDULE_HORIZON_DAYS))
-                .goldenHours((Boolean) defaultValue(PlanLimitKey.GOLDEN_HOURS))
-                .analyticsHistoryDays((Integer) defaultValue(PlanLimitKey.ANALYTICS_HISTORY_DAYS))
-                .analyticsAdvanced((Boolean) defaultValue(PlanLimitKey.ANALYTICS_ADVANCED))
-                .analyticsExport((Boolean) defaultValue(PlanLimitKey.ANALYTICS_EXPORT))
-                .strategyOptimizationPerPeriod((Integer) defaultValue(PlanLimitKey.STRATEGY_OPTIMIZATION_PER_PERIOD))
-                .build();
+        PlanFeatureLimits defaults = new PlanFeatureLimits();
+        for (PlanLimitKey key : PlanLimitKey.values()) {
+            key.write(defaults, defaultValue(key, null));
+        }
+        return defaults;
     }
 
     /**
-     * Mặc định hệ thống của một khoá: {@code aima.plan-limits.defaults.<khoá>} — không đặt thì KHÔNG giới hạn / BẬT,
-     * để gói admin tự tạo (cột null) giữ đúng hành vi trước V18.
+     * Mặc định hệ thống của một khoá. Giới hạn tính năng: {@code aima.plan-limits.defaults.<khoá>} — không đặt thì KHÔNG
+     * giới hạn / BẬT (hành vi trước V18), riêng nền tảng mặc định chỉ FACEBOOK. Hai khoá AI giữ nguồn V15
+     * ({@code aima.ai-assist.*}, env cũ theo mã gói cho lượt kiểm tra chính sách).
      */
-    private Object defaultValue(PlanLimitKey key) {
-        String property = DEFAULTS_PREFIX + key.propertyName();
-        if (key.type() == PlanLimitKey.Type.FLAG) {
-            return environment.getProperty(property, Boolean.class, Boolean.TRUE);
-        }
-        return environment.getProperty(property, Integer.class, UNLIMITED);
+    private Object defaultValue(PlanLimitKey key, String planCode) {
+        return switch (key) {
+            case POLICY_CHECK_AI_PER_PERIOD -> planCode != null && legacyPolicyCheckLimits.containsKey(planCode)
+                    ? legacyPolicyCheckLimits.get(planCode) : policyCheckDefault;
+            case AI_FIX_PER_VERSION -> aiFixDefault;
+            default -> switch (key.type()) {
+                case FLAG -> environment.getProperty(DEFAULTS_PREFIX + key.propertyName(), Boolean.class, Boolean.TRUE);
+                case SET -> PlatformCsv.format(PlatformCsv.parse(environment.getProperty(
+                        DEFAULTS_PREFIX + key.propertyName(), DEFAULT_ALLOWED_PLATFORMS)));
+                default -> environment.getProperty(DEFAULTS_PREFIX + key.propertyName(), Integer.class, UNLIMITED);
+            };
+        };
     }
 
-    /** FLAG: false → 0 (tắt), true → null; số: cùng quy đổi với {@link #effective(int)}. */
-    private static Long effectiveFeature(PlanLimitKey key, Object raw) {
+    /** FLAG: false → 0 (tắt), true → null; số: -1 → null (không giới hạn), âm khác (cấu hình sai) → 0 = tắt. */
+    private static Long effectiveFeature(Object raw) {
         if (raw instanceof Boolean flag) {
             return flag ? null : 0L;
         }
-        return effective((Integer) raw);
+        int value = (Integer) raw;
+        return value == UNLIMITED ? null : (long) Math.max(0, value);
     }
 
-    /** Gói của subscription hiện hành; chưa có subscription (DB chưa seed) → gói theo nhãn, như TokenUsageService. */
+    /**
+     * Gói của subscription hiện hành. Chưa có subscription (getOrCreate không tạo được) → gói theo nhãn, rồi gói FREE;
+     * vẫn không có → null = fail-closed giới hạn FREE lõi ({@link #featuresOf}).
+     */
     private Plan currentPlan(User user) {
         Subscription subscription = subscriptionService.getOrCreate(user);
         if (subscription != null) {
             return subscription.getPlan();
         }
         String code = user.getPlan() == null ? UserPlan.FREE.name() : user.getPlan().name();
-        return planRepository.findByCodeAndDeletedAtIsNull(code).orElse(null);
-    }
-
-    /** -1 → null (không giới hạn); số âm khác (cấu hình sai) → 0 = tắt, không bao giờ thành "vô hạn" ngoài ý muốn. */
-    private static Long effective(int value) {
-        return value == UNLIMITED ? null : (long) Math.max(0, value);
+        return planRepository.findByCodeAndDeletedAtIsNull(code)
+                .or(() -> planRepository.findByCodeAndDeletedAtIsNull(UserPlan.FREE.name()))
+                .orElse(null);
     }
 }

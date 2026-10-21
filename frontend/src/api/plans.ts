@@ -1,7 +1,10 @@
 import type { Lang } from '../types';
 import client, { type ApiResponse } from './apiClient';
-import type { PlanFeatureLimits } from './planLimits';
-import type { PricingPlan, ComparisonGroup } from '../config/plans';
+import type { PlanFeatureLimits, PlanLimitKey } from './planLimits';
+import type { PlatformEnum } from './connections';
+import type { PricingPlan, ComparisonGroup, ComparisonValue } from '../config/plans';
+import { getDict } from '../i18n';
+import { autoCellValue } from '../utils/comparisonCell';
 
 // 2026-07-12: Gói dịch vụ chuyển từ hardcode (config/plans.ts) sang DB — bảng plans +
 // plan_features (backend). Landing/pricing đọc GET /plans/public (chỉ gói isActive);
@@ -19,15 +22,11 @@ export interface PlanDto {
   billingCycleEn: string | null;
   /** Chu kỳ THẬT tính bằng tháng (tháng = 1, quý = 3, năm = 12) — mẫu số quy giá về MRR. */
   billingIntervalMonths: number;
-  /** Hạn mức token MÔ TẢ để hiển thị (chưa phải số dư thật). null = không giới hạn. */
+  /** Số token HIỂN THỊ — backend sinh từ monthlyTokenLimit (không còn nhập riêng). null = không giới hạn. */
   tokenQuota: number | null;
-  /** Hạn mức token THẬT mỗi tháng (dùng chặn quota). null = không giới hạn. */
+  /** Hạn mức token THẬT mỗi kỳ (dùng chặn quota). null = không giới hạn. */
   monthlyTokenLimit: number | null;
-  /** Lượt AI kiểm tra chính sách/tháng — xem {@link PlanAiLimit}. */
-  policyCheckAiMonthlyLimit: PlanAiLimit;
-  /** Số lần AI sửa bài tối đa mỗi bản nền tảng — xem {@link PlanAiLimit}. */
-  aiFixMaxPerVersion: PlanAiLimit;
-  /** Giới hạn tính năng (V18, giá trị thô) — null khi BE cũ chưa trả. */
+  /** Mọi giới hạn theo gói (V15/V18/V20, gồm 2 giới hạn AI), giá trị thô — null khi BE cũ chưa trả. */
   featureLimits: PlanFeatureLimits | null;
   descriptionVi: string | null;
   descriptionEn: string | null;
@@ -42,6 +41,8 @@ export interface PlanDto {
   isActive: boolean;
   /** true với 3 gói lõi — UI khóa sửa code / xóa. */
   core: boolean;
+  /** Chỉ admin: số người dùng đang ở gói (xác nhận khi lưu). */
+  subscriberCount?: number;
 }
 
 export interface PlanFeatureValueDto {
@@ -52,6 +53,15 @@ export interface PlanFeatureValueDto {
   textEn: string | null;
 }
 
+/** Ô tự động của dòng so sánh LIÊN KẾT giới hạn — giá trị có cấu trúc, FE dựng chữ theo ngôn ngữ. */
+export interface PlanFeatureAutoValueDto {
+  planCode: string;
+  kind: 'NUMBER' | 'UNLIMITED' | 'OFF' | 'ON' | 'PLATFORMS';
+  value: number | null;
+  /** PLATFORMS: nền tảng gói cho phép; comingSoon = đang khoá toàn hệ thống. */
+  platforms: { platform: PlatformEnum; comingSoon: boolean }[] | null;
+}
+
 export interface PlanFeatureDto {
   id: string;
   groupVi: string | null;
@@ -60,18 +70,16 @@ export interface PlanFeatureDto {
   nameEn: string;
   displayOrder: number;
   values: PlanFeatureValueDto[];
+  /** Liên kết một giới hạn thật → giá trị cột tự động (autoValues). null = nhập tay. */
+  limitKey?: PlanLimitKey | null;
+  autoValues?: PlanFeatureAutoValueDto[] | null;
 }
 
-/** Giới hạn AI trên gói (BE V15): null = mặc định hệ thống, -1 = không giới hạn, 0 = tắt, > 0 = số lượt. */
-export type PlanAiLimit = number | null;
 export const PLAN_AI_UNLIMITED = -1;
 export const PLAN_AI_LIMIT_MAX = 100_000;
 
-/** Mặc định hệ thống (env) đã quy đổi: null = không giới hạn, 0 = tắt. Chỉ GET /admin/plans trả. */
+/** Mặc định hệ thống (env) cho ô "Mặc định" của 3 gói lõi — giá trị THÔ (-1 = không giới hạn, 0 = tắt). */
 export interface PlanLimitDefaults {
-  policyCheckAiMonthlyLimit: number | null;
-  aiFixMaxPerVersion: number | null;
-  /** Mặc định hệ thống của giới hạn tính năng (giá trị THÔ: -1 = không giới hạn, 0 = tắt). */
   featureLimits?: PlanFeatureLimits;
 }
 
@@ -93,7 +101,11 @@ export async function getAdminPlans(): Promise<PlansPayload> {
   return data.result;
 }
 
-/** Body PUT /admin/plans/{id} — FULL update (gửi trọn form; tokenQuota null = không giới hạn). */
+/**
+ * Body POST/PUT /admin/plans — thông tin hiển thị gửi trọn form. Giới hạn: null = GIỮ NGUYÊN (từng ô của featureLimits
+ * và monthlyTokenLimit; -1 = không giới hạn); đưa ô về "Mặc định hệ thống" qua `resetToDefault` (chỉ gói lõi).
+ * Gói tạo mới bắt buộc đủ mọi ô giới hạn (BE 2211).
+ */
 export interface PlanSaveInput {
   nameVi: string;
   nameEn: string;
@@ -101,14 +113,9 @@ export interface PlanSaveInput {
   billingCycleVi: string | null;
   billingCycleEn: string | null;
   billingIntervalMonths: number;
-  tokenQuota: number | null;
-  /** BE: gói ĐANG BÁN (active, giá > 0) bắt buộc có; null khi sửa = giữ nguyên giá trị cũ. */
   monthlyTokenLimit: number | null;
-  /** FULL update: null = về mặc định hệ thống (khác monthlyTokenLimit). */
-  policyCheckAiMonthlyLimit: PlanAiLimit;
-  aiFixMaxPerVersion: PlanAiLimit;
-  /** Giới hạn tính năng (V18, giá trị thô) — null khi BE cũ chưa trả. */
   featureLimits: PlanFeatureLimits | null;
+  resetToDefault?: PlanLimitKey[];
   descriptionVi: string | null;
   descriptionEn: string | null;
   featuresVi: string[];
@@ -144,6 +151,8 @@ export interface FeatureSaveInput {
   nameEn: string;
   displayOrder: number;
   values: PlanFeatureValueDto[];
+  /** Liên kết giới hạn thật (null = nhập tay). */
+  limitKey: PlanLimitKey | null;
 }
 
 export async function createFeature(input: FeatureSaveInput): Promise<PlanFeatureDto> {
@@ -182,22 +191,30 @@ export function toPricingPlans(payload: PlansPayload, lang: Lang): PricingPlan[]
   }));
 }
 
+/** Giá trị một ô của dòng so sánh: dòng liên kết giới hạn lấy từ autoValues, dòng nhập tay lấy từ values. */
+export function featureCellValue(f: PlanFeatureDto, planCode: string, lang: Lang): ComparisonValue {
+  if (f.limitKey && f.autoValues) {
+    const cell = f.autoValues.find((x) => x.planCode === planCode);
+    return cell ? autoCellValue(cell, f.limitKey, getDict(lang) as unknown as Record<string, string>) : false;
+  }
+  const v = f.values.find((x) => x.planCode === planCode);
+  if (!v) return false; // ô chưa điền → hiển thị "—"
+  if (v.boolValue !== null && v.boolValue !== undefined) return v.boolValue;
+  return L(lang, v.textVi, v.textEn);
+}
+
 /** Gom dòng feature theo tên nhóm (giữ thứ tự xuất hiện); dòng không nhóm đứng riêng nhóm rỗng. */
 export function toComparisonGroups(payload: PlansPayload, lang: Lang): ComparisonGroup[] {
   const groups: ComparisonGroup[] = [];
   for (const f of payload.features) {
     const title = L(lang, f.groupVi, f.groupEn);
-    const values = payload.plans.map((p) => {
-      const v = f.values.find((x) => x.planCode === p.code);
-      if (!v) return false; // ô chưa điền → hiển thị "—"
-      if (v.boolValue !== null && v.boolValue !== undefined) return v.boolValue;
-      return L(lang, v.textVi, v.textEn);
-    });
+    const values = payload.plans.map((p) => featureCellValue(f, p.code, lang));
+    const row = { label: L(lang, f.nameVi, f.nameEn), values, auto: !!f.limitKey };
     const last = groups[groups.length - 1];
     if (last && last.title === title) {
-      last.rows.push({ label: L(lang, f.nameVi, f.nameEn), values });
+      last.rows.push(row);
     } else {
-      groups.push({ title, rows: [{ label: L(lang, f.nameVi, f.nameEn), values }] });
+      groups.push({ title, rows: [row] });
     }
   }
   return groups;

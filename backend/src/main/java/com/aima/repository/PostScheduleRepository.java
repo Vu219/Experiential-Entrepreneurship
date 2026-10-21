@@ -71,6 +71,10 @@ public interface PostScheduleRepository extends JpaRepository<PostSchedule, UUID
     List<PostSchedule> findByPlatformAccount_IdInAndStatusInAndDeletedAtIsNull(Collection<UUID> accountIds,
                                                                               Collection<ScheduleStatus> statuses);
 
+    /** Mức ảnh hưởng khi khoá nền tảng: lịch chưa đăng của các kết nối còn hiệu lực trên nền tảng. */
+    long countByPlatformAccount_PlatformNameAndPlatformAccount_DeletedAtIsNullAndStatusInAndDeletedAtIsNull(
+            Platform platform, Collection<ScheduleStatus> statuses);
+
     // Lịch chiếm chỗ của một tài khoản — cảnh báo trùng lịch, khung giờ gợi ý.
     List<PostSchedule> findByPlatformAccount_IdAndStatusInAndDeletedAtIsNull(UUID accountId,
                                                                             Collection<ScheduleStatus> statuses);
@@ -135,12 +139,26 @@ public interface PostScheduleRepository extends JpaRepository<PostSchedule, UUID
             nativeQuery = true)
     Page<PostSchedule> searchText(@Param("userId") UUID userId, @Param("q") String q, Pageable pageable);
 
-    /** Giới hạn gói SCHEDULED_POSTS_PER_PERIOD: lịch TẠO trong kỳ (mọi trạng thái — huỷ không trả lại lượt). */
+    /**
+     * Giới hạn gói SCHEDULED_POSTS_PER_PERIOD: lượt = lịch TẠO hoặc TÁI SỬ DỤNG (lịch CANCELLED lên lại) trong kỳ —
+     * đếm theo {@code counted_at} (V20), mọi trạng thái: huỷ không trả lại lượt.
+     */
     @Query("select count(s) from PostSchedule s where s.platformAccount.user.id = :userId "
-            + "and s.createdAt >= :from and s.createdAt < :to and s.deletedAt is null")
-    long countCreatedInPeriod(@Param("userId") UUID userId, @Param("from") LocalDateTime from,
+            + "and s.countedAt >= :from and s.countedAt < :to and s.deletedAt is null")
+    long countCountedInPeriod(@Param("userId") UUID userId, @Param("from") LocalDateTime from,
                               @Param("to") LocalDateTime to);
 
-    /** Giới hạn gói ACTIVE_SCHEDULES. */
-    long countByPlatformAccount_User_IdAndStatusInAndDeletedAtIsNull(UUID userId, Collection<ScheduleStatus> statuses);
+    /**
+     * Giới hạn gói ACTIVE_SCHEDULES: lịch đang chờ (SCHEDULED/ON_HOLD) — KHÔNG tính lịch hệ thống giữ vì quyền nền
+     * tảng / gói (PLATFORM_DISABLED, PLAN_PLATFORM_EXCLUDED, PLAN_SCHEDULING_DISABLED). Native (not exists) — JPQL lồng
+     * exists làm parser ANTLR tốn bộ nhớ lúc khởi động.
+     */
+    @Query(value = """
+            select count(*) from post_schedules ps
+            join platform_accounts pa on pa.id = ps.platform_account_id
+            where pa.user_id = :userId and ps.deleted_at is null and ps.status in ('SCHEDULED', 'ON_HOLD')
+              and not exists (select 1 from post_schedule_holds h where h.schedule_id = ps.id
+                              and h.reason in ('PLATFORM_DISABLED', 'PLAN_PLATFORM_EXCLUDED', 'PLAN_SCHEDULING_DISABLED'))
+            """, nativeQuery = true)
+    long countActiveForQuota(@Param("userId") UUID userId);
 }

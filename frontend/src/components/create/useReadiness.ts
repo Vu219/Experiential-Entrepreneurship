@@ -32,7 +32,7 @@ export function useReadiness(platforms: Platform[], versions: ContentVersion[], 
   useEffect(() => {
     listConnections()
       .then((conns) => setConnected(new Set(conns
-        .filter((c) => c.connectionStatus === 'ACTIVE' && !(c.platform === 'FACEBOOK' && c.accountType !== 'PAGE'))
+        .filter((c) => c.connectionStatus === 'ACTIVE' && !c.locked && !(c.platform === 'FACEBOOK' && c.accountType !== 'PAGE'))
         .map((c) => c.platform as Platform))))
       .catch(() => setConnected(null));
     getPublishingSettings().then(setSettings).catch(() => setSettings(null));

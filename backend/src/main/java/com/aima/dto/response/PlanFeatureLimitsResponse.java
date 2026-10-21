@@ -7,6 +7,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import com.aima.enums.Platform;
+
+import java.util.List;
 
 /** Giới hạn tính năng của gói, giá trị THÔ (null = mặc định hệ thống, -1 = không giới hạn, 0 = tắt). */
 @Data
@@ -22,6 +25,9 @@ public class PlanFeatureLimitsResponse {
     Integer strategiesPerBrand;
 
     Integer connectedChannels;
+
+    @Schema(description = "Nền tảng gói cho phép; null = mặc định hệ thống.")
+    List<Platform> allowedPlatforms;
 
     Integer trendResearchPerPeriod;
 
@@ -46,4 +52,8 @@ public class PlanFeatureLimitsResponse {
     Boolean analyticsExport;
 
     Integer strategyOptimizationPerPeriod;
+
+    Integer policyCheckAiPerPeriod;
+
+    Integer aiFixPerVersion;
 }

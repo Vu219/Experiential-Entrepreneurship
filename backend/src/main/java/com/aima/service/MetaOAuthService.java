@@ -1,6 +1,7 @@
 package com.aima.service;
 
 import com.aima.entity.PlatformAccount;
+import com.aima.enums.OAuthSkipReason;
 import com.aima.enums.Platform;
 
 import java.util.List;
@@ -16,12 +17,20 @@ public interface MetaOAuthService {
     String buildAuthorizationUrl(Platform platform, UUID userId);
 
     /**
-     * Xử lý callback: đổi code → token → lưu các kết nối. Trả về các kết nối vừa tạo/cập nhật + số kênh MỚI bị bỏ qua
-     * vì đã đủ giới hạn CONNECTED_CHANNELS của gói (kết nối lại kênh cũ luôn được phép).
+     * Xử lý callback: đổi code → token → lưu các kết nối. Trả về các kết nối vừa tạo/cập nhật + các kênh KHÔNG được thêm
+     * kèm lý do (đủ CONNECTED_CHANNELS — kết nối lại kênh cũ luôn được phép; nền tảng ngoài gói; nền tảng khoá).
      */
     CallbackResult handleCallback(Platform platform, String code, String state);
 
-    record CallbackResult(List<PlatformAccount> connected, int skippedByPlan) {
+    record CallbackResult(UUID userId, List<PlatformAccount> connected, List<SkippedChannel> skipped) {
+
+        /** Số kênh MỚI bị bỏ qua vì gói đã đủ CONNECTED_CHANNELS (tham số {@code channel_limit} cũ). */
+        public int skippedByPlan() {
+            return (int) skipped.stream().filter(s -> s.reason() == OAuthSkipReason.CHANNEL_LIMIT).count();
+        }
+    }
+
+    record SkippedChannel(Platform platform, String accountName, OAuthSkipReason reason) {
     }
 
     /** Ping /me, cập nhật trạng thái + lastValidatedAt. Nhận ID: entity được load lại trong transaction. */

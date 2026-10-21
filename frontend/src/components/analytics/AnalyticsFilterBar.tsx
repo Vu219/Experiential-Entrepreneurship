@@ -15,6 +15,8 @@ import {
   PRESETS, activePreset, formatDateInput, formatRangeLabel, parseDateInput, rangeOfPreset, todayISO, type PresetKey,
 } from './dateRange';
 import { C } from '../../styles/colors';
+import { usePlanUsage } from '../../hooks/usePlanUsage';
+import { earliestAnalyticsDate } from '../../utils/planGates';
 
 /**
  * Hàng công cụ trang Phân tích (v2) — **một nguồn filter duy nhất cho cả trang**: không card nào có
@@ -230,6 +232,9 @@ function RangePanel({
   withConfirm?: boolean;
 }) {
   const { t } = useApp();
+  // Gói (ANALYTICS_HISTORY_DAYS): ngày sớm nhất được chọn — cùng mốc backend kẹp (backend vẫn kẹp nếu gửi xa hơn).
+  const { cap } = usePlanUsage();
+  const minDate = earliestAnalyticsDate(cap('ANALYTICS_HISTORY_DAYS'), todayISO()) ?? undefined;
   const [custom, setCustom] = useState(preset === 'custom');
   // `to` rỗng = mới chọn ngày bắt đầu, đang chờ ngày kết thúc.
   const [draft, setDraft] = useState({ from: filter.from, to: filter.to });
@@ -245,13 +250,18 @@ function RangePanel({
   return (
     <div style={{ display: stacked ? 'block' : 'grid', gridTemplateColumns: '128px minmax(0, 1fr)', gap: 14 }}>
       <div style={{ display: 'flex', flexDirection: stacked ? 'row' : 'column', flexWrap: 'wrap', gap: 6, marginBottom: stacked ? 12 : 0 }}>
-        {PRESETS.map((p) => (
-          <button key={p.key} type="button" aria-pressed={!custom && preset === p.key}
-            onClick={() => { setCustom(false); const r = rangeOfPreset(p.days); onChange(r.from, r.to); }}
-            style={presetBtn(!custom && preset === p.key)}>
-            {presetLabel[p.key]}
-          </button>
-        ))}
+        {PRESETS.map((p) => {
+          const r = rangeOfPreset(p.days);
+          const beyondPlan = !!minDate && r.from < minDate;
+          return (
+            <button key={p.key} type="button" aria-pressed={!custom && preset === p.key} disabled={beyondPlan}
+              title={beyondPlan ? t.plgHistoryCap.replace('{date}', minDate!) : undefined}
+              onClick={() => { setCustom(false); onChange(r.from, r.to); }}
+              style={{ ...presetBtn(!custom && preset === p.key), ...(beyondPlan ? { opacity: 0.45, cursor: 'not-allowed' } : null) }}>
+              {presetLabel[p.key]}
+            </button>
+          );
+        })}
         <button type="button" aria-pressed={custom} onClick={() => setCustom(true)} style={presetBtn(custom)}>
           {presetLabel.custom}
         </button>
@@ -261,14 +271,17 @@ function RangePanel({
         {/* Hai ô ngày chỉ xuất hiện ở chế độ Tùy chọn — bản cũ luôn hiện nên trùng chức năng với chip. */}
         {custom && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <DateField value={draft.from} max={draft.to || todayISO()} label={t.anaFrom}
+            <DateField value={draft.from} min={minDate} max={draft.to || todayISO()} label={t.anaFrom}
               onCommit={(iso) => edit(iso, draft.to)} />
             <span style={{ fontSize: 13, color: C.textMuted }}>—</span>
-            <DateField value={draft.to} min={draft.from} max={todayISO()} label={t.anaTo}
+            <DateField value={draft.to} min={draft.from || minDate} max={todayISO()} label={t.anaTo}
               onCommit={(iso) => edit(draft.from, iso)} />
           </div>
         )}
-        <RangeCalendar from={draft.from} to={draft.to} onChange={edit} />
+        <RangeCalendar from={draft.from} to={draft.to} min={minDate} onChange={edit} />
+        {minDate && (
+          <div style={{ fontSize: 11.5, color: C.textMuted, marginTop: 8 }}>{t.plgHistoryCap.replace('{date}', minDate)}</div>
+        )}
         {withConfirm && custom && (
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
             <button type="button" disabled={!draft.to || !dirty} onClick={() => onChange(draft.from, draft.to)}

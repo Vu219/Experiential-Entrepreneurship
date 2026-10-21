@@ -1,6 +1,8 @@
 package com.aima.dto.response;
 
+import com.aima.enums.Platform;
 import com.aima.enums.PlanLimitKey;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -28,4 +30,8 @@ public class PlanLimitViolationResponse {
 
     @Schema(description = "Mã gói hiện tại.", example = "FREE")
     String planCode;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @Schema(description = "ALLOWED_PLATFORMS: nền tảng bị từ chối (chỉ có với khoá này).", example = "THREADS")
+    Platform platform;
 }

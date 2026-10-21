@@ -57,7 +57,7 @@ export function buildMonth(viewDate: Date, schedules: PostSchedule[]): MonthCell
 const CHIP_LIMIT = 2;
 const ARROW_DELTA: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
 
-export default function MonthGrid({ cells, selectedDay, onSelectDay, compact, onSelectSchedule, minDay, disabledLabel }: {
+export default function MonthGrid({ cells, selectedDay, onSelectDay, compact, onSelectSchedule, minDay, maxDay, disabledLabel, maxDisabledLabel }: {
   cells: MonthCell[];
   selectedDay: string | null;
   onSelectDay: (key: string | null) => void;
@@ -66,8 +66,12 @@ export default function MonthGrid({ cells, selectedDay, onSelectDay, compact, on
   onSelectSchedule?: (scheduleId: string) => void;
   /** Chọn ngày đăng: ngày trước mốc này (yyyy-MM-dd) làm mờ, trỏ chuột "cấm", không chọn được. */
   minDay?: string;
+  /** Ngày SAU mốc này bị khóa (gói giới hạn số ngày đặt lịch trước — SCHEDULE_HORIZON_DAYS). */
+  maxDay?: string;
   /** Tooltip / nhãn đọc màn hình cho ngày bị khóa. */
   disabledLabel?: string;
+  /** Tooltip cho ngày vượt `maxDay`. */
+  maxDisabledLabel?: string;
 }) {
   const { t, lang } = useApp();
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -104,7 +108,8 @@ export default function MonthGrid({ cells, selectedDay, onSelectDay, compact, on
       <div onKeyDown={onKeyDown} style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 6 }}>
         {cells.map((d, i) => {
           const selected = selectedDay === d.key;
-          const past = !!minDay && d.key < minDay;
+          const beyond = !!maxDay && d.key > maxDay;
+          const past = (!!minDay && d.key < minDay) || beyond;
           const chips = compact ? [] : d.items.slice(0, CHIP_LIMIT);
           const extra = d.items.length - chips.length;
           return (
@@ -116,8 +121,10 @@ export default function MonthGrid({ cells, selectedDay, onSelectDay, compact, on
               aria-pressed={selected}
               // aria-disabled thay vì disabled: vẫn nhận hover để hiện tooltip + trỏ chuột "cấm", vẫn đi phím mũi tên qua được.
               aria-disabled={past || undefined}
-              title={past ? disabledLabel : undefined}
-              aria-label={`${absDayLabel(d.key, lang)} · ${past && disabledLabel ? disabledLabel : t.calDayPosts.replace('{n}', String(d.items.length))}`}
+              title={past ? (beyond ? maxDisabledLabel ?? disabledLabel : disabledLabel) : undefined}
+              aria-label={`${absDayLabel(d.key, lang)} · ${past && (beyond ? maxDisabledLabel ?? disabledLabel : disabledLabel)
+                ? (beyond ? maxDisabledLabel ?? disabledLabel : disabledLabel)
+                : t.calDayPosts.replace('{n}', String(d.items.length))}`}
               style={{
                 font: 'inherit',
                 textAlign: 'left',

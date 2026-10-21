@@ -11,6 +11,8 @@ export type NotificationType =
   | "POST_REMOVED_BY_PLATFORM"
   /** Lịch đang tạm giữ đã qua giờ đăng — sẽ không tự đăng, cần chọn giờ mới. */
   | "SCHEDULE_OVERDUE"
+  /** Lịch chưa đăng bị giữ vì nền tảng khoá toàn hệ thống / ngoài gói / gói tắt lên lịch (params.variant = lý do). */
+  | "SCHEDULE_HELD"
   | "RECONNECT_NEEDED"
   | "TOKEN_EXPIRING"
   | "REVIEW_NEEDED"

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AlertTriangle, ArrowRight, Check, PenLine, Plus } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, Lock, PenLine, Plus } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import { useUiStore } from '../../../store/useUiStore';
 import { Card, Icon, PlatformTag } from '../../ui';
@@ -18,6 +18,8 @@ import StepLayout from '../StepLayout';
 import { WizardStepSkeleton } from '../CreateSkeleton';
 import { C } from '../../../styles/colors';
 import { assistCardStyle } from '../assistCardStyle';
+import { usePlatformAccess } from '../../../hooks/usePlatformAccess';
+import { lockReasonText } from '../../../api/platformAvailability';
 
 export interface SourceSelection {
   brand: BrandProfile;
@@ -78,7 +80,7 @@ export default function SourceStep({
   onSelectionChange?: (sel: WizardLiveSelection) => void;
   onNext: (sel: SourceSelection) => void;
 }) {
-  const { t, go, brandGradient, activeBrandId } = useApp();
+  const { t, lang, go, brandGradient, activeBrandId } = useApp();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [brands, setBrands] = useState<BrandProfile[]>([]);
@@ -94,6 +96,8 @@ export default function SourceStep({
       : '',
   );
   const [picked, setPicked] = useState<Platform[]>(value?.platforms ?? draft?.platforms ?? []);
+  // Nền tảng khoá toàn hệ thống / ngoài gói: hiện chip disabled + lý do, không chọn được để tạo bài.
+  const { access: platformAccess, of: accessOf, usable } = usePlatformAccess();
   const [aiNote, setAiNote] = useState(value?.aiNote ?? draft?.note ?? '');
   // Quay lùi từ mốc 2 (value có sẵn) coi như đã xác nhận; đổi lựa chọn sẽ reset.
   const [confirmed, setConfirmed] = useState(!!value);
@@ -155,10 +159,10 @@ export default function SourceStep({
       return;
     }
     setPicked((prev) => {
-      const valid = prev.filter((p) => strategy.platforms.includes(p));
-      return valid.length > 0 ? valid : strategy.platforms;
+      const valid = prev.filter((p) => strategy.platforms.includes(p) && usable(p));
+      return valid.length > 0 ? valid : strategy.platforms.filter((p) => usable(p));
     });
-  }, [strategy?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [strategy?.id, platformAccess]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Đổi lựa chọn ảnh hưởng tới nội dung sẽ tạo → phải xác nhận lại tổng quan.
   useEffect(() => {
@@ -193,7 +197,7 @@ export default function SourceStep({
 
   // Bỏ/thêm chip nền tảng cho riêng bài này (tối thiểu 1; thêm lại theo thứ tự chiến lược).
   const togglePlatform = (p: Platform) => {
-    if (!strategy) return;
+    if (!strategy || !usable(p)) return; // nền tảng khoá toàn hệ thống / ngoài gói — không chọn được
     markDirty();
     setPicked((prev) =>
       prev.includes(p)
@@ -302,22 +306,29 @@ export default function SourceStep({
             {strategy.platforms.map((p) => {
               const tag = tagOfPlatform(p);
               const on = picked.includes(p);
+              const access = accessOf(p);
+              const locked = !usable(p);
+              const lockedTitle = !access ? undefined : access.lockReason === 'PLAN_EXCLUDED'
+                ? t.seConnNotInPlanHint : lockReasonText(access, lang) ?? t.paComingSoon;
               return (
                 <button
                   key={p}
                   type="button"
                   onClick={() => togglePlatform(p)}
                   aria-pressed={on}
+                  disabled={locked}
+                  title={locked ? lockedTitle : undefined}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 13px',
                     border: on ? `1.5px solid ${C.violetLight}` : `1px solid ${C.border}`, borderRadius: 11,
-                    background: on ? C.border : C.surface, cursor: 'pointer',
+                    background: on ? C.border : C.surface, cursor: locked ? 'not-allowed' : 'pointer',
                     fontSize: 13, fontWeight: 700, color: on ? C.primaryStrong : C.textFaint,
-                    opacity: on ? 1 : 0.75,
+                    opacity: on ? 1 : locked ? 0.5 : 0.75,
                   }}
                 >
                   <PlatformTag tag={tag} bg={on ? PLATFORM_BG[tag] : C.ink200} size={20} radius={6} fontSize={10} />
                   {PLATFORMS.find((pl) => pl.tag === tag)?.name ?? p}
+                  {locked && <Lock size={12} strokeWidth={2.4} aria-label={lockedTitle} />}
                   {on && <Icon icon={Check} size={13} stroke={C.primaryStrong} />}
                 </button>
               );

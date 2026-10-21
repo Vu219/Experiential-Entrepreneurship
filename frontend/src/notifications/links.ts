@@ -12,6 +12,7 @@ export function notificationTarget(n: AppNotification): NotificationTarget {
   switch (n.type) {
     case 'POST_PUBLISHED':
     case 'SCHEDULE_OVERDUE':
+    case 'SCHEDULE_HELD':
     case 'SCHEDULE_UPCOMING':
     case 'POST_REMOVED_BY_PLATFORM':
       return ref && n.refType === 'SCHEDULE' ? { path: `/calendar/${enc(ref)}` } : { route: 'calendar' };

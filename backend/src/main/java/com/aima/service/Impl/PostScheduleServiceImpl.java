@@ -2,6 +2,7 @@ package com.aima.service.Impl;
 
 import com.aima.enums.PlanLimitKey;
 import com.aima.service.PlanUsageService;
+import com.aima.service.PlatformAvailabilityService;
 import com.aima.dto.ai.AnalyzedPostPayload;
 import com.aima.dto.ai.GoldenHourPayload;
 import com.aima.dto.ai.GoldenHourResultPayload;
@@ -74,6 +75,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -109,6 +111,10 @@ public class PostScheduleServiceImpl implements PostScheduleService {
 
     // FR-50: chỉ dời lịch khi chưa vào pipeline đăng (SCHEDULED) hoặc đang bị giữ (ON_HOLD, FR-18b).
     static final String PENDING_DELETE_JOB_STOP_REASON = "Tạm dừng: tài khoản đang chờ xóa";
+
+    /** Lý do giữ do hệ thống đặt vì quyền nền tảng / gói — user tự tiếp tục (PUT) khi quyền quay lại. */
+    static final Set<HoldReason> SYSTEM_HOLD_REASONS = Set.of(HoldReason.PLATFORM_DISABLED,
+            HoldReason.PLAN_PLATFORM_EXCLUDED, HoldReason.PLAN_SCHEDULING_DISABLED);
 
     static final Set<ScheduleStatus> EDITABLE_STATUSES =
             EnumSet.of(ScheduleStatus.SCHEDULED, ScheduleStatus.ON_HOLD);
@@ -154,6 +160,7 @@ public class PostScheduleServiceImpl implements PostScheduleService {
     StrategyOptimizationMapper strategyOptimizationMapper;
     PublishRecoveryService recoveryService;
     PlanUsageService planUsageService;
+    PlatformAvailabilityService platformAvailabilityService;
 
     /** Đầu vào chuẩn hoá của MỘT dòng tạo lịch (đơn hay batch). */
     private record RowInput(UUID contentVersionId, UUID platformAccountId, ScheduleMode mode, Instant scheduledTime) {
@@ -273,6 +280,7 @@ public class PostScheduleServiceImpl implements PostScheduleService {
                     existing.setPlatformAccount(account);
                     existing.setScheduledTime(time);
                     existing.setStatus(ScheduleStatus.SCHEDULED);
+                    existing.setCountedAt(LocalDateTime.now()); // tái sử dụng = một lượt mới trong kỳ hiện tại
                     return existing;
                 })
                 .orElseGet(() -> postScheduleMapper.toSchedule(version, account, time));
@@ -343,6 +351,8 @@ public class PostScheduleServiceImpl implements PostScheduleService {
         }
         requireApprovedForNow(user, statusResolver.lock(locked.itemId()));
         PlatformAccount account = schedule.getPlatformAccount();
+        // Nền tảng khoá toàn hệ thống (2210) / gói không gồm nền tảng (2206) — kiểm trước trạng thái kết nối.
+        platformAvailabilityService.requireUsable(user, account.getPlatformName());
         if (account.getDeletedAt() != null || account.getConnectionStatus() != ConnectionStatus.ACTIVE) {
             throw new AppException(ErrorCode.CONNECTION_NOT_ACTIVE);
         }
@@ -362,10 +372,13 @@ public class PostScheduleServiceImpl implements PostScheduleService {
     // Cùng dịch vụ claim với dispatcher: lịch bị chốt chặn giữ lại → báo lỗi (transaction dòng rollback);
     // 0 row claim được = dispatcher/request khác vừa claim → coi như không còn để đăng ngay.
     private UUID dispatchNow(UUID scheduleId) {
-        PostingDispatchService.Outcome outcome = dispatchService.dispatch(scheduleId);
+        PostingDispatchService.Outcome outcome = dispatchService.dispatch(scheduleId, true);
         if (outcome.heldFor() != null) {
-            throw new AppException(outcome.heldFor() == HoldReason.UNSUPPORTED_MEDIA
-                    ? ErrorCode.SCHEDULE_PLATFORM_UNSUPPORTED : ErrorCode.SCHEDULE_HELD_CANNOT_PUBLISH);
+            throw new AppException(switch (outcome.heldFor()) {
+                case UNSUPPORTED_MEDIA -> ErrorCode.SCHEDULE_PLATFORM_UNSUPPORTED;
+                case PLATFORM_DISABLED -> ErrorCode.SCHEDULE_PLATFORM_DISABLED;
+                default -> ErrorCode.SCHEDULE_HELD_CANNOT_PUBLISH;
+            });
         }
         if (outcome.jobId() == null) {
             throw new AppException(ErrorCode.SCHEDULE_NOT_EDITABLE);
@@ -514,6 +527,10 @@ public class PostScheduleServiceImpl implements PostScheduleService {
         if (!EDITABLE_STATUSES.contains(schedule.getStatus())) {
             throw new AppException(ErrorCode.SCHEDULE_NOT_EDITABLE);
         }
+        // Dời / tiếp tục lịch = lên lịch: nền tảng phải mở (2210) + thuộc gói (2206) + gói còn chế độ lên lịch.
+        platformAvailabilityService.requireUsable(user, schedule.getContentVersion().getPlatformName());
+        planUsageService.requireIncluded(user, PlanLimitKey.SCHEDULING);
+        resumeSystemHeld(user, schedule);
 
         // Chuyển sang tài khoản khác CÙNG nền tảng: gỡ các lý do gắn với tài khoản cũ (đã ngắt / lỗi kết nối).
         UUID targetId = request.getPlatformAccountId();
@@ -729,16 +746,32 @@ public class PostScheduleServiceImpl implements PostScheduleService {
                 .toList();
     }
 
+    /**
+     * Lịch hệ thống giữ vì quyền nền tảng / gói (PLATFORM_DISABLED, PLAN_*): user tiếp tục bằng PUT khi quyền đã quay lại
+     * (caller đã kiểm nền tảng + SCHEDULING). Lịch đó không chiếm chỗ ACTIVE_SCHEDULES trong lúc bị giữ nên phải kiểm lại
+     * hàng chờ trước khi gỡ lý do; số ngày tối đa đã kiểm theo giờ mới ở đầu {@code update}.
+     */
+    private void resumeSystemHeld(User user, PostSchedule schedule) {
+        boolean systemHeld = schedule.getHolds().stream().anyMatch(h -> SYSTEM_HOLD_REASONS.contains(h.getReason()));
+        if (!systemHeld) {
+            return;
+        }
+        planUsageService.requireQuota(user, PlanLimitKey.ACTIVE_SCHEDULES, null);
+        SYSTEM_HOLD_REASONS.forEach(reason -> holdService.release(schedule, reason, false));
+    }
+
     // BR-05: chỉ đăng lên kết nối của chính user, còn hoạt động, đúng nền tảng; Facebook chỉ lên Trang.
     private PlatformAccount usableAccount(User user, UUID accountId, Platform platform) {
         PlatformAccount account = platformAccountRepository
                 .findByIdAndUser_IdAndDeletedAtIsNull(accountId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.CONNECTION_NOT_FOUND));
-        if (account.getConnectionStatus() != ConnectionStatus.ACTIVE) {
-            throw new AppException(ErrorCode.CONNECTION_NOT_ACTIVE);
-        }
         if (account.getPlatformName() != platform) {
             throw new AppException(ErrorCode.SCHEDULE_PLATFORM_MISMATCH);
+        }
+        // Khoá hệ thống (2210) luôn kiểm trước, rồi nền tảng theo gói (2206) — tài khoản kết nối từ trước cũng bị chặn.
+        platformAvailabilityService.requireUsable(user, account.getPlatformName());
+        if (account.getConnectionStatus() != ConnectionStatus.ACTIVE) {
+            throw new AppException(ErrorCode.CONNECTION_NOT_ACTIVE);
         }
         // Graph API không cho đăng lên trang cá nhân — kết nối Facebook USER chỉ là gốc để lấy Trang.
         if (account.getPlatformName() == Platform.FACEBOOK && account.getAccountType() != PlatformAccountType.PAGE) {

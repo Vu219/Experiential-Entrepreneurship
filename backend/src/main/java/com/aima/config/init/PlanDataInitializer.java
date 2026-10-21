@@ -6,6 +6,9 @@ import com.aima.entity.PlanFeature;
 import com.aima.entity.PlanFeatureValue;
 import com.aima.repository.PlanFeatureRepository;
 import com.aima.repository.PlanRepository;
+import com.aima.service.PlanLimitService;
+import com.aima.enums.PlanLimitKey;
+import java.util.ArrayList;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -31,6 +34,7 @@ public class PlanDataInitializer implements CommandLineRunner {
 
     PlanRepository planRepository;
     PlanFeatureRepository featureRepository;
+    PlanLimitService planLimitService;
 
     /** Hạn mức token LLM/tháng của 3 gói lõi (đã chốt): FREE 1.000 / PLUS 100.000 / PRO 1.000.000. */
     static final Map<String, Long> CORE_MONTHLY_TOKEN_LIMITS = Map.of(
@@ -40,42 +44,89 @@ public class PlanDataInitializer implements CommandLineRunner {
     );
 
     /**
-     * Lượt AI kiểm tra chính sách/tháng của 3 gói lõi khi DB mới seed — cùng giá trị Flyway V15 backfill cho DB
-     * cũ (V15 chạy TRƯỚC initializer nên DB mới không có dòng nào để backfill). Admin chỉnh sau ở "Quản lý gói".
+     * Giới hạn của 3 gói lõi khi DB mới seed — cùng giá trị Flyway V15/V18/V20 backfill cho DB cũ. Trả bản MỚI mỗi lần
+     * (embeddable là entity khả biến — không dùng chung một instance giữa các gói / với nơi đọc fail-closed).
+     * Lượt AI kiểm tra chính sách: FREE 0 / PLUS 30 / PRO 200 (V15). Nền tảng: chỉ FACEBOOK (V20).
      */
-    static final Map<String, Integer> CORE_POLICY_CHECK_AI_LIMITS = Map.of(
-            "FREE", 0,
-            "PLUS", 30,
-            "PRO", 200
-    );
-
-    /** Giới hạn tính năng của 3 gói lõi khi DB mới seed — cùng giá trị Flyway V18 backfill cho DB cũ. */
-    static final Map<String, PlanFeatureLimits> CORE_FEATURE_LIMITS = Map.of(
-            "FREE", PlanFeatureLimits.builder()
-                    .brandProfiles(1).strategiesPerBrand(1).connectedChannels(1)
-                    .trendResearchPerPeriod(3).autoTrendResearch(false).ideasPerResearch(5)
-                    .scheduling(true).scheduledPostsPerPeriod(10).activeSchedules(5).scheduleHorizonDays(7)
-                    .goldenHours(false).analyticsHistoryDays(7).analyticsAdvanced(false).analyticsExport(false)
-                    .strategyOptimizationPerPeriod(0).build(),
-            "PLUS", PlanFeatureLimits.builder()
-                    .brandProfiles(3).strategiesPerBrand(5).connectedChannels(3)
+    public static PlanFeatureLimits coreFeatureLimits(String code) {
+        return switch (code) {
+            case "PLUS" -> PlanFeatureLimits.builder()
+                    .brandProfiles(3).strategiesPerBrand(5).connectedChannels(3).allowedPlatforms(CORE_ALLOWED_PLATFORMS)
                     .trendResearchPerPeriod(30).autoTrendResearch(true).ideasPerResearch(10)
                     .scheduling(true).scheduledPostsPerPeriod(100).activeSchedules(50).scheduleHorizonDays(30)
                     .goldenHours(true).analyticsHistoryDays(90).analyticsAdvanced(true).analyticsExport(false)
-                    .strategyOptimizationPerPeriod(5).build(),
-            "PRO", PlanFeatureLimits.builder()
-                    .brandProfiles(-1).strategiesPerBrand(-1).connectedChannels(10)
+                    .strategyOptimizationPerPeriod(5).policyCheckAiPerPeriod(30).build();
+            case "PRO" -> PlanFeatureLimits.builder()
+                    .brandProfiles(-1).strategiesPerBrand(-1).connectedChannels(10).allowedPlatforms(CORE_ALLOWED_PLATFORMS)
                     .trendResearchPerPeriod(-1).autoTrendResearch(true).ideasPerResearch(20)
                     .scheduling(true).scheduledPostsPerPeriod(-1).activeSchedules(-1).scheduleHorizonDays(90)
                     .goldenHours(true).analyticsHistoryDays(365).analyticsAdvanced(true).analyticsExport(true)
-                    .strategyOptimizationPerPeriod(-1).build()
+                    .strategyOptimizationPerPeriod(-1).policyCheckAiPerPeriod(200).build();
+            default -> PlanFeatureLimits.builder()
+                    .brandProfiles(1).strategiesPerBrand(1).connectedChannels(1).allowedPlatforms(CORE_ALLOWED_PLATFORMS)
+                    .trendResearchPerPeriod(3).autoTrendResearch(false).ideasPerResearch(5)
+                    .scheduling(true).scheduledPostsPerPeriod(10).activeSchedules(5).scheduleHorizonDays(7)
+                    .goldenHours(false).analyticsHistoryDays(7).analyticsAdvanced(false).analyticsExport(false)
+                    .strategyOptimizationPerPeriod(0).policyCheckAiPerPeriod(0).build();
+        };
+    }
+
+    /**
+     * Dòng so sánh LIÊN KẾT giới hạn thật (V21 — cùng ánh xạ migration dùng cho DB cũ): giá trị từng cột tự lấy từ gói,
+     * không nhập tay. Dòng không có ở đây nhập tay như cũ (admin thấy cảnh báo "không được hệ thống đảm bảo").
+     */
+    static final Map<String, PlanLimitKey> LINKED_COMPARISON_ROWS = Map.of(
+            "Hồ sơ thương hiệu", PlanLimitKey.BRAND_PROFILES,
+            "Nền tảng kết nối", PlanLimitKey.ALLOWED_PLATFORMS,
+            "Lên lịch & tự động đăng bài", PlanLimitKey.SCHEDULING,
+            "Gợi ý khung giờ vàng", PlanLimitKey.GOLDEN_HOURS,
+            "Phân tích hiệu quả sau đăng", PlanLimitKey.ANALYTICS_HISTORY_DAYS,
+            "AI tối ưu chiến lược từ dữ liệu", PlanLimitKey.STRATEGY_OPTIMIZATION_PER_PERIOD,
+            "Báo cáo hiệu quả chuyên sâu", PlanLimitKey.ANALYTICS_EXPORT
     );
+
+    /** Nền tảng 3 gói lõi được phép khi seed (V20). */
+    static final String CORE_ALLOWED_PLATFORMS = "FACEBOOK";
 
     @Override
     public void run(String... args) {
         seedPlans();
         seedFeatures();
         backfillMonthlyTokenLimits();
+        backfillCustomPlanLimits();
+    }
+
+    /**
+     * Gói TỰ TẠO (không phải FREE/PLUS/PRO) còn ô giới hạn null (= "Mặc định hệ thống") → ghi cứng giá trị HIỆU LỰC hiện
+     * tại theo {@code aima.plan-limits.defaults.*} / {@code aima.ai-assist.*} để hành vi khách đang dùng không đổi khi
+     * deploy V20, sau đó gói tự tạo bắt buộc điền đủ (PLAN_LIMIT_VALUE_REQUIRED). Làm ở Java (không phải Flyway) vì
+     * mặc định đọc từ env. Idempotent: chỉ ghi ô null.
+     */
+    private void backfillCustomPlanLimits() {
+        PlanFeatureLimits defaults = planLimitService.defaultFeatureLimits();
+        int plans = 0;
+        for (Plan plan : planRepository.findByDeletedAtIsNullOrderByDisplayOrderAscCreatedAtAsc()) {
+            if (Plan.CORE_CODES.contains(plan.getCode())) {
+                continue;
+            }
+            PlanFeatureLimits limits = plan.getFeatureLimits() != null ? plan.getFeatureLimits() : new PlanFeatureLimits();
+            List<String> filled = new ArrayList<>();
+            for (PlanLimitKey key : PlanLimitKey.values()) {
+                if (key.rawValue(limits) == null) {
+                    key.write(limits, key.rawValue(defaults));
+                    filled.add(key.name());
+                }
+            }
+            if (!filled.isEmpty()) {
+                plan.setFeatureLimits(limits);
+                planRepository.save(plan);
+                plans++;
+                log.info("[PlanInit] Gói tự tạo {} — ghi cứng giá trị mặc định hiệu lực cho {}", plan.getCode(), filled);
+            }
+        }
+        if (plans > 0) {
+            log.info("[PlanInit] Đã ghi cứng giới hạn cho {} gói tự tạo", plans);
+        }
     }
 
     /**
@@ -100,10 +151,8 @@ public class PlanDataInitializer implements CommandLineRunner {
         Plan free = Plan.builder()
                 .code("FREE").nameVi("Free").nameEn("Free")
                 .price(0L).billingCycleVi("trọn đời").billingCycleEn("forever")
-                .tokenQuota(5L)
                 .monthlyTokenLimit(CORE_MONTHLY_TOKEN_LIMITS.get("FREE"))
-                .policyCheckAiMonthlyLimit(CORE_POLICY_CHECK_AI_LIMITS.get("FREE"))
-                .featureLimits(CORE_FEATURE_LIMITS.get("FREE"))
+                .featureLimits(coreFeatureLimits("FREE"))
                 .descriptionVi("Trải nghiệm quy trình AI với một thương hiệu.")
                 .descriptionEn("Try the AI pipeline with one brand.")
                 .featuresVi("1 hồ sơ thương hiệu\n5 bài viết AI mỗi tháng\nKết nối 1 nền tảng\nNghiên cứu xu hướng cơ bản")
@@ -117,10 +166,8 @@ public class PlanDataInitializer implements CommandLineRunner {
         Plan plus = Plan.builder()
                 .code("PLUS").nameVi("Plus").nameEn("Plus")
                 .price(199_000L).billingCycleVi("/tháng").billingCycleEn("/month")
-                .tokenQuota(100L)
                 .monthlyTokenLimit(CORE_MONTHLY_TOKEN_LIMITS.get("PLUS"))
-                .policyCheckAiMonthlyLimit(CORE_POLICY_CHECK_AI_LIMITS.get("PLUS"))
-                .featureLimits(CORE_FEATURE_LIMITS.get("PLUS"))
+                .featureLimits(coreFeatureLimits("PLUS"))
                 .descriptionVi("Cho creator & shop cần nội dung đều đặn mỗi ngày.")
                 .descriptionEn("For creators & shops posting every day.")
                 .featuresVi("3 hồ sơ thương hiệu\n100 bài viết AI mỗi tháng\nĐủ 3 nền tảng: Facebook · Instagram · Threads\nLên lịch & tự động đăng bài\nPhân tích hiệu quả sau đăng")
@@ -134,10 +181,8 @@ public class PlanDataInitializer implements CommandLineRunner {
         Plan pro = Plan.builder()
                 .code("PRO").nameVi("Pro").nameEn("Pro")
                 .price(499_000L).billingCycleVi("/tháng").billingCycleEn("/month")
-                .tokenQuota(null) // không giới hạn (hiển thị)
                 .monthlyTokenLimit(CORE_MONTHLY_TOKEN_LIMITS.get("PRO"))
-                .policyCheckAiMonthlyLimit(CORE_POLICY_CHECK_AI_LIMITS.get("PRO"))
-                .featureLimits(CORE_FEATURE_LIMITS.get("PRO"))
+                .featureLimits(coreFeatureLimits("PRO"))
                 .descriptionVi("Cho doanh nghiệp nhỏ chạy nhiều thương hiệu cùng lúc.")
                 .descriptionEn("For small businesses running multiple brands.")
                 .featuresVi("Không giới hạn hồ sơ thương hiệu\nKhông giới hạn bài viết AI\nAI tối ưu chiến lược từ dữ liệu\nBáo cáo hiệu quả chuyên sâu\nHỗ trợ ưu tiên")
@@ -197,6 +242,7 @@ public class PlanDataInitializer implements CommandLineRunner {
                     .groupVi(row.groupVi()).groupEn(row.groupEn())
                     .nameVi(row.nameVi()).nameEn(row.nameEn())
                     .displayOrder(order++)
+                    .limitKey(LINKED_COMPARISON_ROWS.get(row.nameVi()))
                     .build();
             for (int i = 0; i < codes.length; i++) {
                 Object v = row.values()[i];

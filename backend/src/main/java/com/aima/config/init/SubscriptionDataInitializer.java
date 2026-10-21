@@ -9,6 +9,7 @@ import com.aima.mapper.UsageMapper;
 import com.aima.repository.PlanRepository;
 import com.aima.repository.SubscriptionRepository;
 import com.aima.repository.UserRepository;
+import com.aima.util.SubscriptionPeriods;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -47,9 +48,8 @@ public class SubscriptionDataInitializer implements CommandLineRunner {
     public void run(String... args) {
         Set<UUID> existing = new HashSet<>(subscriptionRepository.findActiveUserIds());
         Map<String, Plan> planCache = new HashMap<>();
-        YearMonth month = YearMonth.now();
-        LocalDateTime periodStart = month.atDay(1).atStartOfDay();
-        LocalDateTime periodEnd = month.plusMonths(1).atDay(1).atStartOfDay();
+        // Chu kỳ tính lượt neo theo lúc tạo subscription (V20) — như SubscriptionServiceImpl.newSubscription.
+        SubscriptionPeriods.Period period = SubscriptionPeriods.firstPeriod(LocalDateTime.now());
 
         int created = 0;
         for (User user : userRepository.findAll()) {
@@ -64,7 +64,7 @@ public class SubscriptionDataInitializer implements CommandLineRunner {
                 continue;
             }
             Subscription subscription = usageMapper.toSubscription(user, plan, SubscriptionStatus.ACTIVE,
-                    periodStart, periodEnd);
+                    period.start(), period.end(), period.start());
             subscriptionRepository.save(subscription);
             created++;
         }

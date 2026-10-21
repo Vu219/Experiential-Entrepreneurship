@@ -3,10 +3,12 @@ package com.aima.service;
 import com.aima.dto.response.ApiResponse;
 import com.aima.dto.response.PlanFeatureUsageResponse;
 import com.aima.entity.User;
+import com.aima.enums.Platform;
 import com.aima.enums.PlanLimitKey;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -26,6 +28,19 @@ public interface PlanUsageService {
      * @param scopeId id phạm vi đếm (brandId cho STRATEGIES_PER_BRAND), null với giới hạn cấp tài khoản
      */
     void requireQuota(User user, PlanLimitKey key, UUID scopeId);
+
+    /**
+     * Gói cho phép nền tảng (ALLOWED_PLATFORMS) — không → PLAN_FEATURE_NOT_INCLUDED kèm {@code platform}. Chỉ là phần
+     * GÓI: khoá hệ thống kiểm ở {@code PlatformAvailabilityService} (luôn trước).
+     */
+    void requirePlatform(User user, Platform platform);
+
+    /** Mức dùng của một QUOTA trong kỳ hiện tại — KHÔNG ném lỗi (vd lượt AI kiểm tra chính sách hết thì chỉ bỏ tầng AI). */
+    QuotaUsage usage(User user, PlanLimitKey key);
+
+    /** Hạn mức hiệu lực ({@code limit} null = không giới hạn, 0 = tắt), số đã dùng và kỳ đang tính. */
+    record QuotaUsage(String planCode, Long limit, long used, LocalDateTime periodStart, LocalDateTime periodEnd) {
+    }
 
     /** Giá trị {@code requested} không vượt trần CAP (vd số ý tưởng / số ngày). */
     void requireCap(User user, PlanLimitKey key, long requested);

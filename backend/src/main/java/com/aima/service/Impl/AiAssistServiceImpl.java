@@ -38,7 +38,8 @@ import com.aima.service.AiAssistService;
 import com.aima.service.AiAssistWorkerService;
 import com.aima.service.ContentItemService;
 import com.aima.service.FailedPostService;
-import com.aima.service.PlanLimitService;
+import com.aima.service.PlanUsageService;
+import com.aima.enums.PlanLimitKey;
 import com.aima.service.PolicyRuleEngine;
 import com.aima.service.PublishRecoveryService;
 import com.aima.service.TokenUsageService;
@@ -64,7 +65,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HexFormat;
@@ -96,7 +96,7 @@ public class AiAssistServiceImpl implements AiAssistService {
     PolicyRuleEngine ruleEngine;
     PublishRecoveryService recoveryService;
     TokenUsageService tokenUsageService;
-    PlanLimitService planLimitService;
+    PlanUsageService planUsageService;
     ContentItemService contentItemService;
     FailedPostService failedPostService;
     ObjectMapper objectMapper;
@@ -138,7 +138,7 @@ public class AiAssistServiceImpl implements AiAssistService {
             throw new AppException(ErrorCode.AI_FIX_NOTHING_TO_FIX);
         }
 
-        Long fixLimit = planLimitService.resolve(user).aiFixPerVersion(); // null = không giới hạn
+        Long fixLimit = planUsageService.cap(user, PlanLimitKey.AI_FIX_PER_VERSION); // null = không giới hạn
         if (fixLimit != null && fixLimit <= 0) {
             throw new AppException(ErrorCode.AI_FIX_NOT_IN_PLAN);
         }
@@ -214,11 +214,12 @@ public class AiAssistServiceImpl implements AiAssistService {
     // ===== A2 — kiểm tra chính sách trước khi đăng =====
 
     @Override
-    @Transactional // không readOnly: PlanLimitService → getOrCreate có thể tạo subscription / lăn kỳ
+    @Transactional // không readOnly: PlanUsageService → getOrCreate có thể tạo subscription / lăn kỳ
     public ApiResponse<AiAssistUsageResponse> getUsage(String email) {
         User user = currentUser(email);
-        AiAssistUsageResponse usage = mapper.toUsageResponse(planLimitService.resolve(user), usedPolicyChecks(user),
-                monthStart().plusMonths(1));
+        PlanUsageService.QuotaUsage policy = planUsageService.usage(user, PlanLimitKey.POLICY_CHECK_AI_PER_PERIOD);
+        AiAssistUsageResponse usage = mapper.toUsageResponse(policy.planCode(), policy.used(), policy.limit(),
+                planUsageService.cap(user, PlanLimitKey.AI_FIX_PER_VERSION), policy.periodEnd());
         return ApiResponse.success("Lấy lượt AI hỗ trợ chính sách thành công", usage);
     }
 
@@ -229,8 +230,10 @@ public class AiAssistServiceImpl implements AiAssistService {
         ContentVersion version = ownedVersion(user, request.getContentVersionId());
         String message = message(version);
         String hash = contentHash(version.getPlatformName(), message);
-        Long limit = planLimitService.resolve(user).policyCheckAiMonthly(); // null = không giới hạn
-        long used = usedPolicyChecks(user);
+        // Lượt AI kiểm tra chính sách theo kỳ subscription (chu kỳ thanh toán) — null = không giới hạn.
+        PlanUsageService.QuotaUsage policy = planUsageService.usage(user, PlanLimitKey.POLICY_CHECK_AI_PER_PERIOD);
+        Long limit = policy.limit();
+        long used = policy.used();
 
         boolean enabled = settingsRepository.findById(user.getId()).map(UserPublishingSettings::isPolicyCheckEnabled)
                 .orElse(true);
@@ -328,16 +331,6 @@ public class AiAssistServiceImpl implements AiAssistService {
             log.warn("[AiAssist] Không đọc được kết quả job {}: {}", job.getId(), e.getMessage());
             return null;
         }
-    }
-
-    /** Lượt AI kiểm tra đã dùng trong tháng lịch (job lỗi không tính). */
-    private long usedPolicyChecks(User user) {
-        return jobRepository.countByUser_IdAndKindAndStatusNotAndCreatedAtGreaterThanEqualAndDeletedAtIsNull(
-                user.getId(), AiAssistKind.POLICY_CHECK, GenerationJobStatus.FAILED, monthStart());
-    }
-
-    private static LocalDateTime monthStart() {
-        return LocalDate.now().withDayOfMonth(1).atStartOfDay();
     }
 
     private static ApiResponse<PolicyCheckResponse> checked(PolicyCheckResponse response) {

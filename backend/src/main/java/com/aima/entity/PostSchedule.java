@@ -6,6 +6,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,6 +39,20 @@ public class PostSchedule extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     ScheduleStatus status;
+
+    /**
+     * Thời điểm lịch được TÍNH LƯỢT gần nhất (V20): lúc tạo, và lại lúc một lịch CANCELLED được tái sử dụng — giới hạn
+     * gói SCHEDULED_POSTS_PER_PERIOD đếm theo cột này chứ không theo {@code created_at}.
+     */
+    @Column(name = "counted_at", nullable = false)
+    LocalDateTime countedAt;
+
+    @PrePersist
+    void initCountedAt() {
+        if (countedAt == null) {
+            countedAt = LocalDateTime.now();
+        }
+    }
 
     @OneToOne(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude

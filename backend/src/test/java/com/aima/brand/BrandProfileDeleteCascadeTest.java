@@ -6,6 +6,7 @@ import com.aima.entity.ContentItem;
 import com.aima.entity.ContentStrategy;
 import com.aima.entity.ContentVersion;
 import com.aima.entity.PlatformAccount;
+import com.aima.entity.PostSchedule;
 import com.aima.entity.User;
 import com.aima.enums.ConnectionStatus;
 import com.aima.enums.ContentItemStatus;
@@ -97,7 +98,9 @@ class BrandProfileDeleteCascadeTest {
         // Bài đã đăng một nền tảng: giữ bài + lịch POSTED, lịch chưa đăng còn lại bị hủy.
         ContentItem posted = item();
         UUID postedSchedule = schedule(version(posted, Platform.FACEBOOK), page);
-        UUID pendingSchedule = schedule(version(posted, Platform.THREADS), threads);
+        // Lịch Threads có TỪ TRƯỚC khi Threads bị khoá (V20 khoá Threads mặc định, gói Free chỉ cho Facebook) —
+        // tạo thẳng bản ghi thay vì qua API lên lịch.
+        UUID pendingSchedule = existingSchedule(version(posted, Platform.THREADS), threads);
         tx.executeWithoutResult(s -> scheduleRepository.findById(postedSchedule).orElseThrow()
                 .setStatus(ScheduleStatus.POSTED));
 
@@ -141,6 +144,15 @@ class BrandProfileDeleteCascadeTest {
         return scheduleService.create(email, PostScheduleRequest.builder().contentVersionId(version.getId())
                 .platformAccountId(target.getId()).scheduledTime(Instant.now().plus(Duration.ofDays(1))).build(), null)
                 .getResult().getId();
+    }
+
+    private UUID existingSchedule(ContentVersion version, PlatformAccount target) {
+        PostSchedule schedule = new PostSchedule();
+        schedule.setContentVersion(version);
+        schedule.setPlatformAccount(target);
+        schedule.setScheduledTime(Instant.now().plus(Duration.ofDays(1)));
+        schedule.setStatus(ScheduleStatus.SCHEDULED);
+        return scheduleRepository.save(schedule).getId();
     }
 
     private PlatformAccount account(Platform platform, PlatformAccountType type) {

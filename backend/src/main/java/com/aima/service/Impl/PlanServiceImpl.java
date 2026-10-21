@@ -19,6 +19,14 @@ import com.aima.mapper.PlanMapper;
 import com.aima.repository.PlanFeatureRepository;
 import com.aima.repository.PlanRepository;
 import com.aima.service.PlanLimitService;
+import com.aima.service.EntitlementHoldService;
+import com.aima.service.PlatformAvailabilityService;
+import com.aima.repository.SubscriptionRepository;
+import com.aima.entity.PlanFeatureLimits;
+import com.aima.enums.PlanLimitKey;
+import com.aima.dto.response.PlanFeatureAutoValueResponse;
+import java.util.ArrayList;
+import java.util.HashMap;
 import com.aima.service.PlanService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +56,9 @@ public class PlanServiceImpl implements PlanService {
     PlanFeatureRepository featureRepository;
     PlanMapper planMapper;
     PlanLimitService planLimitService;
+    SubscriptionRepository subscriptionRepository;
+    PlatformAvailabilityService platformAvailabilityService;
+    EntitlementHoldService entitlementHoldService;
 
     @Override
     @Transactional(readOnly = true)
@@ -62,7 +73,10 @@ public class PlanServiceImpl implements PlanService {
     public ApiResponse<PlansResponse> list() {
         List<Plan> plans = planRepository.findByDeletedAtIsNullOrderByDisplayOrderAscCreatedAtAsc();
         PlansResponse result = buildResponse(plans);
-        result.setLimitDefaults(planMapper.toLimitDefaults(planLimitService.defaults(), planLimitService.defaultFeatureLimits()));
+        Map<UUID, Long> subscriberCounts = new HashMap<>();
+        plans.forEach(plan -> subscriberCounts.put(plan.getId(), subscriptionRepository.countByPlan_IdAndDeletedAtIsNull(plan.getId())));
+        result.setPlans(planMapper.toResponseList(plans, subscriberCounts));
+        result.setLimitDefaults(planMapper.toLimitDefaults(planLimitService.defaultFeatureLimits()));
         return ApiResponse.success("Danh sách gói (admin)", result);
     }
 
@@ -70,8 +84,53 @@ public class PlanServiceImpl implements PlanService {
         List<PlanFeature> features = featureRepository.findByDeletedAtIsNullOrderByDisplayOrderAscCreatedAtAsc();
         return PlansResponse.builder()
                 .plans(planMapper.toResponseList(plans))
-                .features(planMapper.toFeatureResponseList(features))
+                .features(planMapper.toFeatureResponseList(features, autoValues(features, plans)))
                 .build();
+    }
+
+    /**
+     * Ô tự động của các dòng so sánh LIÊN KẾT giới hạn: giá trị hiệu lực của từng gói (không nhập tay, không lệch giới hạn
+     * thật). ALLOWED_PLATFORMS kèm trạng thái khoá toàn hệ thống — nền tảng khoá hiển thị "Sắp ra mắt".
+     */
+    private Map<UUID, List<PlanFeatureAutoValueResponse>> autoValues(List<PlanFeature> features, List<Plan> plans) {
+        Map<UUID, List<PlanFeatureAutoValueResponse>> result = new HashMap<>();
+        if (features.stream().noneMatch(f -> f.getLimitKey() != null)) {
+            return result;
+        }
+        Map<UUID, PlanLimitService.FeatureLimits> limitsByPlan = new HashMap<>();
+        plans.forEach(plan -> limitsByPlan.put(plan.getId(), planLimitService.featuresOf(plan)));
+        for (PlanFeature feature : features) {
+            PlanLimitKey key = feature.getLimitKey();
+            if (key == null) {
+                continue;
+            }
+            List<PlanFeatureAutoValueResponse> cells = new ArrayList<>();
+            for (Plan plan : plans) {
+                cells.add(autoCell(plan.getCode(), key, limitsByPlan.get(plan.getId())));
+            }
+            result.put(feature.getId(), cells);
+        }
+        return result;
+    }
+
+    private PlanFeatureAutoValueResponse autoCell(String planCode, PlanLimitKey key, PlanLimitService.FeatureLimits limits) {
+        if (key.type() == PlanLimitKey.Type.SET) {
+            List<PlanFeatureAutoValueResponse.PlatformCell> platforms = limits.allowedPlatforms().stream()
+                    .map(p -> planMapper.toPlatformCell(p, !platformAvailabilityService.isEnabled(p)))
+                    .toList();
+            return planMapper.toAutoValue(planCode, platforms.isEmpty() ? PlanFeatureAutoValueResponse.Kind.OFF
+                    : PlanFeatureAutoValueResponse.Kind.PLATFORMS, null, platforms);
+        }
+        Long value = limits.limit(key);
+        PlanFeatureAutoValueResponse.Kind kind;
+        if (value != null && value == 0L) {
+            kind = PlanFeatureAutoValueResponse.Kind.OFF;
+        } else if (key.type() == PlanLimitKey.Type.FLAG) {
+            kind = PlanFeatureAutoValueResponse.Kind.ON;
+        } else {
+            kind = value == null ? PlanFeatureAutoValueResponse.Kind.UNLIMITED : PlanFeatureAutoValueResponse.Kind.NUMBER;
+        }
+        return planMapper.toAutoValue(planCode, kind, kind == PlanFeatureAutoValueResponse.Kind.NUMBER ? value : null, null);
     }
 
     @Override
@@ -85,6 +144,12 @@ public class PlanServiceImpl implements PlanService {
         Plan plan = planMapper.toPlan(request);
         plan.setCode(code);
         applyDefaults(plan);
+        PlanFeatureLimits limits = new PlanFeatureLimits();
+        if (request.getFeatureLimits() != null) {
+            planMapper.updateLimits(request.getFeatureLimits(), limits);
+        }
+        plan.setFeatureLimits(limits);
+        requireCompleteLimits(plan);
         requireTokenLimitWhenSellable(plan);
         Plan saved = planRepository.save(plan);
 
@@ -99,6 +164,39 @@ public class PlanServiceImpl implements PlanService {
         if (plan.getHighlight() == null) plan.setHighlight(false);
         if (plan.getDisplayOrder() == null) plan.setDisplayOrder(0);
         if (plan.getIsActive() == null) plan.setIsActive(true);
+    }
+
+    /**
+     * Ô giới hạn trong request: null = giữ nguyên; {@code resetToDefault} đưa ô về "Mặc định hệ thống" — CHỈ 3 gói lõi
+     * (gói tự tạo không có mặc định ngầm, xem {@link #requireCompleteLimits}).
+     */
+    private void applyLimits(Plan plan, PlanUpdateRequest request) {
+        PlanFeatureLimits limits = plan.getFeatureLimits() != null ? plan.getFeatureLimits() : new PlanFeatureLimits();
+        if (request.getFeatureLimits() != null) {
+            planMapper.updateLimits(request.getFeatureLimits(), limits);
+        }
+        if (request.getResetToDefault() != null && !request.getResetToDefault().isEmpty()) {
+            if (!Plan.CORE_CODES.contains(plan.getCode())) {
+                throw new AppException(ErrorCode.PLAN_LIMIT_VALUE_REQUIRED);
+            }
+            request.getResetToDefault().forEach(key -> key.write(limits, null));
+        }
+        plan.setFeatureLimits(limits);
+    }
+
+    /**
+     * Fail-closed: gói TỰ TẠO phải có giá trị cụ thể cho MỌI giới hạn — "Mặc định hệ thống" (mặc định không giới hạn)
+     * chỉ dành cho 3 gói lõi, không để gói mới ngầm thành "không giới hạn".
+     */
+    private static void requireCompleteLimits(Plan plan) {
+        if (Plan.CORE_CODES.contains(plan.getCode())) {
+            return;
+        }
+        for (PlanLimitKey key : PlanLimitKey.values()) {
+            if (key.rawValue(plan.getFeatureLimits()) == null) {
+                throw new AppException(ErrorCode.PLAN_LIMIT_VALUE_REQUIRED);
+            }
+        }
     }
 
     /**
@@ -119,9 +217,22 @@ public class PlanServiceImpl implements PlanService {
         Plan plan = planRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PLAN_NOT_FOUND));
 
+        PlanLimitService.FeatureLimits before = planLimitService.featuresOf(plan);
         planMapper.update(request, plan);
+        if (request.getMonthlyTokenLimit() != null && request.getMonthlyTokenLimit() == PlanLimitService.UNLIMITED) {
+            plan.setMonthlyTokenLimit(null); // -1 = không giới hạn (null = giữ nguyên ở request)
+        }
+        applyLimits(plan, request);
+        requireCompleteLimits(plan);
         requireTokenLimitWhenSellable(plan);
         Plan saved = planRepository.save(plan);
+        // Gói bỏ bớt nền tảng / tắt lên lịch → giữ lịch chưa đăng của người đang ở gói (không tự gỡ khi mở lại).
+        PlanLimitService.FeatureLimits after = planLimitService.featuresOf(saved);
+        if (!after.allowedPlatforms().containsAll(before.allowedPlatforms())
+                || (before.included(PlanLimitKey.SCHEDULING) && !after.included(PlanLimitKey.SCHEDULING))) {
+            int held = entitlementHoldService.syncPlanSubscribers(saved.getId());
+            log.info("[Plan] Gói {} thu hẹp quyền — {} lịch chưa đăng chuyển Tạm giữ", saved.getCode(), held);
+        }
 
         logPlanConfig("PLAN_UPDATED", "Plan", saved.getId().toString(), Map.of("code", saved.getCode()));
         PlanResponse planResponse = planMapper.toResponse(saved);
@@ -149,7 +260,9 @@ public class PlanServiceImpl implements PlanService {
     public ApiResponse<PlanFeatureResponse> createFeature(PlanFeatureRequest request) {
         PlanFeature feature = planMapper.toFeature(request);
         if (feature.getDisplayOrder() == null) feature.setDisplayOrder(0);
-        reconcileValues(request, feature);
+        if (feature.getLimitKey() == null) {
+            reconcileValues(request, feature); // dòng liên kết giới hạn không lưu ô nhập tay
+        }
         PlanFeature saved = featureRepository.save(feature);
 
         PlanFeatureResponse featureResponse = planMapper.toFeatureResponse(saved);
@@ -164,7 +277,9 @@ public class PlanServiceImpl implements PlanService {
 
         planMapper.update(request, feature);
         if (feature.getDisplayOrder() == null) feature.setDisplayOrder(0);
-        reconcileValues(request, feature);
+        if (feature.getLimitKey() == null) {
+            reconcileValues(request, feature);
+        }
         PlanFeature saved = featureRepository.save(feature);
 
         PlanFeatureResponse featureResponse = planMapper.toFeatureResponse(saved);

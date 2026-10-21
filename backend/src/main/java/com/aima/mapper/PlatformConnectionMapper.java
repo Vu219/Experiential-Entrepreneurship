@@ -5,7 +5,12 @@ import com.aima.dto.response.DataDeletionStatusResponse;
 import com.aima.dto.response.MetaDataDeletionCallbackResponse;
 import com.aima.entity.MetaDataDeletionRequest;
 import com.aima.entity.PlatformAccount;
+import com.aima.dto.response.OAuthResultResponse;
+import com.aima.dto.response.OAuthSkippedChannelResponse;
 import com.aima.enums.InstagramLinkStatus;
+import com.aima.enums.Platform;
+import com.aima.enums.PlatformLockReason;
+import com.aima.service.MetaOAuthService;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -23,6 +28,8 @@ public interface PlatformConnectionMapper {
     @Mapping(target = "parentConnectionId", source = "parentConnection.id")
     @Mapping(target = "tokenDaysRemaining", source = "tokenExpiredAt", qualifiedByName = "daysUntil")
     @Mapping(target = "instagramLinkStatus", ignore = true)
+    @Mapping(target = "locked", ignore = true)
+    @Mapping(target = "lockReason", ignore = true)
     PlatformConnectionResponse toResponse(PlatformAccount account);
 
     List<PlatformConnectionResponse> toResponseList(List<PlatformAccount> accounts);
@@ -31,12 +38,25 @@ public interface PlatformConnectionMapper {
     @Mapping(target = "platform", source = "account.platformName")
     @Mapping(target = "parentConnectionId", source = "account.parentConnection.id")
     @Mapping(target = "tokenDaysRemaining", source = "account.tokenExpiredAt", qualifiedByName = "daysUntil")
-    PlatformConnectionResponse toResponse(PlatformAccount account, InstagramLinkStatus instagramLinkStatus);
+    @Mapping(target = "locked", expression = "java(lockReason != null)")
+    PlatformConnectionResponse toResponse(PlatformAccount account, InstagramLinkStatus instagramLinkStatus,
+                                          PlatformLockReason lockReason);
 
+    /** Kèm trạng thái liên kết IG của Trang + lý do khoá theo nền tảng (khoá hệ thống / ngoài gói, tính khi đọc). */
     default List<PlatformConnectionResponse> toResponseList(List<PlatformAccount> accounts,
-                                                            Map<UUID, InstagramLinkStatus> instagramLinks) {
-        return accounts.stream().map(account -> toResponse(account, instagramLinks.get(account.getId()))).toList();
+                                                            Map<UUID, InstagramLinkStatus> instagramLinks,
+                                                            Map<Platform, PlatformLockReason> lockReasons) {
+        return accounts.stream().map(account -> toResponse(account, instagramLinks.get(account.getId()),
+                lockReasons.get(account.getPlatformName()))).toList();
     }
+
+    // --- Kết quả OAuth callback (kênh không được thêm) ---
+
+    OAuthSkippedChannelResponse toSkippedChannel(MetaOAuthService.SkippedChannel skipped);
+
+    List<OAuthSkippedChannelResponse> toSkippedChannels(List<MetaOAuthService.SkippedChannel> skipped);
+
+    OAuthResultResponse toOAuthResult(Platform platform, int connectedCount, List<OAuthSkippedChannelResponse> skipped);
 
     // --- Meta Data Deletion Callback ---
 

@@ -9,18 +9,21 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import com.aima.enums.Platform;
+
+import java.util.List;
 
 /**
- * Giới hạn tính năng của một gói (FULL update như các giới hạn AI V15): số {@code null} = mặc định hệ thống,
- * {@code -1} = không giới hạn, {@code 0} = tắt, {@code > 0} = hạn mức; cờ {@code null} = mặc định.
- * Ý nghĩa từng trường: {@link com.aima.entity.PlanFeatureLimits}.
+ * Giới hạn của một gói: {@code -1} = không giới hạn, {@code 0} = tắt, {@code > 0} = hạn mức; cờ true/false; nền tảng
+ * là danh sách. {@code null} = GIỮ NGUYÊN khi cập nhật (về "Mặc định" dùng {@code resetToDefault} của request gói);
+ * khi TẠO gói mọi ô bắt buộc có giá trị. Ý nghĩa từng trường: {@link com.aima.entity.PlanFeatureLimits}.
  */
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Schema(name = "PlanFeatureLimitsRequest", description = "Giới hạn tính năng theo gói. null = mặc định hệ thống, "
+@Schema(name = "PlanFeatureLimitsRequest", description = "Giới hạn theo gói. null = giữ nguyên, "
         + "-1 = không giới hạn, 0 = tắt.")
 public class PlanFeatureLimitsRequest {
 
@@ -35,6 +38,10 @@ public class PlanFeatureLimitsRequest {
     @Min(value = -1, message = "PLAN_FEATURE_LIMIT_INVALID")
     @Max(value = 100_000, message = "PLAN_FEATURE_LIMIT_INVALID")
     Integer connectedChannels;
+
+    @Schema(description = "Nền tảng gói cho phép (kết nối / lên lịch / đăng). Rỗng = không nền tảng nào.",
+            example = "[\"FACEBOOK\"]")
+    List<Platform> allowedPlatforms;
 
     @Min(value = -1, message = "PLAN_FEATURE_LIMIT_INVALID")
     @Max(value = 100_000, message = "PLAN_FEATURE_LIMIT_INVALID")
@@ -73,4 +80,14 @@ public class PlanFeatureLimitsRequest {
     @Min(value = -1, message = "PLAN_FEATURE_LIMIT_INVALID")
     @Max(value = 100_000, message = "PLAN_FEATURE_LIMIT_INVALID")
     Integer strategyOptimizationPerPeriod;
+
+    @Min(value = -1, message = "PLAN_FEATURE_LIMIT_INVALID")
+    @Max(value = 100_000, message = "PLAN_FEATURE_LIMIT_INVALID")
+    @Schema(description = "Lượt AI kiểm tra chính sách mỗi kỳ.", example = "30")
+    Integer policyCheckAiPerPeriod;
+
+    @Min(value = -1, message = "PLAN_FEATURE_LIMIT_INVALID")
+    @Max(value = 100_000, message = "PLAN_FEATURE_LIMIT_INVALID")
+    @Schema(description = "Số lần AI sửa bài tối đa mỗi bản nền tảng.", example = "3")
+    Integer aiFixPerVersion;
 }

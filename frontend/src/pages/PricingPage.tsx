@@ -1,5 +1,3 @@
-import { Fragment } from 'react';
-import { Check } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import LandingHeader from '../components/LandingHeader';
@@ -9,21 +7,8 @@ import FaqSection from '../components/landing/FaqSection';
 import CtaSection from '../components/landing/CtaSection';
 import LandingFooter from '../components/landing/LandingFooter';
 import { usePublicPlans } from '../hooks/usePublicPlans';
-import type { ComparisonValue } from '../config/plans';
+import ComparisonTable from '../components/plans/ComparisonTable';
 import { C } from '../styles/colors';
-
-// Ô giá trị của bảng so sánh: boolean → ✓ / —, string → hiển thị nguyên văn.
-function CompareCell({ value }: { value: ComparisonValue }) {
-  if (value === true) {
-    return (
-      <span style={{ display: 'inline-flex', width: 22, height: 22, borderRadius: '50%', background: C.primarySoft, alignItems: 'center', justifyContent: 'center' }}>
-        <Check size={13} strokeWidth={3} color={C.primary} />
-      </span>
-    );
-  }
-  if (value === false) return <span style={{ color: C.ink200, fontWeight: 600 }}>—</span>;
-  return <span style={{ fontSize: 13.5, fontWeight: 600, color: C.ink650 }}>{value}</span>;
-}
 
 export default function PricingPage() {
   const { t, lang } = useApp();
@@ -39,7 +24,6 @@ export default function PricingPage() {
   const gap = 22;
   const cardWidth = `calc((100% - ${(cols - 1) * gap}px) / ${cols})`;
 
-  const cellPad = isMobile ? '12px 14px' : '14px 18px';
 
   // LandingHeader (position: fixed) nằm ngoài .view-pop — xem ghi chú ở LandingPage.
   return (
@@ -77,42 +61,8 @@ export default function PricingPage() {
             <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: isMobile ? 26 : 34, letterSpacing: '-.02em', margin: '0 0 28px', textAlign: 'center', color: C.ink900 }}>{t.ppCompareTitle}</h2>
           </Reveal>
           <Reveal delay={0.05}>
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, boxShadow: `0 22px 44px -34px ${C.legacyShadowrgba8040140_5_}` }}>
-              <table style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={{ padding: cellPad, textAlign: 'left', fontSize: 13, fontWeight: 700, color: C.textMuted, borderBottom: `1px solid ${C.surfaceMuted}` }}>{t.ppColFeature}</th>
-                    {plans.map((p) => (
-                      <th key={p.id} style={{ padding: cellPad, textAlign: 'center', borderBottom: `1px solid ${C.surfaceMuted}`, minWidth: 130 }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 15, color: p.featured ? C.primaryStrong : C.textStrong }}>
-                          {p.name}
-                          {p.featured && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.primaryStrong, background: C.primarySoft, border: `1px solid ${C.accentLine}`, borderRadius: 999, padding: '2px 8px', whiteSpace: 'nowrap' }}>★ {t.prPopular}</span>}
-                        </span>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {groups.map((g) => (
-                    <Fragment key={g.title}>
-                      <tr>
-                        <td colSpan={plans.length + 1} style={{ padding: `${isMobile ? 14 : 18}px ${isMobile ? 14 : 18}px 8px`, fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 13.5, color: C.primary }}>{g.title}</td>
-                      </tr>
-                      {g.rows.map((row) => (
-                        <tr key={row.label} style={{ borderBottom: `1px solid ${C.bg}` }}>
-                          <td style={{ padding: cellPad, fontSize: 13.5, color: C.ink650 }}>{row.label}</td>
-                          {row.values.map((v, i) => (
-                            <td key={i} style={{ padding: cellPad, textAlign: 'center', background: plans[i].featured ? C.legacyBgrgba12458237_035_ : undefined }}>
-                              <CompareCell value={v} />
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {/* Cùng component với tab "Xem trước" của admin — một cách render, không lệch cột. */}
+            <ComparisonTable plans={plans} groups={groups} />
           </Reveal>
         </section>
 

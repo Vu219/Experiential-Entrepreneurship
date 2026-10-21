@@ -8,11 +8,14 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import com.aima.enums.PlanLimitKey;
 
 import java.util.List;
 
 /**
- * Cập nhật gói — FULL update (FE gửi trọn trạng thái form; tokenQuota null = không giới hạn).
+ * Cập nhật gói. Thông tin hiển thị là FULL update (FE gửi trọn trạng thái form). Giới hạn: {@code null} = GIỮ NGUYÊN
+ * (cả {@code monthlyTokenLimit} lẫn từng ô trong {@code featureLimits}); đưa một giới hạn về "Mặc định hệ thống" bằng
+ * {@code resetToDefault} — chỉ 3 gói lõi được dùng, gói tự tạo bắt buộc có giá trị cụ thể (PLAN_LIMIT_VALUE_REQUIRED).
  * KHÔNG có {@code code}: mã gói bất biến.
  */
 @Data
@@ -43,30 +46,23 @@ public class PlanUpdateRequest {
     @Schema(description = "Chu kỳ thanh toán THẬT (tháng): gói tháng = 1, quý = 3, năm = 12.", example = "1")
     Short billingIntervalMonths;
 
+    @Deprecated
+    @Schema(description = "BỎ QUA — số token hiển thị nay sinh từ monthlyTokenLimit (giữ field cho client cũ).",
+            deprecated = true)
     Long tokenQuota;
 
-    // Hạn mức token LLM THẬT mỗi tháng. null = GIỮ NGUYÊN giá trị hiện tại (FE cũ chưa gửi field này) —
-    // gói đang bán (giá > 0, đang bật) mà vẫn null sau khi cập nhật sẽ bị chặn trong PlanServiceImpl.
-    @Min(value = 1, message = "PLAN_TOKEN_LIMIT_INVALID")
-    @Schema(description = "Hạn mức token LLM THẬT mỗi tháng. null = giữ nguyên hạn mức hiện tại.", example = "100000")
+    // Hạn mức token LLM THẬT mỗi tháng. null = GIỮ NGUYÊN, -1 = không giới hạn — gói đang bán (giá > 0, đang bật)
+    // mà không giới hạn sau khi cập nhật sẽ bị chặn trong PlanServiceImpl.
+    @Min(value = -1, message = "PLAN_TOKEN_LIMIT_INVALID")
+    @Schema(description = "Hạn mức token LLM THẬT mỗi tháng. null = giữ nguyên, -1 = không giới hạn.", example = "100000")
     Long monthlyTokenLimit;
 
-    // Hai giới hạn AI dưới đây là FULL update như các field khác: null = về MẶC ĐỊNH hệ thống (không phải giữ nguyên).
-    @Min(value = -1, message = "PLAN_AI_LIMIT_INVALID")
-    @Max(value = 100_000, message = "PLAN_AI_LIMIT_INVALID")
-    @Schema(description = "Lượt AI kiểm tra chính sách mỗi tháng. null = mặc định hệ thống, -1 = không giới hạn, "
-            + "0 = tắt (chỉ bộ lọc tự động).", example = "30")
-    Integer policyCheckAiMonthlyLimit;
-
-    @Min(value = -1, message = "PLAN_AI_LIMIT_INVALID")
-    @Max(value = 100_000, message = "PLAN_AI_LIMIT_INVALID")
-    @Schema(description = "Số lần AI sửa bài tối đa mỗi bản nền tảng. null = mặc định hệ thống, -1 = không giới hạn, "
-            + "0 = tắt.", example = "3")
-    Integer aiFixMaxPerVersion;
-
     @Valid
-    @Schema(description = "Giới hạn tính năng theo gói. null = toàn bộ về mặc định hệ thống.")
+    @Schema(description = "Giới hạn theo gói (gồm 2 giới hạn AI). null / từng ô null = giữ nguyên.")
     PlanFeatureLimitsRequest featureLimits;
+
+    @Schema(description = "Các giới hạn đưa về \"Mặc định hệ thống\" (chỉ gói lõi FREE/PLUS/PRO).")
+    List<PlanLimitKey> resetToDefault;
 
     String descriptionVi;
     String descriptionEn;

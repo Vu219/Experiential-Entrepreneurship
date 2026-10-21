@@ -20,6 +20,7 @@ export const TYPE_META: Record<NotificationType, { icon: LucideIcon; color: stri
   POST_FAILED: { icon: XCircle, color: C.rose, bg: C.roseSoft }, // #e23d6e / #fdecf1
   POST_REMOVED_BY_PLATFORM: { icon: CircleSlash, color: C.rose, bg: C.roseSoft },
   SCHEDULE_OVERDUE: { icon: CalendarX, color: C.warning, bg: C.amberSoft }, // #d97706 / #fdf4e5
+  SCHEDULE_HELD: { icon: CalendarX, color: C.warning, bg: C.amberSoft },
   RECONNECT_NEEDED: { icon: PlugZap, color: C.orange2, bg: C.orangeTint }, // #ea580c / #fdefe6
   TOKEN_EXPIRING: { icon: Unplug, color: C.orange2, bg: C.orangeTint },
   REVIEW_NEEDED: { icon: ShieldAlert, color: C.warning, bg: C.amberSoft },

@@ -260,6 +260,22 @@ backend/
 >   xuất CSV), tối ưu chiến lược. Lỗi: `exception/PlanLimitException` → `PLAN_LIMIT_REACHED` 2205 / `PLAN_FEATURE_NOT_INCLUDED`
 >   2206 (403) kèm `result` = `PlanLimitViolationResponse{limitKey, limit, used, planCode}`; 2207 `PLAN_FEATURE_LIMIT_INVALID`.
 >   `GET /users/me/plan-usage` (AccountController). Hạ gói KHÔNG xoá dữ liệu — chỉ chặn tạo mới; analytics vẫn thu thập.
+>   **Khoá nền tảng + nền tảng theo gói (Flyway V20/V21, 2026-10-21 — kiểm thử `../docs/PLAN_LIMITS_MANUAL_TEST.md`)**:
+>   quyền dùng THẬT = hệ thống mở VÀ gói cho phép (khoá hệ thống luôn thắng). `entity/PlatformAvailability` (bảng
+>   `platform_availability`, seed MỘT lần từ `aima.connections.enabled-platforms` — env đó giờ chỉ là giá trị seed) qua
+>   `PlatformAvailabilityService` (cache 30s; `lockReasonNow` đọc DB — dùng cho kiểm tra cuối của worker; `requireUsable` → 2210
+>   rồi `PlanUsageService.requirePlatform` → 2206). Admin `PlatformAvailabilityAdminController` (`GET /admin/platforms/availability`,
+>   `PUT /admin/platforms/{platform}/availability` — khoá bắt buộc lý do VI/EN 2212/2214). User `GET /connections/platforms`,
+>   `GET /connections/oauth-results/{id}` (kênh OAuth bỏ qua + lý do, Redis 10 phút). Khoá / gói không còn nền tảng / gói tắt
+>   SCHEDULING → lịch chưa đăng ON_HOLD với `PLATFORM_DISABLED` / `PLAN_PLATFORM_EXCLUDED` / `PLAN_SCHEDULING_DISABLED`
+>   (`EntitlementHoldService` nghe `SubscriptionPlanChangedEvent`; dispatcher + worker kiểm lại lúc đăng) + `SCHEDULE_HELD`
+>   (`ScheduleHeldNotifier`, khử trùng). Mở lại / nâng gói KHÔNG tự gỡ lý do — user kích hoạt lại từng lịch (PUT `/schedules/{id}`
+>   kiểm lại ACTIVE_SCHEDULES + horizon). Ba lý do này KHÔNG tính vào ACTIVE_SCHEDULES. Kỳ tính lượt = chu kỳ subscription
+>   (`subscriptions.period_anchor_at`, `util/SubscriptionPeriods`); lịch đếm theo `post_schedules.counted_at`. Khoá mới
+>   `ALLOWED_PLATFORMS` (SET), `POLICY_CHECK_AI_PER_PERIOD`, `AI_FIX_PER_VERSION`; gói tự tạo phải đủ mọi giới hạn (2211 — gói lõi
+>   FREE/PLUS/PRO vẫn được null = mặc định), không có subscription → fail-closed về giới hạn FREE. 1990 / 2193 trả 403 (429 chỉ còn cho
+>   rate/concurrency). Dòng so sánh gắn `plan_features.limit_key` → giá trị ô tự tính (`PlanFeatureResponse.autoValues`).
+>   Dữ liệu mẫu DEV-ONLY: `config/init/DevPlanLimitsSeeder` (profile `isolated` + `--aima.dev-seed.plan-limits=true` + DB cô lập).
 > - **Landing Page CMS (2026-09-26)**: `controller/LandingContentController` (`GET /landing/public` — public,
 >   trong `PUBLIC_ENDPOINTS`, chỉ bản ĐÃ XUẤT BẢN) + `controller/LandingContentAdminController` (`/admin/landing`:
 >   list / `PUT /{key}` lưu nháp kèm `version` / `POST /{key}/publish` / `POST /publish` tất cả / `POST /{key}/discard`),

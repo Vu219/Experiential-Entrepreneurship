@@ -59,7 +59,8 @@ class SubscriptionLifecycleTest {
                 userRepository, mock(UsageMapper.class), notificationService, activityLogService,
                 mock(SubscriptionHistoryRepository.class),
                 entityManager = mock(jakarta.persistence.EntityManager.class),
-                mock(org.springframework.transaction.PlatformTransactionManager.class));
+                mock(org.springframework.transaction.PlatformTransactionManager.class),
+                mock(org.springframework.context.ApplicationEventPublisher.class));
 
         freePlan = plan("FREE", 0L, 100_000L);
         plusPlan = plan("PLUS", 99_000L, 500_000L);

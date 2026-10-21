@@ -2,6 +2,7 @@ package com.aima.posting;
 
 import com.aima.dto.response.AiAssistUsageResponse;
 import com.aima.entity.Plan;
+import com.aima.entity.PlanFeatureLimits;
 import com.aima.entity.Subscription;
 import com.aima.enums.PlanSource;
 import com.aima.repository.PlanRepository;
@@ -166,8 +167,11 @@ class AiAssistIntegrationTest {
     private void setPlanLimits(String code, Integer policyCheck, Integer aiFix) {
         transactionTemplate.executeWithoutResult(tx -> {
             Plan plan = planRepository.findByCodeAndDeletedAtIsNull(code).orElseThrow();
-            plan.setPolicyCheckAiMonthlyLimit(policyCheck);
-            plan.setAiFixMaxPerVersion(aiFix);
+            if (plan.getFeatureLimits() == null) {
+                plan.setFeatureLimits(new PlanFeatureLimits());
+            }
+            plan.getFeatureLimits().setPolicyCheckAiPerPeriod(policyCheck);
+            plan.getFeatureLimits().setAiFixPerVersion(aiFix);
             planRepository.save(plan);
         });
     }
@@ -338,8 +342,11 @@ class AiAssistIntegrationTest {
                 .setStatus(ScheduleStatus.SCHEDULED)); // bài chưa đăng — AI sửa từ cảnh báo trước khi đăng
         Plan team = planRepository.findByCodeAndDeletedAtIsNull("TEAMIT").orElseGet(() -> planRepository.save(
                 Plan.builder().code("TEAMIT").nameVi("Team").nameEn("Team").price(0L).isActive(false).build()));
-        team.setPolicyCheckAiMonthlyLimit(0);
-        team.setAiFixMaxPerVersion(0);
+        if (team.getFeatureLimits() == null) {
+            team.setFeatureLimits(new PlanFeatureLimits());
+        }
+        team.getFeatureLimits().setPolicyCheckAiPerPeriod(0);
+        team.getFeatureLimits().setAiFixPerVersion(0);
         planRepository.save(team);
         transactionTemplate.executeWithoutResult(tx -> {
             User user = userRepository.findByEmail(f.email()).orElseThrow();
@@ -357,7 +364,7 @@ class AiAssistIntegrationTest {
                 AiFixStartRequest.builder().contentVersionId(f.versionId()).build()));
         assertEquals(ErrorCode.AI_FIX_NOT_IN_PLAN, fix.getErrorCode());
 
-        team.setPolicyCheckAiMonthlyLimit(PlanLimitService.UNLIMITED);
+        team.getFeatureLimits().setPolicyCheckAiPerPeriod(PlanLimitService.UNLIMITED);
         planRepository.save(team);
         when(aiServiceClient.policyCheck(any())).thenReturn(PolicyCheckResultPayload.builder().riskLevel("low").build());
         PolicyCheckResponse unlimited = check(f);

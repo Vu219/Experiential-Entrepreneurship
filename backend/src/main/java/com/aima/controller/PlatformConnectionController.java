@@ -6,6 +6,9 @@ import com.aima.dto.response.ConnectionStatsResponse;
 import com.aima.dto.response.PlatformConnectionResponse;
 import com.aima.enums.Platform;
 import com.aima.service.PlatformConnectionService;
+import com.aima.service.PlatformAvailabilityService;
+import com.aima.dto.response.PlatformAccessListResponse;
+import com.aima.dto.response.OAuthResultResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,6 +33,7 @@ import java.util.UUID;
 public class PlatformConnectionController {
 
     PlatformConnectionService connectionService;
+    PlatformAvailabilityService platformAvailabilityService;
 
     @GetMapping("/{platform}/authorize")
     @Operation(summary = "Lấy URL OAuth để liên kết tài khoản",
@@ -55,6 +59,21 @@ public class PlatformConnectionController {
     @Operation(summary = "Danh sách kết nối của người dùng")
     public ApiResponse<List<PlatformConnectionResponse>> list(@AuthenticationPrincipal UserDetails principal) {
         return connectionService.listConnections(principal.getUsername());
+    }
+
+    @GetMapping("/platforms")
+    @Operation(summary = "Quyền dùng từng nền tảng của user",
+            description = "Nền tảng mở ở cấp hệ thống VÀ được gói cho phép (khoá hệ thống luôn thắng) + số kênh còn được kết nối.")
+    public ApiResponse<PlatformAccessListResponse> platforms(@AuthenticationPrincipal UserDetails principal) {
+        return platformAvailabilityService.myPlatforms(principal.getUsername());
+    }
+
+    @GetMapping("/oauth-results/{id}")
+    @Operation(summary = "Kết quả lần liên kết gần nhất",
+            description = "Các kênh KHÔNG được thêm và lý do (CHANNEL_LIMIT / PLAN_PLATFORM / PLATFORM_DISABLED). Lưu 10 phút.")
+    public ApiResponse<OAuthResultResponse> oauthResult(@AuthenticationPrincipal UserDetails principal,
+                                                        @PathVariable String id) {
+        return connectionService.getOAuthResult(id, principal.getUsername());
     }
 
     @GetMapping("/stats")

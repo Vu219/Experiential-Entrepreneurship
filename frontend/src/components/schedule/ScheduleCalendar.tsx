@@ -27,11 +27,13 @@ const NAV_KEYS: Record<string, (day: string) => string> = {
   PageDown: (d) => shiftDayByMonth(d, 1),
 };
 
-export default function ScheduleCalendar({ value, todayISO, mode, onSelect, booked, suggested, label, notes }: {
+export default function ScheduleCalendar({ value, todayISO, maxISO, mode, onSelect, booked, suggested, label, notes }: {
   /** Ngày đang chọn yyyy-MM-dd ('' = chưa chọn). */
   value: string;
   /** Hôm nay theo múi giờ đang chọn — ngày trước đó bị khóa. */
   todayISO: string;
+  /** Ngày xa nhất đặt được (gói — SCHEDULE_HORIZON_DAYS); ngày sau đó bị khóa. */
+  maxISO?: string;
   mode: Exclude<CalendarMode, 'hidden'>;
   onSelect?: (day: string) => void;
   /** Ngày → nền tảng của các lịch đã có (chấm màu). */
@@ -82,7 +84,7 @@ export default function ScheduleCalendar({ value, todayISO, mode, onSelect, book
   const [y, m] = [+view.slice(0, 4), +view.slice(5, 7)];
   const title = t.planMonthTitle.replace('{m}', String(m)).replace('{y}', String(y)).replace('{month}', MONTHS_EN[m - 1]);
   const canPrev = mode !== 'disabled' && view > monthOfDay(todayISO);
-  const canNext = mode !== 'disabled';
+  const canNext = mode !== 'disabled' && (!maxISO || view < monthOfDay(maxISO));
   const shift = (delta: number) => { setFocusDay(null); setView((v) => shiftMonth(v, delta)); };
 
   const dayLabel = (day: string, extras: string[]) => {
@@ -122,7 +124,7 @@ export default function ScheduleCalendar({ value, todayISO, mode, onSelect, book
             <div key={row[0]} role="row" style={week}>
               {row.map((day) => {
                 const muted = monthOfDay(day) !== view;
-                const past = day < todayISO;
+                const past = day < todayISO || (!!maxISO && day > maxISO);
                 const today = day === todayISO;
                 const selected = !!value && day === value;
                 const platforms = booked.get(day) ?? [];

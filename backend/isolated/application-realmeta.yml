@@ -1,0 +1,18 @@
+# DEV-ONLY overlay: isolated stack (local PG 55432 / Redis 56379 from isolated/application.yml) + REAL Facebook.
+# Used only for the manual checklist in docs/PLAN_LIMITS_MANUAL_TEST.md §4 (lock / unlock Facebook with a real Page).
+# Load AFTER isolated/application.yml:
+#   --spring.config.location=file:./isolated/application.yml,file:./isolated/application-realmeta.yml
+# The `isolated` profile guard (IsolatedStackConfig) forbids real Meta URLs, so this overlay switches the profile to
+# `isolated-realmeta`; it NEVER overrides the datasource / Redis — those stay on the local isolated containers.
+# Scheduler stays OFF (publish only via "Đăng ngay"). App credentials come from env vars, never committed.
+spring:
+  profiles:
+    active: isolated-realmeta
+meta:
+  graph-base-url: https://graph.facebook.com
+  facebook:
+    app-id: ${META_FACEBOOK_APP_ID}
+    app-secret: ${META_FACEBOOK_APP_SECRET}
+    redirect-uri: http://localhost:8092/api/aima/connections/FACEBOOK/callback
+    scopes: ${META_FACEBOOK_SCOPES:pages_show_list,pages_manage_posts,pages_read_engagement,read_insights}
+    config-id: ${META_FACEBOOK_CONFIG_ID:}

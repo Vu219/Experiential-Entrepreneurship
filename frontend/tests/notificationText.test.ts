@@ -11,7 +11,7 @@ const vi = STRINGS.vi as unknown as Record<string, string>;
 const en = STRINGS.en as unknown as Record<string, string>;
 
 const TYPES: NotificationType[] = [
-  'POST_PUBLISHED', 'POST_FAILED', 'POST_REMOVED_BY_PLATFORM', 'SCHEDULE_OVERDUE', 'RECONNECT_NEEDED', 'TOKEN_EXPIRING',
+  'POST_PUBLISHED', 'POST_FAILED', 'POST_REMOVED_BY_PLATFORM', 'SCHEDULE_OVERDUE', 'SCHEDULE_HELD', 'RECONNECT_NEEDED', 'TOKEN_EXPIRING',
   'REVIEW_NEEDED', 'CONTENT_GENERATION_FAILED', 'TREND_RESEARCH_DONE', 'TREND_RESEARCH_FAILED', 'NEW_INSIGHT',
   'PAYMENT_SUCCEEDED', 'PLAN_EXPIRING', 'PLAN_EXPIRED', 'AI_QUOTA_WARNING', 'AI_QUOTA_EXHAUSTED', 'SCHEDULE_UPCOMING',
   'PAYMENT_WEBHOOK_ALERT', 'ADMIN_USAGE_ALERT', 'ADMIN_AI_DEGRADED', 'ADMIN_API_VERSION',
@@ -32,6 +32,16 @@ test('every type has title + body keys in vi AND en (khớp enum backend)', () =
   for (const v of ['HELD_DISPATCH', 'HELD_DISCONNECTED', 'HELD_DATA_DELETION', 'HELD_DEAUTHORIZED', 'HELD_INVALID', 'EXPIRED']) {
     assert.ok(vi[`ntf_RECONNECT_NEEDED_body_${v}`] && en[`ntf_RECONNECT_NEEDED_body_${v}`], v);
   }
+});
+
+test('SCHEDULE_HELD: mỗi lý do giữ có câu riêng (vi/en) + bấm mở đúng lịch', () => {
+  for (const v of ['PLATFORM_DISABLED', 'PLAN_PLATFORM_EXCLUDED', 'PLAN_SCHEDULING_DISABLED']) {
+    assert.ok(vi[`ntf_SCHEDULE_HELD_body_${v}`] && en[`ntf_SCHEDULE_HELD_body_${v}`], v);
+  }
+  const item = n({ type: 'SCHEDULE_HELD', refType: 'PLATFORM', params: { variant: 'PLATFORM_DISABLED', platform: 'THREADS', count: 3 } });
+  assert.match(notificationText(item, en, 'en').body, /3 .*Threads/);
+  assert.deepEqual(notificationTarget(item), { route: 'calendar' });
+  assert.deepEqual(notificationTarget(n({ type: 'SCHEDULE_HELD', refType: 'SCHEDULE', refId: 's1' })), { path: '/calendar/s1' });
 });
 
 test('legacy notification (no params) shows the stored Vietnamese text', () => {

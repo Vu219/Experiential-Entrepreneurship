@@ -53,6 +53,8 @@ class MetaOAuthServiceImplTest {
     private NotificationService notificationService;
     private AnalyticsAccountSyncService analyticsAccountSyncService;
     private PlanUsageService planUsageService;
+    private com.aima.service.PlatformAvailabilityService platformAvailabilityService;
+    private com.aima.service.PlanLimitService planLimitService;
     @SuppressWarnings("unchecked")
     private final RedisTemplate<String, String> redisTemplate = mock(RedisTemplate.class);
     @SuppressWarnings("unchecked")
@@ -70,6 +72,13 @@ class MetaOAuthServiceImplTest {
         notificationService = mock(NotificationService.class);
         analyticsAccountSyncService = mock(AnalyticsAccountSyncService.class);
         planUsageService = mock(PlanUsageService.class);
+        platformAvailabilityService = mock(com.aima.service.PlatformAvailabilityService.class);
+        planLimitService = mock(com.aima.service.PlanLimitService.class);
+        // Mặc định như seed V20: chỉ Facebook mở toàn hệ thống; gói cho phép cả 3 nền tảng (khoá hệ thống luôn thắng).
+        lockedPlatforms(Platform.INSTAGRAM, Platform.THREADS);
+        lenient().when(planLimitService.features(any())).thenReturn(planAllowing(Platform.values()));
+        // buildAuthorizationUrl nay đọc user (quyền nền tảng theo gói) — user bất kỳ tồn tại.
+        lenient().when(userRepository.findById(any())).thenReturn(Optional.of(User.builder().email("any@gmail.com").build()));
         service = newService(null);
 
         lenient().when(redisTemplate.opsForValue()).thenReturn(valueOps);
@@ -90,7 +99,27 @@ class MetaOAuthServiceImplTest {
                 new AimaProperties.OAuth(10, "http://fe/success", "http://fe/error"));
         return new MetaOAuthServiceImpl(mock(ActivityLogService.class), metaApiClient, versionService,
                 accountRepository, userRepository, props, aima, redisTemplate, new ObjectMapper(),
-                holdService, notificationService, analyticsAccountSyncService, planUsageService);
+                holdService, notificationService, analyticsAccountSyncService, planUsageService,
+                platformAvailabilityService, planLimitService);
+    }
+
+    private void lockedPlatforms(Platform... locked) {
+        reset(platformAvailabilityService);
+        java.util.Set<Platform> lockedSet = locked.length == 0 ? java.util.EnumSet.noneOf(Platform.class)
+                : java.util.EnumSet.copyOf(List.of(locked));
+        lenient().when(platformAvailabilityService.isEnabled(any())).thenAnswer(inv -> !lockedSet.contains(inv.getArgument(0)));
+        lenient().doAnswer(inv -> {
+            if (lockedSet.contains(inv.getArgument(0))) {
+                throw new AppException(ErrorCode.PLATFORM_CONNECTION_DISABLED);
+            }
+            return null;
+        }).when(platformAvailabilityService).requireConnectable(any());
+    }
+
+    private static com.aima.service.PlanLimitService.FeatureLimits planAllowing(Platform... platforms) {
+        return new com.aima.service.PlanLimitService.FeatureLimits("PRO",
+                new java.util.EnumMap<>(com.aima.enums.PlanLimitKey.class),
+                platforms.length == 0 ? java.util.Set.of() : java.util.EnumSet.copyOf(List.of(platforms)));
     }
 
     @Test
@@ -138,6 +167,49 @@ class MetaOAuthServiceImplTest {
         verify(analyticsAccountSyncService).recordInstagramLink(created.get(1), true);
     }
 
+    /** Kênh không được thêm được báo kèm lý do (FE hiện rõ) — IG khoá toàn hệ thống → PLATFORM_DISABLED. */
+    @Test
+    void handleCallback_facebook_reportsSkippedChannelsWithReason() {
+        stubFacebookCallback(List.of("pages_show_list", "pages_manage_posts"));
+        when(metaApiClient.getInstagramBusinessAccount("p1", "ptok"))
+                .thenReturn(Optional.of(new MetaApiClient.MetaIgAccount("ig1", "brand", "Brand", null)));
+
+        MetaOAuthService.CallbackResult result = service.handleCallback(Platform.FACEBOOK, "code", "state");
+
+        assertEquals(List.of(new MetaOAuthService.SkippedChannel(Platform.INSTAGRAM, "Brand",
+                com.aima.enums.OAuthSkipReason.PLATFORM_DISABLED)), result.skipped());
+        assertEquals(0, result.skippedByPlan());
+    }
+
+    /** IG mở toàn hệ thống nhưng gói chỉ cho Facebook → IG con bị bỏ với lý do PLAN_PLATFORM. */
+    @Test
+    void handleCallback_facebook_instagramNotInPlan_skippedWithPlanReason() {
+        lockedPlatforms();
+        when(planLimitService.features(any())).thenReturn(planAllowing(Platform.FACEBOOK));
+        stubFacebookCallback(List.of("pages_show_list", "pages_manage_posts"));
+        when(metaApiClient.getInstagramBusinessAccount("p1", "ptok"))
+                .thenReturn(Optional.of(new MetaApiClient.MetaIgAccount("ig1", "brand", "Brand", null)));
+
+        MetaOAuthService.CallbackResult result = service.handleCallback(Platform.FACEBOOK, "code", "state");
+
+        assertEquals(2, result.connected().size());
+        assertEquals(com.aima.enums.OAuthSkipReason.PLAN_PLATFORM, result.skipped().getFirst().reason());
+    }
+
+    /** Gói không gồm Threads → authorize bị chặn 2206 (sau khi khoá hệ thống đã cho qua). */
+    @Test
+    void buildAuthorizationUrl_platformNotInPlan_rejected() {
+        lockedPlatforms();
+        UUID userId = UUID.randomUUID();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(User.builder().email("u@gmail.com").build()));
+        doThrow(new com.aima.exception.PlanLimitException(ErrorCode.PLAN_FEATURE_NOT_INCLUDED, null))
+                .when(planUsageService).requirePlatform(any(), eq(Platform.THREADS));
+
+        AppException ex = assertThrows(AppException.class, () -> service.buildAuthorizationUrl(Platform.THREADS, userId));
+        assertEquals(ErrorCode.PLAN_FEATURE_NOT_INCLUDED, ex.getErrorCode());
+        verify(valueOps, never()).set(anyString(), anyString(), any());
+    }
+
     @Test
     void handleCallback_facebook_channelLimitReached_skipsNewPageButKeepsUser() {
         stubFacebookCallback(List.of("pages_show_list", "pages_manage_posts"));
@@ -151,8 +223,10 @@ class MetaOAuthServiceImplTest {
 
     @Test
     void buildAuthorizationUrl_threads_usesThreadsDomain() {
-        ReflectionTestUtils.setField(service, "enabledPlatforms", EnumSet.allOf(Platform.class));
-        String url = service.buildAuthorizationUrl(Platform.THREADS, UUID.randomUUID());
+        lockedPlatforms();
+        UUID userId = UUID.randomUUID();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(User.builder().email("u@gmail.com").build()));
+        String url = service.buildAuthorizationUrl(Platform.THREADS, userId);
         assertTrue(url.contains("threads.net/oauth/authorize"));
         assertTrue(url.contains("client_id=thid"));
     }

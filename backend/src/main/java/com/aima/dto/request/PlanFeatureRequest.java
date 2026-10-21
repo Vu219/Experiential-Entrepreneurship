@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import com.aima.enums.PlanLimitKey;
 
 import java.util.List;
 
@@ -33,6 +34,10 @@ public class PlanFeatureRequest {
     String nameEn;
 
     Integer displayOrder;
+
+    @Schema(description = "Liên kết một giới hạn thật → giá trị từng cột tự động (values bị bỏ qua). null = nhập tay.",
+            example = "BRAND_PROFILES")
+    PlanLimitKey limitKey;
 
     @Valid
     @Schema(description = "Giá trị ô theo từng gói (thiếu gói nào thì ô đó để trống).")

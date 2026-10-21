@@ -56,4 +56,10 @@ public interface PlatformAccountRepository extends JpaRepository<PlatformAccount
 
     /** Giới hạn gói CONNECTED_CHANNELS: kênh đăng được (không tính kết nối USER gốc). */
     long countByUser_IdAndAccountTypeNotAndDeletedAtIsNull(UUID userId, PlatformAccountType accountType);
+
+    /** Khoá / mở nền tảng toàn hệ thống: mọi kết nối (mọi user) của nền tảng. */
+    List<PlatformAccount> findByPlatformNameAndDeletedAtIsNull(Platform platformName);
+
+    /** Mức ảnh hưởng khi khoá nền tảng: số kênh đăng (không tính kết nối USER gốc). */
+    long countByPlatformNameAndAccountTypeNotAndDeletedAtIsNull(Platform platformName, PlatformAccountType accountType);
 }

@@ -30,6 +30,7 @@ import com.aima.repository.projection.DailyStatusCountProjection;
 import com.aima.repository.projection.LabelCountProjection;
 import com.aima.repository.projection.StatusCountProjection;
 import com.aima.service.DashboardService;
+import com.aima.service.PlanUsageService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -38,6 +39,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -106,12 +108,19 @@ public class DashboardServiceImpl implements DashboardService {
     ContentStrategyRepository contentStrategyRepository;
     UserRepository userRepository;
     DashboardMapper dashboardMapper;
+    PlanUsageService planUsageService;
 
     @Override
     public ApiResponse<DashboardSummaryResponse> getSummary(String email, int days) {
-        UUID userId = currentUser(email).getId();
+        User user = currentUser(email);
+        UUID userId = user.getId();
         int rangeDays = Math.min(Math.max(days, MIN_RANGE_DAYS), MAX_RANGE_DAYS);
         LocalDate today = LocalDate.now();
+        // Gói (ANALYTICS_HISTORY_DAYS): biểu đồ hiệu suất không vượt số ngày lịch sử — cùng mốc với trang Phân tích.
+        LocalDate earliest = planUsageService.analyticsEarliestDate(user, today);
+        if (earliest != null) {
+            rangeDays = (int) Math.max(1, Math.min(rangeDays, ChronoUnit.DAYS.between(earliest, today) + 1));
+        }
 
         Map<StatusKey, Long> totals = loadStatusTotals(userId);
         DashboardStatsResponse stats = buildStats(userId, today, totals);

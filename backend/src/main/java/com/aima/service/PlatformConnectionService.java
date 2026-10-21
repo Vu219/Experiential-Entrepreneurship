@@ -1,6 +1,7 @@
 package com.aima.service;
 
 import com.aima.dto.response.ApiResponse;
+import com.aima.dto.response.OAuthResultResponse;
 import com.aima.dto.response.AuthorizationUrlResponse;
 import com.aima.dto.response.ConnectionStatsResponse;
 import com.aima.dto.response.PlatformConnectionResponse;
@@ -19,6 +20,9 @@ public interface PlatformConnectionService {
     ApiResponse<List<PlatformConnectionResponse>> listConnections(String email);
 
     ApiResponse<ConnectionStatsResponse> getStats(String email);
+
+    /** Kết quả lần liên kết gần nhất: kênh KHÔNG được thêm + lý do (id lấy từ tham số {@code result} của redirect). */
+    ApiResponse<OAuthResultResponse> getOAuthResult(String id, String email);
 
     ApiResponse<PlatformConnectionResponse> validateConnection(UUID id, String email);
 

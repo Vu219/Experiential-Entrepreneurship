@@ -109,7 +109,10 @@ public enum ActivityAction {
     DATA_EXPORTED(ActivityActionGroup.ADMIN),
 
     /** Thêm/xoá ánh xạ chữ ký lỗi nền tảng → mã lỗi AIMA (hàng đợi "chưa phân loại"). */
-    PUBLISH_ERROR_MAPPING_UPDATED(ActivityActionGroup.ADMIN);
+    PUBLISH_ERROR_MAPPING_UPDATED(ActivityActionGroup.ADMIN),
+
+    /** Admin mở/khoá liên kết một nền tảng toàn hệ thống (trang "Version API nền tảng"). */
+    PLATFORM_AVAILABILITY_UPDATED(ActivityActionGroup.ADMIN);
 
     ActivityActionGroup group;
 

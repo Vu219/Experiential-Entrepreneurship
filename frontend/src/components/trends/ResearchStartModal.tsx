@@ -7,6 +7,8 @@ import { PLATFORMS, PLATFORM_BG } from '../../theme';
 import { listAllBrandProfiles, type BrandProfile, type Platform } from '../../api/brandProfile';
 import { listAllContentStrategies, type ContentStrategy, type StrategyStatus } from '../../api/contentStrategy';
 import { C } from '../../styles/colors';
+import { usePlanUsage } from '../../hooks/usePlanUsage';
+import { optionsWithinCap } from '../../utils/planGates';
 
 const selectStyle = {
   width: '100%', border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 12px',
@@ -56,6 +58,14 @@ export default function ResearchStartModal({
   const [strategyId, setStrategyId] = useState('');
   const [platforms, setPlatforms] = useState<Platform[]>(['FACEBOOK']);
   const [articleCount, setArticleCount] = useState(10);
+  // Gói (IDEAS_PER_RESEARCH): lựa chọn vượt trần bị khoá — backend vẫn chặn 2205 nếu gửi số lớn hơn.
+  const { cap } = usePlanUsage();
+  const ideaCap = cap('IDEAS_PER_RESEARCH');
+  const allowedCounts = optionsWithinCap(ARTICLE_COUNTS, ideaCap);
+  const maxAllowed = Math.max(...allowedCounts);
+  useEffect(() => {
+    if (articleCount > maxAllowed) setArticleCount(maxAllowed);
+  }, [articleCount, maxAllowed]);
   // Bộ lọc nâng cao (mặc định ẩn)
   const [advOpen, setAdvOpen] = useState(false);
   const [advTime, setAdvTime] = useState<'7d' | '30d'>('7d');
@@ -215,21 +225,27 @@ export default function ResearchStartModal({
           <div>
             <div style={labelStyle}>{t.trArticleCount}</div>
             <div style={{ display: 'inline-flex', gap: 4, background: C.surfaceMuted, border: `1px solid ${C.border}`, borderRadius: 12, padding: 4 }}>
-              {ARTICLE_COUNTS.map((n) => {
+              {Array.from(new Set([...ARTICLE_COUNTS, ...allowedCounts])).sort((a, b) => a - b).map((n) => {
                 const on = articleCount === n;
+                const overCap = !allowedCounts.includes(n);
                 return (
                   <button
                     key={n}
                     type="button"
-                    onClick={() => setArticleCount(n)}
+                    onClick={() => !overCap && setArticleCount(n)}
                     aria-pressed={on}
-                    style={{ border: 'none', borderRadius: 9, padding: '7px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: on ? C.primaryStrong : C.textSecondary, background: on ? C.surface : 'transparent', boxShadow: on ? `0 4px 10px -6px ${C.legacyShadowrgba8040140_4_}` : 'none' }}
+                    disabled={overCap}
+                    title={overCap ? t.plgIdeasCap.replace('{limit}', String(ideaCap ?? '')) : undefined}
+                    style={{ border: 'none', borderRadius: 9, padding: '7px 16px', fontSize: 13, fontWeight: 700, cursor: overCap ? 'not-allowed' : 'pointer', opacity: overCap ? 0.4 : 1, color: on ? C.primaryStrong : C.textSecondary, background: on ? C.surface : 'transparent', boxShadow: on ? `0 4px 10px -6px ${C.legacyShadowrgba8040140_4_}` : 'none' }}
                   >
                     {n}
                   </button>
                 );
               })}
             </div>
+            {ideaCap != null && ideaCap > 0 && ideaCap < ARTICLE_COUNTS[ARTICLE_COUNTS.length - 1] && (
+              <div style={{ fontSize: 11.5, color: C.ink350, marginTop: 6 }}>{t.plgIdeasCap.replace('{limit}', String(ideaCap))}</div>
+            )}
           </div>
 
           {/* Bộ lọc nâng cao (tùy chọn) */}

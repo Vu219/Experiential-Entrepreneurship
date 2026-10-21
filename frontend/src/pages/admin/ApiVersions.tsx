@@ -1,6 +1,6 @@
 import {
-useEffect, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+useEffect, useState, type CSSProperties } from 'react';
+import { RefreshCw, Lock, Unlock } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { PlatformTag, Loader } from '../../components/ui';
 import { PLATFORM_BG } from '../../theme';
@@ -19,6 +19,15 @@ import {
 } from '../../api/adminApiVersions';
 import PageContainer from '../../components/PageContainer';
 import { C } from '../../styles/colors';
+import Switch from '../../components/admin/Switch';
+import ConfirmModal from '../../components/ConfirmModal';
+import { useToast } from '../../components/toast/ToastProvider';
+import {
+  listPlatformAvailability,
+  updatePlatformAvailability,
+  type PlatformAvailability,
+} from '../../api/platformAvailability';
+import { invalidatePlatformAccess } from '../../hooks/usePlatformAccess';
 
 const PLATFORM_NAMES: Record<PlatformEnum, string> = {
   FACEBOOK: 'Facebook Graph API',
@@ -32,11 +41,25 @@ const PLATFORM_TAGS: Record<PlatformEnum, string> = {
   THREADS: 'TH',
 };
 
+const reasonInput: CSSProperties = {
+  width: '100%', minWidth: 0, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: '9px 12px',
+  fontSize: 13.5, color: C.ink750, background: C.surface, outline: 'none', resize: 'vertical', fontFamily: 'inherit',
+  boxSizing: 'border-box',
+};
+
 export default function ApiVersions() {
   const { t, brandGradient } = useApp();
+  const toast = useToast();
   const [load, setLoad] = useState<'loading' | 'error' | 'ok'>('loading');
   const [rows, setRows] = useState<ApiVersionInfo[]>([]);
   const [checking, setChecking] = useState(false);
+  // Trạng thái mở/khoá liên kết toàn hệ thống (V20) — tách khỏi badge version.
+  const [availability, setAvailability] = useState<Partial<Record<PlatformEnum, PlatformAvailability>>>({});
+  const [lockTarget, setLockTarget] = useState<PlatformAvailability | null>(null);
+  const [unlockTarget, setUnlockTarget] = useState<PlatformAvailability | null>(null);
+  const [reasonVi, setReasonVi] = useState('');
+  const [reasonEn, setReasonEn] = useState('');
+  const [lockBusy, setLockBusy] = useState(false);
 
   // Modal states
   const [historyTarget, setHistoryTarget] = useState<ApiVersionInfo | null>(null);
@@ -51,12 +74,53 @@ export default function ApiVersions() {
 
   const fetchVersions = () => {
     setLoad('loading');
-    listApiVersions()
-      .then((r) => {
+    Promise.all([listApiVersions(), listPlatformAvailability()])
+      .then(([r, a]) => {
         setRows(r);
+        setAvailability(Object.fromEntries(a.map((x) => [x.platform, x])));
         setLoad('ok');
       })
       .catch(() => setLoad('error'));
+  };
+
+  const openLock = (a: PlatformAvailability) => {
+    setReasonVi(a.reasonVi ?? '');
+    setReasonEn(a.reasonEn ?? '');
+    setLockTarget(a);
+  };
+
+  // Khoá: backend giữ mọi lịch chưa đăng của nền tảng (PLATFORM_DISABLED) trong cùng transaction + báo user.
+  const doLock = () => {
+    if (!lockTarget) return;
+    if (!reasonVi.trim() || !reasonEn.trim()) {
+      toast.error(t.paReasonRequired);
+      return;
+    }
+    setLockBusy(true);
+    updatePlatformAvailability(lockTarget.platform, { enabled: false, reasonVi: reasonVi.trim(), reasonEn: reasonEn.trim() })
+      .then((r) => {
+        toast.success(t.paLocked.replace('{platform}', PLATFORM_NAMES[r.platform]).replace('{n}', String(r.heldSchedules ?? 0)));
+        setLockTarget(null);
+        invalidatePlatformAccess();
+        fetchVersions();
+      })
+      .catch((err: Error) => toast.error(err.message || t.paUpdateFail))
+      .finally(() => setLockBusy(false));
+  };
+
+  // Mở lại: tài khoản hết khoá; lịch đang tạm giữ KHÔNG tự đăng lại — người dùng tự tiếp tục từng lịch.
+  const doUnlock = () => {
+    if (!unlockTarget) return;
+    setLockBusy(true);
+    updatePlatformAvailability(unlockTarget.platform, { enabled: true })
+      .then((r) => {
+        toast.success(t.paUnlocked.replace('{platform}', PLATFORM_NAMES[r.platform]));
+        setUnlockTarget(null);
+        invalidatePlatformAccess();
+        fetchVersions();
+      })
+      .catch((err: Error) => toast.error(err.message || t.paUpdateFail))
+      .finally(() => setLockBusy(false));
   };
 
   useEffect(() => {
@@ -98,7 +162,7 @@ export default function ApiVersions() {
   const handleDoUpdate = () => {
     if (!updateTarget) return;
     if (!newVersionInput.trim()) {
-      setUpdateError('Vui lòng nhập version mới.');
+      setUpdateError(t.apiVersionRequired);
       return;
     }
     setUpdating(true);
@@ -112,7 +176,7 @@ export default function ApiVersions() {
         fetchVersions();
       })
       .catch((err: Error) => {
-        setUpdateError(err.message || 'Cập nhật thất bại.');
+        setUpdateError(err.message || t.apiUpdateFail);
       })
       .finally(() => setUpdating(false));
   };
@@ -170,7 +234,7 @@ export default function ApiVersions() {
       </div>
 
       <AdminListPage state={state} onRetry={fetchVersions}>
-        <DataTable head={[t.colPlatform, t.colCurrentVer, t.colLatestVer, t.colStatus, t.colAction]} minWidth={780}>
+        <DataTable head={[t.colPlatform, t.colCurrentVer, t.colLatestVer, t.colStatus, t.paColLink, t.colAction]} minWidth={940}>
           {rows.map((p) => {
             const badge = getBadgeMeta(p.status);
             const tag = PLATFORM_TAGS[p.platform];
@@ -191,6 +255,28 @@ export default function ApiVersions() {
                 </td>
                 <td style={{ padding: '13px 16px' }}>
                   <StatusBadge tone={badge.tone} label={badge.label} />
+                </td>
+                <td style={{ padding: '13px 16px' }}>
+                  {(() => {
+                    const a = availability[p.platform];
+                    if (!a) return <span style={{ color: C.textFaint }}>—</span>;
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <Switch
+                          checked={a.connectionEnabled}
+                          title={a.connectionEnabled ? t.paLockAction : t.paUnlockAction}
+                          onChange={(on) => (on ? setUnlockTarget(a) : openLock(a))}
+                        />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+                          <StatusBadge tone={a.connectionEnabled ? 'success' : 'danger'}
+                            label={a.connectionEnabled ? t.paOpen : t.paLockedBadge} />
+                          <span style={{ fontSize: 11.5, color: C.textMuted, whiteSpace: 'nowrap' }}>
+                            {t.paImpact.replace('{accounts}', String(a.connectedAccounts)).replace('{schedules}', String(a.pendingSchedules))}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </td>
                 <td style={{ padding: '13px 16px' }}>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -278,13 +364,14 @@ export default function ApiVersions() {
 
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-                Version hiện tại: <span style={{ color: C.primary }}>{updateTarget.currentVersion}</span> (Mới nhất: {updateTarget.latestVersion})
+                {t.apiCurrentVersionLabel} <span style={{ color: C.primary }}>{updateTarget.currentVersion}</span>{' '}
+                ({t.apiLatestVersionLabel} {updateTarget.latestVersion})
               </label>
               <input
                 type="text"
                 value={newVersionInput}
                 onChange={(e) => setNewVersionInput(e.target.value)}
-                placeholder="vd: v20.0"
+                placeholder={t.apiVersionPlaceholder}
                 style={{
                   width: '100%',
                   border: `1.5px solid ${C.border}`,
@@ -306,7 +393,7 @@ export default function ApiVersions() {
                 value={notesInput}
                 onChange={(e) => setNotesInput(e.target.value)}
                 rows={3}
-                placeholder="Nhập lý do hoặc ghi chú nâng cấp..."
+                placeholder={t.apiNotesPlaceholder}
                 style={{
                   width: '100%',
                   border: `1.5px solid ${C.border}`,
@@ -357,6 +444,54 @@ export default function ApiVersions() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* Khoá liên kết nền tảng — ghi rõ mức ảnh hưởng + lý do VI/EN hiển thị cho người dùng. */}
+      {lockTarget && (
+        <ConfirmModal
+          title={t.paLockTitle.replace('{platform}', PLATFORM_NAMES[lockTarget.platform])}
+          message={t.paLockMessage
+            .replace('{accounts}', String(lockTarget.connectedAccounts))
+            .replace('{schedules}', String(lockTarget.pendingSchedules))}
+          confirmLabel={t.paLockConfirm}
+          busy={lockBusy}
+          onConfirm={doLock}
+          onClose={() => !lockBusy && setLockTarget(null)}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 10,
+            background: C.dangerSoft2, color: C.danger, fontSize: 12.5, lineHeight: 1.5, marginBottom: 14 }}>
+            <Lock size={15} strokeWidth={2.2} aria-hidden style={{ flex: 'none', marginTop: 1 }} />
+            <span>{t.paLockEffects}</span>
+          </div>
+          <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+            {t.paReasonVi} <span style={{ color: C.danger }}>*</span>
+          </label>
+          <textarea rows={2} maxLength={300} value={reasonVi} onChange={(e) => setReasonVi(e.target.value)}
+            placeholder={t.paReasonViPlaceholder} style={reasonInput} />
+          <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: C.text, margin: '12px 0 6px' }}>
+            {t.paReasonEn} <span style={{ color: C.danger }}>*</span>
+          </label>
+          <textarea rows={2} maxLength={300} value={reasonEn} onChange={(e) => setReasonEn(e.target.value)}
+            placeholder={t.paReasonEnPlaceholder} style={{ ...reasonInput, marginBottom: 14 }} />
+        </ConfirmModal>
+      )}
+
+      {unlockTarget && (
+        <ConfirmModal
+          title={t.paUnlockTitle.replace('{platform}', PLATFORM_NAMES[unlockTarget.platform])}
+          message={t.paUnlockMessage}
+          confirmLabel={t.paUnlockConfirm}
+          variant="warning"
+          busy={lockBusy}
+          onConfirm={doUnlock}
+          onClose={() => !lockBusy && setUnlockTarget(null)}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: C.textMuted,
+            lineHeight: 1.5, marginBottom: 14 }}>
+            <Unlock size={15} strokeWidth={2.2} aria-hidden style={{ flex: 'none', marginTop: 1 }} />
+            <span>{t.paUnlockEffects}</span>
+          </div>
+        </ConfirmModal>
       )}
     </PageContainer>
   );
