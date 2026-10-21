@@ -31,6 +31,8 @@ import com.aima.dto.ai.TestConnectionPayload;
 import com.aima.dto.ai.TestConnectionResultPayload;
 import com.aima.dto.ai.ListModelsPayload;
 import com.aima.dto.ai.ListModelsResultPayload;
+import com.aima.dto.ai.ProbeModelsPayload;
+import com.aima.dto.ai.ProbeModelsResultPayload;
 import com.aima.dto.ai.LlmRoutedPayload;
 import com.aima.dto.ai.AiErrorResponsePayload;
 import com.aima.dto.ai.TokenAccountedPayload;
@@ -236,6 +238,12 @@ public class AiServiceClientImpl implements AiServiceClient {
     @Override
     public ListModelsResultPayload listModels(ListModelsPayload payload) {
         return post("/list-models", payload, ListModelsResultPayload.class);
+    }
+
+    // Payload chứa API key plaintext — cùng ràng buộc không-log như testConnection.
+    @Override
+    public ProbeModelsResultPayload probeModels(ProbeModelsPayload payload) {
+        return post("/probe-models", payload, ProbeModelsResultPayload.class);
     }
 
     private <T> T post(String uri, Object payload, Class<T> resultType) {

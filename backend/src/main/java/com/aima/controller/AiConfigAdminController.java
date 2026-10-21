@@ -6,6 +6,7 @@ import com.aima.dto.request.AiProviderUpdateRequest;
 import com.aima.dto.request.AiRoutingUpdateRequest;
 import com.aima.dto.response.AiConfigAuditResponse;
 import com.aima.dto.response.AiEffectiveStatusResponse;
+import com.aima.dto.response.AiModelProbeResponse;
 import com.aima.dto.response.AiModelResponse;
 import com.aima.dto.response.AiModelHealthResponse;
 import com.aima.dto.response.AiProviderResponse;
@@ -117,6 +118,14 @@ public class AiConfigAdminController {
     @Operation(summary = "Xóa model (soft delete) — chặn khi đang được routing dùng (mã 2015)")
     public ApiResponse<AiModelResponse> deleteModel(@PathVariable UUID id) {
         return aiConfigService.deleteModel(id);
+    }
+
+    @PostMapping("/models/probe")
+    @PreAuthorize(AiConfigAccess.WRITE)
+    @Operation(summary = "Kiểm tra model — gọi generateContent tối thiểu cho mọi model đang được định tuyến; "
+            + "model 404 bị cho nghỉ (UNAVAILABLE) + báo admin")
+    public ApiResponse<List<AiModelProbeResponse>> probeModels() {
+        return aiConfigService.probeModels();
     }
 
     @GetMapping("/routing")

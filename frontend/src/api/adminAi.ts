@@ -166,7 +166,8 @@ export interface AiModelHealth {
   /** "google" / "anthropic" (chữ thường). */
   provider: string;
   model: string;
-  state: 'COOLDOWN' | 'EXHAUSTED';
+  /** UNAVAILABLE = model trả 404 (bị gỡ/chặn) — lỗi cấu hình, admin phải đổi định tuyến. */
+  state: 'COOLDOWN' | 'EXHAUSTED' | 'UNAVAILABLE';
   reason: string;
   /** Hết nghỉ lúc (giờ ứng dụng, LocalDateTime). */
   until: string;
@@ -198,6 +199,7 @@ const fmtUntil = (until: string): string => {
 export const aiModelHealthLabel = (lang: Lang, h: AiModelHealth): string => {
   const at = fmtUntil(h.until);
   if (h.state === 'EXHAUSTED') return P(lang, `Hết quota ngày · reset lúc ${at}`, `Daily quota exhausted · resets at ${at}`);
+  if (h.state === 'UNAVAILABLE') return P(lang, `Không còn tồn tại (404) · đổi định tuyến · bỏ qua tới ${at}`, `Not found (404) · update routing · skipped until ${at}`);
   if (h.reason === 'rate_limited') return P(lang, `Bị giới hạn tốc độ · thử lại lúc ${at}`, `Rate limited · retry at ${at}`);
   return P(lang, `Nhà cung cấp quá tải · tạm nghỉ tới ${at}`, `Provider overloaded · paused until ${at}`);
 };
@@ -226,7 +228,55 @@ export interface AiModelInfo {
   maxTokens: number | null;
   /** Nghiệp vụ đang dùng model này làm chính/dự phòng — cảnh báo trước khi tắt/xóa. */
   usedByTaskCodes: AiTaskCode[] | null;
+  /** Kết quả "Kiểm tra model" gần nhất: "ok" / loại lỗi của AI service (vd model_not_found); null = chưa kiểm tra. */
+  lastProbeStatus: string | null;
+  lastProbedAt: string | null;
 }
+
+/** Kết quả "Kiểm tra model" của một model đang được định tuyến. */
+export interface AiModelProbeResult {
+  modelId: string;
+  providerCode: AiProviderCode;
+  modelCode: string;
+  outcome: string;
+  httpStatus: number | null;
+  latencyMs: number | null;
+}
+
+/** "Kiểm tra model": gọi generateContent tối thiểu cho mọi model đang định tuyến (vài token/model). */
+export async function probeAiModels(): Promise<AiModelProbeResult[]> {
+  const { data } = await client.post<ApiResponse<AiModelProbeResult[]>>('/admin/ai/models/probe');
+  return data.result;
+}
+
+export type AiProbeTone = 'ok' | 'warn' | 'error';
+
+/** Nhãn + tông màu cho một outcome của "Kiểm tra model". Lỗi cấu hình (404, key sai) = đỏ; tạm thời = vàng. */
+export function aiProbeLabel(lang: Lang, outcome: string): { label: string; tone: AiProbeTone } {
+  switch (outcome) {
+    case 'ok': return { label: P(lang, 'Gọi được', 'Reachable'), tone: 'ok' };
+    case 'model_not_found': return { label: P(lang, 'Không còn tồn tại (404)', 'Not found (404)'), tone: 'error' };
+    case 'invalid_key': return { label: P(lang, 'API key bị từ chối', 'API key rejected'), tone: 'error' };
+    case 'bad_request': return { label: P(lang, 'Yêu cầu bị từ chối (400)', 'Request rejected (400)'), tone: 'error' };
+    case 'provider_overloaded': return { label: P(lang, 'Nhà cung cấp quá tải', 'Provider overloaded'), tone: 'warn' };
+    case 'rate_limited': return { label: P(lang, 'Bị giới hạn tốc độ', 'Rate limited'), tone: 'warn' };
+    case 'daily_quota_exhausted': return { label: P(lang, 'Hết quota ngày', 'Daily quota used up'), tone: 'warn' };
+    case 'network_error': return { label: P(lang, 'Lỗi mạng / quá thời gian', 'Network error / timeout'), tone: 'warn' };
+    default: return { label: outcome, tone: 'warn' };
+  }
+}
+
+export const aiProbeText = (lang: Lang) => ({
+  button: P(lang, 'Kiểm tra model', 'Check models'),
+  hint: P(lang,
+    'Gọi thử từng model đang được định tuyến (vài token mỗi model). Danh sách model của nhà cung cấp không đủ để biết model còn gọi được.',
+    "Calls every routed model once (a few tokens each). The provider's model list alone can't tell whether a model still works."),
+  column: P(lang, 'Kiểm tra gần nhất', 'Last check'),
+  never: P(lang, 'Chưa kiểm tra', 'Not checked'),
+  done: (ok: number, total: number) => P(lang, `Đã kiểm tra ${total} model: ${ok} gọi được`, `Checked ${total} model(s): ${ok} reachable`),
+  none: P(lang, 'Không có model nào đang được định tuyến để kiểm tra', 'No routed model to check'),
+  failed: P(lang, 'Không kiểm tra được model (dịch vụ AI không phản hồi)', 'Could not check models (AI service did not respond)'),
+});
 
 export async function listAiModels(): Promise<AiModelInfo[]> {
   const { data } = await client.get<ApiResponse<AiModelInfo[]>>('/admin/ai/models');
@@ -353,8 +403,12 @@ export function modelBlockReason(m: AiModelInfo, providers: AiProviderInfo[]): A
   return null;
 }
 
-/** Chuỗi dự phòng gợi ý mặc định: 3 model Gemini theo thứ tự, rồi Claude khi Anthropic bật + có key. */
-export const SUGGESTED_GEMINI_CHAIN = ['gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash'];
+/**
+ * Chuỗi dự phòng gợi ý mặc định: 3 model Gemini (xen dòng flash / flash-lite để không cùng bị quá tải), rồi Claude
+ * khi Anthropic bật + có key. Đã xác minh gọi được generateContent 22/10/2026 — gemini-2.5-* bị Google chặn với key mới
+ * (vẫn có trong danh sách model nhưng gọi trả 404), dùng "Kiểm tra model" để xác nhận lại.
+ */
+export const SUGGESTED_GEMINI_CHAIN = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
 
 /**
  * Model id của chuỗi gợi ý — chỉ lấy model ĐÃ có trong danh sách, đang dùng được; bỏ model chính.
@@ -374,8 +428,8 @@ export const aiFallbackText = (lang: Lang) => ({
   add: P(lang, '+ Thêm model dự phòng', '+ Add fallback model'),
   suggest: P(lang, 'Dùng gợi ý mặc định', 'Use default suggestion'),
   suggestHint: P(lang,
-    'gemini-3.5-flash → gemini-3.1-flash-lite → gemini-2.5-flash → Claude (khi Anthropic bật và có key)',
-    'gemini-3.5-flash → gemini-3.1-flash-lite → gemini-2.5-flash → Claude (when Anthropic is on with a key)'),
+    'gemini-3.5-flash → gemini-3.5-flash-lite → gemini-3.1-flash-lite → Claude (khi Anthropic bật và có key)',
+    'gemini-3.5-flash → gemini-3.5-flash-lite → gemini-3.1-flash-lite → Claude (when Anthropic is on with a key)'),
   suggestEmpty: P(lang, 'Chưa có model nào của chuỗi gợi ý trong danh sách model đang dùng được',
     'None of the suggested models are in the usable model list'),
   chainHint: P(lang, 'Thử lần lượt từ trên xuống khi model chính lỗi, quá tải hoặc hết quota.',

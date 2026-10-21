@@ -85,7 +85,7 @@ class AiRuntimeConfigTest {
         LlmConfigPayload withFallback = runtimeConfigService.getLlmConfig(AiTaskCode.CONTENT_GENERATION);
         assertNotNull(withFallback.getFallback(), "Provider fallback bật → phải kèm fallback");
         assertEquals("google", withFallback.getFallback().getProvider());
-        assertEquals("gemini-2.5-pro", withFallback.getFallback().getModel());
+        assertEquals("gemini-3.5-flash", withFallback.getFallback().getModel());
     }
 
     /**

@@ -37,7 +37,7 @@ class Settings(BaseSettings):
 
     # Google (Gemini)
     google_api_key: str | None = None
-    google_model: str = "gemini-2.5-pro"
+    google_model: str = "gemini-3.5-flash"
 
     # Service
     ai_service_host: str = "0.0.0.0"

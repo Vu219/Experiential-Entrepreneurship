@@ -8,8 +8,14 @@ const VI: Record<string, string> = {
   AI_QUOTA_EXHAUSTED: 'Đã đạt giới hạn sử dụng AI hôm nay. Vui lòng thử lại sau hoặc liên hệ quản trị viên.',
   AI_TIMEOUT: 'Quá trình tạo nội dung mất nhiều thời gian hơn dự kiến. Nội dung có thể vẫn đang được tạo, hãy kiểm tra Thư viện nội dung sau ít phút.',
   AI_BAD_REQUEST: 'Yêu cầu không hợp lệ, vui lòng chỉnh lại nội dung đầu vào.',
-  AI_UNAVAILABLE: 'Không thể tạo nội dung lúc này, vui lòng thử lại.',
+  AI_UNAVAILABLE: 'Dịch vụ AI đang gặp sự cố (không phải do quá tải) nên chưa tạo được nội dung. Vui lòng thử lại sau hoặc báo quản trị viên nếu lỗi lặp lại.',
 };
+
+test('config failure (AI_UNAVAILABLE) and temporary overload never share a message', () => {
+  assert.notEqual(VI.AI_UNAVAILABLE, VI.AI_PROVIDER_OVERLOADED);
+  assert.ok(!aiErrorMessage('vi', 'AI_UNAVAILABLE').includes('quá tải,'));
+  assert.notEqual(aiErrorMessage('en', 'AI_UNAVAILABLE'), aiErrorMessage('en', 'AI_PROVIDER_OVERLOADED'));
+});
 
 test('each AI error code maps to its Vietnamese message', () => {
   for (const [code, msg] of Object.entries(VI)) {

@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * Một model của một AI provider (vd claude-sonnet-4-6, gemini-2.5-pro) — catalog cho
@@ -55,4 +56,14 @@ public class AiModel extends BaseEntity {
      */
     @Column(name = "max_tokens")
     Integer maxTokens;
+
+    /**
+     * Kết quả lần "Kiểm tra model" gần nhất (generateContent tối thiểu qua AI service /probe-models):
+     * "ok" hoặc loại lỗi ("model_not_found", "provider_overloaded"…). null = chưa kiểm tra.
+     */
+    @Column(name = "last_probe_status", length = 40)
+    String lastProbeStatus;
+
+    @Column(name = "last_probed_at")
+    LocalDateTime lastProbedAt;
 }

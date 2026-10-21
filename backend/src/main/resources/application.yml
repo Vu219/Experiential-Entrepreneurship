@@ -169,6 +169,9 @@ ai-service:
 # chạy bằng env của nó như trước (đường rollback). Chỉ bật khi admin đã dán key + verify.
 ai-config:
   from-db: ${AI_CONFIG_FROM_DB:false}
+  # Khởi động xong → "Kiểm tra model" mọi model đang định tuyến (generateContent tối thiểu, vài token/model) chạy nền:
+  # model đã bị gỡ (404) bị cho nghỉ + báo admin ngay lúc deploy. Chỉ chạy khi from-db=true.
+  probe-on-startup: ${AI_PROBE_ON_STARTUP:true}
   # Seed 1 lần từ env (copy giá trị từ ai/.env, tuỳ chọn). Trống → provider vẫn được tạo
   # nhưng chưa có key, admin dán key qua UI. Chỉ áp khi TẠO MỚI row, không ghi đè DB.
   # Model để trống → dùng default trong AiConfigDataInitializer (khớp ai/src/config.py).

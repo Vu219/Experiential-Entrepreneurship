@@ -87,6 +87,18 @@ class LlmAttempt(BaseModel):
     latency_ms: int = 0
 
 
+class ProbeModelsRequest(BaseModel):
+    """Backend health check of the models routed in its DB (POST /probe-models)."""
+
+    specs: List[LlmSpec] = Field(default_factory=list, max_length=50)
+
+
+class ProbeModelsResult(BaseModel):
+    """One attempt per requested spec, same order (``outcome`` = "ok" or an errors kind)."""
+
+    results: List[LlmAttempt] = Field(default_factory=list)
+
+
 # ============================================================
 # Token accounting (real LLM usage returned to the backend)
 # ============================================================

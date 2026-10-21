@@ -259,6 +259,7 @@ export const STRINGS = {
     ntf_ADMIN_USAGE_ALERT_title: 'Cảnh báo sử dụng mới', ntf_ADMIN_USAGE_ALERT_body: 'Quy tắc {rule} — mức {severity}. {userEmail}',
     ntf_ADMIN_AI_DEGRADED_title: 'Model AI đang tạm nghỉ',
     ntf_ADMIN_AI_DEGRADED_body: 'Model {provider}/{model} tạm nghỉ tới {until} ({reason}). Hệ thống dùng model dự phòng nếu có.',
+    ntf_ADMIN_AI_DEGRADED_body_UNAVAILABLE: 'Model {provider}/{model} không còn gọi được (404 — nhà cung cấp đã gỡ/chặn). Hãy đổi định tuyến ở trang Model & định tuyến; tạm bỏ qua tới {until}.',
     ntf_ADMIN_API_VERSION_title: 'Cần kiểm tra phiên bản API',
     ntf_ADMIN_API_VERSION_body: 'API {platform}: {status}. Đang dùng {currentVersion}, mới nhất {latestVersion}.',
     // Cài đặt → Thông báo: ma trận nhóm × kênh
@@ -1854,6 +1855,7 @@ export const STRINGS = {
     ntf_ADMIN_USAGE_ALERT_title: 'New usage alert', ntf_ADMIN_USAGE_ALERT_body: 'Rule {rule} — severity {severity}. {userEmail}',
     ntf_ADMIN_AI_DEGRADED_title: 'AI model is cooling down',
     ntf_ADMIN_AI_DEGRADED_body: 'Model {provider}/{model} is resting until {until} ({reason}). Fallback models are used where available.',
+    ntf_ADMIN_AI_DEGRADED_body_UNAVAILABLE: 'Model {provider}/{model} can no longer be called (404 — removed or gated by the provider). Update the routing on the Models & routing page; skipped until {until}.',
     ntf_ADMIN_API_VERSION_title: 'Check the API version',
     ntf_ADMIN_API_VERSION_body: '{platform} API: {status}. Using {currentVersion}, latest {latestVersion}.',
     // Settings → Notifications: group × channel matrix

@@ -59,6 +59,7 @@ RETRY_BACKOFF_SECONDS = 1.0        # overloaded / network: one quick retry
 MAX_RATE_LIMIT_WAIT_SECONDS = 5.0  # 429 with a longer retryDelay => next model now
 OVERLOAD_COOLDOWN_SECONDS = 60     # circuit-breaker hint for 5xx
 RATE_LIMIT_COOLDOWN_SECONDS = 60   # hint for 429 without retryDelay
+MODEL_NOT_FOUND_COOLDOWN_SECONDS = 6 * 3600  # 404: config error — bench until an admin fixes routing
 MIN_CALL_SECONDS = 2.0             # don't start a call with less budget than this
 MAX_BAD_REQUEST_FALLBACKS = 1      # 400 → at most one other model, then AI_BAD_REQUEST
 
@@ -201,6 +202,7 @@ def invoke_structured(
     Chain = per-request config (primary, fallback) or the env default alone. Per model:
     - bad_request            → next model ONCE; a second 400 stops (AI_BAD_REQUEST)
     - invalid_key            → skip every remaining model of that provider
+    - model_not_found (404)  → next model at once, no retry (config error, logged at ERROR)
     - daily_quota_exhausted  → next model (cooldown hint until the Pacific-midnight reset)
     - rate_limited           → wait retryDelay once if ≤5s, else next model
     - provider_overloaded / network_error → one retry after ~1s, then next model
@@ -214,6 +216,41 @@ def invoke_structured(
         budget_seconds=settings.llm_chain_budget_seconds,
         call_timeout_seconds=settings.llm_call_timeout_seconds,
     )
+
+
+PROBE_MAX_TOKENS = 16           # enough for any model to answer "ping" — tokens are negligible
+PROBE_TIMEOUT_SECONDS = 20.0
+
+
+def probe_models(specs: List[LlmSpec]) -> List[LlmAttempt]:
+    """One MINIMAL real generation per model (in parallel) → one :class:`LlmAttempt` each.
+
+    Listing models is not enough: Google keeps gated models (e.g. gemini-2.5-*) in ListModels
+    while generateContent answers 404 — only a real call proves the model is usable. Failures
+    are classified like the chain (404 → ``model_not_found`` with its cooldown hint), so the
+    backend can feed the result straight into its circuit breaker."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    def one(spec: LlmSpec) -> LlmAttempt:
+        t0 = time.monotonic()
+        try:
+            probe_spec = spec.model_copy(update={"max_tokens": PROBE_MAX_TOKENS, "temperature": None})
+            build_llm(probe_spec, timeout=PROBE_TIMEOUT_SECONDS).invoke("ping")
+        except Exception as e:  # noqa: BLE001 — every failure is classified, never raised
+            info = errors.classify_error(e)
+            attempt = _attempt(spec, info, t0)
+        else:
+            attempt = LlmAttempt(provider=spec.provider, model=spec.model, outcome="ok",
+                                 latency_ms=_ms_since(t0))
+        level = (logging.INFO if attempt.outcome == "ok"
+                 else logging.ERROR if attempt.outcome == errors.MODEL_NOT_FOUND else logging.WARNING)
+        logger.log(level, "probe %s/%s %s %dms", spec.provider, spec.model, attempt.outcome, attempt.latency_ms)
+        return attempt
+
+    if not specs:
+        return []
+    with ThreadPoolExecutor(max_workers=min(8, len(specs))) as pool:
+        return list(pool.map(one, specs))
 
 
 @dataclass
@@ -350,6 +387,8 @@ def _cooldown_until(info: errors.ErrorInfo) -> Optional[datetime]:
         return now + timedelta(seconds=info.retry_after or RATE_LIMIT_COOLDOWN_SECONDS)
     if info.kind == errors.PROVIDER_OVERLOADED:
         return now + timedelta(seconds=OVERLOAD_COOLDOWN_SECONDS)
+    if info.kind == errors.MODEL_NOT_FOUND:
+        return now + timedelta(seconds=MODEL_NOT_FOUND_COOLDOWN_SECONDS)
     return None
 
 
@@ -375,7 +414,8 @@ def _log_step(request_id: str, spec: LlmSpec, outcome: str, action: Optional[str
               started: float, nxt: Optional[LlmSpec] = None) -> None:
     """One short line per step — never the provider's error body."""
     arrow = f" -> {nxt.provider}/{nxt.model}" if nxt else (" -> (end of chain)" if action == "fallback" else "")
-    level = logging.INFO if outcome == "ok" else logging.WARNING
+    level = (logging.INFO if outcome == "ok"
+             else logging.ERROR if outcome == errors.MODEL_NOT_FOUND else logging.WARNING)
     logger.log(level, "llm[%s] %s/%s %s%s%s %dms", request_id, spec.provider, spec.model, outcome,
                f" {action}" if action else "", arrow, _ms_since(started))
 

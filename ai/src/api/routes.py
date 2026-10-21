@@ -34,7 +34,7 @@ from ..agents import (
 )
 from ..config import get_settings
 from .. import errors
-from ..llm import LlmChainError, use_llm_config
+from ..llm import LlmChainError, probe_models as probe_llm_models, use_llm_config
 from ..model_catalog import list_models
 from ..model_catalog import probe as probe_models
 from ..schemas import (
@@ -55,6 +55,8 @@ from ..schemas import (
     PolicyCheckResult,
     PolicyFixRequest,
     PolicyFixResult,
+    ProbeModelsRequest,
+    ProbeModelsResult,
     RegeneratePartRequest,
     RegeneratePartResult,
     ResearchRequest,
@@ -240,6 +242,15 @@ def test_connection(
             message=_redact(str(e), req.api_key.get_secret_value()),
             latency_ms=latency_ms,
         )
+
+
+@router.post("/probe-models", response_model=ProbeModelsResult)
+def probe_models_route(req: ProbeModelsRequest) -> ProbeModelsResult:
+    """Backend model health check: ONE minimal real generation per spec (unlike
+    /test-connection, which only lists models — listing cannot detect a model that is gated
+    or removed: Google still lists it while generateContent returns 404). A few tokens per
+    model; never raises — every failure is a classified attempt."""
+    return ProbeModelsResult(results=probe_llm_models(req.specs))
 
 
 # errors kind → backend AiTestStatus. bad_request / invalid_response → "FAILED".

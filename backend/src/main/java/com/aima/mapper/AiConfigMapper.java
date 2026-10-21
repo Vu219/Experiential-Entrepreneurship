@@ -1,6 +1,7 @@
 package com.aima.mapper;
 
 import com.aima.dto.ai.CatalogModelPayload;
+import com.aima.dto.ai.LlmAttemptPayload;
 import com.aima.dto.ai.LlmConfigPayload;
 import com.aima.dto.response.AiModelHealthResponse;
 import com.aima.service.AiModelHealthService;
@@ -13,6 +14,7 @@ import com.aima.dto.request.AiRoutingUpdateRequest;
 import com.aima.dto.response.AiCatalogModelResponse;
 import com.aima.dto.response.AiConfigAuditResponse;
 import com.aima.dto.response.AiEffectiveStatusResponse;
+import com.aima.dto.response.AiModelProbeResponse;
 import com.aima.dto.response.AiModelResponse;
 import com.aima.dto.response.AiProviderResponse;
 import com.aima.dto.response.AiRoutingFallbackResponse;
@@ -158,6 +160,15 @@ public interface AiConfigMapper {
                 .fallback(chain.isEmpty() ? null : chain.get(0))
                 .build();
     }
+
+    /** Kết quả "Kiểm tra model" của một model (attempt của AI service /probe-models). */
+    @Mapping(target = "modelId", source = "model.id")
+    @Mapping(target = "providerCode", source = "model.provider.code")
+    @Mapping(target = "modelCode", source = "model.modelCode")
+    @Mapping(target = "outcome", source = "attempt.outcome")
+    @Mapping(target = "httpStatus", source = "attempt.httpStatus")
+    @Mapping(target = "latencyMs", source = "attempt.latencyMs")
+    AiModelProbeResponse toModelProbeResponse(AiModel model, LlmAttemptPayload attempt);
 
     // Circuit breaker (Redis) → trang admin providers.
     AiModelHealthResponse toModelHealthResponse(AiModelHealthService.Entry entry);

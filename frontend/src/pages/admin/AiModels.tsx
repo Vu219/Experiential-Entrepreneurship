@@ -16,6 +16,8 @@ import Pagination from '../../components/admin/Pagination';
 import { DataTable } from '../../components/admin/AdminListPage';
 import { useToast } from '../../components/toast/ToastProvider';
 import {
+  aiProbeLabel,
+  aiProbeText,
   aiTaskLabel,
   createAiModel,
   deleteAiModel,
@@ -25,6 +27,7 @@ import {
   listAiProviders,
   listAiRouting,
   modelBlockReason,
+  probeAiModels,
   updateAiModel,
   updateAiRouting,
   type AiCatalogModel,
@@ -95,6 +98,7 @@ export default function AiModels() {
   const [routing, setRouting] = useState<AiRoutingInfo[]>([]);
   const [status, setStatus] = useState<AiEffectiveStatus | null>(null);
   const [busy, setBusy] = useState(false);
+  const [probing, setProbing] = useState(false);
 
   // Tìm kiếm + phân trang client — chỉ hiện khi vượt MODELS_PAGE_SIZE dòng
   const [q, setQ] = useState('');
@@ -142,6 +146,24 @@ export default function AiModels() {
   useEffect(fetchAll, []);
 
   const modelLabel = (m: AiModelInfo) => `${m.modelCode} · ${m.providerCode}`;
+
+  const px = aiProbeText(lang);
+  const probeTone = { ok: 'success', warn: 'warning', error: 'danger' } as const;
+  /** "Kiểm tra model" — gọi thật từng model đang định tuyến; tải lại để thấy cột kết quả + health route mới. */
+  const runProbe = () => {
+    setProbing(true);
+    probeAiModels()
+      .then((results) => {
+        const ok = results.filter((r) => r.outcome === 'ok').length;
+        if (results.length === 0) toast.info(px.none);
+        else if (ok === results.length) toast.success(px.done(ok, results.length));
+        else if (results.some((r) => aiProbeLabel(lang, r.outcome).tone === 'error')) toast.error(px.done(ok, results.length));
+        else toast.warning(px.done(ok, results.length));
+        fetchAll();
+      })
+      .catch(() => toast.error(px.failed))
+      .finally(() => setProbing(false));
+  };
 
   // Effective status theo routingId — nguồn duy nhất từ GET /admin/ai/status (BE tính)
   const statusByRouting = useMemo(
@@ -439,13 +461,16 @@ export default function AiModels() {
                 style={{ border: `1px solid ${C.border}`, borderRadius: 9, padding: '7px 12px', fontSize: 12.5, color: C.ink750, outline: 'none', width: 180 }}
               />
             )}
+            <button onClick={runProbe} disabled={probing} title={px.hint} style={{ ...btnOutline, cursor: probing ? 'wait' : 'pointer', opacity: probing ? 0.7 : 1 }}>
+              {probing ? t.processing : px.button}
+            </button>
             <button onClick={openCreateModel} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 9, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: 'pointer' }}>
               <Plus size={14} strokeWidth={2.4} />{t.aiAddModel}
             </button>
           </div>
         }
       >
-        <DataTable head={['Model', t.aiColProvider, t.aiPriceIn, t.aiPriceOut, t.colStatus, t.colAction]} minWidth={820}>
+        <DataTable head={['Model', t.aiColProvider, t.aiPriceIn, t.aiPriceOut, t.colStatus, px.column, t.colAction]} minWidth={960}>
           {pagedModels.map((m) => (
             <tr key={m.id} style={{ borderTop: `1px solid ${C.surfaceMuted}` }}>
               <td style={tdStyle}>
@@ -458,6 +483,16 @@ export default function AiModels() {
               <td style={tdStyle}>{fmtPrice(m.inputPricePer1m)}</td>
               <td style={tdStyle}>{fmtPrice(m.outputPricePer1m)}</td>
               <td style={tdStyle}><StatusBadge tone={m.enabled ? 'success' : 'neutral'} label={m.enabled ? t.aiEnabled : t.aiDisabled} /></td>
+              <td style={tdStyle}>
+                {m.lastProbeStatus ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-start' }}>
+                    <StatusBadge tone={probeTone[aiProbeLabel(lang, m.lastProbeStatus).tone]} label={aiProbeLabel(lang, m.lastProbeStatus).label} />
+                    {m.lastProbedAt && <span style={{ fontSize: 11.5, color: C.textFaint }}>{fmtAiDateTime(m.lastProbedAt)}</span>}
+                  </div>
+                ) : (
+                  <span style={{ fontSize: 12, color: C.textFaint }}>{px.never}</span>
+                )}
+              </td>
               <td style={tdStyle}>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <button onClick={() => openEditModel(m)} style={btnOutline}>{t.aiEdit}</button>

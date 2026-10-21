@@ -12,6 +12,7 @@ import com.aima.dto.request.AiRoutingUpdateRequest;
 import com.aima.dto.response.AiCatalogModelResponse;
 import com.aima.dto.response.AiConfigAuditResponse;
 import com.aima.dto.response.AiEffectiveStatusResponse;
+import com.aima.dto.response.AiModelProbeResponse;
 import com.aima.dto.response.AiModelResponse;
 import com.aima.dto.response.AiModelHealthResponse;
 import com.aima.dto.response.AiProviderResponse;
@@ -52,6 +53,7 @@ import com.aima.repository.UserRepository;
 import com.aima.service.ActivityLogService;
 import com.aima.service.AiConfigService;
 import com.aima.service.AiModelHealthService;
+import com.aima.service.AiModelProbeService;
 import com.aima.service.AiRuntimeConfigService;
 import com.aima.service.AiServiceClient;
 import tools.jackson.core.JacksonException;
@@ -99,6 +101,7 @@ public class AiConfigServiceImpl implements AiConfigService {
 
     ActivityLogService activityLogService;
     AiModelHealthService modelHealthService;
+    AiModelProbeService modelProbeService;
 
     static final int MAX_AUDIT_PAGE_SIZE = 50;
 
@@ -315,6 +318,13 @@ public class AiConfigServiceImpl implements AiConfigService {
                 .map(m -> enrichModel(aiConfigMapper.toModelResponse(m), routings))
                 .toList();
         return ApiResponse.success("Lấy danh sách model AI thành công", models);
+    }
+
+    // KHÔNG @Transactional: probe gọi AI service (HTTP) — không giữ transaction quanh lời gọi mạng (rule #24).
+    @Override
+    public ApiResponse<List<AiModelProbeResponse>> probeModels() {
+        List<AiModelProbeResponse> results = modelProbeService.probeRoutedModels();
+        return ApiResponse.success("Đã kiểm tra " + results.size() + " model", results);
     }
 
     @Override

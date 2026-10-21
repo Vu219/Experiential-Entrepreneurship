@@ -8,7 +8,7 @@ import java.util.List;
 
 /**
  * Circuit breaker theo model (lưu Redis, dùng chung mọi instance): model vừa quá tải / bị
- * rate-limit / hết quota ngày bị đánh dấu nghỉ tới {@code until}, và bị bỏ khỏi chuỗi model gửi
+ * rate-limit / hết quota ngày / không còn tồn tại (404) bị đánh dấu nghỉ tới {@code until}, và bị bỏ khỏi chuỗi model gửi
  * sang AI service cho tới lúc đó. Nguồn dữ liệu: {@code llm_attempts} AI service trả về.
  *
  * <p><b>Fail-open:</b> Redis lỗi/không kết nối được → coi mọi model là khả dụng (log WARNING),
@@ -18,6 +18,8 @@ public interface AiModelHealthService {
 
     String STATE_COOLDOWN = "COOLDOWN";
     String STATE_EXHAUSTED = "EXHAUSTED";
+    /** Model không còn gọi được (404 — bị provider gỡ/chặn): lỗi CẤU HÌNH, admin phải đổi routing. */
+    String STATE_UNAVAILABLE = "UNAVAILABLE";
 
     /** Trạng thái một model đang nghỉ. {@code until}/{@code updatedAt} theo giờ ứng dụng (APP_TIMEZONE). */
     record Entry(String provider, String model, String state, String reason, LocalDateTime until,

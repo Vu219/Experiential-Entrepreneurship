@@ -35,8 +35,8 @@ const MESSAGES: Record<AiErrorCode, { vi: string; en: string }> = {
     en: 'The request is invalid, please adjust your input.',
   },
   AI_UNAVAILABLE: {
-    vi: 'Không thể tạo nội dung lúc này, vui lòng thử lại.',
-    en: 'Content cannot be generated right now, please try again.',
+    vi: 'Dịch vụ AI đang gặp sự cố (không phải do quá tải) nên chưa tạo được nội dung. Vui lòng thử lại sau hoặc báo quản trị viên nếu lỗi lặp lại.',
+    en: 'The AI service has a problem (not an overload) and could not generate content. Please try again later, or tell an administrator if it keeps happening.',
   },
 };
 
@@ -48,7 +48,7 @@ export function toAiErrorCode(code: string | number | null | undefined): AiError
   return code in MESSAGES ? (code as AiErrorCode) : null;
 }
 
-/** Câu hiển thị cho một mã lỗi AI; mã lạ / thiếu → "Không thể tạo nội dung lúc này…". */
+/** Câu hiển thị cho một mã lỗi AI; mã lạ / thiếu → câu của AI_UNAVAILABLE ("Dịch vụ AI đang gặp sự cố…"). */
 export function aiErrorMessage(lang: Lang, code: string | number | null | undefined): string {
   const known = toAiErrorCode(code) ?? 'AI_UNAVAILABLE';
   return lang === 'en' ? MESSAGES[known].en : MESSAGES[known].vi;

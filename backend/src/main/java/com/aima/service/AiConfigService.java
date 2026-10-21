@@ -6,6 +6,7 @@ import com.aima.dto.request.AiProviderUpdateRequest;
 import com.aima.dto.request.AiRoutingUpdateRequest;
 import com.aima.dto.response.AiConfigAuditResponse;
 import com.aima.dto.response.AiEffectiveStatusResponse;
+import com.aima.dto.response.AiModelProbeResponse;
 import com.aima.dto.response.AiModelResponse;
 import com.aima.dto.response.AiModelHealthResponse;
 import com.aima.dto.response.AiProviderResponse;
@@ -51,6 +52,9 @@ public interface AiConfigService {
     ApiResponse<AiEffectiveStatusResponse> getEffectiveStatus();
 
     ApiResponse<List<AiModelResponse>> listModels();
+
+    /** "Kiểm tra model": generateContent tối thiểu cho mọi model đang định tuyến (xem {@link AiModelProbeService}). */
+    ApiResponse<List<AiModelProbeResponse>> probeModels();
 
     ApiResponse<AiModelResponse> createModel(AiModelCreateRequest request);
 

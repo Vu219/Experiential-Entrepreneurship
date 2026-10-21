@@ -52,7 +52,7 @@ public class AiConfigDataInitializer implements CommandLineRunner {
 
     /** Model mặc định khi env seed không chỉ định — khớp default của ai/src/config.py. */
     static final String DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6";
-    static final String DEFAULT_GOOGLE_MODEL = "gemini-2.5-pro";
+    static final String DEFAULT_GOOGLE_MODEL = "gemini-3.5-flash";
 
     /**
      * Bảng giá GỢI Ý (USD / 1M token in, out) — provider không trả giá qua API nên tự bảo trì;

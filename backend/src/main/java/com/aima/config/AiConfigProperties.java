@@ -13,6 +13,9 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 @ConfigurationProperties(prefix = "ai-config")
 public record AiConfigProperties(
         boolean fromDb,
+        // "Kiểm tra model" (generateContent tối thiểu) cho các model đang định tuyến khi backend khởi động — chỉ khi
+        // fromDb. Thiếu property (vd test) = false.
+        boolean probeOnStartup,
         // @DefaultValue: không có property ai-config.seed.* (vd môi trường test) vẫn
         // khởi tạo record rỗng thay vì null — initializer không phải null-check.
         @DefaultValue Seed seed

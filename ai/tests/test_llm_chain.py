@@ -87,7 +87,7 @@ def test_classify_daily_quota_through_langchain_wrapper():
 
 @pytest.mark.parametrize("code,kind", [
     (400, errors.BAD_REQUEST), (401, errors.INVALID_KEY), (403, errors.INVALID_KEY),
-    (500, errors.PROVIDER_OVERLOADED), (503, errors.PROVIDER_OVERLOADED), (404, errors.INVALID_RESPONSE),
+    (500, errors.PROVIDER_OVERLOADED), (503, errors.PROVIDER_OVERLOADED), (404, errors.MODEL_NOT_FOUND),
 ])
 def test_classify_status_codes(code, kind):
     assert errors.classify_error(_google_error(code)).kind == kind
@@ -329,3 +329,103 @@ def test_classify_google_400_api_key_invalid_is_invalid_key():
                                    "reason": "API_KEY_INVALID", "domain": "googleapis.com"}]}}
     assert errors.classify_error(genai_errors.ClientError(400, body)).kind == errors.INVALID_KEY
     assert errors.classify_error(_google_error(400)).kind == errors.BAD_REQUEST
+
+
+# ---------- 404 model_not_found (gated / removed model) ----------
+
+def test_404_is_model_not_found_through_langchain_wrapper():
+    try:
+        try:
+            raise _google_error(404)
+        except genai_errors.ClientError as e:
+            raise RuntimeError("Error calling model (NOT_FOUND)") from e
+    except RuntimeError as wrapped:
+        info = errors.classify_error(wrapped)
+    assert info.kind == errors.MODEL_NOT_FOUND and info.http_status == 404
+
+
+def test_unparseable_200_is_still_invalid_response():
+    assert errors.classify_error(ValueError("Model returned no valid Out")).kind == errors.INVALID_RESPONSE
+
+
+def test_404_falls_back_immediately_without_retry_and_logs_error(script, caplog):
+    plan, calls, sleeps = script
+    plan["gemini-2.5-flash-lite"] = [_google_error(404)]
+    with caplog.at_level(logging.WARNING, logger="src.llm"):
+        out, usage = _run([_spec("gemini-2.5-flash-lite"), _spec("gemini-3.5-flash")])
+    assert out.text == "gemini-3.5-flash"
+    assert calls == ["gemini-2.5-flash-lite", "gemini-3.5-flash"]
+    assert sleeps == []
+    first = usage.attempts[0]
+    assert first.outcome == errors.MODEL_NOT_FOUND and first.http_status == 404
+    # Circuit-breaker hint: bench the dead model for hours, not the 60s of an overload.
+    hours = (first.cooldown_until - datetime.now(timezone.utc)).total_seconds() / 3600
+    assert 5.9 < hours <= 6
+    rec = next(r for r in caplog.records if "model_not_found" in r.getMessage())
+    assert rec.levelno == logging.ERROR
+
+
+def test_only_404_models_report_unavailable_not_overloaded(script):
+    plan, _, _ = script
+    plan["gemini-2.5-flash-lite"] = [_google_error(404)]
+    with pytest.raises(llm.LlmChainError) as exc:
+        _run([_spec("gemini-2.5-flash-lite")])
+    assert exc.value.error_code == llm.AI_UNAVAILABLE
+    assert len(exc.value.attempts) == 1
+
+
+def test_404_then_overloaded_reports_overloaded(script):
+    plan, _, _ = script
+    plan["gemini-2.5-flash-lite"] = [_google_error(404)]
+    plan["gemini-3.1-flash-lite"] = [_google_error(503), _google_error(503)]
+    with pytest.raises(llm.LlmChainError) as exc:
+        _run([_spec("gemini-2.5-flash-lite"), _spec("gemini-3.1-flash-lite")])
+    assert exc.value.error_code == llm.AI_PROVIDER_OVERLOADED
+    assert [a.outcome for a in exc.value.attempts] == [
+        errors.MODEL_NOT_FOUND, errors.PROVIDER_OVERLOADED, errors.PROVIDER_OVERLOADED]
+
+
+# ---------- probe_models (deploy / backend health check) ----------
+
+class _FakeProbeLlm:
+    def __init__(self, outcome):
+        self.outcome = outcome
+
+    def invoke(self, _prompt):
+        if self.outcome != "ok":
+            raise self.outcome
+        return "pong"
+
+
+def test_probe_models_one_attempt_per_spec_in_order(monkeypatch):
+    built: list[LlmSpec] = []
+    outcomes = {"gemini-2.5-flash-lite": _google_error(404), "gemini-3.1-flash-lite": _google_error(503),
+                "gemini-3.5-flash": "ok"}
+
+    def fake_build(spec, timeout=None):
+        built.append(spec)
+        return _FakeProbeLlm(outcomes[spec.model])
+
+    monkeypatch.setattr(llm, "build_llm", fake_build)
+    specs = [_spec(m) for m in outcomes]
+    results = llm.probe_models(specs)
+    assert [r.model for r in results] == list(outcomes)
+    assert [r.outcome for r in results] == [errors.MODEL_NOT_FOUND, errors.PROVIDER_OVERLOADED, "ok"]
+    assert results[0].cooldown_until is not None and results[2].cooldown_until is None
+    # Minimal generation: tiny max_tokens, routing temperature dropped.
+    assert all(s.max_tokens == llm.PROBE_MAX_TOKENS and s.temperature is None for s in built)
+
+
+def test_probe_models_route(monkeypatch):
+    from fastapi.testclient import TestClient
+    from main import app
+
+    monkeypatch.setattr(llm, "build_llm", lambda spec, timeout=None: _FakeProbeLlm(
+        _google_error(404) if spec.model == "dead" else "ok"))
+    monkeypatch.setattr(llm.get_settings(), "ai_internal_token", None)
+    body = {"specs": [{"provider": "google", "model": "dead", "api_key": "k"},
+                      {"provider": "google", "model": "alive", "api_key": "k"}]}
+    resp = TestClient(app).post("/probe-models", json=body)
+    assert resp.status_code == 200
+    assert [r["outcome"] for r in resp.json()["results"]] == ["model_not_found", "ok"]
+    assert "k" not in [v for r in resp.json()["results"] for v in r.values()]

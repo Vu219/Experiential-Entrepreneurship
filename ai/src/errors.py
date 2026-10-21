@@ -9,11 +9,12 @@ a small set of kinds that drive retry/fallback decisions:
 |-------------------------|-----------------------------------------|-------------------------------|
 | bad_request             | 400                                     | next model once, 2nd 400 stop |
 | invalid_key             | 401/403, Google 400 API_KEY_INVALID     | skip every model of provider  |
+| model_not_found         | 404 (model id removed / gated)          | next model NOW, ERROR log     |
 | daily_quota_exhausted   | 429 + QuotaFailure quotaId "PerDay"     | next model, cooldown to reset |
 | rate_limited            | 429 otherwise (RetryInfo.retryDelay)    | wait ≤5s once, else next      |
 | provider_overloaded     | 500/502/503/504/529                     | retry once (~1s), then next   |
 | network_error           | timeout / connection error              | retry once, then next         |
-| invalid_response        | anything else (parse failure, 404…)     | next model                    |
+| invalid_response        | anything else (200 but unparseable…)    | next model                    |
 
 SECURITY: never keep or log ``str(exc)`` here — only codes, quota ids and delays.
 """
@@ -28,6 +29,9 @@ from zoneinfo import ZoneInfo
 
 BAD_REQUEST = "bad_request"
 INVALID_KEY = "invalid_key"
+# 404 = config error (Google keeps a gated model in ListModels but generateContent → 404
+# "no longer available to new users"): never retry that model, fall through at once.
+MODEL_NOT_FOUND = "model_not_found"
 DAILY_QUOTA_EXHAUSTED = "daily_quota_exhausted"
 RATE_LIMITED = "rate_limited"
 PROVIDER_OVERLOADED = "provider_overloaded"
@@ -129,6 +133,8 @@ def from_http(status: Any, body: Any = None, retry_after_header: Optional[float]
         return ErrorInfo(BAD_REQUEST, code)
     if code in (401, 403):
         return ErrorInfo(INVALID_KEY, code)
+    if code == 404:
+        return ErrorInfo(MODEL_NOT_FOUND, code)
     if code == 429:
         quota_ids, retry_delay = _google_quota_details(body)
         free_tier = any("FreeTier" in q for q in quota_ids)

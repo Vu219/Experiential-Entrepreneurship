@@ -77,6 +77,7 @@ response = the domain response **plus `TokenAccounting`** fields (`tokens_used`,
 | `/policy-check` | Tier-2 policy review (`risk_level` none/low/medium/high + issues) — warning only |
 | `/test-connection` | Admin "Cấu hình AI": probe a provider key by LISTING models (Gemini `GET /v1beta/models`, Anthropic `GET /v1/models`, 1 item — never generateContent, no quota); returns `status` from `classify_error` (OK / INVALID_KEY / RATE_LIMITED / DAILY_QUOTA_EXHAUSTED / PROVIDER_OVERLOADED / NETWORK_ERROR / FAILED) + `free_tier`; wrong key = result, not 5xx |
 | `/list-models` | Admin model sync: provider catalog (id + limits, no pricing) |
+| `/probe-models` | "Kiểm tra model" (2026-10-22): `{specs[]}` → `{results: LlmAttempt[]}` — ONE minimal real generation per spec (`llm.probe_models`, `max_tokens` 16, parallel, never raises). Listing is NOT enough: Google keeps gated models (gemini-2.5-*) in ListModels while generateContent → 404. Called by the backend at startup + from the admin button; `scripts/check_models.py` uses the same function for the env model |
 
 ## 4. LLM routing & trend research — how it works
 
@@ -110,8 +111,11 @@ usage (`usage_metadata`, incl. cache reads) for the `TokenAccounting` response f
 Anthropic `max_retries=0`; AFC disabled via `_GeminiChat`) — never re-enable them, they
 multiply calls (default was 6/model) and blow the backend timeout. Per `errors.classify_error`
 kind: `bad_request` next model once, a 2nd 400 stops (AI_BAD_REQUEST) · `invalid_key` skip the whole provider · `daily_quota_exhausted`
-next model (cooldown to 0:00 America/Los_Angeles) · `rate_limited` wait ≤5s once else next ·
-`provider_overloaded`/`network_error` one retry after ~1s then next · `invalid_response` next.
+next model (cooldown to 0:00 America/Los_Angeles) · `model_not_found` (404 — model removed/gated, a CONFIG error)
+next model at once, no retry, logged at ERROR, cooldown 6h · `rate_limited` wait ≤5s once else next ·
+`provider_overloaded`/`network_error` one retry after ~1s then next · `invalid_response` (200 but unparseable / unknown) next.
+NB: the `<ms>` in each log line is time since the chain STARTED, not a wait — a ~20s value on an overloaded model is the
+provider taking ~20s to answer 503/504, the backoff itself is 1s.
 Bounded by `LLM_CHAIN_BUDGET_SECONDS` (80) with `LLM_CALL_TIMEOUT_SECONDS` (40) per call —
 keep the budget below the backend's `AI_SERVICE_TIMEOUT_SECONDS` (100). Every step logs one
 line `llm[<req>] provider/model outcome action -> next <ms>`. Success responses carry
@@ -185,7 +189,7 @@ Gemini grounding has its own quota) — `TREND_SEARCH_MAX_USES` caps it.
 LLM_PROVIDER (anthropic|google), LLM_MAX_TOKENS (16000)
 LLM_CALL_TIMEOUT_SECONDS (40), LLM_CHAIN_BUDGET_SECONDS (80)   # chain limits, see §4
 ANTHROPIC_API_KEY, ANTHROPIC_MODEL (claude-sonnet-4-6)
-GOOGLE_API_KEY, GOOGLE_MODEL (gemini-2.5-pro)
+GOOGLE_API_KEY, GOOGLE_MODEL (gemini-3.5-flash)   # gemini-2.5-* → 404 for new keys; verify: scripts/check_models.py
 AI_SERVICE_HOST (0.0.0.0), AI_SERVICE_PORT (8000)
 AI_INTERNAL_TOKEN                  # shared secret with backend/.env — REQUIRED for llm_config,
                                    # /test-connection, /list-models (fail-closed when unset)
@@ -211,6 +215,7 @@ uv run uvicorn main:app --reload       # dev server on :8000 (hot reload)
 uv run python main.py                  # run (host/port from .env)
 uv run main.py                         # demo workflow (root CLAUDE.md)
 uv run pytest -q tests                 # unit tests (mocked providers, no network)
+uv run python scripts/check_models.py [extra-model…]  # deploy check: env model still answers? exit 1 = gone / key rejected
 ```
 
 **Backend integration.** The Spring backend reaches this service via `AI_SERVICE_BASE_URL`

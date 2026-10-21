@@ -151,7 +151,7 @@ public enum ErrorCode {
     AI_PROVIDER_OVERLOADED(1908, "Hệ thống AI đang quá tải, vui lòng thử lại sau ít phút.", HttpStatus.SERVICE_UNAVAILABLE),
     AI_QUOTA_EXHAUSTED(1909, "Đã đạt giới hạn sử dụng AI hôm nay. Vui lòng thử lại sau hoặc liên hệ quản trị viên.", HttpStatus.TOO_MANY_REQUESTS),
     AI_BAD_REQUEST(1954, "Yêu cầu không hợp lệ, vui lòng chỉnh lại nội dung đầu vào.", HttpStatus.BAD_REQUEST),
-    AI_UNAVAILABLE(1955, "Không thể tạo nội dung lúc này, vui lòng thử lại.", HttpStatus.BAD_GATEWAY),
+    AI_UNAVAILABLE(1955, "Dịch vụ AI đang gặp sự cố (không phải do quá tải) nên chưa tạo được nội dung. Vui lòng thử lại sau hoặc báo quản trị viên nếu lỗi lặp lại.", HttpStatus.BAD_GATEWAY),
     IDEMPOTENCY_KEY_INVALID(1944, "Idempotency-Key không hợp lệ (tối đa 64 ký tự)", HttpStatus.BAD_REQUEST),
 
     // TREND RESEARCH ERRORS

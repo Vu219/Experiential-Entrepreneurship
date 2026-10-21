@@ -11,6 +11,8 @@ import com.aima.dto.ai.GoldenHourPayload;
 import com.aima.dto.ai.GoldenHourResultPayload;
 import com.aima.dto.ai.ListModelsPayload;
 import com.aima.dto.ai.ListModelsResultPayload;
+import com.aima.dto.ai.ProbeModelsPayload;
+import com.aima.dto.ai.ProbeModelsResultPayload;
 import com.aima.dto.ai.OptimizePayload;
 import com.aima.dto.ai.OptimizeResultPayload;
 import com.aima.dto.ai.PolicyCheckPayload;
@@ -76,4 +78,10 @@ public interface AiServiceClient {
      * KHÔNG trả giá). Payload chứa key plaintext: KHÔNG log payload.
      */
     ListModelsResultPayload listModels(ListModelsPayload payload);
+
+    /**
+     * POST /probe-models — "Kiểm tra model": MỘT lần generateContent tối thiểu mỗi spec (liệt kê model không
+     * phát hiện được model bị gỡ/chặn — Google vẫn liệt kê nhưng gọi thì 404). Payload chứa key plaintext: KHÔNG log.
+     */
+    ProbeModelsResultPayload probeModels(ProbeModelsPayload payload);
 }

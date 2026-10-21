@@ -26,7 +26,7 @@ Copy `.env.example` → `.env`. Key settings:
 - `LLM_PROVIDER` — `anthropic` (default) or `google`. The agents are provider-agnostic
   (LangChain `with_structured_output`), so either backend returns the same typed JSON.
 - `ANTHROPIC_API_KEY` + `ANTHROPIC_MODEL` (default `claude-sonnet-4-6`)
-- `GOOGLE_API_KEY` + `GOOGLE_MODEL` (default `gemini-2.5-pro`)
+- `GOOGLE_API_KEY` + `GOOGLE_MODEL` (default `gemini-3.5-flash`)
 - `FACEBOOK_PAGE_ACCESS_TOKEN` — optional; trend research falls back to mock data without it.
 - `TIKTOK_RAPIDAPI_KEY` — optional; TikTok trending (cross-platform trend signal, adapted
   from [Trends-MCP](https://github.com/rugvedp/Trends-MCP)) falls back to mock data without

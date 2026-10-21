@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,6 +37,9 @@ public class AiModelResponse {
 
     /** Trần max_tokens tham khảo của model (null = không rõ) — chỉ để FE gợi ý/cảnh báo. */
     Integer maxTokens;
+    /** Kết quả "Kiểm tra model" gần nhất: "ok" / loại lỗi của AI service; null = chưa kiểm tra. */
+    String lastProbeStatus;
+    LocalDateTime lastProbedAt;
 
     /** Các nghiệp vụ (AiTaskCode) đang dùng model này làm chính/dự phòng — cảnh báo tắt/xóa. */
     List<String> usedByTaskCodes;

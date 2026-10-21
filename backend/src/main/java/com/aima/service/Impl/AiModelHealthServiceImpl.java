@@ -52,6 +52,7 @@ public class AiModelHealthServiceImpl implements AiModelHealthService {
     static final Duration REDIS_BACKOFF = Duration.ofSeconds(30);
     static final String OUTCOME_OK = "ok";
     static final String OUTCOME_DAILY_QUOTA = "daily_quota_exhausted";
+    static final String OUTCOME_MODEL_NOT_FOUND = "model_not_found";
 
     StringRedisTemplate redis;
     ObjectMapper objectMapper;
@@ -79,8 +80,7 @@ public class AiModelHealthServiceImpl implements AiModelHealthService {
                 if (OUTCOME_OK.equals(a.getOutcome())) {
                     redis.delete(key); // model vừa trả lời được → hết nghỉ
                 } else if (a.getCooldownUntil() != null && a.getCooldownUntil().isAfter(now)) {
-                    Entry entry = new Entry(a.getProvider(), a.getModel(),
-                            OUTCOME_DAILY_QUOTA.equals(a.getOutcome()) ? STATE_EXHAUSTED : STATE_COOLDOWN,
+                    Entry entry = new Entry(a.getProvider(), a.getModel(), stateOf(a.getOutcome()),
                             a.getOutcome(), toLocal(a.getCooldownUntil()), Boolean.TRUE.equals(a.getFreeTier()),
                             toLocal(now));
                     redis.opsForValue().set(key, objectMapper.writeValueAsString(entry),
@@ -94,17 +94,28 @@ public class AiModelHealthServiceImpl implements AiModelHealthService {
         }, null);
     }
 
+    static String stateOf(String outcome) {
+        if (OUTCOME_DAILY_QUOTA.equals(outcome)) return STATE_EXHAUSTED;
+        if (OUTCOME_MODEL_NOT_FOUND.equals(outcome)) return STATE_UNAVAILABLE;
+        return STATE_COOLDOWN;
+    }
+
     /** Báo admin model vào trạng thái nghỉ — tối đa MỘT lần/giờ/model (dedupe), best-effort. */
     private void notifyDegraded(Entry entry, Instant now) {
         try {
             String hour = now.truncatedTo(java.time.temporal.ChronoUnit.HOURS).toString();
+            boolean gone = STATE_UNAVAILABLE.equals(entry.state());
             notificationService.sendToAdmins(NotificationDraft.builder()
                     .type(NotificationType.ADMIN_AI_DEGRADED)
-                    .title("Model AI đang tạm nghỉ")
-                    .message("Model " + entry.provider() + "/" + entry.model() + " " + entry.state() + " tới " + entry.until()
-                            + " (" + entry.reason() + "). Hệ thống đang dùng model dự phòng nếu có.")
+                    .title(gone ? "Model AI không còn khả dụng" : "Model AI đang tạm nghỉ")
+                    .message(gone
+                            ? "Model " + entry.provider() + "/" + entry.model() + " trả 404 (đã bị nhà cung cấp gỡ/chặn) — "
+                              + "hãy đổi định tuyến ở trang \"Model & định tuyến\". Tạm bỏ qua tới " + entry.until() + "."
+                            : "Model " + entry.provider() + "/" + entry.model() + " " + entry.state() + " tới " + entry.until()
+                              + " (" + entry.reason() + "). Hệ thống đang dùng model dự phòng nếu có.")
                     .params(NotificationParams.of("provider", entry.provider(), "model", entry.model(),
-                            "state", entry.state(), "reason", entry.reason(), "until", entry.until()))
+                            "state", entry.state(), "reason", entry.reason(), "until", entry.until(),
+                            "variant", gone ? STATE_UNAVAILABLE : null))
                     .dedupeKey("ai-degraded:" + entry.provider() + ":" + entry.model() + ":" + hour)
                     .build());
         } catch (Exception e) {
