@@ -150,11 +150,19 @@ export default function NotificationBell() {
             {!feed.error && feed.items.length === 0 && !feed.loading && (
               <div style={{ padding: "30px 16px", textAlign: "center", fontSize: 13, color: C.textMuted }}>{t.ntfEmpty}</div>
             )}
+            {feed.loading && feed.items.length === 0 && (
+              <div role="status" aria-busy="true" aria-label={t.listLoading}>
+                <NotificationSkeletonRow titleWidth="65%" bodyWidth="85%" />
+                <NotificationSkeletonRow titleWidth="45%" bodyWidth="75%" />
+                <NotificationSkeletonRow titleWidth="55%" bodyWidth="90%" />
+                <NotificationSkeletonRow titleWidth="50%" bodyWidth="65%" />
+              </div>
+            )}
             {feed.items.map((n) => (
               <NotificationRow key={n.id} notification={n} text={notificationText(n, dict, lang)} onClick={() => onItemClick(n)} />
             ))}
-            {feed.loading && (
-              <div style={{ padding: "14px 16px", textAlign: "center", fontSize: 12.5, color: C.ink350 }}>…</div>
+            {feed.loading && feed.items.length > 0 && (
+              <NotificationSkeletonRow titleWidth="50%" bodyWidth="75%" />
             )}
             {!feed.loading && !feed.error && !feed.last && (
               <button
@@ -229,5 +237,34 @@ export function NotificationRow({
         </span>
       </span>
     </button>
+  );
+}
+
+export function NotificationSkeletonRow({
+  titleWidth = '55%',
+  bodyWidth = '85%',
+}: {
+  titleWidth?: string;
+  bodyWidth?: string;
+} = {}) {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        width: '100%',
+        display: 'flex',
+        gap: 12,
+        padding: '12px 16px',
+        borderBottom: `1px solid ${C.surfaceMuted}`,
+        boxSizing: 'border-box',
+      }}
+    >
+      <div className="sk" style={{ width: 34, height: 34, flex: 'none', borderRadius: 10 }} />
+      <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 6, justifyContent: 'center' }}>
+        <div className="sk" style={{ width: titleWidth, height: 13, borderRadius: 6 }} />
+        <div className="sk" style={{ width: bodyWidth, height: 11, borderRadius: 5, marginTop: 2 }} />
+        <div className="sk" style={{ width: '28%', height: 10, borderRadius: 5, marginTop: 3 }} />
+      </div>
+    </div>
   );
 }

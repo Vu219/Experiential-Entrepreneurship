@@ -1,7 +1,8 @@
 import { memo, useMemo } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 import { useApp } from '../../context/AppContext';
-import { Card } from '../ui';
+import { Card, Icon } from '../ui';
 import { formatGroupedNumber } from '../../utils/format';
 import { typeColor } from './dashboardTokens';
 import type { DashboardDistribution } from '../../api/dashboard';
@@ -13,7 +14,7 @@ import { C } from '../../styles/colors';
  * cần sửa code khi có định dạng mới.
  */
 function ContentTypeDonut({ rows, id }: { rows: DashboardDistribution[]; id?: string }) {
-  const { t, lang } = useApp();
+  const { t, lang, go } = useApp();
 
   const labelOf = useMemo(() => {
     const dict: Record<string, string> = {
@@ -30,8 +31,24 @@ function ContentTypeDonut({ rows, id }: { rows: DashboardDistribution[]; id?: st
 
   return (
     <Card id={id}>
-      <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.dbTypesTitle}</div>
-      <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 2 }}>{t.dbTypesSub}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: C.textStrong }}>{t.dbTypesTitle}</div>
+          <div style={{ fontSize: 12.5, color: C.textSecondary, marginTop: 2 }}>{t.dbTypesSub}</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => go('analytics')}
+          className="link-underline"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4, border: 'none', background: 'transparent',
+            padding: '4px 2px', fontSize: 13, fontWeight: 600, color: C.primary, cursor: 'pointer',
+          }}
+        >
+          {t.navAnalytics}
+          <Icon icon={ChevronRight} size={15} stroke={C.primary} />
+        </button>
+      </div>
 
       {total === 0 ? (
         <div style={{

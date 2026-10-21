@@ -20,12 +20,14 @@ function StatCard({
   tone,
   stat,
   comparisonLabel,
+  onClick,
 }: {
   icon: LucideIcon;
   label: string;
   tone: StatTone;
   stat: DashboardStat;
   comparisonLabel: string;
+  onClick?: () => void;
 }) {
   const { lang } = useApp();
   const { bg, color, stroke } = STAT_TONES[tone];
@@ -39,7 +41,22 @@ function StatCard({
       : { color: C.rose, bg: C.roseSoft };
 
   return (
-    <div style={{ ...cardStyle, padding: 20, borderRadius: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+      className={onClick ? 'lift-card' : undefined}
+      style={{
+        ...cardStyle,
+        padding: 20,
+        borderRadius: 18,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        cursor: onClick ? 'pointer' : undefined,
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
         <span style={{
           width: 38, height: 38, borderRadius: 11, background: bg, flex: 'none',

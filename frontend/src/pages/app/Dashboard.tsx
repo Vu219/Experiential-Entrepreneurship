@@ -4,6 +4,7 @@ import {
   AlertTriangle, Clock, FileText, RefreshCw, Send, Sparkles, XCircle, type LucideIcon,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext.tsx';
+import { useAuth } from '../../auth/AuthContext.tsx';
 import { useBreakpoint } from '../../hooks/useBreakpoint.ts';
 import { useToast } from '../../components/toast/ToastProvider.tsx';
 import { Icon, Card } from '../../components/ui.tsx';
@@ -42,6 +43,8 @@ const srOnly: CSSProperties = {
 
 export default function Dashboard() {
   const { t, profile, brandGradient, go } = useApp();
+  const { user } = useAuth();
+  const displayName = user?.fullName || profile.name || 'User';
   const { isMobile, isTablet, isDesktop } = useBreakpoint();
   const toast = useToast();
 
@@ -156,7 +159,7 @@ export default function Dashboard() {
         gap: 24, flexWrap: 'wrap', boxShadow: '0 26px 50px -28px rgba(139,92,246,.55)',
       }}>
         <div>
-          <div style={{ fontSize: 14, opacity: 0.92 }}>{t.greeting}, {profile.name} 👋</div>
+          <div style={{ fontSize: 14, opacity: 0.92 }}>{t.greeting}, {displayName} 👋</div>
           <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 28, margin: '6px 0 8px' }}>
             {t.dashHeadline}
           </div>
@@ -181,10 +184,10 @@ export default function Dashboard() {
       <SetupChecklist id="dashboard-setup" onboarding={data.onboarding} />
 
       <div id="dashboard-stats" style={{ display: 'grid', gridTemplateColumns: statCols, gap: 16 }}>
-        <StatCard icon={FileText} tone="violet" label={t.dbStatTotal} stat={data.stats.total} comparisonLabel={t.dbVs7d} />
-        <StatCard icon={Send} tone="emerald" label={t.dbPosted} stat={data.stats.posted} comparisonLabel={t.dbVs7d} />
-        <StatCard icon={Clock} tone="amber" label={t.dbStatPending} stat={data.stats.pending} comparisonLabel={t.dbVs7d} />
-        <StatCard icon={XCircle} tone="rose" label={t.dbStatRejected} stat={data.stats.rejected} comparisonLabel={t.dbVs7d} />
+        <StatCard icon={FileText} tone="violet" label={t.dbStatTotal} stat={data.stats.total} comparisonLabel={t.dbVs7d} onClick={() => go('create')} />
+        <StatCard icon={Send} tone="emerald" label={t.dbPosted} stat={data.stats.posted} comparisonLabel={t.dbVs7d} onClick={() => go('calendar')} />
+        <StatCard icon={Clock} tone="amber" label={t.dbStatPending} stat={data.stats.pending} comparisonLabel={t.dbVs7d} onClick={() => go('calendar')} />
+        <StatCard icon={XCircle} tone="rose" label={t.dbStatRejected} stat={data.stats.rejected} comparisonLabel={t.dbVs7d} onClick={() => go('failedPosts')} />
       </div>
 
       {isDesktop ? (

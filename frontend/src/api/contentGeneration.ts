@@ -264,6 +264,9 @@ export interface ContentVersionUpdateInput {
   hashtags?: string[];
   cta?: string;
   mediaPrompt?: string;
+  voiceAligned?: boolean;
+  voiceScore?: number;
+  voiceNotes?: string;
 }
 
 // PUT /content-items/{itemId}/versions/{versionId} — trả về nguyên bài (kèm versions).

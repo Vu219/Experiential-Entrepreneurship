@@ -1,0 +1,30 @@
+--- a/frontend/src/components/create/BrandVoicePanel.tsx
++++ b/frontend/src/components/create/BrandVoicePanel.tsx
+@@ -35,3 +35,7 @@
+   const checked = !!check && check.score > 0;
+-  const aligned = checked && check.score >= threshold;
++  const aligned = checked && (
++    check.aligned !== undefined && check.aligned !== null
++      ? Boolean(check.aligned)
++      : check.score >= threshold
++  );
+   const dropped = checked && baselineScore !== undefined && baselineScore > 0 && check.score < baselineScore;
+@@ -58,5 +62,6 @@
+       onClick={onRecheck}
+       disabled={busy}
++      aria-busy={busy}
+       className="btn-soft"
+       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flex: 'none', border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '6px 10px', fontSize: 11.5, fontWeight: 700, color: C.primary, cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1 }}
+     >
+-      <Icon icon={RefreshCw} size={12} stroke={C.primary} />{checked ? t.cwVoiceRecheck : t.cwVoiceCheck}
++      <Icon icon={RefreshCw} size={12} stroke={C.primary} />{busy ? t.cwVoiceChecking : (checked ? t.cwVoiceRecheck : t.cwVoiceCheck)}
+     </button>
+   );
+@@ -79,3 +84,3 @@
+       <div style={{ height: 7, borderRadius: 99, background: C.border, overflow: 'hidden' }}>
+-        <div style={{ width: `${check.score}%`, height: '100%', borderRadius: 99, background: verdict.bar }} />
++        <div style={{ width: `${Math.min(100, Math.max(0, check.score))}%`, height: '100%', borderRadius: 99, background: verdict.bar }} />
+       </div>
+@@ -88,1 +93,1 @@
+-      <div style={{ fontSize: 12.5, color: C.text, fontWeight: 600 }}>{check.summary}</div>
++      {check.summary && <div style={{ fontSize: 12.5, color: C.text, fontWeight: 600 }}>{check.summary}</div>}

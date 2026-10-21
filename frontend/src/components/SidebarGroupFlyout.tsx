@@ -43,7 +43,9 @@ export default function SidebarGroupFlyout({
   onCancelClose: () => void;
   onNavigate: (key: Route) => void;
 }) {
-  const active = items.some((i) => i.key === route);
+  const activeItem = items.find((i) => i.key === route);
+  const active = !!activeItem;
+  const currentIcon = activeItem ? activeItem.icon : icon;
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   // Mở bằng bàn phím → focus vào mục đầu/cuối ngay khi flyout hiện.
@@ -129,7 +131,8 @@ export default function SidebarGroupFlyout({
       <motion.button
         ref={triggerRef}
         type="button"
-        aria-label={label}
+        title={activeItem ? activeItem.label : label}
+        aria-label={activeItem ? `${activeItem.label} (${label})` : label}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
@@ -147,7 +150,7 @@ export default function SidebarGroupFlyout({
         whileTap={{ scale: 0.98 }}
         transition={{ type: 'spring', mass: 0.1, stiffness: 200, damping: 15 }}
       >
-          <Icon icon={icon} stroke={active ? C.onBrand : open ? C.primary : C.ink350} />
+          <Icon icon={currentIcon} stroke={active ? C.onBrand : open ? C.primary : C.ink350} />
       </motion.button>
 
       {open && createPortal(

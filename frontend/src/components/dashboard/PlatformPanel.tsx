@@ -25,7 +25,7 @@ function PlatformPanel({ rows, id }: { rows: DashboardPlatform[]; id?: string })
         </div>
         <button
           type="button"
-          onClick={() => go('settings')}
+          onClick={() => go('settings', '?tab=connections')}
           className="link-underline"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 5, border: 'none', background: 'transparent',
@@ -42,7 +42,7 @@ function PlatformPanel({ rows, id }: { rows: DashboardPlatform[]; id?: string })
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginTop: 16,
       }}>
         {rows.map((row) => (
-          <PlatformTile key={row.platform} row={row} onConnect={() => go('settings')} />
+          <PlatformTile key={row.platform} row={row} onConnect={() => go('settings', '?tab=connections')} />
         ))}
       </div>
     </Card>

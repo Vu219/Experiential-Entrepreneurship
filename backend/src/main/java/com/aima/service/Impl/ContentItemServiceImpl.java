@@ -325,7 +325,8 @@ public class ContentItemServiceImpl implements ContentItemService {
 
     private static List<Object> versionContent(ContentVersion version) {
         return Arrays.asList(version.getScript(), version.getFormattedCaption(), version.getFormattedHashtag(),
-                version.getCta(), version.getMediaPrompt());
+                version.getCta(), version.getMediaPrompt(),
+                version.getVoiceAligned(), version.getVoiceScore(), version.getVoiceNotes());
     }
 
     /**

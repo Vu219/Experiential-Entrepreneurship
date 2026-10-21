@@ -14,7 +14,7 @@ export const DARK_MODE_ENABLED = import.meta.env?.VITE_ENABLE_DARK_MODE === 'tru
  *  ĐỒNG BỘ với inline script trong index.html (áp trước paint) — tests/colorMode.test.ts kiểm tra. */
 export const DARK_CAPABLE_PREFIXES: readonly string[] = [
   '/dashboard', '/create', '/calendar', '/failed-posts', '/analytics', '/trends', '/brand',
-  '/billing', '/usage', '/profile', '/settings', '/admin',
+  '/billing', '/usage', '/profile', '/settings', '/notifications', '/admin',
   '/', '/pricing', '/login', '/register', '/logout', '/forgot-password',
   '/auth/google/callback', '/complete-profile', '/privacy', '/terms', '/data-deletion',
 ];

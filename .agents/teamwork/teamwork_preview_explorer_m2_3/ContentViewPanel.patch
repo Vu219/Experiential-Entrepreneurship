@@ -1,0 +1,177 @@
+﻿diff --git a/frontend/src/components/create/ContentViewPanel.tsx b/.agents/teamwork/teamwork_preview_explorer_m2_3/proposed_ContentViewPanel.tsx
+index b346cc8..9d4add8 100644
+--- a/frontend/src/components/create/ContentViewPanel.tsx
++++ b/.agents/teamwork/teamwork_preview_explorer_m2_3/proposed_ContentViewPanel.tsx
+@@ -10,9 +10,13 @@ import {
+   saveVersionEdit,
+   changeReviewStatus,
+   emptyScript,
++  checkBrandVoice,
++  type BrandVoiceCheck,
+   type ContentListItem,
+   type ContentVersion,
+ } from '../../api/contentCreationService';
++import { getPublishingSettings } from '../../api/schedules';
++import { DEFAULT_VOICE_THRESHOLD } from './useReadiness';
+ import { useScriptRegen } from './useScriptRegen';
+ import { listAllBrandProfiles, type Platform } from '../../api/brandProfile';
+ import type { Dict } from '../../i18n';
+@@ -92,6 +96,8 @@ export default function ContentViewPanel({
+   const [hashtagText, setHashtagText] = useState('');
+   const [savingEdit, setSavingEdit] = useState(false);
+   const [statusBusy, setStatusBusy] = useState(false);
++  const [voiceBusy, setVoiceBusy] = useState(false);
++  const [threshold, setThreshold] = useState<number>(DEFAULT_VOICE_THRESHOLD);
+   // Th├┤ng tin nguß╗ôn ΓÇö c├╣ng c├íc d├▓ng nh╞░ l├║c tß║ío: brand + nß╗ün tß║úng c├│ sß║╡n tß╗½ item; ng├ánh h├áng/logo
+   // enrich best-effort tß╗½ hß╗ô s╞í th╞░╞íng hiß╗çu; chiß║┐n l╞░ß╗úc/mß╗Ñc ti├¬u/trend/├╜ t╞░ß╗ƒng lß║Ñy tß╗½ `source` cß╗ºa
+   // API chi tiß║┐t (d├▓ng n├áo thiß║┐u dß╗» liß╗çu th├¼ SourceInfoCard tß╗▒ ß║⌐n).
+@@ -135,6 +141,18 @@ export default function ContentViewPanel({
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [item.id]);
+ 
++  useEffect(() => {
++    let cancelled = false;
++    getPublishingSettings()
++      .then((s) => {
++        if (!cancelled && s?.brandVoiceThreshold != null) {
++          setThreshold(s.brandVoiceThreshold);
++        }
++      })
++      .catch(() => { /* best-effort: fallback DEFAULT_VOICE_THRESHOLD */ });
++    return () => { cancelled = true; };
++  }, []);
++
+   useEffect(() => {
+     let cancelled = false;
+     getContentDetail(item.id)
+@@ -172,7 +190,7 @@ export default function ContentViewPanel({
+   const cancelEdit = () => setDraft(null);
+ 
+   const saveEdit = async () => {
+-    if (!draft || savingEdit) return;
++    if (!draft || savingEdit || voiceBusy) return;
+     setSavingEdit(true);
+     try {
+       const res = await saveVersionEdit(item.id, draft);
+@@ -188,8 +206,46 @@ export default function ContentViewPanel({
+     }
+   };
+ 
++  const handleRecheckVoice = async () => {
++    if (voiceBusy || savingEdit || !shown || !editable) return;
++    setVoiceBusy(true);
++    try {
++      const res = await checkBrandVoice({
++        brandId: item.brandId,
++        platform: shown.platform,
++        script: shown.script,
++        caption: shown.caption,
++      });
++      const isAligned = res.aligned ?? (res.score >= threshold);
++      const brandVoice: BrandVoiceCheck = {
++        ...res,
++        aligned: isAligned,
++      };
++
++      if (draft) {
++        // Chß║┐ ─æß╗Ö sß╗¡a: cß║¡p nhß║¡t draft ─æß╗â ng╞░ß╗¥i d├╣ng xem trß╗▒c quan ─æiß╗âm mß╗¢i v├á l╞░u lß║íi
++        setDraft((prev) => (prev ? { ...prev, brandVoice } : null));
++      } else if (version) {
++        // Chß║┐ ─æß╗Ö xem: cß║¡p nhß║¡t version v├á l╞░u bß╗ün vß╗»ng v├áo DB qua saveVersionEdit
++        const updatedVersion: ContentVersion = {
++          ...version,
++          brandVoice,
++        };
++        const saveRes = await saveVersionEdit(item.id, updatedVersion);
++        setVersions(saveRes.versions);
++        setStatus(saveRes.item.status);
++        setReview(saveRes.item.reviewStatus);
++        onChanged?.();
++      }
++    } catch (e) {
++      toast.error(`${t.cwVoiceError}: ${(e as ApiError).message}`);
++    } finally {
++      setVoiceBusy(false);
++    }
++  };
++
+   const applyStatus = async (target: ReviewStatus) => {
+-    if (statusBusy) return;
++    if (statusBusy || voiceBusy) return;
+     setStatusBusy(true);
+     try {
+       const res = await changeReviewStatus(item.id, target);
+@@ -254,18 +310,18 @@ export default function ContentViewPanel({
+         draft ? (
+           <>
+             <button
+-              disabled={savingEdit}
++              disabled={savingEdit || voiceBusy}
+               onClick={cancelEdit}
+               className="btn-soft"
+-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, color: C.ink600, cursor: savingEdit ? 'not-allowed' : 'pointer', opacity: savingEdit ? 0.6 : 1 }}
++              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, color: C.ink600, cursor: savingEdit || voiceBusy ? 'not-allowed' : 'pointer', opacity: savingEdit || voiceBusy ? 0.6 : 1 }}
+             >
+               <Icon icon={X} size={13} stroke={C.ink600} />{t.cvEditCancel}
+             </button>
+             <button
+-              disabled={savingEdit}
++              disabled={savingEdit || voiceBusy}
+               onClick={saveEdit}
+               className="btn-grad"
+-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 12.5, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: savingEdit ? 'not-allowed' : 'pointer', opacity: savingEdit ? 0.6 : 1 }}
++              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 12.5, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: savingEdit || voiceBusy ? 'not-allowed' : 'pointer', opacity: savingEdit || voiceBusy ? 0.6 : 1 }}
+             >
+               <Icon icon={Save} size={13} stroke={C.onBrand} />{savingEdit ? t.cvEditSaving : t.cvEditSave}
+             </button>
+@@ -273,8 +329,9 @@ export default function ContentViewPanel({
+         ) : (
+           <button
+             onClick={startEdit}
++            disabled={voiceBusy}
+             className="btn-soft"
+-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, color: C.primary, cursor: 'pointer' }}
++            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, color: C.primary, cursor: voiceBusy ? 'not-allowed' : 'pointer', opacity: voiceBusy ? 0.6 : 1 }}
+           >
+             <Icon icon={Pencil} size={13} stroke={C.primary} />{t.cvEdit}
+           </button>
+@@ -284,12 +341,12 @@ export default function ContentViewPanel({
+       {!draft && statusActions(review).map(({ target, labelKey, icon, primary }) => (
+         <button
+           key={target}
+-          disabled={statusBusy}
++          disabled={statusBusy || voiceBusy}
+           onClick={() => applyStatus(target)}
+           className={primary ? 'btn-grad' : 'btn-soft'}
+           style={primary
+-            ? { display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: statusBusy ? 'not-allowed' : 'pointer', opacity: statusBusy ? 0.6 : 1 }
+-            : { display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: C.ink600, cursor: statusBusy ? 'not-allowed' : 'pointer', opacity: statusBusy ? 0.6 : 1 }}
++            ? { display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: statusBusy || voiceBusy ? 'not-allowed' : 'pointer', opacity: statusBusy || voiceBusy ? 0.6 : 1 }
++            : { display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: C.ink600, cursor: statusBusy || voiceBusy ? 'not-allowed' : 'pointer', opacity: statusBusy || voiceBusy ? 0.6 : 1 }}
+         >
+           <Icon icon={icon} size={14} stroke={primary ? C.onBrand : C.ink600} />{t[labelKey]}
+         </button>
+@@ -337,7 +394,7 @@ export default function ContentViewPanel({
+         <div style={{ display: 'grid', gridTemplateColumns: stacked ? '1fr' : '1.2fr .9fr', gap: 16, alignItems: stacked ? 'start' : 'stretch' }}>
+           <Card>
+             <div style={{ marginBottom: 16 }}>
+-              <PlatformTabs platforms={item.platforms} value={shown.platform} onChange={(p) => { if (!draft) setPlatform(p); }} />
++              <PlatformTabs platforms={item.platforms} value={shown.platform} onChange={(p) => { if (!draft && !voiceBusy && !savingEdit) setPlatform(p); }} />
+             </div>
+             <div style={{ marginBottom: 16 }}>
+               <VersionTabs value={tab} onChange={setTab} />
+@@ -353,7 +410,13 @@ export default function ContentViewPanel({
+           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
+             {/* Th├┤ng tin nguß╗ôn ΓÇö hiß╗ân thß╗ï giß╗æng l├║c tß║ío (mß╗ƒ sß║╡n, ─æß╗º c├íc d├▓ng) */}
+             <SourceInfoCard info={srcInfo} />
+-            <BrandVoicePanel check={shown.brandVoice} />
++            <BrandVoicePanel
++              check={shown.brandVoice}
++              busy={voiceBusy}
++              baselineScore={draft && version && version.brandVoice.score > 0 ? version.brandVoice.score : undefined}
++              onRecheck={editable ? handleRecheckVoice : undefined}
++              threshold={threshold}
++            />
+             {/* Tß╗½ "Xem tr╞░ß╗¢c b├ái ─æ─âng" trß╗ƒ xuß╗æng d├¡nh theo m├án h├¼nh khi cuß╗Ön ΓÇö c├╣ng c╞í chß║┐ vß╗¢i
+                 wizard (StepLayout): cho d├¡nh Cß║ó cß╗Öt th├¼ khi cß╗Öt cao h╞ín m├án h├¼nh, preview nß║▒m
+                 d╞░ß╗¢i sß║╜ kh├┤ng bao giß╗¥ d├¡nh ─æ╞░ß╗úc. Mß╗æc d├¡nh nß║▒m d╞░ß╗¢i header (chiß╗üu cao header ─æo

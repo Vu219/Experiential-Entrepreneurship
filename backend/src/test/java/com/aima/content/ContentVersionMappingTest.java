@@ -120,7 +120,40 @@ class ContentVersionMappingTest {
         assertEquals("Da xỉn màu, lỗ chân lông to?",
                 mapper.parseScript(version.getScript()).getHook().getContent());
         assertEquals("Theo dõi kênh nhé!", version.getCta());
+        assertEquals(Boolean.TRUE, version.getVoiceAligned());
+        assertEquals(91, version.getVoiceScore());
+        assertEquals("Đúng giọng", version.getVoiceNotes());
         assertNull(version.getPlatformName(), "mapper không tự gán platform — worker gán");
+    }
+
+    @Test
+    void updateVersionUpdatesBrandVoiceFields() {
+        ContentVersion version = mapper.toGeneratedVersion(sampleResult());
+        mapper.updateVersion(ContentVersionUpdateRequest.builder()
+                .voiceAligned(false)
+                .voiceScore(65)
+                .voiceNotes("Cần điều chỉnh tông giọng cho tự nhiên hơn")
+                .build(), version);
+
+        assertEquals(Boolean.FALSE, version.getVoiceAligned());
+        assertEquals(65, version.getVoiceScore());
+        assertEquals("Cần điều chỉnh tông giọng cho tự nhiên hơn", version.getVoiceNotes());
+        // Các trường khác giữ nguyên
+        assertEquals("Chỉ 3 bước mỗi ngày, da bạn đổi khác bất ngờ.", version.getFormattedCaption());
+        assertEquals("skincare,toigian", version.getFormattedHashtag());
+        assertEquals("Theo dõi kênh nhé!", version.getCta());
+    }
+
+    @Test
+    void updateVersionAllowsPartialBrandVoiceUpdate() {
+        ContentVersion version = mapper.toGeneratedVersion(sampleResult());
+        mapper.updateVersion(ContentVersionUpdateRequest.builder()
+                .voiceScore(95)
+                .build(), version);
+
+        assertEquals(Boolean.TRUE, version.getVoiceAligned());
+        assertEquals(95, version.getVoiceScore());
+        assertEquals("Đúng giọng", version.getVoiceNotes());
     }
 
     @Test

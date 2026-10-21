@@ -1,7 +1,7 @@
 import { C } from '../styles/colors';
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Share2, Link2, Check } from "lucide-react";
+import { Share2, Link, Check } from "lucide-react";
 
 // Tiêu đề dùng khi chia sẻ (yêu cầu cố định).
 const SHARE_TITLE = "AIMA — AI Content Marketing";
@@ -21,7 +21,7 @@ const ThreadsIcon = () => (
   </svg>
 );
 
-const LinkIcon = () => <Link2 className="copy-glyph" width={22} height={22} color={C.legacyText6e8efb} strokeWidth={1.9} aria-hidden />;
+const LinkIcon = () => <Link className="copy-glyph" width={20} height={20} color={C.legacyText6e8efb} strokeWidth={2.2} aria-hidden />;
 
 const CheckIcon = () => <Check className="copy-glyph" width={22} height={22} color={C.success} strokeWidth={2.4} aria-hidden />;
 

@@ -4,6 +4,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -16,8 +17,11 @@ import { useAppStore } from '../../store/useAppStore';
 
 /**
  * Toast góc trên-phải: feedback thao tác NHẤT THỜI (lưu thành công, lỗi API…).
- * KHÁC NotificationBell (FR-75..FR-79) — hộp thư bền vững từ server; hai thứ song song.
- * Dùng: const toast = useToast(); toast.success(t.xxx) / toast.error(msg).
+ * Cơ chế hiển thị:
+ * - Khi có nhiều thông báo: hiển thị xếp chồng theo cơ chế cái nào có trước hiển thị trước (trên cùng).
+ * - Khi lia chuột vào: bung ra hiển thị đầy đủ theo hàng dọc.
+ * - Rê chuột ra: tự động gập lại xếp chồng.
+ * - Thiết kế giao diện (icon, text, progress bar, màu sắc) giữ nguyên vẹn thiết kế ban đầu.
  */
 export type ToastVariant = 'success' | 'error' | 'warning' | 'info' | 'loading';
 
@@ -167,89 +171,258 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function ToastContainer({ toasts, onRemove }: { toasts: ToastData[]; onRemove: (id: number) => void }) {
+const LEAVE_MS = 220;
+
+function ToastContainer({
+  toasts,
+  onRemove,
+}: {
+  toasts: ToastData[];
+  onRemove: (id: number) => void;
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [heights, setHeights] = useState<Record<number, number>>({});
+  const heightsRef = useRef<Record<number, number>>({});
+  const [leavingIds, setLeavingIds] = useState<Set<number>>(new Set());
+  const leavingRef = useRef<Set<number>>(new Set());
+
+  const handleHeightChange = useCallback((id: number, height: number) => {
+    if (heightsRef.current[id] !== height) {
+      heightsRef.current[id] = height;
+      setHeights((prev) => ({ ...prev, [id]: height }));
+    }
+  }, []);
+
+  const handleClose = useCallback(
+    (id: number) => {
+      if (leavingRef.current.has(id)) return;
+      leavingRef.current.add(id);
+      setLeavingIds(new Set(leavingRef.current));
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      setTimeout(() => {
+        leavingRef.current.delete(id);
+        setLeavingIds(new Set(leavingRef.current));
+        onRemove(id);
+      }, reduced ? 0 : LEAVE_MS);
+    },
+    [onRemove],
+  );
+
   if (toasts.length === 0) return null;
-  // Portal ra document.body (như Modal.tsx) để không bị "nhốt" trong ancestor có
-  // transform (.view-pop). z-index 1100 > Modal (1000) — toast hiện cả trên modal.
+
+  // Tính chiều cao tổng thể của container để vùng hover bao trọn toàn bộ danh sách khi bung ra
+  const containerHeight = (() => {
+    if (isHovered) {
+      let total = 0;
+      for (let i = 0; i < toasts.length; i++) {
+        const h = heights[toasts[i].id] || 68;
+        total += h + (i < toasts.length - 1 ? 10 : 0);
+      }
+      return total;
+    }
+    const topH = (toasts[0] && heights[toasts[0].id]) || 68;
+    const stackExtra = Math.min(toasts.length - 1, 2) * 10;
+    return topH + stackExtra;
+  })();
+
   return createPortal(
     <div
       className="toast-stack"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       style={{
         position: 'fixed',
         right: 16,
         zIndex: 1100,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 10,
         width: 'min(380px, calc(100vw - 32px))',
-        pointerEvents: 'none',
+        height: containerHeight,
+        pointerEvents: isHovered ? 'auto' : 'none',
+        transition: 'height 300ms cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
-      {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
-      ))}
+      {toasts.map((toast, index) => {
+        const isLeaving = leavingIds.has(toast.id);
+
+        let offsetY = 0;
+        let scale = 1;
+        let opacity = 1;
+        let zIndex = 50 - index;
+        let pointerEvents: 'auto' | 'none' = 'auto';
+
+        if (isHovered) {
+          // Khi lia chuột vào: bung ra hiển thị đầy đủ theo thứ tự từ trên xuống dưới
+          let y = 0;
+          for (let i = 0; i < index; i++) {
+            const prevId = toasts[i].id;
+            const h = heights[prevId] || 68;
+            y += h + 10;
+          }
+          offsetY = y;
+          scale = 1;
+          opacity = 1;
+          pointerEvents = 'auto';
+        } else {
+          // Khi bình thường: xếp chồng theo cơ chế cái nào có trước hiển thị trước
+          // Index 0 là cái đến trước -> ở trên cùng (front layer)
+          offsetY = index * 10;
+          scale = Math.max(1 - index * 0.045, 0.85);
+          opacity = index === 0 ? 1 : index === 1 ? 0.92 : index === 2 ? 0.75 : 0;
+          pointerEvents = index === 0 ? 'auto' : 'none';
+        }
+
+        if (isLeaving) {
+          scale = 0.95;
+          opacity = 0;
+          pointerEvents = 'none';
+        }
+
+        return (
+          <ToastItem
+            key={toast.id}
+            toast={toast}
+            isHovered={isHovered}
+            isLeaving={isLeaving}
+            offsetY={offsetY}
+            scale={scale}
+            opacity={opacity}
+            zIndex={zIndex}
+            pointerEvents={pointerEvents}
+            onClose={() => handleClose(toast.id)}
+            onHeightChange={handleHeightChange}
+          />
+        );
+      })}
     </div>,
     document.body,
   );
 }
 
-const LEAVE_MS = 220;
+interface ToastItemProps {
+  toast: ToastData;
+  isHovered: boolean;
+  isLeaving: boolean;
+  offsetY: number;
+  scale: number;
+  opacity: number;
+  zIndex: number;
+  pointerEvents: 'auto' | 'none';
+  onClose: () => void;
+  onHeightChange: (id: number, height: number) => void;
+}
 
-function ToastItem({ toast, onRemove }: { toast: ToastData; onRemove: (id: number) => void }) {
+function ToastItem({
+  toast,
+  isHovered,
+  isLeaving,
+  offsetY,
+  scale,
+  opacity,
+  zIndex,
+  pointerEvents,
+  onClose,
+  onHeightChange,
+}: ToastItemProps) {
   const lang = useAppStore((s) => s.lang);
   const t = getDict(lang);
+  const itemRef = useRef<HTMLDivElement>(null);
+
   const { primary, progressBg, iconTint, icon: IconCmp, titleKey } = VARIANT_STYLE[toast.variant];
 
-  const [paused, setPaused] = useState(false);
-  const [leaving, setLeaving] = useState(false);
-  // Pause-on-hover: lưu mốc bắt đầu + thời gian còn lại; hover thì trừ phần đã trôi.
-  const remainingRef = useRef(toast.duration);
-  const startedAtRef = useRef(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
-  const leavingRef = useRef(false);
-
-  const close = useCallback(() => {
-    if (leavingRef.current) return;
-    leavingRef.current = true;
-    setLeaving(true);
-    // Chờ animation toast-out rồi mới gỡ khỏi state; reduced-motion tắt animation
-    // nên gỡ ngay (animationend không bắn khi animation: none).
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    setTimeout(() => onRemove(toast.id), reduced ? 0 : LEAVE_MS);
-  }, [onRemove, toast.id]);
+  // Đo chiều cao chính xác của card
+  useLayoutEffect(() => {
+    const el = itemRef.current;
+    if (!el) return;
+    const h = el.offsetHeight;
+    if (h > 0) onHeightChange(toast.id, h);
+  }, [toast.id, toast.message, toast.title, onHeightChange]);
 
   useEffect(() => {
-    // Reset ref khi StrictMode double-mount (ref persist qua mount cycles)
-    leavingRef.current = false;
-    remainingRef.current = toast.duration;
-    startedAtRef.current = Date.now();
-    timerRef.current = setTimeout(close, remainingRef.current);
-    return () => clearTimeout(timerRef.current);
-  }, [close, toast.duration, toast.updatedAt]);
+    const el = itemRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const h = entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height;
+        if (h > 0) onHeightChange(toast.id, h);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [toast.id, onHeightChange]);
 
-  const pause = () => {
-    if (leavingRef.current) return;
-    clearTimeout(timerRef.current);
-    remainingRef.current -= Date.now() - startedAtRef.current;
-    setPaused(true);
-  };
-  const resume = () => {
-    if (leavingRef.current) return;
-    startedAtRef.current = Date.now();
-    timerRef.current = setTimeout(close, Math.max(remainingRef.current, 0));
-    setPaused(false);
-  };
+  // Quản lý timer tự đóng & pause-on-hover:
+  // - Mỗi thông báo tự đếm ngược thời gian từ lúc hiển thị độc lập với nhau (cái nào hết trước ẩn trước).
+  // - Khi hover (isHovered): TẠM DỪNG đếm ngược cho tất cả các thẻ để người dùng đọc thoải mái.
+  // - Khi chuột rời đi: tiếp tục đếm ngược thời gian còn lại.
+  const remainingRef = useRef(toast.duration);
+  const startedAtRef = useRef<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    remainingRef.current = toast.duration;
+  }, [toast.id, toast.duration, toast.updatedAt]);
+
+  useEffect(() => {
+    if (isLeaving || toast.variant === 'loading') {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+
+    if (isHovered) {
+      // Khi hover: tạm dừng timer và trừ phần thời gian đã trôi qua
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      if (startedAtRef.current !== null) {
+        const elapsed = Date.now() - startedAtRef.current;
+        remainingRef.current = Math.max(0, remainingRef.current - elapsed);
+        startedAtRef.current = null;
+      }
+    } else {
+      // Khi không hover: kích hoạt hoặc tiếp tục đếm ngược
+      if (timerRef.current) clearTimeout(timerRef.current);
+      startedAtRef.current = Date.now();
+      timerRef.current = setTimeout(() => {
+        onCloseRef.current();
+      }, Math.max(remainingRef.current, 0));
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      if (startedAtRef.current !== null) {
+        const elapsed = Date.now() - startedAtRef.current;
+        remainingRef.current = Math.max(0, remainingRef.current - elapsed);
+        startedAtRef.current = null;
+      }
+    };
+  }, [isHovered, toast.variant, isLeaving]);
 
   return (
     <div
+      ref={itemRef}
       role={toast.variant === 'error' || toast.variant === 'warning' ? 'alert' : 'status'}
       aria-live={toast.variant === 'error' || toast.variant === 'warning' ? 'assertive' : 'polite'}
-      className={leaving ? 'toast-item toast-item--leaving' : 'toast-item'}
-      onMouseEnter={pause}
-      onMouseLeave={resume}
+      className={`toast-item toast-item--${toast.variant} ${isLeaving ? 'toast-item--leaving' : ''}`}
       style={{
-        pointerEvents: 'auto',
-        position: 'relative',
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: '100%',
+        transform: isLeaving
+          ? `translate3d(40px, ${offsetY}px, 0) scale(0.95)`
+          : `translate3d(0, ${offsetY}px, 0) scale(${scale})`,
+        transformOrigin: 'top center',
+        opacity,
+        zIndex,
+        pointerEvents,
         overflow: 'hidden',
         display: 'flex',
         alignItems: 'center',
@@ -259,10 +432,15 @@ function ToastItem({ toast, onRemove }: { toast: ToastData; onRemove: (id: numbe
         borderRadius: 14,
         padding: '14px 16px',
         boxShadow: C.shadowToast,
+        transition: isLeaving
+          ? 'transform 200ms ease-in, opacity 200ms ease-in'
+          : 'transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 240ms ease, box-shadow 240ms ease, scale 300ms cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
+      {/* Icon 42x42 nguyên bản */}
       <span
         aria-hidden
+        className={`toast-icon toast-icon--${toast.variant}`}
         style={{
           width: 42,
           height: 42,
@@ -276,23 +454,31 @@ function ToastItem({ toast, onRemove }: { toast: ToastData; onRemove: (id: numbe
           animation: 'toast-icon-pop 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both',
         }}
       >
-        <IconCmp size={20} strokeWidth={2.5} style={toast.variant === 'loading' ? { animation: 'toast-spin 1s linear infinite' } : {}} />
+        <IconCmp
+          size={20}
+          strokeWidth={2.5}
+          style={toast.variant === 'loading' ? { animation: 'toast-spin 1s linear infinite' } : {}}
+        />
       </span>
+
+      {/* Nội dung tiêu đề & message nguyên bản */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
         <div style={{ fontSize: 15, color: C.toastTitle, fontWeight: 600, lineHeight: 1.2 }}>
           {toast.title || t[titleKey]}
         </div>
-        <div style={{ fontSize: 13, color: C.gray, lineHeight: 1.45, overflowWrap: 'break-word' }}>
+        <div className="toast-message" style={{ fontSize: 13, color: 'var(--c-toast-text, #4b5563)', lineHeight: 1.45, overflowWrap: 'break-word' }}>
           {toast.message}
         </div>
       </div>
+
+      {/* Nút Action nguyên bản nếu có */}
       {toast.action && (
         <button
           type="button"
           className="btn-soft"
           onClick={() => {
             toast.action?.onClick();
-            close();
+            onClose();
           }}
           style={{
             flex: 'none',
@@ -309,8 +495,10 @@ function ToastItem({ toast, onRemove }: { toast: ToastData; onRemove: (id: numbe
           {toast.action.label}
         </button>
       )}
+
+      {/* Nút đóng X nguyên bản */}
       <button
-        onClick={close}
+        onClick={onClose}
         aria-label={t.toastClose}
         className="toast-close"
         style={{
@@ -329,6 +517,8 @@ function ToastItem({ toast, onRemove }: { toast: ToastData; onRemove: (id: numbe
       >
         <X size={16} strokeWidth={2} />
       </button>
+
+      {/* Thanh tiến trình nguyên bản */}
       <span
         aria-hidden
         className="toast-progress"
@@ -341,7 +531,7 @@ function ToastItem({ toast, onRemove }: { toast: ToastData; onRemove: (id: numbe
           borderRadius: 2,
           background: progressBg,
           animationDuration: `${toast.duration}ms`,
-          animationPlayState: paused ? 'paused' : 'running',
+          animationPlayState: isHovered ? 'paused' : 'running',
           visibility: toast.variant === 'loading' ? 'hidden' : 'visible',
         }}
       />

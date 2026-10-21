@@ -14,7 +14,7 @@ test('index.html pre-paint script lists the same dark-capable routes', () => {
 });
 
 test('app, admin and public routes are dark-capable', () => {
-  for (const p of ['/dashboard', '/create/new', '/calendar/abc', '/settings/usage', '/admin', '/admin/ai/models', '/', '/pricing', '/login', '/register', '/terms', '/privacy', '/complete-profile']) {
+  for (const p of ['/dashboard', '/create/new', '/calendar/abc', '/settings/usage', '/notifications', '/admin', '/admin/ai/models', '/', '/pricing', '/login', '/register', '/terms', '/privacy', '/complete-profile']) {
     assert.equal(isDarkCapablePath(p), true, p);
   }
   for (const p of ['/dashboards', '/unknown']) {

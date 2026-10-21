@@ -12,7 +12,7 @@ import { assistCardStyle } from './assistCardStyle';
  * `baselineScore` = điểm lúc AI sinh bản này — điểm hiện tại thấp hơn thì cảnh báo nhẹ
  * (dùng ở mốc 3 sau khi sửa tay và mốc 4 như xác nhận cuối).
  * Điểm 0 = chưa kiểm tra (bản đã định dạng chưa có điểm) → "Chưa kiểm tra" + nút "Kiểm tra", KHÔNG hiện
- * "Phù hợp (0%)". Nhãn Phù hợp / Cần xem lại theo `threshold` (ngưỡng của user, mặc định 70%).
+ * "Phù hợp (0%)". Nhãn Phù hợp / Cần xem lại theo `check.aligned` hoặc `threshold` (ngưỡng của user, mặc định 70%).
  * `collapsible` → header là dòng tóm tắt, thân mặc định thu gọn (mốc 3).
  */
 export default function BrandVoicePanel({
@@ -33,7 +33,11 @@ export default function BrandVoicePanel({
   const { t } = useApp();
   const [open, setOpen] = useState(!collapsible);
   const checked = !!check && check.score > 0;
-  const aligned = checked && check.score >= threshold;
+  const aligned = checked && (
+    check.aligned !== undefined && check.aligned !== null
+      ? Boolean(check.aligned)
+      : check.score >= threshold
+  );
   const dropped = checked && baselineScore !== undefined && baselineScore > 0 && check.score < baselineScore;
   const verdict = aligned
     ? { text: t.cwVoiceMatch, color: C.success, bg: C.successSoft, bar: 'linear-gradient(90deg,#22d3ee,#16a34a)' }
@@ -57,10 +61,11 @@ export default function BrandVoicePanel({
     <button
       onClick={onRecheck}
       disabled={busy}
+      aria-busy={busy}
       className="btn-soft"
       style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flex: 'none', border: `1px solid ${C.border}`, background: C.surface, borderRadius: 9, padding: '6px 10px', fontSize: 11.5, fontWeight: 700, color: C.primary, cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1 }}
     >
-      <Icon icon={RefreshCw} size={12} stroke={C.primary} />{checked ? t.cwVoiceRecheck : t.cwVoiceCheck}
+      <Icon icon={RefreshCw} size={12} stroke={C.primary} />{busy ? t.cwVoiceChecking : (checked ? t.cwVoiceRecheck : t.cwVoiceCheck)}
     </button>
   );
 
@@ -77,7 +82,7 @@ export default function BrandVoicePanel({
       </div>
       {/* Thanh % phù hợp */}
       <div style={{ height: 7, borderRadius: 99, background: C.border, overflow: 'hidden' }}>
-        <div style={{ width: `${check.score}%`, height: '100%', borderRadius: 99, background: verdict.bar }} />
+        <div style={{ width: `${Math.min(100, Math.max(0, check.score))}%`, height: '100%', borderRadius: 99, background: verdict.bar }} />
       </div>
       {/* Cảnh báo nhẹ khi điểm tụt so với bản AI tạo (sau chỉnh sửa tay) */}
       {dropped && (
@@ -85,7 +90,7 @@ export default function BrandVoicePanel({
           {t.cwVoiceDropped.replace('{n}', String(baselineScore))}
         </div>
       )}
-      <div style={{ fontSize: 12.5, color: C.text, fontWeight: 600 }}>{check.summary}</div>
+      {check.summary && <div style={{ fontSize: 12.5, color: C.text, fontWeight: 600 }}>{check.summary}</div>}
       {row(t.cwVoiceTone, check.tone)}
       {row(t.cwVoiceWording, check.wording)}
       {row(t.cwVoiceMessage, check.message)}

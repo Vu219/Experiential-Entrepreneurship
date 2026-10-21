@@ -10,9 +10,13 @@ import {
   saveVersionEdit,
   changeReviewStatus,
   emptyScript,
+  checkBrandVoice,
+  type BrandVoiceCheck,
   type ContentListItem,
   type ContentVersion,
 } from '../../api/contentCreationService';
+import { getPublishingSettings } from '../../api/schedules';
+import { DEFAULT_VOICE_THRESHOLD } from './useReadiness';
 import { useScriptRegen } from './useScriptRegen';
 import { listAllBrandProfiles, type Platform } from '../../api/brandProfile';
 import type { Dict } from '../../i18n';
@@ -92,6 +96,8 @@ export default function ContentViewPanel({
   const [hashtagText, setHashtagText] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
   const [statusBusy, setStatusBusy] = useState(false);
+  const [voiceBusy, setVoiceBusy] = useState(false);
+  const [threshold, setThreshold] = useState<number>(DEFAULT_VOICE_THRESHOLD);
   // Thông tin nguồn — cùng các dòng như lúc tạo: brand + nền tảng có sẵn từ item; ngành hàng/logo
   // enrich best-effort từ hồ sơ thương hiệu; chiến lược/mục tiêu/trend/ý tưởng lấy từ `source` của
   // API chi tiết (dòng nào thiếu dữ liệu thì SourceInfoCard tự ẩn).
@@ -137,6 +143,18 @@ export default function ContentViewPanel({
 
   useEffect(() => {
     let cancelled = false;
+    getPublishingSettings()
+      .then((s) => {
+        if (!cancelled && s?.brandVoiceThreshold != null) {
+          setThreshold(s.brandVoiceThreshold);
+        }
+      })
+      .catch(() => { /* best-effort: fallback DEFAULT_VOICE_THRESHOLD */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
     getContentDetail(item.id)
       .then(({ item: it, versions: vs, source }) => {
         if (cancelled) return;
@@ -172,7 +190,7 @@ export default function ContentViewPanel({
   const cancelEdit = () => setDraft(null);
 
   const saveEdit = async () => {
-    if (!draft || savingEdit) return;
+    if (!draft || savingEdit || voiceBusy) return;
     setSavingEdit(true);
     try {
       const res = await saveVersionEdit(item.id, draft);
@@ -188,8 +206,46 @@ export default function ContentViewPanel({
     }
   };
 
+  const handleRecheckVoice = async () => {
+    if (voiceBusy || savingEdit || !shown || !editable) return;
+    setVoiceBusy(true);
+    try {
+      const res = await checkBrandVoice({
+        brandId: item.brandId,
+        platform: shown.platform,
+        script: shown.script,
+        caption: shown.caption,
+      });
+      const isAligned = res.aligned ?? (res.score >= threshold);
+      const brandVoice: BrandVoiceCheck = {
+        ...res,
+        aligned: isAligned,
+      };
+
+      if (draft) {
+        // Chế độ sửa: cập nhật draft để người dùng xem trực quan điểm mới và lưu lại
+        setDraft((prev) => (prev ? { ...prev, brandVoice } : null));
+      } else if (version) {
+        // Chế độ xem: cập nhật version và lưu bền vững vào DB qua saveVersionEdit
+        const updatedVersion: ContentVersion = {
+          ...version,
+          brandVoice,
+        };
+        const saveRes = await saveVersionEdit(item.id, updatedVersion);
+        setVersions(saveRes.versions);
+        setStatus(saveRes.item.status);
+        setReview(saveRes.item.reviewStatus);
+        onChanged?.();
+      }
+    } catch (e) {
+      toast.error(`${t.cwVoiceError}: ${(e as ApiError).message}`);
+    } finally {
+      setVoiceBusy(false);
+    }
+  };
+
   const applyStatus = async (target: ReviewStatus) => {
-    if (statusBusy) return;
+    if (statusBusy || voiceBusy) return;
     setStatusBusy(true);
     try {
       const res = await changeReviewStatus(item.id, target);
@@ -254,18 +310,18 @@ export default function ContentViewPanel({
         draft ? (
           <>
             <button
-              disabled={savingEdit}
+              disabled={savingEdit || voiceBusy}
               onClick={cancelEdit}
               className="btn-soft"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, color: C.ink600, cursor: savingEdit ? 'not-allowed' : 'pointer', opacity: savingEdit ? 0.6 : 1 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, color: C.ink600, cursor: savingEdit || voiceBusy ? 'not-allowed' : 'pointer', opacity: savingEdit || voiceBusy ? 0.6 : 1 }}
             >
               <Icon icon={X} size={13} stroke={C.ink600} />{t.cvEditCancel}
             </button>
             <button
-              disabled={savingEdit}
+              disabled={savingEdit || voiceBusy}
               onClick={saveEdit}
               className="btn-grad"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 12.5, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: savingEdit ? 'not-allowed' : 'pointer', opacity: savingEdit ? 0.6 : 1 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 12.5, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: savingEdit || voiceBusy ? 'not-allowed' : 'pointer', opacity: savingEdit || voiceBusy ? 0.6 : 1 }}
             >
               <Icon icon={Save} size={13} stroke={C.onBrand} />{savingEdit ? t.cvEditSaving : t.cvEditSave}
             </button>
@@ -273,8 +329,9 @@ export default function ContentViewPanel({
         ) : (
           <button
             onClick={startEdit}
+            disabled={voiceBusy}
             className="btn-soft"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, color: C.primary, cursor: 'pointer' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '8px 13px', fontSize: 12.5, fontWeight: 700, color: C.primary, cursor: voiceBusy ? 'not-allowed' : 'pointer', opacity: voiceBusy ? 0.6 : 1 }}
           >
             <Icon icon={Pencil} size={13} stroke={C.primary} />{t.cvEdit}
           </button>
@@ -284,12 +341,12 @@ export default function ContentViewPanel({
       {!draft && statusActions(review).map(({ target, labelKey, icon, primary }) => (
         <button
           key={target}
-          disabled={statusBusy}
+          disabled={statusBusy || voiceBusy}
           onClick={() => applyStatus(target)}
           className={primary ? 'btn-grad' : 'btn-soft'}
           style={primary
-            ? { display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: statusBusy ? 'not-allowed' : 'pointer', opacity: statusBusy ? 0.6 : 1 }
-            : { display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: C.ink600, cursor: statusBusy ? 'not-allowed' : 'pointer', opacity: statusBusy ? 0.6 : 1 }}
+            ? { display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, color: C.onBrand, background: brandGradient, cursor: statusBusy || voiceBusy ? 'not-allowed' : 'pointer', opacity: statusBusy || voiceBusy ? 0.6 : 1 }
+            : { display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${C.border}`, background: C.surface, borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: C.ink600, cursor: statusBusy || voiceBusy ? 'not-allowed' : 'pointer', opacity: statusBusy || voiceBusy ? 0.6 : 1 }}
         >
           <Icon icon={icon} size={14} stroke={primary ? C.onBrand : C.ink600} />{t[labelKey]}
         </button>
@@ -337,7 +394,7 @@ export default function ContentViewPanel({
         <div style={{ display: 'grid', gridTemplateColumns: stacked ? '1fr' : '1.2fr .9fr', gap: 16, alignItems: stacked ? 'start' : 'stretch' }}>
           <Card>
             <div style={{ marginBottom: 16 }}>
-              <PlatformTabs platforms={item.platforms} value={shown.platform} onChange={(p) => { if (!draft) setPlatform(p); }} />
+              <PlatformTabs platforms={item.platforms} value={shown.platform} onChange={(p) => { if (!draft && !voiceBusy && !savingEdit) setPlatform(p); }} />
             </div>
             <div style={{ marginBottom: 16 }}>
               <VersionTabs value={tab} onChange={setTab} />
@@ -353,7 +410,13 @@ export default function ContentViewPanel({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
             {/* Thông tin nguồn — hiển thị giống lúc tạo (mở sẵn, đủ các dòng) */}
             <SourceInfoCard info={srcInfo} />
-            <BrandVoicePanel check={shown.brandVoice} />
+            <BrandVoicePanel
+              check={shown.brandVoice}
+              busy={voiceBusy}
+              baselineScore={draft && version && version.brandVoice.score > 0 ? version.brandVoice.score : undefined}
+              onRecheck={editable ? handleRecheckVoice : undefined}
+              threshold={threshold}
+            />
             {/* Từ "Xem trước bài đăng" trở xuống dính theo màn hình khi cuộn — cùng cơ chế với
                 wizard (StepLayout): cho dính CẢ cột thì khi cột cao hơn màn hình, preview nằm
                 dưới sẽ không bao giờ dính được. Mốc dính nằm dưới header (chiều cao header đo
