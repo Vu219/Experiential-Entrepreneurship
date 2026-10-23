@@ -22,6 +22,13 @@ spring:
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 5
+      # Pooler Supabase / NAT có thể rớt ngầm kết nối nhàn rỗi: query gửi lên kết nối chết sẽ chờ mãi
+      # (dashboard kẹt skeleton). Ping định kỳ + thay kết nối sớm + socketTimeout để lỗi nhanh thay vì treo.
+      keepalive-time: 60000
+      max-lifetime: 300000
+      data-source-properties:
+        tcpKeepAlive: true
+        socketTimeout: 60
 
   data:
     redis:
