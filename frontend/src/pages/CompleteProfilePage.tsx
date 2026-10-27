@@ -1,9 +1,8 @@
-import ColorModeToggle from '../components/ColorModeToggle';
-import { useIsDark } from '../hooks/useIsDark';
 import { useMemo, useRef, useState, type CSSProperties } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { User, Phone, Cake, Lock, Eye, EyeOff, Check } from "lucide-react";
 import DatePicker from "../components/DatePicker";
+import AuthShell from "../components/auth/AuthShell";
 import { completeProfile } from "../api/auth";
 import { useAuth } from "../auth/AuthContext";
 import { useApp } from "../context/AppContext";
@@ -43,7 +42,6 @@ const EyeBtn = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
 const STEPS = ["Thông tin cá nhân", "Thiết lập mật khẩu"];
 
 export default function CompleteProfilePage() {
-  const isDark = useIsDark();
   const { t, brandGradient } = useApp();
   const { user, loading, refreshUser } = useAuth();
   const navigate = useNavigate();
@@ -151,11 +149,9 @@ export default function CompleteProfilePage() {
   });
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: `radial-gradient(900px 700px at 18% 8%,rgba(34,211,238,.10),transparent 55%),radial-gradient(900px 700px at 90% 90%,rgba(217,70,239,.09),transparent 55%),linear-gradient(160deg,${C.bg},${C.surfaceMuted} 55%,${C.surfaceMuted})`, padding: 20 }}>
-      <div style={{ width: "100%", maxWidth: 440, background: C.surface, borderRadius: 22, boxShadow: `0 30px 60px -34px ${C.legacyShadowrgba8040140_45_}`, border: `1px solid ${C.border}`, padding: "34px 34px 30px" }}>
-        <div style={{ position: "fixed", top: 16, right: 18, zIndex: 101 }}><ColorModeToggle /></div>
-          <img src={isDark ? "/aima-h-dark.png" : "/aima-logo.png"} alt="AIMA" style={{ height: 46, width: "auto", marginBottom: 14 }} />
-        <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 25, letterSpacing: "-.01em", color: C.ink900, margin: 0 }}>Hoàn tất hồ sơ</h1>
+    <AuthShell mode="profile">
+      <div style={{ maxWidth: 420, width: "100%", margin: "0 auto" }}>
+        <h1 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 30, letterSpacing: "-.01em", margin: 0 }}>Hoàn tất hồ sơ</h1>
         <p style={{ fontSize: 14, color: C.textSecondary, margin: "6px 0 20px" }}>Bổ sung thông tin và đặt mật khẩu để bắt đầu dùng AIMA.</p>
 
         {/* Step indicator */}
@@ -195,6 +191,7 @@ export default function CompleteProfilePage() {
 
 
 
+        <div key={step} className="auth-swap">
         {step === 1 && (
           <div>
             <label style={labelStyle}>HỌ VÀ TÊN</label>
@@ -242,7 +239,8 @@ export default function CompleteProfilePage() {
             </div>
             {/* Thanh đo độ mạnh mật khẩu — realtime */}
             <PasswordStrengthBar password={password} focused={pwFocused} onGenerate={(pw) => { setPassword(pw); setConfirm(pw); setErrors(er => ({ ...er, password: undefined, confirm: undefined })); }} />
-            <div style={errStyle}>{errors.password}</div>
+            {/* Đã gõ mà chưa đủ mạnh → checklist của thanh độ mạnh đã nói rõ, không lặp lại bằng dòng đỏ. */}
+            <div style={{ ...errStyle, minHeight: password ? 10 : 18 }}>{password && !passwordValid(password) ? null : errors.password}</div>
 
             <label style={labelStyle}>XÁC NHẬN MẬT KHẨU</label>
             <div style={inputWrap(errors.confirm)}>
@@ -266,7 +264,8 @@ export default function CompleteProfilePage() {
             </div>
           </form>
         )}
+        </div>
       </div>
-    </div>
+    </AuthShell>
   );
 }

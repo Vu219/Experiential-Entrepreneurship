@@ -1711,3 +1711,44 @@ html {
     animation: none;
   }
 }
+
+/* ===== Khung đăng nhập/đăng ký (components/auth/*) =====
+   Nửa thương hiệu + cột form trượt ngang khi đổi /login ↔ /register (.auth-slide),
+   nội dung mới hiện lên sau khi trượt (.auth-swap), nền trang trí trôi chậm (.auth-float / .auth-blob). */
+.auth-slide {
+  transition: transform .72s cubic-bezier(.65, 0, .35, 1);
+  will-change: transform;
+}
+.auth-swap {
+  animation: auth-swap-in .5s cubic-bezier(.22, 1, .36, 1) .2s both;
+}
+@keyframes auth-swap-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.auth-float {
+  animation: auth-float var(--dur, 9s) ease-in-out var(--delay, 0s) infinite alternate;
+}
+@keyframes auth-float {
+  from { transform: translateY(0) rotate(var(--r, 0deg)); }
+  to { transform: translateY(-16px) rotate(calc(var(--r, 0deg) + 1.5deg)); }
+}
+.auth-blob {
+  animation: auth-blob var(--dur, 22s) ease-in-out infinite alternate;
+}
+@keyframes auth-blob {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(var(--dx, 40px), var(--dy, -30px), 0) scale(1.08); }
+}
+.auth-tab-indicator {
+  transition: transform .35s cubic-bezier(.22, 1, .36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-slide, .auth-tab-indicator { transition: none; }
+  .auth-swap { animation: auth-fade .3s ease both; }
+  .auth-float, .auth-blob { animation: none; }
+}
+@keyframes auth-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

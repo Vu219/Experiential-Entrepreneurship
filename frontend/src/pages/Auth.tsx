@@ -1,17 +1,11 @@
-import ColorModeToggle from '../components/ColorModeToggle';
 import { trackEvent } from "../analytics/ga4";
-import { useIsDark } from '../hooks/useIsDark';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  Mail, Lock, User as UserGlyph, Eye, ChevronLeft, Globe, LogOut, Home,
-  Sparkles, Clock, BarChart3, type LucideIcon,
-} from 'lucide-react';
+import { Mail, Lock, User as UserGlyph, Eye, ChevronLeft, LogOut, Home } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
-import { GradIcon } from '../components/ui';
-import AimaScene from '../components/AimaScene';
+import AuthShell from '../components/auth/AuthShell';
 import {
   register as apiRegister, resendRegisterOtp, verifyRegister, startGoogleAuth, consumeGoogleLinkedFromRegister,
   type User,
@@ -23,7 +17,7 @@ import { validEmail, passwordsMatch, otpValid } from '../validations/authValidat
 import { useToast } from '../components/toast/ToastProvider';
 import type { AuthForm, AuthErrors } from '../types';
 import { C } from '../styles/colors';
-import { DARK_MODE_ENABLED } from '../store/colorMode';
+import { BRAND_GRADIENT } from '../theme';
 
 const inputWrap = (error?: string): CSSProperties => ({
   display: 'flex',
@@ -35,7 +29,7 @@ const inputWrap = (error?: string): CSSProperties => ({
   background: C.surfaceSubtle,
   transition: 'border .2s',
 });
-const inputStyle: CSSProperties = { flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 15, padding: '14px 0', color: C.textStrong };
+const inputStyle: CSSProperties = { flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontSize: 15, padding: '14px 0', color: C.textStrong };
 const labelStyle: CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', color: C.ink600, marginBottom: 8 };
 const errStyle: CSSProperties = { minHeight: 18, fontSize: 12.5, color: C.rose, marginTop: 5 };
 const noticeStyle: CSSProperties = { fontSize: 13, color: C.success, background: C.successSoft, border: `1px solid ${C.legacyBordercdeed8}`, borderRadius: 10, padding: '10px 13px', marginBottom: 16 };
@@ -64,10 +58,9 @@ const EyeBtn = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
 );
 
 export default function Auth() {
-  const isDark = useIsDark();
-  const { t, lang, route, go, brandGradient, toggleLang } = useApp();
+  const { t, lang, route, go, brandGradient } = useApp();
   const { login: authLogin, refreshUser } = useAuth();
-  const { isMobile } = useBreakpoint();
+  const { width, isMobile } = useBreakpoint();
   const navigate = useNavigate();
   const location = useLocation();
   const [f, setF] = useState<AuthForm>({ name: '', email: '', password: '', confirm: '' });
@@ -80,6 +73,12 @@ export default function Auth() {
   const [pwFocused, setPwFocused] = useState(false);
   const [notice, setNotice] = useState<string>((location.state as { notice?: string } | null)?.notice ?? '');
   const toast = useToast();
+  // Toast lỗi nhập liệu khi bấm Đăng ký / Xác nhận mã: bấm lại thì cập nhật đúng toast đó (truyền lại id), không xếp chồng.
+  const invalidToastId = useRef<number | undefined>(undefined);
+  const showInvalidToast = (title: string, problems: (string | undefined)[]) => {
+    const lines = problems.filter(Boolean);
+    invalidToastId.current = toast.error(lines.length > 1 ? lines.map((m) => `• ${m}`).join('\n') : String(lines[0]), { id: invalidToastId.current, title });
+  };
   // Đăng ký 2 bước: form → nhập OTP (tài khoản chỉ được tạo khi OTP đúng).
   const [regStep, setRegStep] = useState<'form' | 'otp'>('form');
   const [otpCode, setOtpCode] = useState('');
@@ -202,7 +201,10 @@ export default function Auth() {
     else if (!passwordsMatch(f.password, f.confirm)) er.confirm = t.errConfirmBad;
     if (!agree) er.agree = t.errAgree;
     setErrors(er);
-    if (Object.keys(er).length > 0) return;
+    if (Object.keys(er).length > 0) {
+      showInvalidToast(t.regInvalidTitle, [er.name, er.email, er.password, er.confirm, er.agree]);
+      return;
+    }
     setSubmitting(true);
     setNotice('');
     try {
@@ -238,8 +240,12 @@ export default function Auth() {
 
   const submitOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otpCode) return setOtpError(t.errOtpReq);
-    if (!otpValid(otpCode)) return setOtpError(t.errOtpBad);
+    if (!otpCode || !otpValid(otpCode)) {
+      const msg = !otpCode ? t.errOtpReq : t.errOtpBad;
+      setOtpError(msg);
+      showInvalidToast(t.regOtpInvalidTitle, [msg]);
+      return;
+    }
     setSubmitting(true);
     setOtpError('');
     try {
@@ -290,116 +296,84 @@ export default function Auth() {
 
   const btnPrimary: CSSProperties = { width: '100%', border: 'none', borderRadius: 13, padding: 16, fontWeight: 700, fontSize: 15, letterSpacing: '.05em', color: C.onBrand, background: brandGradient, boxShadow: `0 16px 30px -12px ${C.legacyShadowrgba13992246_6_}`, cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.75 : 1 };
 
-  return (
-    <>
+  // Màn rộng (card đủ chỗ): đăng ký xếp Họ tên | Email cạnh nhau để form gọn trong card; mật khẩu và
+  // xác nhận vẫn xếp dọc (ô mật khẩu có 3 biểu tượng — đặt ngang thì tràn cột). minmax(0, 1fr): cột không
+  // bị nội dung đẩy rộng quá khung (tràn → cột form cuộn ngang, focus ô nhập kéo cả form sang trái).
+  const twoCol = width >= 1120;
+  const pairGrid: CSSProperties = twoCol ? { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', columnGap: 14 } : {};
+  const pwBar = <PasswordStrengthBar password={f.password} focused={pwFocused} onGenerate={(pw) => { setF((s) => ({ ...s, password: pw, confirm: pw })); setErrors(er => ({ ...er, password: undefined, confirm: undefined })); }} />;
+  // Đã gõ mà chưa đủ mạnh → checklist của thanh độ mạnh đã chỉ rõ điều kiện thiếu, không lặp lại bằng dòng đỏ (chỉ giữ viền đỏ).
+  const pwMessage = f.password && !passwordValid(f.password) ? null : errors.password;
 
-      <div className="view-pop" style={{ minHeight: '100vh', display: 'flex', flexDirection: isMobile ? 'column' : 'row', background: C.surface }}>
-        {/* Illustration panel — hidden on mobile */}
-        {!isMobile && (
-          <div style={{ flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden', background: `radial-gradient(900px 700px at 18% 8%,rgba(34,211,238,.13),transparent 55%),radial-gradient(900px 700px at 90% 90%,rgba(217,70,239,.11),transparent 55%),linear-gradient(160deg,${C.bg},${C.surfaceMuted} 55%,${C.surfaceMuted})`, padding: '48px 54px', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ position: "fixed", top: 16, right: 18, zIndex: 101 }}><ColorModeToggle /></div>
-          <img src={isDark ? "/aima-h-dark.png" : "/aima-h.png"} alt="AIMA" style={{ height: 74, width: 'auto', alignSelf: 'flex-start' }} />
-            <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 44, letterSpacing: '-.02em', color: C.ink900, margin: '8px 0 0' }}>AI - Marketing Assistant</h1>
-            <p style={{ fontSize: 16, lineHeight: 1.6, color: C.ink550, maxWidth: 430, margin: '16px 0 0' }}>{t.authIntro}</p>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '6px 0' }}>
-              <div style={{ width: 460, height: 420, maxWidth: '100%' }}>
-                <AimaScene />
-              </div>
+  // Nội dung cột form — key theo màn hình để .auth-swap chạy lại mỗi lần đổi (đăng nhập ↔ đăng ký ↔ OTP).
+  const formBody = (
+    <div key={`${route}-${regStep}`} className="auth-swap">
+      {route === 'login' && (
+        <div style={{ maxWidth: 400, width: '100%', margin: '0 auto', padding: isMobile ? 0 : '8px 0' }}>
+          <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: lang === 'vi' ? (isMobile ? 25 : 32) : (isMobile ? 30 : 40), margin: 0, letterSpacing: '-.02em', whiteSpace: 'nowrap' }}>{t.loginTitle}</h2>
+          <p style={{ fontSize: 15, color: C.textSecondary, margin: '8px 0 24px' }}>{t.loginSub}</p>
+          {notice && <div style={noticeStyle}>{notice}</div>}
+          <form onSubmit={submitLogin}>
+            <label style={labelStyle}>EMAIL</label>
+            <div style={inputWrap(errors.email)}>
+              <MailIcon />
+              <input autoFocus name="email" value={f.email} onChange={onField} type="email" placeholder={t.phEmail} style={inputStyle} />
             </div>
-            <div style={{ display: 'flex', gap: 38 }}>
-              {pillarsFor(lang).map((p, i) => (
-                <div key={i} style={{ textAlign: 'center', flex: 1 }}>
-                  <div style={{ width: 42, height: 42, margin: '0 auto 10px', borderRadius: 12, background: C.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 10px 22px -14px ${C.legacyShadowrgba12060180_6_}` }}>
-                    <GradIcon icon={p.icon} />
-                  </div>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: C.textStrong }}>{p.title}</div>
-                  <div style={{ fontSize: 12, lineHeight: 1.45, color: C.textSecondary, marginTop: 3 }}>{p.desc}</div>
+            <div style={errStyle}>{errors.email}</div>
+
+            <label style={{ ...labelStyle, margin: '8px 0' }}>{t.lPassword}</label>
+            <div style={inputWrap(errors.password)}>
+              <LockIcon />
+              <input name="password" value={f.password} onChange={onField} type={showPw ? 'text' : 'password'} placeholder={t.phPassword} style={inputStyle} />
+              <EyeBtn on={showPw} onClick={() => setShowPw((v) => !v)} />
+            </div>
+            <div style={errStyle}>{errors.password}</div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '6px 0 20px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: C.ink600, cursor: 'pointer' }}>
+                <input type="checkbox" checked={remember} onChange={() => setRemember((v) => !v)} style={{ width: 16, height: 16, accentColor: '#8b5cf6' }} />
+                {t.remember}
+              </label>
+              <span onClick={() => navigate('/forgot-password')} style={{ fontSize: 13.5, color: C.violetLight, fontWeight: 600, cursor: 'pointer' }}>{t.forgot}</span>
+            </div>
+            {errors.submit && <div style={{ fontSize: 13, color: C.rose, textAlign: 'center', marginBottom: 16 }}>{errors.submit}</div>}
+            <button type="submit" disabled={submitting} style={btnPrimary}>
+              {submitting ? (
+                <div className="dots-container">
+                  <div className="dot"></div>
+                  <div className="dot"></div>
+                  <div className="dot"></div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Form panel */}
-        <div style={{ width: isMobile ? '100%' : 'min(48%,640px)', background: C.surface, padding: isMobile ? '64px 20px 30px' : '56px 64px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
-          <div style={{ position: 'absolute', top: isMobile ? 18 : 32, left: isMobile ? 18 : 48 }}>
-            <button onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', fontSize: 15, fontWeight: 600, color: C.ink650, cursor: 'pointer' }}>
-              <ChevronLeft size={19} color={C.textSecondary} strokeWidth={1.8} />
-              {t.backToHome}
+              ) : t.signIn}
             </button>
+          </form>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '26px 0 20px' }}>
+            <div style={{ flex: 1, height: 1, background: C.border }} />
+            <span style={{ fontSize: 13, color: C.textMuted }}>{t.orSignIn}</span>
+            <div style={{ flex: 1, height: 1, background: C.border }} />
           </div>
-          <div style={{ position: 'absolute', top: isMobile ? 18 : 32, right: isMobile ? 18 : DARK_MODE_ENABLED ? 84 : 48 }}>
-            <button onClick={toggleLang} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', fontSize: 15, fontWeight: 600, color: C.ink650, cursor: 'pointer' }}>
-              <Globe size={18} color={C.textSecondary} strokeWidth={1.7} />
-              {t.langLabel}
-            </button>
-          </div>
+          <SocialBtn onClick={() => startGoogleAuth('login')} label={t.googleSignIn} icon={<GoogleIcon />} />
+          <LegalLinks t={t} />
+        </div>
+      )}
 
-          {route === 'login' && (
-            <div style={{ maxWidth: 400, width: '100%', margin: '0 auto', padding: isMobile ? 0 : '8px 0' }}>
-              <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: lang === 'vi' ? (isMobile ? 25 : 32) : (isMobile ? 30 : 40), margin: 0, letterSpacing: '-.02em', whiteSpace: 'nowrap' }}>{t.loginTitle}</h2>
-              <p style={{ fontSize: 15, color: C.textSecondary, margin: '8px 0 30px' }}>{t.loginSub}</p>
-              {notice && <div style={noticeStyle}>{notice}</div>}
-              <form onSubmit={submitLogin}>
-                <label style={labelStyle}>EMAIL</label>
-                <div style={inputWrap(errors.email)}>
-                  <MailIcon />
-                  <input autoFocus name="email" value={f.email} onChange={onField} type="email" placeholder={t.phEmail} style={inputStyle} />
-                </div>
-                <div style={errStyle}>{errors.email}</div>
-
-                <label style={{ ...labelStyle, margin: '8px 0' }}>{t.lPassword}</label>
-                <div style={inputWrap(errors.password)}>
-                  <LockIcon />
-                  <input name="password" value={f.password} onChange={onField} type={showPw ? 'text' : 'password'} placeholder={t.phPassword} style={inputStyle} />
-                  <EyeBtn on={showPw} onClick={() => setShowPw((v) => !v)} />
-                </div>
-                <div style={errStyle}>{errors.password}</div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '6px 0 20px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: C.ink600, cursor: 'pointer' }}>
-                    <input type="checkbox" checked={remember} onChange={() => setRemember((v) => !v)} style={{ width: 16, height: 16, accentColor: '#8b5cf6' }} />
-                    {t.remember}
-                  </label>
-                  <span onClick={() => navigate('/forgot-password')} style={{ fontSize: 13.5, color: C.violetLight, fontWeight: 600, cursor: 'pointer' }}>{t.forgot}</span>
-                </div>
-                {errors.submit && <div style={{ fontSize: 13, color: C.rose, textAlign: 'center', marginBottom: 16 }}>{errors.submit}</div>}
-                <button type="submit" disabled={submitting} style={btnPrimary}>
-                  {submitting ? (
-                    <div className="dots-container">
-                      <div className="dot"></div>
-                      <div className="dot"></div>
-                      <div className="dot"></div>
-                    </div>
-                  ) : t.signIn}
-                </button>
-              </form>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '36px 0 24px' }}>
-                <div style={{ flex: 1, height: 1, background: C.border }} />
-                <span style={{ fontSize: 13, color: C.textMuted }}>{t.orSignIn}</span>
-                <div style={{ flex: 1, height: 1, background: C.border }} />
-              </div>
-              <SocialBtn onClick={() => startGoogleAuth('login')} label={t.googleSignIn} icon={<GoogleIcon />} />
-              <div style={{ textAlign: 'center', fontSize: 14, color: C.textSecondary, marginTop: 26 }}>
-                {t.noAccount} <span onClick={() => switchRoute('register')} style={{ color: C.violetLight, fontWeight: 700, cursor: 'pointer' }}>{t.signUpNow}</span>
-              </div>
-              <LegalLinks t={t} />
-            </div>
-          )}
-
-          {route === 'register' && regStep === 'form' && (
-            <div style={{ maxWidth: 400, width: '100%', margin: '0 auto' }}>
-              <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 34, margin: 0, letterSpacing: '-.01em' }}>{t.regTitle}</h2>
-              <p style={{ fontSize: 14.5, color: C.textSecondary, margin: '8px 0 22px' }}>{t.regSub}</p>
-              {notice && <div style={noticeStyle}>{notice}</div>}
-              <form onSubmit={submitRegister} noValidate>
+      {route === 'register' && regStep === 'form' && (
+        <div style={{ maxWidth: twoCol ? 470 : 400, width: '100%', margin: '0 auto' }}>
+          <StepIndicator step={1} label={t.authStep} />
+          <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 30, margin: 0, letterSpacing: '-.01em' }}>{t.regTitle}</h2>
+          <p style={{ fontSize: 14.5, color: C.textSecondary, margin: '6px 0 18px' }}>{t.regSub}</p>
+          {notice && <div style={noticeStyle}>{notice}</div>}
+          <form onSubmit={submitRegister} noValidate>
+            <div style={pairGrid}>
+              <div>
                 <label style={labelStyle}>{t.lName}</label>
                 <div style={inputWrap(errors.name)}>
                   <UserIcon />
                   <input name="name" value={f.name} onChange={onField} placeholder={t.phName} style={inputStyle} />
                 </div>
                 <div style={errStyle}>{errors.name}</div>
-
+              </div>
+              <div>
                 <label htmlFor="reg-email" style={labelStyle}>EMAIL <span aria-hidden="true" style={{ color: C.rose }}>*</span></label>
                 <div style={inputWrap(errors.email)}>
                   <MailIcon />
@@ -415,7 +389,11 @@ export default function Auth() {
                     </span>
                   ) : errors.email}
                 </div>
+              </div>
+            </div>
 
+            <div>
+              <div>
                 <label style={labelStyle}>{t.lPassword}</label>
                 <div style={inputWrap(errors.password)}>
                   <LockIcon />
@@ -427,9 +405,10 @@ export default function Auth() {
                   )}
                   <EyeBtn on={showPw} onClick={() => setShowPw((v) => !v)} />
                 </div>
-                <PasswordStrengthBar password={f.password} focused={pwFocused} onGenerate={(pw) => { setF((s) => ({ ...s, password: pw, confirm: pw })); setErrors(er => ({ ...er, password: undefined, confirm: undefined })); }} />
-                <div style={errStyle}>{errors.password}</div>
-
+                {pwBar}
+                <div style={{ ...errStyle, minHeight: f.password ? 10 : 18 }}>{pwMessage}</div>
+              </div>
+              <div>
                 <label style={labelStyle}>{t.lConfirm}</label>
                 <div style={inputWrap(errors.confirm)}>
                   <LockIcon />
@@ -437,111 +416,120 @@ export default function Auth() {
                   <EyeBtn on={showPw2} onClick={() => setShowPw2((v) => !v)} />
                 </div>
                 <div style={errStyle}>{errors.confirm}</div>
-
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 13, color: C.ink600, cursor: 'pointer', margin: '4px 0 16px', lineHeight: 1.4 }}>
-                  <input type="checkbox" checked={agree} onChange={() => { setAgree((v) => !v); setErrors(er => ({ ...er, agree: agree ? t.errAgree : undefined })); }} style={{ width: 16, height: 16, marginTop: 1, accentColor: '#8b5cf6', flex: 'none' }} />
-                  <span>
-                    {t.agreePre} <a href="/terms" target="_blank" rel="noopener noreferrer" className="link-underline" style={legalInlineLink}>"{t.terms}"</a> {t.and} <a href="/privacy" target="_blank" rel="noopener noreferrer" className="link-underline" style={legalInlineLink}>"{t.privacy}"</a>
-                  </span>
-                </label>
-                {errors.agree && <div style={{ ...errStyle, margin: '-12px 0 4px' }}>{errors.agree}</div>}
-                <button type="submit" disabled={submitting} style={btnPrimary}>
-                  {submitting ? (
-                    <div className="dots-container">
-                      <div className="dot"></div>
-                      <div className="dot"></div>
-                      <div className="dot"></div>
-                    </div>
-                  ) : t.signUp}
-                </button>
-              </form>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '26px 0 20px' }}>
-                <div style={{ flex: 1, height: 1, background: C.border }} />
-                <span style={{ fontSize: 13, color: C.textMuted }}>{t.orSignUp}</span>
-                <div style={{ flex: 1, height: 1, background: C.border }} />
-              </div>
-              <SocialBtn onClick={() => startGoogleAuth('register')} label={t.googleSignUp} icon={<GoogleIcon />} />
-              <div style={{ textAlign: 'center', fontSize: 14, color: C.textSecondary, marginTop: 20 }}>
-                {t.haveAccount} <span onClick={() => switchRoute('login')} style={{ color: C.violetLight, fontWeight: 700, cursor: 'pointer' }}>{t.signInNow}</span>
-              </div>
-              <LegalLinks t={t} />
-            </div>
-          )}
-
-          {route === 'register' && regStep === 'otp' && (
-            <div style={{ maxWidth: 400, width: '100%', margin: '0 auto' }}>
-              <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 34, margin: 0, letterSpacing: '-.01em' }}>{t.regOtpTitle}</h2>
-              <p style={{ fontSize: 14.5, lineHeight: 1.55, color: C.textSecondary, margin: '8px 0 22px' }}>
-                {t.regOtpSub} <b style={{ color: C.textStrong, wordBreak: 'break-all' }}>{f.email.trim().toLowerCase()}</b>
-              </p>
-              {notice && <div style={noticeStyle} role="status">{notice}</div>}
-              <form onSubmit={submitOtp} noValidate>
-                <label htmlFor="reg-otp" style={labelStyle}>{t.regOtpLabel} <span aria-hidden="true" style={{ color: C.rose }}>*</span></label>
-                <div style={inputWrap(otpError)}>
-                  <LockIcon />
-                  <input
-                    id="reg-otp" autoFocus name="otp" value={otpCode} inputMode="numeric" autoComplete="one-time-code" maxLength={6}
-                    aria-required="true" aria-invalid={!!otpError} placeholder={t.regOtpPh}
-                    onChange={(e) => { setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError(''); }}
-                    style={{ ...inputStyle, letterSpacing: otpCode ? '.4em' : undefined, fontWeight: otpCode ? 700 : undefined }}
-                  />
-                </div>
-                <div style={errStyle} role="alert">{otpError}</div>
-                <div style={{ minHeight: 18, fontSize: 13, color: C.textSecondary, margin: '2px 0 18px' }}>
-                  {otpLeft > 0 ? <>{t.regOtpExpiresIn} <b style={{ color: C.textStrong, fontVariantNumeric: 'tabular-nums' }}>{mmss(otpLeft)}</b></> : null}
-                </div>
-                <button type="submit" disabled={submitting} style={btnPrimary}>
-                  {submitting ? (
-                    <div className="dots-container">
-                      <div className="dot"></div>
-                      <div className="dot"></div>
-                      <div className="dot"></div>
-                    </div>
-                  ) : t.regOtpVerify}
-                </button>
-              </form>
-              <div style={{ textAlign: 'center', fontSize: 14, color: C.textSecondary, marginTop: 22 }}>
-                {t.regOtpNoCode}{' '}
-                {resendLeft > 0 ? (
-                  <span style={{ color: C.ink350, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{t.regOtpResendIn} {resendLeft}s</span>
-                ) : (
-                  <button type="button" onClick={resendOtp} disabled={resending} style={{ ...linkBtn, opacity: resending ? 0.6 : 1 }}>{t.regOtpResend}</button>
-                )}
-              </div>
-              <div style={{ textAlign: 'center', marginTop: 14 }}>
-                <button type="button" onClick={() => backToRegisterForm()} style={{ ...linkBtn, display: 'inline-flex', alignItems: 'center', gap: 5, color: C.textSecondary, fontWeight: 600 }}>
-                  <ChevronLeft size={16} strokeWidth={1.8} />
-                  {t.regOtpBack}
-                </button>
               </div>
             </div>
-          )}
 
-          {route === 'logout' && (
-            <div style={{ maxWidth: 380, width: '100%', margin: '0 auto', textAlign: 'center' }}>
-              <div style={{ position: 'relative', width: 150, height: 150, margin: '0 auto 30px' }}>
-                <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `2px dashed ${C.violetLine}`, animation: 'spinslow 16s linear infinite' }} />
-                <div style={{ position: 'absolute', inset: 18, borderRadius: '50%', background: brandGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 22px 44px -16px ${C.legacyShadowrgba13992246_7_}` }}>
-                  <LogOut size={52} color={C.onBrand} strokeWidth={1.9} />
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 13, color: C.ink600, cursor: 'pointer', margin: '4px 0 16px', lineHeight: 1.4 }}>
+              <input type="checkbox" checked={agree} onChange={() => { setAgree((v) => !v); setErrors(er => ({ ...er, agree: agree ? t.errAgree : undefined })); }} style={{ width: 16, height: 16, marginTop: 1, accentColor: '#8b5cf6', flex: 'none' }} />
+              <span>
+                {t.agreePre} <a href="/terms" target="_blank" rel="noopener noreferrer" className="link-underline" style={legalInlineLink}>"{t.terms}"</a> {t.and} <a href="/privacy" target="_blank" rel="noopener noreferrer" className="link-underline" style={legalInlineLink}>"{t.privacy}"</a>
+              </span>
+            </label>
+            {errors.agree && <div style={{ ...errStyle, margin: '-12px 0 4px' }}>{errors.agree}</div>}
+            <button type="submit" disabled={submitting} style={btnPrimary}>
+              {submitting ? (
+                <div className="dots-container">
+                  <div className="dot"></div>
+                  <div className="dot"></div>
+                  <div className="dot"></div>
                 </div>
-              </div>
-              <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 38, margin: 0 }}>{t.logoutTitle}</h2>
-              <p style={{ fontSize: 15, lineHeight: 1.6, color: C.textSecondary, margin: '14px 0 32px' }}>{t.logoutMsg}</p>
-              <button onClick={() => go('login')} style={btnPrimary}>{t.loginAgain}</button>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '22px 0' }}>
-                <div style={{ flex: 1, height: 1, background: C.border }} />
-                <span style={{ fontSize: 13, color: C.textMuted }}>{t.or}</span>
-                <div style={{ flex: 1, height: 1, background: C.border }} />
-              </div>
-              <button onClick={() => go('landing')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, border: `1.5px solid ${C.border}`, borderRadius: 13, padding: 15, background: C.surface, fontWeight: 600, fontSize: 15, color: C.text, cursor: 'pointer' }}>
-                <Home size={19} color={C.textSecondary} strokeWidth={1.8} />
-                {t.backHome}
-              </button>
-            </div>
-          )}
+              ) : t.signUp}
+            </button>
+          </form>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '18px 0 16px' }}>
+            <div style={{ flex: 1, height: 1, background: C.border }} />
+            <span style={{ fontSize: 13, color: C.textMuted }}>{t.orSignUp}</span>
+            <div style={{ flex: 1, height: 1, background: C.border }} />
+          </div>
+          <SocialBtn onClick={() => startGoogleAuth('register')} label={t.googleSignUp} icon={<GoogleIcon />} />
         </div>
-      </div>
-    </>
+      )}
+
+      {route === 'register' && regStep === 'otp' && (
+        <div style={{ maxWidth: 400, width: '100%', margin: '0 auto' }}>
+          <StepIndicator step={2} label={t.authStep} />
+          <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 30, margin: 0, letterSpacing: '-.01em' }}>{t.regOtpTitle}</h2>
+          <p style={{ fontSize: 14.5, lineHeight: 1.55, color: C.textSecondary, margin: '8px 0 22px' }}>
+            {t.regOtpSub} <b style={{ color: C.textStrong, wordBreak: 'break-all' }}>{f.email.trim().toLowerCase()}</b>
+          </p>
+          {notice && <div style={noticeStyle} role="status">{notice}</div>}
+          <form onSubmit={submitOtp} noValidate>
+            <label htmlFor="reg-otp" style={labelStyle}>{t.regOtpLabel} <span aria-hidden="true" style={{ color: C.rose }}>*</span></label>
+            <div style={inputWrap(otpError)}>
+              <LockIcon />
+              <input
+                id="reg-otp" autoFocus name="otp" value={otpCode} inputMode="numeric" autoComplete="one-time-code" maxLength={6}
+                aria-required="true" aria-invalid={!!otpError} placeholder={t.regOtpPh}
+                onChange={(e) => { setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError(''); }}
+                style={{ ...inputStyle, letterSpacing: otpCode ? '.4em' : undefined, fontWeight: otpCode ? 700 : undefined }}
+              />
+            </div>
+            <div style={errStyle} role="alert">{otpError}</div>
+            <div style={{ minHeight: 18, fontSize: 13, color: C.textSecondary, margin: '2px 0 18px' }}>
+              {otpLeft > 0 ? <>{t.regOtpExpiresIn} <b style={{ color: C.textStrong, fontVariantNumeric: 'tabular-nums' }}>{mmss(otpLeft)}</b></> : null}
+            </div>
+            <button type="submit" disabled={submitting} style={btnPrimary}>
+              {submitting ? (
+                <div className="dots-container">
+                  <div className="dot"></div>
+                  <div className="dot"></div>
+                  <div className="dot"></div>
+                </div>
+              ) : t.regOtpVerify}
+            </button>
+          </form>
+          <div style={{ textAlign: 'center', fontSize: 14, color: C.textSecondary, marginTop: 22 }}>
+            {t.regOtpNoCode}{' '}
+            {resendLeft > 0 ? (
+              <span style={{ color: C.ink350, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{t.regOtpResendIn} {resendLeft}s</span>
+            ) : (
+              <button type="button" onClick={resendOtp} disabled={resending} style={{ ...linkBtn, opacity: resending ? 0.6 : 1 }}>{t.regOtpResend}</button>
+            )}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: 14 }}>
+            <button type="button" onClick={() => backToRegisterForm()} style={{ ...linkBtn, display: 'inline-flex', alignItems: 'center', gap: 5, color: C.textSecondary, fontWeight: 600 }}>
+              <ChevronLeft size={16} strokeWidth={1.8} />
+              {t.regOtpBack}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {route === 'logout' && (
+        <div style={{ maxWidth: 380, width: '100%', margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ position: 'relative', width: 150, height: 150, margin: '0 auto 30px' }}>
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `2px dashed ${C.violetLine}`, animation: 'spinslow 16s linear infinite' }} />
+            <div style={{ position: 'absolute', inset: 18, borderRadius: '50%', background: brandGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 22px 44px -16px ${C.legacyShadowrgba13992246_7_}` }}>
+              <LogOut size={52} color={C.onBrand} strokeWidth={1.9} />
+            </div>
+          </div>
+          <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 38, margin: 0 }}>{t.logoutTitle}</h2>
+          <p style={{ fontSize: 15, lineHeight: 1.6, color: C.textSecondary, margin: '14px 0 32px' }}>{t.logoutMsg}</p>
+          <button onClick={() => go('login')} style={btnPrimary}>{t.loginAgain}</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '22px 0' }}>
+            <div style={{ flex: 1, height: 1, background: C.border }} />
+            <span style={{ fontSize: 13, color: C.textMuted }}>{t.or}</span>
+            <div style={{ flex: 1, height: 1, background: C.border }} />
+          </div>
+          <button onClick={() => go('landing')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, border: `1.5px solid ${C.border}`, borderRadius: 13, padding: 15, background: C.surface, fontWeight: 600, fontSize: 15, color: C.text, cursor: 'pointer' }}>
+            <Home size={19} color={C.textSecondary} strokeWidth={1.8} />
+            {t.backHome}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  const isRegister = route === 'register';
+  return (
+    <AuthShell
+      mode={isRegister ? 'register' : 'login'}
+      back={{ label: t.backToHome, onClick: () => navigate('/') }}
+      onSwitch={route === 'logout' ? undefined : () => switchRoute(isRegister ? 'login' : 'register')}
+      onTab={route === 'logout' ? undefined : switchRoute}
+    >
+      {formBody}
+    </AuthShell>
   );
 }
 
@@ -585,16 +573,16 @@ function GoogleIcon() {
   );
 }
 
-function pillarsFor(lang: 'vi' | 'en'): { icon: LucideIcon; title: string; desc: string }[] {
-  return lang === 'en'
-    ? [
-      { icon: Sparkles, title: 'Smart', desc: 'AI analyzes and optimizes content performance' },
-      { icon: Clock, title: 'Automatic', desc: 'Schedule and auto-post 24/7' },
-      { icon: BarChart3, title: 'Effective', desc: 'Measure and continuously optimize strategy' },
-    ]
-    : [
-      { icon: Sparkles, title: 'Thông minh', desc: 'AI phân tích và tối ưu hiệu quả nội dung' },
-      { icon: Clock, title: 'Tự động', desc: 'Lên lịch và đăng bài tự động 24/7' },
-      { icon: BarChart3, title: 'Hiệu quả', desc: 'Đo lường và tối ưu chiến lược liên tục' },
-    ];
+// "Bước 1/2" của đăng ký (1 = điền thông tin, 2 = nhập mã OTP).
+function StepIndicator({ step, label }: { step: 1 | 2; label: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 5 }}>
+        {[1, 2].map((n) => (
+          <span key={n} style={{ width: 26, height: 5, borderRadius: 99, background: n <= step ? BRAND_GRADIENT : C.border }} />
+        ))}
+      </div>
+      <span style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', color: C.textMuted }}>{label.replace('{n}', String(step))}</span>
+    </div>
+  );
 }

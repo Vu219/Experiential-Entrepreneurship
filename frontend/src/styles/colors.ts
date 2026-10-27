@@ -12,6 +12,7 @@ export const C = {
   landingCtaText: 'var(--c-landing-cta-text)',
   landingCtaSmall: 'var(--c-landing-cta-small)',
   landingCtaButton: 'var(--c-landing-cta-button)',
+  authPanel: 'var(--c-auth-panel)',
   // Nền & viền
   surface: 'var(--c-surface)',
   surfaceSubtle: 'var(--c-surface-subtle)',

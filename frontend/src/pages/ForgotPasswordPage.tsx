@@ -1,12 +1,9 @@
-import ColorModeToggle from '../components/ColorModeToggle';
-import { DARK_MODE_ENABLED } from '../store/colorMode';
-import { useIsDark } from '../hooks/useIsDark';
 import { FormEvent, useEffect, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, KeyRound, Eye, ChevronLeft, Globe } from "lucide-react";
+import { Mail, Lock, KeyRound, Eye } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { useBreakpoint } from "../hooks/useBreakpoint";
-import AimaScene from "../components/AimaScene";
+import AuthShell from "../components/auth/AuthShell";
 import { forgotPassword, resetPassword, verifyOtp } from "../api/auth";
 import type { ApiError } from "../api/apiClient";
 import PasswordStrengthBar from "../components/PasswordStrengthBar";
@@ -51,8 +48,7 @@ const EyeBtn = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
 );
 
 export default function ForgotPasswordPage() {
-  const isDark = useIsDark();
-  const { t, lang, brandGradient, toggleLang } = useApp();
+  const { t, lang, brandGradient } = useApp();
   const { isMobile } = useBreakpoint();
   const navigate = useNavigate();
 
@@ -158,120 +154,96 @@ export default function ForgotPasswordPage() {
   const activeIdx = steps.findIndex((s) => s.key === step);
 
   return (
-    <div className="view-pop" style={{ minHeight: "100vh", display: "flex", flexDirection: isMobile ? "column" : "row", background: C.surface }}>
-      {/* Illustration panel — hidden on mobile */}
-      {!isMobile && (
-        <div style={{ flex: 1, minWidth: 0, position: "relative", overflow: "hidden", background: `radial-gradient(900px 700px at 18% 8%,rgba(34,211,238,.13),transparent 55%),radial-gradient(900px 700px at 90% 90%,rgba(217,70,239,.11),transparent 55%),linear-gradient(160deg,${C.bg},${C.surfaceMuted} 55%,${C.surfaceMuted})`, padding: "48px 54px", display: "flex", flexDirection: "column" }}>
-          <div style={{ position: "fixed", top: 16, right: 18, zIndex: 101 }}><ColorModeToggle /></div>
-          <img src={isDark ? "/aima-h-dark.png" : "/aima-logo.png"} alt="AIMA" style={{ height: 74, width: "auto", alignSelf: "flex-start" }} />
-          <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 44, letterSpacing: "-.02em", color: C.ink900, margin: "8px 0 0" }}>AI - Marketing Assistant</h1>
-          <p style={{ fontSize: 16, lineHeight: 1.6, color: C.ink550, maxWidth: 430, margin: "16px 0 0" }}>{t.authIntro}</p>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", margin: "6px 0" }}>
-            <div style={{ width: 460, height: 420, maxWidth: "100%" }}>
-              <AimaScene />
-            </div>
-          </div>
-        </div>
-      )}
+    <AuthShell
+      mode="forgot"
+      back={{ label: t.fpBackLogin, onClick: () => navigate("/login") }}
+      onSwitch={() => navigate("/login")}
+    >
+      <div style={{ maxWidth: 400, width: "100%", margin: "0 auto", padding: isMobile ? 0 : "8px 0" }}>
+        <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: lang === "vi" ? (isMobile ? 26 : 34) : (isMobile ? 30 : 40), margin: 0, letterSpacing: "-.02em" }}>{t.fpTitle}</h2>
+        <p style={{ fontSize: 15, color: C.textSecondary, margin: "8px 0 24px" }}>{sub}</p>
 
-      {/* Form panel */}
-      <div style={{ width: isMobile ? "100%" : "min(48%,640px)", background: C.surface, padding: isMobile ? "64px 20px 30px" : "56px 64px", display: "flex", flexDirection: "column", justifyContent: "center", position: "relative" }}>
-        <div style={{ position: "absolute", top: isMobile ? 18 : 32, left: isMobile ? 18 : 48 }}>
-          <button onClick={() => navigate("/login")} style={{ display: "flex", alignItems: "center", gap: 7, background: "transparent", border: "none", fontSize: 15, fontWeight: 600, color: C.ink650, cursor: "pointer" }}>
-            <ChevronLeft size={19} color={C.textSecondary} strokeWidth={1.8} />
-            {t.fpBackLogin}
-          </button>
-        </div>
-        <div style={{ position: "absolute", top: isMobile ? 18 : 32, right: isMobile ? 18 : DARK_MODE_ENABLED ? 84 : 48 }}>
-          <button onClick={toggleLang} style={{ display: "flex", alignItems: "center", gap: 7, background: "transparent", border: "none", fontSize: 15, fontWeight: 600, color: C.ink650, cursor: "pointer" }}>
-            <Globe size={18} color={C.textSecondary} strokeWidth={1.7} />
-            {t.langLabel}
-          </button>
-        </div>
-
-        <div style={{ maxWidth: 400, width: "100%", margin: "0 auto", padding: isMobile ? 0 : "8px 0" }}>
-          <h2 className="gradtext" style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: lang === "vi" ? (isMobile ? 26 : 34) : (isMobile ? 30 : 40), margin: 0, letterSpacing: "-.02em" }}>{t.fpTitle}</h2>
-          <p style={{ fontSize: 15, color: C.textSecondary, margin: "8px 0 24px" }}>{sub}</p>
-
-          {/* Step indicator */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 26 }}>
-            {steps.map((s, i) => (
-              <div key={s.key} style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontWeight: 700, flex: "none", color: i <= activeIdx ? C.onBrand : C.ink350, background: i <= activeIdx ? brandGradient : C.surfaceMuted }}>
-                    {i < activeIdx ? "✓" : i + 1}
-                  </div>
-                  <span style={{ fontSize: 12.5, fontWeight: 600, color: i <= activeIdx ? C.text : C.ink350, whiteSpace: "nowrap" }}>{s.label}</span>
+        {/* Step indicator */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 26 }}>
+          {steps.map((s, i) => (
+            <div key={s.key} style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontWeight: 700, flex: "none", color: i <= activeIdx ? C.onBrand : C.ink350, background: i <= activeIdx ? brandGradient : C.surfaceMuted }}>
+                  {i < activeIdx ? "✓" : i + 1}
                 </div>
-                {i < steps.length - 1 && <div style={{ flex: 1, height: 2, borderRadius: 2, background: i < activeIdx ? brandGradient : C.surfaceMuted }} />}
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: i <= activeIdx ? C.text : C.ink350, whiteSpace: "nowrap" }}>{s.label}</span>
               </div>
-            ))}
-          </div>
+              {i < steps.length - 1 && <div style={{ flex: 1, height: 2, borderRadius: 2, background: i < activeIdx ? brandGradient : C.surfaceMuted }} />}
+            </div>
+          ))}
+        </div>
 
-          {message && <div style={{ fontSize: 13, color: C.success, background: C.successSoft, border: `1px solid ${C.legacyBordercdeed8}`, borderRadius: 10, padding: "10px 13px", marginBottom: 16 }}>{message}</div>}
+        <div key={step} className="auth-swap">
+        {message && <div style={{ fontSize: 13, color: C.success, background: C.successSoft, border: `1px solid ${C.legacyBordercdeed8}`, borderRadius: 10, padding: "10px 13px", marginBottom: 16 }}>{message}</div>}
 
-          {step === "email" && (
-            <form onSubmit={handleEmail}>
-              <label style={labelStyle}>EMAIL</label>
-              <div style={inputWrap(fieldErrors.email)}>
-                <MailIcon />
-                <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setFieldErrors(p => ({ ...p, email: !e.target.value ? t.errEmailReq : !validEmail(e.target.value) ? t.errEmailBad : undefined })); }} placeholder={t.phEmail} style={inputStyle} />
-              </div>
-              <div style={errStyle}>{fieldErrors.email}</div>
-              <button type="submit" disabled={submitting} style={btnPrimary}>{submitting ? t.processing : t.fpSendOtp}</button>
-            </form>
-          )}
+        {step === "email" && (
+          <form onSubmit={handleEmail}>
+            <label style={labelStyle}>EMAIL</label>
+            <div style={inputWrap(fieldErrors.email)}>
+              <MailIcon />
+              <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setFieldErrors(p => ({ ...p, email: !e.target.value ? t.errEmailReq : !validEmail(e.target.value) ? t.errEmailBad : undefined })); }} placeholder={t.phEmail} style={inputStyle} />
+            </div>
+            <div style={errStyle}>{fieldErrors.email}</div>
+            <button type="submit" disabled={submitting} style={btnPrimary}>{submitting ? t.processing : t.fpSendOtp}</button>
+          </form>
+        )}
 
-          {step === "otp" && (
-            <form onSubmit={handleOtp}>
-              <label style={labelStyle}>{t.fpOtpLabel}</label>
-              <div style={inputWrap(fieldErrors.otp)}>
-                <KeyIcon />
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={otpCode}
-                  onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); setOtpCode(v); setFieldErrors(p => ({ ...p, otp: v.length !== 6 ? t.errOtpBad : undefined })); }}
-                  placeholder="••••••"
-                  style={{ ...inputStyle, letterSpacing: ".5em", fontWeight: 700 }}
-                />
-              </div>
-              <div style={{ ...errStyle, color: secondsLeft > 0 && !fieldErrors.otp ? C.textMuted : C.rose }}>
-                {fieldErrors.otp || (secondsLeft > 0 ? `${t.fpExpiresIn} ${secondsLeft}s` : t.fpExpired)}
-              </div>
-              <button type="submit" disabled={submitting || secondsLeft <= 0} style={{ ...btnPrimary, opacity: submitting || secondsLeft <= 0 ? 0.6 : 1, cursor: secondsLeft <= 0 ? "not-allowed" : btnPrimary.cursor }}>
-                {submitting ? t.processing : t.fpVerify}
-              </button>
-              <button type="button" onClick={sendOtp} disabled={submitting || secondsLeft > 0} style={{ width: "100%", marginTop: 12, border: `1.5px solid ${C.border}`, borderRadius: 13, padding: 14, background: C.surface, fontWeight: 600, fontSize: 14, color: secondsLeft > 0 ? C.ink350 : C.violetLight, cursor: secondsLeft > 0 ? "not-allowed" : "pointer" }}>
-                {secondsLeft > 0 ? `${t.fpResendIn} ${secondsLeft}s` : t.fpResend}
-              </button>
-            </form>
-          )}
+        {step === "otp" && (
+          <form onSubmit={handleOtp}>
+            <label style={labelStyle}>{t.fpOtpLabel}</label>
+            <div style={inputWrap(fieldErrors.otp)}>
+              <KeyIcon />
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); setOtpCode(v); setFieldErrors(p => ({ ...p, otp: v.length !== 6 ? t.errOtpBad : undefined })); }}
+                placeholder="••••••"
+                style={{ ...inputStyle, letterSpacing: ".5em", fontWeight: 700 }}
+              />
+            </div>
+            <div style={{ ...errStyle, color: secondsLeft > 0 && !fieldErrors.otp ? C.textMuted : C.rose }}>
+              {fieldErrors.otp || (secondsLeft > 0 ? `${t.fpExpiresIn} ${secondsLeft}s` : t.fpExpired)}
+            </div>
+            <button type="submit" disabled={submitting || secondsLeft <= 0} style={{ ...btnPrimary, opacity: submitting || secondsLeft <= 0 ? 0.6 : 1, cursor: secondsLeft <= 0 ? "not-allowed" : btnPrimary.cursor }}>
+              {submitting ? t.processing : t.fpVerify}
+            </button>
+            <button type="button" onClick={sendOtp} disabled={submitting || secondsLeft > 0} style={{ width: "100%", marginTop: 12, border: `1.5px solid ${C.border}`, borderRadius: 13, padding: 14, background: C.surface, fontWeight: 600, fontSize: 14, color: secondsLeft > 0 ? C.ink350 : C.violetLight, cursor: secondsLeft > 0 ? "not-allowed" : "pointer" }}>
+              {secondsLeft > 0 ? `${t.fpResendIn} ${secondsLeft}s` : t.fpResend}
+            </button>
+          </form>
+        )}
 
-          {step === "reset" && (
-            <form onSubmit={handleReset}>
-              <label style={labelStyle}>{t.fpNewPw}</label>
-              <div style={inputWrap(fieldErrors.password)}>
-                <LockIcon />
-                <input type={showPw ? "text" : "password"} value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setFieldErrors(p => ({ ...p, password: !passwordValid(e.target.value) ? t.errPwWeak : undefined })); }} onFocus={() => setPwFocused(true)} onBlur={() => setPwFocused(false)} placeholder={t.phPassword} style={inputStyle} />
-                <EyeBtn on={showPw} onClick={() => setShowPw((v) => !v)} />
-              </div>
-              <PasswordStrengthBar password={newPassword} focused={pwFocused} onGenerate={(pw) => { setNewPassword(pw); setConfirmPassword(pw); setFieldErrors(er => ({ ...er, password: undefined, confirm: undefined })); }} />
-              <div style={errStyle}>{fieldErrors.password}</div>
+        {step === "reset" && (
+          <form onSubmit={handleReset}>
+            <label style={labelStyle}>{t.fpNewPw}</label>
+            <div style={inputWrap(fieldErrors.password)}>
+              <LockIcon />
+              <input type={showPw ? "text" : "password"} value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setFieldErrors(p => ({ ...p, password: !passwordValid(e.target.value) ? t.errPwWeak : undefined })); }} onFocus={() => setPwFocused(true)} onBlur={() => setPwFocused(false)} placeholder={t.phPassword} style={inputStyle} />
+              <EyeBtn on={showPw} onClick={() => setShowPw((v) => !v)} />
+            </div>
+            <PasswordStrengthBar password={newPassword} focused={pwFocused} onGenerate={(pw) => { setNewPassword(pw); setConfirmPassword(pw); setFieldErrors(er => ({ ...er, password: undefined, confirm: undefined })); }} />
+            {/* Đã gõ mà chưa đủ mạnh → checklist của thanh độ mạnh đã nói rõ, không lặp lại bằng dòng đỏ. */}
+            <div style={{ ...errStyle, minHeight: newPassword ? 10 : 18 }}>{newPassword && !passwordValid(newPassword) ? null : fieldErrors.password}</div>
 
-              <label style={labelStyle}>{t.fpConfirmPw}</label>
-              <div style={inputWrap(fieldErrors.confirm)}>
-                <LockIcon />
-                <input type={showPw2 ? "text" : "password"} value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setFieldErrors(p => ({ ...p, confirm: !passwordsMatch(newPassword, e.target.value) ? t.errConfirmBad : undefined })); }} placeholder={t.phConfirm} style={inputStyle} />
-                <EyeBtn on={showPw2} onClick={() => setShowPw2((v) => !v)} />
-              </div>
-              <div style={errStyle}>{fieldErrors.confirm}</div>
-              <button type="submit" disabled={submitting} style={btnPrimary}>{submitting ? t.processing : t.fpResetBtn}</button>
-            </form>
-          )}
+            <label style={labelStyle}>{t.fpConfirmPw}</label>
+            <div style={inputWrap(fieldErrors.confirm)}>
+              <LockIcon />
+              <input type={showPw2 ? "text" : "password"} value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setFieldErrors(p => ({ ...p, confirm: !passwordsMatch(newPassword, e.target.value) ? t.errConfirmBad : undefined })); }} placeholder={t.phConfirm} style={inputStyle} />
+              <EyeBtn on={showPw2} onClick={() => setShowPw2((v) => !v)} />
+            </div>
+            <div style={errStyle}>{fieldErrors.confirm}</div>
+            <button type="submit" disabled={submitting} style={btnPrimary}>{submitting ? t.processing : t.fpResetBtn}</button>
+          </form>
+        )}
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 }
