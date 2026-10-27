@@ -27,4 +27,21 @@ public final class FacebookPostIds {
         }
         return pageId.trim() + "_" + id;
     }
+
+    /**
+     * Đường dẫn xem bài dựng từ ID (không gọi Graph): {@code pageId_postId} → {@code https://www.facebook.com/{pageId}/posts/{postId}};
+     * ID không có tiền tố Trang → {@code https://www.facebook.com/{id}} (Facebook tự chuyển hướng). null/rỗng → null.
+     * Lượt quét danh sách bài của Trang vẫn ghi đè bằng {@code permalink_url} chính thức khi tới.
+     */
+    public static String permalink(String postId) {
+        if (postId == null || postId.isBlank()) {
+            return null;
+        }
+        String id = postId.trim();
+        int sep = id.indexOf('_');
+        if (sep > 0 && sep < id.length() - 1) {
+            return "https://www.facebook.com/" + id.substring(0, sep) + "/posts/" + id.substring(sep + 1);
+        }
+        return "https://www.facebook.com/" + id;
+    }
 }

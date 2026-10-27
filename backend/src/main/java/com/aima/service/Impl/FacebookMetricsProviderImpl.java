@@ -5,6 +5,7 @@ import com.aima.enums.Platform;
 import com.aima.exception.MetricsFetchException;
 import com.aima.service.MetaApiClient;
 import com.aima.service.PlatformMetricsProvider;
+import com.aima.util.FacebookPostIds;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AccessLevel;
@@ -52,6 +53,12 @@ public class FacebookMetricsProviderImpl implements PlatformMetricsProvider {
     @Override
     public boolean supportsAccountSync() {
         return true;
+    }
+
+    /** Dựng từ ID bài ({@link FacebookPostIds#permalink}) — không tốn lời gọi Graph. */
+    @Override
+    public String fetchPermalink(String accessToken, String platformMediaId) {
+        return FacebookPostIds.permalink(platformMediaId);
     }
 
     @Override

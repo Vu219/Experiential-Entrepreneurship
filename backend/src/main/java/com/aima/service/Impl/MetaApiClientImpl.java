@@ -461,6 +461,18 @@ public class MetaApiClientImpl implements MetaApiClient {
 
     static final int THREADS_RECENT_LIMIT = 25;
 
+    @Override
+    public String getThreadsPermalink(String token, String mediaId) {
+        Platform platform = Platform.THREADS;
+        String version = versionService.getCurrentVersion(platform);
+        String url = UriComponentsBuilder.fromUriString(metaProperties.threadsBaseUrl())
+                .pathSegment(version, mediaId)
+                .queryParam("fields", "permalink")
+                .queryParam("access_token", token)
+                .toUriString();
+        return text(getMetrics(url, platform), "permalink");
+    }
+
     private List<MetaPublishedPost> listPublishedPosts(String pageId, String pageToken, Instant since, String fields,
                                                        boolean withAttachments) {
         Platform platform = Platform.FACEBOOK;

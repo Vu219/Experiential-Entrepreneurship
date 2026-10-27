@@ -148,8 +148,12 @@ public class AnalyticsSyncServiceImpl implements AnalyticsSyncService {
 
     // ===== Đồng bộ một tài khoản =====
 
-    /** Giá trị cần cho lời gọi nền tảng — chụp trong transaction, dùng ngoài (không giữ entity/proxy). */
-    private record SyncTarget(Platform platform, String accessToken, Map<String, UUID> mediaByPlatformId) {
+    /**
+     * Giá trị cần cho lời gọi nền tảng — chụp trong transaction, dùng ngoài (không giữ entity/proxy).
+     * {@code missingPermalink}: id nền tảng của các bài chưa có đường dẫn xem bài.
+     */
+    private record SyncTarget(Platform platform, String accessToken, Map<String, UUID> mediaByPlatformId,
+                              Set<String> missingPermalink) {
         @Override
         public String toString() { // không để token lọt vào log
             return "SyncTarget[" + platform + ", " + mediaByPlatformId.size() + " bài]";
@@ -165,7 +169,9 @@ public class AnalyticsSyncServiceImpl implements AnalyticsSyncService {
             }
             PlatformAccount account = medias.getFirst().getPlatformAccount();
             return new SyncTarget(account.getPlatformName(), account.getAccessToken(), medias.stream()
-                    .collect(Collectors.toMap(PlatformMedia::getPlatformMediaId, PlatformMedia::getId)));
+                    .collect(Collectors.toMap(PlatformMedia::getPlatformMediaId, PlatformMedia::getId)),
+                    medias.stream().filter(m -> m.getPermalink() == null || m.getPermalink().isBlank())
+                            .map(PlatformMedia::getPlatformMediaId).collect(Collectors.toSet()));
         });
         if (target == null) {
             return true;
@@ -229,9 +235,43 @@ public class AnalyticsSyncServiceImpl implements AnalyticsSyncService {
             log.warn("[AnalyticsSync] Tài khoản {} lỗi {} — lùi lịch {} bài còn lại chưa gọi", accountId,
                     accountError.getErrorType(), skipped);
         }
+        if (accountError == null) {
+            fillPermalinks(provider, target);
+        }
         log.info("[AnalyticsSync] Tài khoản {} ({}): {}/{} bài đã cập nhật", accountId, target.platform(),
                 synced, mediaIds.size());
         return !rateLimited;
+    }
+
+    /**
+     * Bài chưa có đường dẫn xem bài (vừa đăng qua AIMA; bài Threads vốn không có lượt quét danh sách bài) → hỏi provider
+     * ngay lượt đồng bộ này, HTTP ngoài transaction, mỗi bài lưu một transaction ngắn. Lỗi một bài chỉ log — lượt sau
+     * thử lại (bài vẫn thiếu permalink); gặp RATE_LIMIT / TOKEN_INVALID thì dừng, không gọi thêm vào tài khoản đang lỗi.
+     */
+    private void fillPermalinks(PlatformMetricsProvider provider, SyncTarget target) {
+        for (String platformMediaId : target.missingPermalink()) {
+            UUID mediaId = target.mediaByPlatformId().get(platformMediaId);
+            String permalink;
+            try {
+                permalink = provider.fetchPermalink(target.accessToken(), platformMediaId);
+            } catch (MetricsFetchException e) {
+                log.warn("[AnalyticsSync] Không lấy được đường dẫn bài {} ({}): {} ({})", mediaId, platformMediaId,
+                        e.getErrorType(), e.getResponseCode());
+                if (e.getErrorType() == MetricsErrorType.RATE_LIMIT || e.getErrorType() == MetricsErrorType.TOKEN_INVALID) {
+                    return;
+                }
+                continue;
+            } catch (RuntimeException e) {
+                log.warn("[AnalyticsSync] Không lấy được đường dẫn bài {} ({})", mediaId, platformMediaId, e);
+                continue;
+            }
+            if (permalink == null || permalink.isBlank()) {
+                continue;
+            }
+            runSafely("lưu đường dẫn bài " + mediaId, () -> platformMediaRepository.findById(mediaId)
+                    .filter(m -> m.getPermalink() == null || m.getPermalink().isBlank())
+                    .ifPresent(m -> m.setPermalink(permalink)));
+        }
     }
 
     private void ingest(UUID mediaId, PlatformMetricsProvider.PostMetrics metrics, Instant now) {

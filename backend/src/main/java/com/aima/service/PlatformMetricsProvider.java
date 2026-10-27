@@ -44,6 +44,15 @@ public interface PlatformMetricsProvider {
      */
     List<PublishedPost> listPublishedPosts(String accessToken, String platformAccountId, Instant since);
 
+    /**
+     * Đường dẫn xem bài trên nền tảng — job đồng bộ chỉ gọi cho bài CHƯA có permalink (thường là lần đồng bộ đầu
+     * ngay sau khi đăng), để nút "Xem bài trên …" có link mà không phải chờ lượt quét danh sách bài.
+     * null = nền tảng này không hỗ trợ / không lấy được. Lỗi gọi nền tảng ném {@link MetricsFetchException}.
+     */
+    default String fetchPermalink(String accessToken, String platformMediaId) {
+        return null;
+    }
+
     /** Cột dùng chung; null = nền tảng không cung cấp / chưa có quyền (khác 0). */
     record PostMetrics(Long views, Long reach, Long reactions, Long comments, Long shares, Long saves, String raw) {
     }

@@ -156,6 +156,9 @@ class AnalyticsSyncServiceIntegrationTest {
         assertEquals(12L, milestones.getFirst().getLikes(), "likes của mốc = reactions");
 
         PlatformMedia media = media(f.postId());
+        String platformPostId = postRepository.findById(f.postId()).orElseThrow().getPlatformPostId();
+        assertEquals("https://www.facebook.com/" + platformPostId.replace("_", "/posts/"), media.getPermalink(),
+                "đường dẫn xem bài dựng từ id ngay lần đồng bộ đầu (không gọi thêm Graph)");
         assertNotNull(media.getLastSyncedAt());
         assertEquals(0, media.getConsecutiveFailures());
         // Tuổi 25h → chu kỳ 6h (mốc 48h còn 23h nữa).
@@ -382,6 +385,61 @@ class AnalyticsSyncServiceIntegrationTest {
 
     // ================================================================== hỗ trợ
 
+    // ================================================================== đường dẫn xem bài
+
+    @Test
+    void sync_keepsExistingPermalink() {
+        Fixture f = newPostedPost(Duration.ofHours(3));
+        UUID mediaId = trackedMedia(f.postId());
+        transactionTemplate.executeWithoutResult(tx -> platformMediaRepository.findById(mediaId).orElseThrow()
+                .setPermalink("https://www.facebook.com/official/permalink"));
+        enqueueFacebook(1, 0, 0, 5);
+
+        assertTrue(syncService.syncAccount(f.accountId(), List.of(mediaId)));
+
+        assertEquals("https://www.facebook.com/official/permalink", media(f.postId()).getPermalink(),
+                "link chính thức (từ lượt quét danh sách bài) không bị ghi đè");
+    }
+
+    @Test
+    void threads_sync_fetchesPermalinkOnce() {
+        Fixture f = newPostedPost(Duration.ofHours(3), Platform.THREADS);
+        UUID mediaId = trackedMedia(f.postId());
+        enqueueThreads(7, 2);
+        META.enqueue(json(200, "{\"permalink\":\"https://www.threads.net/@aima/post/ABC123\",\"id\":\"1\"}"));
+
+        assertTrue(syncService.syncAccount(f.accountId(), List.of(mediaId)));
+
+        PlatformMedia media = media(f.postId());
+        assertEquals("https://www.threads.net/@aima/post/ABC123", media.getPermalink());
+        assertEquals(1, snapshots(mediaId).size(), "số liệu vẫn lưu như cũ");
+
+        int before = META.getRequestCount();
+        enqueueThreads(9, 3);
+        assertTrue(syncService.syncAccount(f.accountId(), List.of(mediaId)));
+        assertEquals(1, META.getRequestCount() - before, "đã có link → lượt sau chỉ gọi số liệu, không hỏi lại permalink");
+    }
+
+    @Test
+    void threads_permalinkError_metricsStillSaved_retriedNextSync() {
+        Fixture f = newPostedPost(Duration.ofHours(3), Platform.THREADS);
+        UUID mediaId = trackedMedia(f.postId());
+        enqueueThreads(4, 1);
+        META.enqueue(new MockResponse().setResponseCode(503).setBody("down"));
+
+        assertTrue(syncService.syncAccount(f.accountId(), List.of(mediaId)));
+
+        PlatformMedia media = media(f.postId());
+        assertNull(media.getPermalink(), "lỗi lấy link không làm hỏng lượt đồng bộ");
+        assertEquals(0, media.getConsecutiveFailures());
+        assertEquals(1, snapshots(mediaId).size());
+
+        enqueueThreads(5, 1);
+        META.enqueue(json(200, "{\"permalink\":\"https://www.threads.net/@aima/post/XYZ\"}"));
+        assertTrue(syncService.syncAccount(f.accountId(), List.of(mediaId)));
+        assertEquals("https://www.threads.net/@aima/post/XYZ", media(f.postId()).getPermalink(), "lượt sau thử lại");
+    }
+
     private boolean isDue(UUID mediaId, Instant now) {
         return syncService.findDue(now, 100_000).values().stream().anyMatch(ids -> ids.contains(mediaId));
     }
@@ -425,8 +483,20 @@ class AnalyticsSyncServiceIntegrationTest {
         META.enqueue(json(200, "{\"data\":[{\"name\":\"post_media_view\",\"values\":[{\"value\":" + views + "}]}]}"));
     }
 
+    private static void enqueueThreads(long likes, long replies) {
+        META.enqueue(json(200, "{\"data\":[{\"name\":\"views\",\"values\":[{\"value\":50}]},"
+                + "{\"name\":\"likes\",\"values\":[{\"value\":" + likes + "}]},"
+                + "{\"name\":\"replies\",\"values\":[{\"value\":" + replies + "}]}]}"));
+    }
+
     /** Bài FB Page đã POSTED cách đây {@code age}. */
     private Fixture newPostedPost(Duration age) {
+        return newPostedPost(age, Platform.FACEBOOK);
+    }
+
+    /** Bài đã POSTED cách đây {@code age} trên Trang Facebook hoặc tài khoản Threads. */
+    private Fixture newPostedPost(Duration age, Platform platform) {
+        boolean threads = platform == Platform.THREADS;
         Role role = roleRepository.findByRoleName("USER").orElseThrow();
         String email = "sync-" + UUID.randomUUID() + "@it.local";
         User user = userRepository.save(User.builder()
@@ -447,7 +517,7 @@ class AnalyticsSyncServiceIntegrationTest {
 
         ContentVersion version = new ContentVersion();
         version.setContentItem(item);
-        version.setPlatformName(Platform.FACEBOOK);
+        version.setPlatformName(platform);
         version.setFormattedCaption("Xin chao AIMA");
         version.setMediaFormat("TEXT");
         version.setStatus(ContentVersionStatus.FORMATTED);
@@ -456,11 +526,11 @@ class AnalyticsSyncServiceIntegrationTest {
         String pageId = "page" + Math.abs(UUID.randomUUID().getMostSignificantBits());
         PlatformAccount page = new PlatformAccount();
         page.setUser(user);
-        page.setPlatformName(Platform.FACEBOOK);
+        page.setPlatformName(platform);
         page.setPlatformAccountId(pageId);
         page.setAccountName("IT PAGE");
-        page.setAccountType(PlatformAccountType.PAGE);
-        page.setTokenType(TokenType.PAGE_TOKEN);
+        page.setAccountType(threads ? PlatformAccountType.PERSONAL : PlatformAccountType.PAGE);
+        page.setTokenType(threads ? TokenType.LONG_LIVED_USER_TOKEN : TokenType.PAGE_TOKEN);
         page.setAccessToken("page-token-" + pageId);
         page.setConnectionStatus(ConnectionStatus.ACTIVE);
         page = accountRepository.save(page);
@@ -474,9 +544,10 @@ class AnalyticsSyncServiceIntegrationTest {
 
         Post post = new Post();
         post.setSchedule(schedule);
-        post.setPlatformName(Platform.FACEBOOK);
+        post.setPlatformName(platform);
         post.setStatus(PostStatus.POSTED);
-        post.setPlatformPostId(pageId + "_" + Math.abs(UUID.randomUUID().getLeastSignificantBits()));
+        long mediaNo = Math.abs(UUID.randomUUID().getLeastSignificantBits());
+        post.setPlatformPostId(threads ? String.valueOf(mediaNo) : pageId + "_" + mediaNo);
         post.setPublishedAt(Instant.now().minus(age));
         return new Fixture(user.getId(), page.getId(), postRepository.save(post).getId());
     }

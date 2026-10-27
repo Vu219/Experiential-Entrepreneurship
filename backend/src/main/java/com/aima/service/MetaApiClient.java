@@ -74,6 +74,12 @@ public interface MetaApiClient {
     List<MetaPublishedPost> getThreadsPosts(String token, Instant since);
 
     /**
+     * Đường dẫn xem MỘT bài Threads ({@code GET /{media-id}?fields=permalink}) — ID số của Threads không dựng được
+     * thành link (link cần mã rút gọn riêng). Rỗng → null. Lỗi ném {@code MetricsFetchException} đã phân loại.
+     */
+    String getThreadsPermalink(String token, String mediaId);
+
+    /**
      * Insights theo NGÀY của Trang trong [{@code since}, {@code until}] (tối đa 90 ngày, ngày theo giờ Thái Bình
      * Dương như Meta tính): {@code GET /{page-id}/insights?period=day}. Metric bị Meta từ chối (đã khai tử) được bỏ
      * qua kèm log ERROR, không làm mất các metric còn lại. Cần read_insights.

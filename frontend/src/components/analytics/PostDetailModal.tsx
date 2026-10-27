@@ -1,21 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Eye, Heart, MessageCircle, Share2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useBreakpoint } from '../../hooks/useBreakpoint';
 import Modal from '../Modal';
-import PostDetailPanel from './PostDetailPanel';
-import { formatDateTimeVN, formatGroupedNumber } from '../../utils/format';
+import PostDetailPanel, { sectionHeading } from './PostDetailPanel';
+import MetricValue from './MetricValue';
+import { METRIC_COLOR, type MetricKey } from './analyticsTokens';
+import { formatGroupedNumber } from '../../utils/format';
 import { getAnalyzedPost, type AnalyticsSnapshot, type AnalyticsTopPost } from '../../api/analytics';
-import { C } from '../../styles/colors';
+import { C, alpha } from '../../styles/colors';
 
 /** Các mốc so sánh của FR-62 (giờ sau khi đăng). */
 const MILESTONES = [24, 48, 168] as const;
 
+const METRIC_ICON: Record<MetricKey, typeof Eye> = { views: Eye, likes: Heart, comments: MessageCircle, shares: Share2 };
+
 /**
- * Modal chi tiết bài viết khi người dùng click vào một dòng bài viết.
- * Hiển thị thông tin chi tiết bài viết (PostDetailPanel) kèm bảng So Sánh Với Mức Trung Bình (Comparison with Average)
- * và bảng số liệu theo mốc 24 giờ / 48 giờ / 7 ngày sau khi đăng (FR-62 — chỉ bài đăng qua AIMA, đọc
- * GET /analytics/posts/{postId}). Bài tự đăng ngoài AIMA không có mốc → chỉ ghi chú.
+ * Modal chi tiết bài viết khi người dùng click vào một dòng bài viết — bố cục gọn trong một khung hình:
+ * màn rộng chia hai cột: trái = nội dung bài (PostDetailPanel, caption cuộn bên trong), phải = 4 thẻ chỉ số
+ * (mỗi thẻ kèm mức trung bình + chênh lệch — thay cho bảng so sánh riêng) và bảng mốc 24 giờ / 48 giờ / 7 ngày
+ * sau khi đăng (FR-62 — chỉ bài đăng qua AIMA, đọc GET /analytics/posts/{postId}; bài ngoài AIMA chỉ ghi chú).
+ * Màn hẹp: một cột.
  *
- * Tính toán trung bình dựa trên tập dữ liệu `allPosts` có sẵn trong bộ nhớ mà không cần gọi API phụ.
+ * Trung bình tính từ `allPosts` đã có trong bộ nhớ, không gọi API phụ.
  */
 export default function PostDetailModal({
   post,
@@ -35,6 +42,8 @@ export default function PostDetailModal({
   onClose: () => void;
 }) {
   const { t, lang } = useApp();
+  const { width } = useBreakpoint();
+  const twoCol = width >= 900;
 
   // Compute average metrics from dataset loaded in memory
   const avg = useMemo(() => {
@@ -53,17 +62,16 @@ export default function PostDetailModal({
     };
   }, [averageMetrics, allPosts]);
 
-  // Construct comparison data
-  const comparisonRows = useMemo(() => {
-    if (!avg) return null;
-    const metrics: { key: 'views' | 'likes' | 'comments' | 'shares'; label: string }[] = [
+  // Mỗi chỉ số: giá trị bài này + trung bình + chênh lệch (null khi chưa đủ dữ liệu để so sánh).
+  const metrics = useMemo(() => {
+    const items: { key: MetricKey; label: string }[] = [
       { key: 'views', label: t.anaViews },
       { key: 'likes', label: t.anaLikes },
       { key: 'comments', label: t.anaComments },
       { key: 'shares', label: t.anaShares },
     ];
-
-    return metrics.map((m) => {
+    return items.map((m) => {
+      if (!avg || post[m.key] === null) return { ...m, avg: null, diffLabel: '', tone: 'neutral' as const };
       const cur = post[m.key] || 0;
       const mean = avg[m.key] || 0;
 
@@ -74,9 +82,6 @@ export default function PostDetailModal({
         if (cur > 0) {
           tone = 'up';
           diffLabel = '+100% ↑';
-        } else {
-          tone = 'neutral';
-          diffLabel = '0%';
         }
       } else {
         const pct = Math.round(((cur - mean) / mean) * 100);
@@ -86,80 +91,56 @@ export default function PostDetailModal({
         } else if (pct < 0) {
           tone = 'down';
           diffLabel = `${pct}% ↓`;
-        } else {
-          tone = 'neutral';
-          diffLabel = '0%';
         }
       }
-
-      return {
-        key: m.key,
-        label: m.label,
-        current: cur,
-        avg: mean,
-        diffLabel,
-        tone,
-      };
+      return { ...m, avg: mean, diffLabel, tone };
     });
   }, [avg, post, t]);
 
   return (
-    <Modal
-      title={t.anaPostDetail}
-      subtitle={formatDateTimeVN(post.publishedAt)}
-      onClose={onClose}
-      maxWidth={900}
-      animateScale
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        {/* Post Detail Panel */}
+    <Modal title={t.anaPostDetail} onClose={onClose} maxWidth={1040} animateScale>
+      <div style={{ display: 'grid', gridTemplateColumns: twoCol ? 'minmax(0, 0.95fr) minmax(0, 1.05fr)' : 'minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
         <PostDetailPanel post={post} />
 
-        {/* Section: số liệu theo mốc 24h / 48h / 7 ngày (FR-62) */}
-        {!demo && <MilestoneSection post={post} />}
-
-        {/* Section: Comparison with Average */}
-        <div style={{ background: C.surfaceSubtle, borderRadius: 16, padding: '18px 20px', border: `1px solid ${C.surfaceMuted}` }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.textStrong, marginBottom: 12 }}>
-            {t.anaVsAverage ?? 'So sánh với mức trung bình'}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
+          {/* Thống kê + so sánh với mức trung bình */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
+              <div style={sectionHeading}>{t.pdpStatistics}</div>
+              {avg && <div style={{ fontSize: 12, color: C.textMuted }}>{t.anaVsAverage}</div>}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+              {metrics.map((m) => {
+                const Icon = METRIC_ICON[m.key];
+                const color = METRIC_COLOR[m.key];
+                return (
+                  <div key={m.key} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <div style={{ width: 26, height: 26, borderRadius: 8, background: alpha(color, 20 / 255), display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+                        <Icon size={14} color={color} />
+                      </div>
+                      <span style={{ fontSize: 12, color: C.textSecondary, fontWeight: 600 }}>{m.label}</span>
+                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: C.ink900, margin: '8px 0 6px', fontVariantNumeric: 'tabular-nums' }}>
+                      <MetricValue value={post[m.key]} post={post} />
+                    </div>
+                    {m.avg !== null && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 12, color: C.textMuted }}>{t.colAverage}: {formatGroupedNumber(m.avg, lang)}</span>
+                        <span style={{ display: 'inline-flex', padding: '2px 9px', borderRadius: 999, fontSize: 11.5, fontWeight: 700, ...(m.tone === 'up' ? pillUp : m.tone === 'down' ? pillDown : pillNeutral) }}>
+                          {m.diffLabel}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {!avg && <div style={{ fontSize: 12.5, color: C.textMuted, marginTop: 8 }}>{t.anaVsAverageEmpty}</div>}
           </div>
 
-          {!comparisonRows ? (
-            <div style={{ fontSize: 13, color: C.textMuted, padding: '8px 0' }}>
-              {t.anaVsAverageEmpty ?? 'Chưa có đủ dữ liệu để so sánh với mức trung bình.'}
-            </div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 440 }}>
-                <thead>
-                  <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <th style={{ ...headCell, textAlign: 'left' }}>{t.colMetric ?? 'Chỉ số'}</th>
-                    <th style={{ ...headCell, textAlign: 'right' }}>{t.colCurrentPost ?? 'Bài viết này'}</th>
-                    <th style={{ ...headCell, textAlign: 'right' }}>{t.colAverage ?? 'Trung bình'}</th>
-                    <th style={{ ...headCell, textAlign: 'right' }}>{t.colDifference ?? 'Chênh lệch'}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {comparisonRows.map((row) => (
-                    <tr key={row.key} style={{ borderTop: `1px solid ${C.surfaceMuted}` }}>
-                      <td style={{ ...cell, fontWeight: 600, color: C.ink750 }}>{row.label}</td>
-                      <td style={numCell}>{formatGroupedNumber(row.current, lang)}</td>
-                      <td style={{ ...numCell, color: C.textSecondary }}>{formatGroupedNumber(row.avg, lang)}</td>
-                      <td style={{ ...cell, textAlign: 'right' }}>
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                          padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700,
-                          ...(row.tone === 'up' ? pillUp : row.tone === 'down' ? pillDown : pillNeutral),
-                        }}>
-                          {row.diffLabel}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          {/* Số liệu theo mốc 24h / 48h / 7 ngày (FR-62) */}
+          {!demo && <MilestoneSection post={post} />}
         </div>
       </div>
     </Modal>
@@ -186,9 +167,9 @@ function MilestoneSection({ post }: { post: AnalyticsTopPost }) {
     return () => { alive = false; };
   }, [postId]);
 
-  const box = { background: C.surfaceSubtle, borderRadius: 16, padding: '18px 20px', border: `1px solid ${C.surfaceMuted}` };
-  const title = <div style={{ fontSize: 13, fontWeight: 700, color: C.textStrong, marginBottom: 12 }}>{t.anaMilestonesTitle}</div>;
-  const note = (text: string) => <div style={{ fontSize: 13, color: C.textMuted, padding: '4px 0', lineHeight: 1.55 }}>{text}</div>;
+  const box = { background: C.surfaceSubtle, borderRadius: 14, padding: '12px 14px', border: `1px solid ${C.surfaceMuted}` };
+  const title = <div style={{ ...sectionHeading, marginBottom: 6 }}>{t.anaMilestonesTitle}</div>;
+  const note = (text: string) => <div style={{ fontSize: 12.5, color: C.textMuted, padding: '2px 0', lineHeight: 1.55 }}>{text}</div>;
 
   if (!postId) return <div style={box}>{title}{note(t.anaExternalDetailNote)}</div>;
   if (state !== 'ok') return <div style={box}>{title}{note(state === 'loading' ? t.anaMilestonesLoading : t.anaMilestonesError)}</div>;
@@ -203,7 +184,7 @@ function MilestoneSection({ post }: { post: AnalyticsTopPost }) {
     <div style={box}>
       {title}
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 440 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 400 }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}` }}>
               <th style={{ ...headCell, textAlign: 'left' }}>{t.anaMilestoneCol}</th>
@@ -243,9 +224,9 @@ function MilestoneSection({ post }: { post: AnalyticsTopPost }) {
   );
 }
 
-const headCell = { fontSize: 12, fontWeight: 600, color: C.textMuted, padding: '10px 8px', whiteSpace: 'nowrap' } as const;
-const cell = { padding: '12px 8px', fontSize: 13, color: C.ink550, whiteSpace: 'nowrap', verticalAlign: 'middle' } as const;
-const numCell = { padding: '12px 8px', fontSize: 13.5, fontWeight: 700, color: C.ink900, textAlign: 'right', whiteSpace: 'nowrap', verticalAlign: 'middle' } as const;
+const headCell = { fontSize: 12, fontWeight: 600, color: C.textMuted, padding: '8px 8px', whiteSpace: 'nowrap' } as const;
+const cell = { padding: '9px 8px', fontSize: 13, color: C.ink550, whiteSpace: 'nowrap', verticalAlign: 'middle' } as const;
+const numCell = { padding: '9px 8px', fontSize: 13.5, fontWeight: 700, color: C.ink900, textAlign: 'right', whiteSpace: 'nowrap', verticalAlign: 'middle' } as const;
 
 const pillUp = { background: C.legacyBgecfdf5, color: C.legacyText047857, border: `1px solid ${C.legacyBordera7f3d0}` } as const;
 const pillDown = { background: C.legacyBgfef2f2, color: C.legacyTextb91c1c, border: `1px solid ${C.legacyBorderfecaca}` } as const;

@@ -38,6 +38,11 @@ public class ThreadsMetricsProviderImpl implements PlatformMetricsProvider {
     }
 
     @Override
+    public String fetchPermalink(String accessToken, String platformMediaId) {
+        return metaApiClient.getThreadsPermalink(accessToken, platformMediaId);
+    }
+
+    @Override
     public List<AccountDailyMetrics> fetchAccountMetrics(String accessToken, String platformAccountId,
                                                          LocalDate from, LocalDate to) {
         // TODO Threads: /{user-id}/threads_insights (views, likes, replies, reposts, quotes, followers_count).

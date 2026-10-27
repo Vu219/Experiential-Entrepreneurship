@@ -25,7 +25,7 @@ import AnalyticsSkeleton, {
   PlatformSkeleton, TopPostsSkeleton,
 } from '../../components/analytics/AnalyticsSkeleton.tsx';
 import { METRIC_TONE } from '../../components/analytics/analyticsTokens.ts';
-import { defaultRange, formatDateInput } from '../../components/analytics/dateRange.ts';
+import { defaultRange, formatDayMonth } from '../../components/analytics/dateRange.ts';
 import type { Platform } from '../../api/brandProfile.ts';
 import {
   CONTENT_TYPES, exportAnalyticsCsv, getAnalyticsByContentType, getAnalyticsByPlatform, getAnalyticsHeatmap,
@@ -326,10 +326,13 @@ export default function Analytics() {
     { key: 'comments' as const, icon: MessageCircle, label: t.anaComments },
     { key: 'shares' as const, icon: Share2, label: t.anaShares },
   ];
-  // Delta ghi rõ KHOẢNG kỳ trước đã tính (backend trả compareFrom/compareTo), không nói chung chung.
+  // Delta ghi rõ KHOẢNG kỳ trước đã tính (backend trả compareFrom/compareTo), không nói chung chung. Bỏ năm cho gọn
+  // ("so với 29/08 - 29/09"); kỳ trước chỉ một ngày (xem "Hôm nay" / một ngày bất kỳ) → "so với 26/10".
   const compareLabel = summary
-    ? t.anaVsRange.replace('{from}', formatDateInput(summary.compareFrom, lang))
-      .replace('{to}', formatDateInput(summary.compareTo, lang))
+    ? summary.compareFrom === summary.compareTo
+      ? t.anaVsDay.replace('{date}', formatDayMonth(summary.compareFrom, lang))
+      : t.anaVsRange.replace('{from}', formatDayMonth(summary.compareFrom, lang))
+        .replace('{to}', formatDayMonth(summary.compareTo, lang))
     : '';
 
   // Empty state (chỉ ở chế độ dữ liệu THẬT): phân biệt chưa kết nối / chưa có bài / lọc không ra.

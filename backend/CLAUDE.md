@@ -859,6 +859,13 @@ Lịch `ON_HOLD` được kích hoạt lại bằng `PUT /schedules/{id}` khi đ
 > Lịch đồng bộ bài thích ứng: `nextSyncAt(published, now, engagementPerHour)` (≥ 5 tương tác/giờ → chia đôi, ≥ 1h; bài ≥ 24h
 > không tương tác mới → nhân đôi, ≤ 7 ngày; mốc vẫn ép).
 
+**Đường dẫn xem bài (2026-10-27)** — `platform_media.permalink` điền ngay LẦN ĐỒNG BỘ ĐẦU của bài (không chờ quét danh
+sách bài): `AnalyticsSyncServiceImpl.syncAccount` → `fillPermalinks` hỏi `PlatformMetricsProvider.fetchPermalink` cho bài còn
+trống (HTTP ngoài transaction, mỗi bài một transaction ngắn, không ghi đè link sẵn có; RATE_LIMIT/TOKEN_INVALID → dừng; lỗi khác
+chỉ log, lượt sau thử lại). Facebook dựng từ ID (`util/FacebookPostIds.permalink`, không gọi Graph — lượt quét Trang vẫn ghi đè
+bằng `permalink_url`); Threads gọi `MetaApiClient.getThreadsPermalink` (`GET /{media-id}?fields=permalink` — ID số không dựng
+được link). Bài đã ngoài diện đồng bộ (quá 90 ngày / STOPPED) không được điền bù.
+
 **Metric theo nền tảng** — FB Page post: `?fields=reactions.summary(total_count).limit(0),comments.filter(stream).summary(true).limit(0),shares`
 (`likes`/`reactions` = tổng MỌI cảm xúc, bình luận gồm cả phản hồi; `raw` = phản hồi gốc lưu vào snapshot) + views `/insights?metric=post_media_view` (`post_impressions` bị Meta khai tử 15/11/2025;
 cần `read_insights` — thiếu quyền → views null, metric bị từ chối mã 100 → views null + log ERROR, rate limit/token/lỗi tạm
