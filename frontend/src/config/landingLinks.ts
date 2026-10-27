@@ -14,6 +14,7 @@ export interface LinkSuggestion {
 export const LANDING_LINK_SUGGESTIONS: LinkSuggestion[] = [
   { href: '/', label: 'lpSugHome', group: 'pages' },
   { href: '/pricing', label: 'lpSugPricing', group: 'pages' },
+  { href: '/resources', label: 'lpSugResources', group: 'pages' },
   { href: '/register', label: 'lpSugRegister', group: 'pages' },
   { href: '/login', label: 'lpSugLogin', group: 'pages' },
   { href: '/#home', label: 'lpSugTop', group: 'sections' },

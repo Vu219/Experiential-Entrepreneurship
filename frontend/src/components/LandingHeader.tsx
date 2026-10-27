@@ -19,7 +19,7 @@ const scrollToId = (id: string) => {
 };
 
 // Home → hero; Features → quy trình; Pricing → TRANG /pricing (đồng thời sáng khi
-// cuộn tới section #pricing trên Landing nhờ `spyId`); Resources → footer.
+// cuộn tới section #pricing trên Landing nhờ `spyId`); Resources → TRANG /resources.
 // `section` cuộn tới id trên Landing (điều hướng về "/#id" nếu đang ở trang khác);
 // `route` điều hướng sang trang riêng; `spyId` (tuỳ chọn) = id section để scroll-spy
 // vẫn highlight route đó khi đang ở Landing.
@@ -31,7 +31,7 @@ const navItems = (t: ReturnType<typeof useApp>["t"]): HeaderNavItem[] => [
   { label: t.nHome, kind: "section", id: "home" },
   { label: t.nFeatures, kind: "section", id: "features" },
   { label: t.nPricing, kind: "route", route: "pricing", path: "/pricing", spyId: "pricing" },
-  { label: t.nResources, kind: "section", id: "resources" },
+  { label: t.nResources, kind: "route", route: "resources", path: "/resources" },
 ];
 
 export default function LandingHeader() {

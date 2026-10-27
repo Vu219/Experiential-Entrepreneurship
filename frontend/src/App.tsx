@@ -13,6 +13,7 @@ import { useColorModeSync } from "./hooks/useColorModeSync";
 // landing không kéo theo app/admin và ngược lại. Chỉ shell/route-guard ở chunk chính.
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
+const ResourcesPage = lazy(() => import("./pages/ResourcesPage"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Dashboard = lazy(() => import("./pages/app/Dashboard.tsx"));
 const Create = lazy(() => import("./pages/app/Create.tsx"));
@@ -159,6 +160,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/resources" element={<ResourcesPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/data-deletion" element={<DataDeletionPage />} />

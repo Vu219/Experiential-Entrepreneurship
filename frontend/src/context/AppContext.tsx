@@ -14,6 +14,7 @@ import { useUiStore } from '../store/useUiStore';
 const PATH_BY_ROUTE: Record<Route, string> = {
   landing: '/',
   pricing: '/pricing',
+  resources: '/resources',
   login: '/login',
   register: '/register',
   logout: '/logout',

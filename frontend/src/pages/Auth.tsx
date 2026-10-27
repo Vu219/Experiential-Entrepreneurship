@@ -298,7 +298,7 @@ export default function Auth() {
         {!isMobile && (
           <div style={{ flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden', background: `radial-gradient(900px 700px at 18% 8%,rgba(34,211,238,.13),transparent 55%),radial-gradient(900px 700px at 90% 90%,rgba(217,70,239,.11),transparent 55%),linear-gradient(160deg,${C.bg},${C.surfaceMuted} 55%,${C.surfaceMuted})`, padding: '48px 54px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ position: "fixed", top: 16, right: 18, zIndex: 101 }}><ColorModeToggle /></div>
-          <img src={isDark ? "/aima-h-dark.png" : "/aima-logo.png"} alt="AIMA" style={{ height: 74, width: 'auto', alignSelf: 'flex-start' }} />
+          <img src={isDark ? "/aima-h-dark.png" : "/aima-h.png"} alt="AIMA" style={{ height: 74, width: 'auto', alignSelf: 'flex-start' }} />
             <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 44, letterSpacing: '-.02em', color: C.ink900, margin: '8px 0 0' }}>AI - Marketing Assistant</h1>
             <p style={{ fontSize: 16, lineHeight: 1.6, color: C.ink550, maxWidth: 430, margin: '16px 0 0' }}>{t.authIntro}</p>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '6px 0' }}>

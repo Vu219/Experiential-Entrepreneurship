@@ -2,7 +2,8 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 // Link do admin cấu hình trên Landing: nội bộ ("/pricing", "/#features") đi qua react-router
-// ("/#id" khi đang ở "/" thì cuộn thẳng tới section); http(s) mở tab mới; mailto: giữ nguyên.
+// ("/#id" khi đang ở "/" — hoặc "/resources#id" khi đang ở /resources — thì cuộn thẳng tới
+// section); http(s) mở tab mới; mailto: giữ nguyên.
 // href trống → chỉ hiện chữ (mục footer chưa có trang).
 export default function LandingLink({ href, className, style, children }: {
   href: string;
@@ -25,7 +26,7 @@ export default function LandingLink({ href, className, style, children }: {
   const onClick = (e: React.MouseEvent) => {
     e.preventDefault();
     const [path, id] = href.split('#');
-    if (id && (path === '' || path === '/') && pathname === '/') {
+    if (id && (path === '' || path === pathname)) {
       document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else {
       navigate(href);

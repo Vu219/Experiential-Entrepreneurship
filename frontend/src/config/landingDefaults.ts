@@ -96,17 +96,18 @@ export const DEFAULT_LANDING: LandingContent = {
       {
         title: k('ftResources'),
         links: [
-          { label: k('ftBlog'), href: '' },
-          { label: k('ftGuide'), href: '' },
-          { label: k('ftDocs'), href: '' },
+          { label: k('ftStart'), href: '/resources#getting-started' },
+          { label: k('ftGuides'), href: '/resources#guides' },
+          { label: k('ftTips'), href: '/resources#tips' },
+          { label: k('ftDocs'), href: '/resources#docs' },
         ],
       },
       {
         title: k('ftCompany'),
         links: [
-          { label: k('ftAbout'), href: '' },
+          { label: k('ftAbout'), href: '/resources#about' },
           { label: k('ftContact'), href: `mailto:${CONTACT_EMAIL}` },
-          { label: k('ftCareers'), href: '' },
+          { label: k('ftFaq'), href: '/#faq' },
         ],
       },
     ],

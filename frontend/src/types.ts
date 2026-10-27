@@ -9,6 +9,7 @@ export type ThemeKey = 'ocean';
 export type Route =
   | 'landing'
   | 'pricing'
+  | 'resources'
   | 'login'
   | 'register'
   | 'logout'

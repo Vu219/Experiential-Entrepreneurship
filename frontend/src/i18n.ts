@@ -348,8 +348,8 @@ export const STRINGS = {
     faqA4: 'Có. Bạn có thể huỷ bất cứ lúc nào; gói Free dùng mãi mãi và không cần thẻ tín dụng.',
     // trang /pricing
     ppCompareTitle: 'So sánh chi tiết các gói', ppColFeature: 'Tính năng',
-    ftBlog: 'Blog', ftGuide: 'Hướng dẫn', ftDocs: 'Tài liệu',
-    ftAbout: 'Giới thiệu', ftContact: 'Liên hệ', ftCareers: 'Tuyển dụng',
+    ftStart: 'Bắt đầu nhanh', ftGuides: 'Hướng dẫn tính năng', ftTips: 'Kiến thức marketing', ftDocs: 'Tài liệu sản phẩm',
+    ftAbout: 'Giới thiệu', ftContact: 'Liên hệ', ftFaq: 'Câu hỏi thường gặp',
     ftNews: 'Đăng ký nhận tin', ftNewsSub: 'Nhận insight marketing & cập nhật sản phẩm mỗi tuần.',
     ftNewsDone: '✓ Đã đăng ký! Hẹn gặp bạn ở bản tin tới.', ftNewsInvalid: 'Email chưa hợp lệ, bạn kiểm tra lại nhé.',
     ftEmailPh: 'Email của bạn', ftSubscribe: 'Đăng ký',
@@ -923,7 +923,7 @@ export const STRINGS = {
     lpFFooterLinkHint: 'Để trống link nếu mục chưa có trang (chỉ hiện chữ).', lpFNewsletter: 'Giới thiệu phần đăng ký nhận tin',
     lpAdd: 'Thêm', lpMoveUp: 'Chuyển lên', lpMoveDown: 'Chuyển xuống', lpRemove: 'Xóa', lpListLimit: 'Tối thiểu {min}, tối đa {max} mục',
     lpSugGroupPages: 'Trang', lpSugGroupSections: 'Section trên trang chủ', lpSugGroupContact: 'Liên hệ',
-    lpSugHome: 'Trang chủ', lpSugPricing: 'Trang Bảng giá', lpSugRegister: 'Đăng ký tài khoản', lpSugLogin: 'Đăng nhập',
+    lpSugHome: 'Trang chủ', lpSugPricing: 'Trang Bảng giá', lpSugResources: 'Trang Tài nguyên', lpSugRegister: 'Đăng ký tài khoản', lpSugLogin: 'Đăng nhập',
     lpSugTop: 'Đầu trang (Hero)', lpSugPlans: 'Chọn gói', lpSugEmail: 'Gửi email tới {email}',
     pageSubAdminUsage: 'Giám sát token tiêu thụ đối chiếu hạn mức gói',
 
@@ -1942,8 +1942,8 @@ export const STRINGS = {
     faqA4: 'Yes. Cancel whenever you like; the Free plan is free forever and needs no credit card.',
     // /pricing page
     ppCompareTitle: 'Compare plans in detail', ppColFeature: 'Feature',
-    ftBlog: 'Blog', ftGuide: 'Guides', ftDocs: 'Documentation',
-    ftAbout: 'About', ftContact: 'Contact', ftCareers: 'Careers',
+    ftStart: 'Quick start', ftGuides: 'Feature guides', ftTips: 'Marketing tips', ftDocs: 'Product docs',
+    ftAbout: 'About', ftContact: 'Contact', ftFaq: 'FAQ',
     ftNews: 'Subscribe', ftNewsSub: 'Get marketing insights & product updates every week.',
     ftNewsDone: "✓ Subscribed! See you in the next issue.", ftNewsInvalid: 'That email doesn’t look right — please check it.',
     ftEmailPh: 'Your email', ftSubscribe: 'Subscribe',
@@ -2499,7 +2499,7 @@ export const STRINGS = {
     lpFFooterLinkHint: 'Leave the link empty if the item has no page yet (text only).', lpFNewsletter: 'Newsletter intro text',
     lpAdd: 'Add', lpMoveUp: 'Move up', lpMoveDown: 'Move down', lpRemove: 'Remove', lpListLimit: 'Min {min}, max {max} items',
     lpSugGroupPages: 'Pages', lpSugGroupSections: 'Homepage sections', lpSugGroupContact: 'Contact',
-    lpSugHome: 'Homepage', lpSugPricing: 'Pricing page', lpSugRegister: 'Sign up', lpSugLogin: 'Sign in',
+    lpSugHome: 'Homepage', lpSugPricing: 'Pricing page', lpSugResources: 'Resources page', lpSugRegister: 'Sign up', lpSugLogin: 'Sign in',
     lpSugTop: 'Top of page (Hero)', lpSugPlans: 'Plans', lpSugEmail: 'Email {email}',
     pageSubAdminUsage: 'Token consumption monitored against plan quotas',
 

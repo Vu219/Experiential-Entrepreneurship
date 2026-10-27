@@ -185,7 +185,8 @@ public class LandingDataInitializer implements CommandLineRunner {
 
     /**
      * Link mạng xã hội: bản cũ chỉ có icon, KHÔNG có URL thật → seed trang chủ nền tảng làm
-     * chỗ giữ; admin thay bằng trang của công ty. Mục footer chưa có trang (Blog…) để href trống.
+     * chỗ giữ; admin thay bằng trang của công ty. Cột Tài nguyên + "Giới thiệu" trỏ về các khối của
+     * trang /resources (id ở frontend/src/config/resourcesContent.ts).
      */
     private static Footer footer() {
         return new Footer(
@@ -204,13 +205,14 @@ public class LandingDataInitializer implements CommandLineRunner {
                                 new FooterLink(t("Đặt Demo", "Book Demo"), "/login"),
                                 new FooterLink(t("Dùng thử AIMA", "Try AIMA"), "/register"))),
                         new FooterColumn(t("Tài nguyên", "Resources"), List.of(
-                                new FooterLink(t("Blog", "Blog"), ""),
-                                new FooterLink(t("Hướng dẫn", "Guides"), ""),
-                                new FooterLink(t("Tài liệu", "Documentation"), ""))),
+                                new FooterLink(t("Bắt đầu nhanh", "Quick start"), "/resources#getting-started"),
+                                new FooterLink(t("Hướng dẫn tính năng", "Feature guides"), "/resources#guides"),
+                                new FooterLink(t("Kiến thức marketing", "Marketing tips"), "/resources#tips"),
+                                new FooterLink(t("Tài liệu sản phẩm", "Product docs"), "/resources#docs"))),
                         new FooterColumn(t("Công ty", "Company"), List.of(
-                                new FooterLink(t("Giới thiệu", "About"), ""),
+                                new FooterLink(t("Giới thiệu", "About"), "/resources#about"),
                                 new FooterLink(t("Liên hệ", "Contact"), "mailto:" + CONTACT_EMAIL),
-                                new FooterLink(t("Tuyển dụng", "Careers"), "")))),
+                                new FooterLink(t("Câu hỏi thường gặp", "FAQ"), "/#faq")))),
                 new OptionalText("Nhận insight marketing & cập nhật sản phẩm mỗi tuần.",
                         "Get marketing insights & product updates every week."));
     }
