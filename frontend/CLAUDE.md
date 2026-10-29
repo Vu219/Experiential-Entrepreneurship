@@ -124,6 +124,7 @@ src/
 │                           thêm khu vực = đặt `id` trên khối + một dòng `block(...)` trong registry.
 ├── analytics/            — GA4 cho web AIMA (ga4.ts + Ga4Tracker gắn ở App): bật khi có VITE_GA4_MEASUREMENT_ID; page_view theo
 │                           pathname (KHÔNG query string), bỏ qua /admin, sự kiện sign_up/purchase không kèm dữ liệu cá nhân.
+│                           Link ngắn /go/:code (shortLinks.ts + ShortLinkRedirect) → `/?utm_…` của kênh; /go không gửi page_view.
 ├── realtime/             — luồng SSE GET /realtime/stream (một kết nối / tab): sseParser.ts (parser thuần + backoff),
 │                           realtimeClient.ts (fetch + ReadableStream — NGOẠI LỆ của quy tắc "chỉ gọi qua axios client", xem §4;
 │                           401 → refreshSession, watchdog 45s, tab ẩn > 5 phút đóng), events.ts (kiểu sự kiện = hợp đồng với enum

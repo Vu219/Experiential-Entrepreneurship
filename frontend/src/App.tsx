@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import Ga4Tracker from "./analytics/Ga4Tracker";
+import ShortLinkRedirect from "./analytics/ShortLinkRedirect";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { useApp } from "./context/AppContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
@@ -167,6 +168,7 @@ export default function App() {
         <Route path="/data-deletion" element={<DataDeletionPage />} />
         {/* Link huỷ nhận email lỗi đăng bài — công khai, không cần đăng nhập (token có chữ ký). */}
         <Route path="/unsubscribe" element={<UnsubscribePage />} />
+        <Route path="/go/:code" element={<ShortLinkRedirect />} />
         <Route path="/login" element={<GuestRoute><Auth /></GuestRoute>} />
         <Route path="/register" element={<GuestRoute><Auth /></GuestRoute>} />
         <Route path="/logout" element={<Auth />} />

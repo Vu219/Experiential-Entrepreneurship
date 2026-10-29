@@ -17,7 +17,8 @@ declare global {
 
 const MEASUREMENT_ID = (import.meta.env.VITE_GA4_MEASUREMENT_ID ?? '').trim();
 const ENABLED = /^G-[A-Z0-9]+$/i.test(MEASUREMENT_ID);
-const EXCLUDED_PREFIXES = ['/admin'];
+// /go: link ngắn chỉ chuyển hướng — page_view thật gửi ở trang đích (có UTM).
+const EXCLUDED_PREFIXES = ['/admin', '/go'];
 
 let initialized = false;
 
