@@ -1,6 +1,6 @@
 import {
   AlertTriangle, BrainCircuit, Briefcase, Code, LayoutTemplate, Coins, DollarSign, Gauge, KeyRound,
-  Newspaper, Package, Route as RouteIcon, Server, Settings2, Users, FileText, type LucideIcon,
+  MessageSquareHeart, Newspaper, Package, Route as RouteIcon, Server, Settings2, Users, FileText, type LucideIcon,
 } from 'lucide-react';
 import { ICON } from '../data';
 import type { Dict } from '../i18n';
@@ -43,6 +43,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { key: 'adminPosts', labelKey: 'navAdminPosts', icon: AlertTriangle, roles: ADMIN_ONLY },
       { key: 'adminLanding', labelKey: 'navAdminLanding', icon: LayoutTemplate, roles: ADMIN_ONLY },
+      { key: 'adminFeedback', labelKey: 'navAdminFeedback', icon: MessageSquareHeart, roles: ADMIN_ONLY },
     ],
   },
   {

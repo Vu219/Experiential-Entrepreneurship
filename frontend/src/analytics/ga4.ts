@@ -1,7 +1,10 @@
 // Google Analytics 4 cho web AIMA (landing + app): đo lượt truy cập trang và vài sự kiện chuyển đổi.
 // Bật khi đặt VITE_GA4_MEASUREMENT_ID (dạng G-XXXXXXX); để trống = tắt hoàn toàn, không tải script nào.
-// Quyền riêng tư: chỉ gửi pathname (KHÔNG gửi query string — có mã OTP/đơn hàng/mã xoá dữ liệu), không gửi
-// email/tên/id người dùng, bỏ qua khu admin, ẩn IP.
+// Quyền riêng tư: chỉ gửi pathname + riêng các tham số utm_* (KHÔNG gửi phần còn lại của query string — có mã
+// OTP/đơn hàng/mã xoá dữ liệu), không gửi email/tên/id người dùng, bỏ qua khu admin, ẩn IP.
+// UTM phải nằm trong page_location thì GA4 mới ghi được nguồn/chiến dịch của phiên (G1.2).
+
+import { campaignQuery } from './campaign';
 
 type GtagArgs = [string, ...unknown[]];
 
@@ -49,7 +52,7 @@ export function trackPageView(pathname: string): void {
   if (!ENABLED || !window.gtag || excluded(pathname)) return;
   window.gtag('event', 'page_view', {
     page_path: pathname,
-    page_location: `${window.location.origin}${pathname}`,
+    page_location: `${window.location.origin}${pathname}${campaignQuery(window.location.search)}`,
     page_title: document.title,
   });
 }

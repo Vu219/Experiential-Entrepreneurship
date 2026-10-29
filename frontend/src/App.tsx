@@ -39,6 +39,7 @@ const AdminApiVersions = lazy(() => import("./pages/admin/ApiVersions"));
 const AdminRevenue = lazy(() => import("./pages/admin/Revenue"));
 const AdminPlans = lazy(() => import("./pages/admin/Plans"));
 const AdminLanding = lazy(() => import("./pages/admin/Landing"));
+const AdminFeedback = lazy(() => import("./pages/admin/Feedback"));
 const AdminUsage = lazy(() => import("./pages/admin/UsageOverview"));
 const AdminUserUsageDetail = lazy(() => import("./pages/admin/UserUsageDetail"));
 const AdminAiProviders = lazy(() => import("./pages/admin/AiProviders"));
@@ -216,6 +217,7 @@ export default function App() {
           <Route path="/admin/revenue" element={<AdminRevenue />} />
           <Route path="/admin/plans" element={<AdminPlans />} />
           <Route path="/admin/landing" element={<AdminLanding />} />
+          <Route path="/admin/feedback" element={<AdminFeedback />} />
           <Route path="/admin/usage" element={<AdminUsage />} />
           <Route path="/admin/usage/users/:id" element={<AdminUserUsageDetail />} />
           <Route path="/admin/ai/providers" element={<AdminAiProviders />} />

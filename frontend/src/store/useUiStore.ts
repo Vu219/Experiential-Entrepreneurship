@@ -66,6 +66,9 @@ interface UiState {
   // Dropdown chuông thông báo — ở store để palette ("Mở thông báo") mở được từ bên ngoài.
   notificationsOpen: boolean;
   setNotificationsOpen: (v: boolean) => void;
+  // Hộp thoại "Đánh giá & góp ý" (G1.3) — mở từ menu avatar hoặc sidebar, AppShell render.
+  feedbackOpen: boolean;
+  setFeedbackOpen: (v: boolean) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -103,4 +106,6 @@ export const useUiStore = create<UiState>((set) => ({
   closePalette: () => set((s) => (s.paletteOpen ? { paletteOpen: false } : s)),
   notificationsOpen: false,
   setNotificationsOpen: (v) => set((s) => (s.notificationsOpen === v ? s : { notificationsOpen: v })),
+  feedbackOpen: false,
+  setFeedbackOpen: (v) => set((s) => (s.feedbackOpen === v ? s : { feedbackOpen: v })),
 }));

@@ -4,6 +4,7 @@ import { User, Phone, Cake, Lock, Eye, EyeOff, Check } from "lucide-react";
 import DatePicker from "../components/DatePicker";
 import AuthShell from "../components/auth/AuthShell";
 import { completeProfile } from "../api/auth";
+import { trackEvent } from "../analytics/ga4";
 import { useAuth } from "../auth/AuthContext";
 import { useApp } from "../context/AppContext";
 import { Loader } from "../components/ui";
@@ -126,6 +127,8 @@ export default function CompleteProfilePage() {
         }
       );
       setCompleted(true);
+      // Tài khoản Google chỉ đi qua trang này MỘT lần (đặt mật khẩu + SĐT) → mốc "đăng ký xong" cho phễu GA4.
+      trackEvent('sign_up', { method: 'google' });
       await refreshUser();
       setTimeout(() => navigate("/dashboard", { replace: true }), 1200);
     } catch (err) {

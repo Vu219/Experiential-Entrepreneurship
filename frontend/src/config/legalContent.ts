@@ -6,11 +6,13 @@
 import type { Lang } from '../types';
 
 export const LEGAL_CONTACT_EMAIL = 'aimarketing.startup@gmail.com';
-export const LEGAL_UPDATED_AT = '28/09/2026';
+export const LEGAL_UPDATED_AT = '29/10/2026';
 
 export type LegalDocKey = 'privacy' | 'terms' | 'dataDeletion';
 
 export interface LegalSection {
+  /** Neo để link thẳng tới mục (vd /terms#refund từ footer landing). */
+  id?: string;
   heading: string;
   paragraphs?: string[];
   bullets?: string[];
@@ -226,7 +228,17 @@ const termsVi: LegalDoc = {
       ],
     },
     {
-      heading: '6. Giới hạn trách nhiệm',
+      id: 'refund',
+      heading: '6. Hoàn tiền',
+      bullets: [
+        'Hoàn 100% số tiền đã thanh toán nếu bạn gửi yêu cầu trong vòng 7 ngày kể từ lúc thanh toán và đã dùng dưới 20% hạn mức token của gói trong thời gian đó.',
+        'Luôn hoàn tiền đầy đủ khi lỗi đến từ hệ thống: bị trừ tiền nhưng gói không được kích hoạt, hoặc bị trừ tiền hai lần cho cùng một đơn.',
+        `Cách yêu cầu: gửi email tới ${LEGAL_CONTACT_EMAIL} kèm email tài khoản, số hoá đơn (INV-…) trong email biên lai hoặc trang Thanh toán, và số tài khoản ngân hàng nhận tiền.`,
+        'Tiền được chuyển khoản lại trong 5 ngày làm việc kể từ khi yêu cầu được chấp nhận. Sau khi hoàn tiền, gói tương ứng bị huỷ và tài khoản trở về gói miễn phí.',
+      ],
+    },
+    {
+      heading: '7. Giới hạn trách nhiệm',
       bullets: [
         'Dịch vụ phụ thuộc API của các nền tảng bên thứ ba (Meta). Chúng tôi không chịu trách nhiệm khi nền tảng thay đổi chính sách, giới hạn tần suất, từ chối hoặc gỡ bài.',
         'Nội dung do AI tạo có thể chưa chính xác; bạn là người quyết định cuối cùng trước khi đăng.',
@@ -234,13 +246,13 @@ const termsVi: LegalDoc = {
       ],
     },
     {
-      heading: '7. Chấm dứt',
+      heading: '8. Chấm dứt',
       paragraphs: [
         'Bạn có thể yêu cầu xoá tài khoản bất kỳ lúc nào trong trang Hồ sơ. Kể từ lúc yêu cầu, AIMA ngừng đăng bài và các bài đã lên lịch được tạm giữ. Tài khoản chờ xoá 30 ngày và có thể khôi phục trong thời gian này (bạn tự kích hoạt lại các bài tạm giữ), sau đó dữ liệu bị xoá vĩnh viễn như mô tả trong Chính sách bảo mật.',
       ],
     },
     {
-      heading: '8. Thay đổi và liên hệ',
+      heading: '9. Thay đổi và liên hệ',
       paragraphs: [`Chúng tôi có thể cập nhật điều khoản và sẽ ghi ngày hiệu lực mới ở đầu trang. Liên hệ: ${LEGAL_CONTACT_EMAIL}.`],
     },
   ],
@@ -288,7 +300,17 @@ const termsEn: LegalDoc = {
       ],
     },
     {
-      heading: '6. Limitation of liability',
+      id: 'refund',
+      heading: '6. Refunds',
+      bullets: [
+        'You get a 100% refund if you ask within 7 days of payment and have used less than 20% of the plan\'s token quota in that time.',
+        'We always refund in full when the fault is ours: you were charged but the plan was not activated, or you were charged twice for the same order.',
+        `How to ask: email ${LEGAL_CONTACT_EMAIL} with your account email, the invoice number (INV-…) from the receipt email or the Billing page, and the bank account to refund to.`,
+        'The money is transferred back within 5 business days after the request is approved. After a refund, the plan is cancelled and the account returns to the free plan.',
+      ],
+    },
+    {
+      heading: '7. Limitation of liability',
       bullets: [
         'The service relies on third-party platform APIs (Meta). We are not responsible when a platform changes its policies, rate limits, rejects or removes posts.',
         'AI-generated content may be inaccurate; you make the final decision before publishing.',
@@ -296,13 +318,13 @@ const termsEn: LegalDoc = {
       ],
     },
     {
-      heading: '7. Termination',
+      heading: '8. Termination',
       paragraphs: [
         'You can request account deletion at any time on the Profile page. From that moment AIMA stops publishing and scheduled posts are put on hold. The account stays pending deletion for 30 days and can be restored during that time (you reactivate the held posts yourself); afterwards the data is permanently deleted as described in the Privacy Policy.',
       ],
     },
     {
-      heading: '8. Changes and contact',
+      heading: '9. Changes and contact',
       paragraphs: [`We may update these terms and will show the new effective date at the top of the page. Contact: ${LEGAL_CONTACT_EMAIL}.`],
     },
   ],
