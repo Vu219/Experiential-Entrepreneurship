@@ -10,8 +10,6 @@ import AppShell from "./components/AppShell";
 import ShareButton from "./components/ShareButton";
 import { useColorModeSync } from "./hooks/useColorModeSync";
 
-// Code-splitting theo route (hiệu năng tải trang): mỗi trang một chunk, tải khi vào route —
-// landing không kéo theo app/admin và ngược lại. Chỉ shell/route-guard ở chunk chính.
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 const ResourcesPage = lazy(() => import("./pages/ResourcesPage"));
