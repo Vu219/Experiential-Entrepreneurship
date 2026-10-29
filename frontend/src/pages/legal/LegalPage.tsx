@@ -15,9 +15,12 @@ export default function LegalPage({ docKey, children }: { docKey: LegalDocKey; c
   const { isMobile } = useBreakpoint();
   const doc = getLegalDoc(docKey, lang);
 
-  // Mở từ footer landing (điều hướng SPA giữ nguyên vị trí cuộn) hoặc chuyển giữa 3 trang → luôn về đầu trang.
+  // Mở từ footer landing (điều hướng SPA giữ nguyên vị trí cuộn) hoặc chuyển giữa 3 trang → luôn về đầu trang,
+  // trừ khi URL có neo tới một mục (vd /terms#refund) thì cuộn tới mục đó.
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const target = window.location.hash ? document.getElementById(window.location.hash.slice(1)) : null;
+    if (target) target.scrollIntoView();
+    else window.scrollTo(0, 0);
   }, [docKey]);
 
   const nav: { key: LegalDocKey; href: string; label: string }[] = [
@@ -59,7 +62,7 @@ export default function LegalPage({ docKey, children }: { docKey: LegalDocKey; c
             {children}
 
             {doc.sections.map((s) => (
-              <section key={s.heading} style={{ marginTop: 28 }}>
+              <section key={s.heading} id={s.id} style={{ marginTop: 28, scrollMarginTop: 96 }}>
                 <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: isMobile ? 17 : 19, margin: '0 0 10px', color: C.textStrong }}>{s.heading}</h2>
                 {s.paragraphs?.map((p) => (
                   <p key={p} style={{ fontSize: 14.5, lineHeight: 1.7, color: C.ink650, margin: '0 0 10px' }}>{p}</p>

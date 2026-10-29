@@ -1,5 +1,6 @@
 package com.aima.payment;
 
+import com.aima.service.EmailService;
 import com.aima.config.PaymentProperties;
 import com.aima.dto.request.CheckoutRequest;
 import com.aima.dto.response.CheckoutQuoteResponse;
@@ -135,7 +136,7 @@ class PaymentCheckoutTest {
                 planRepository, userRepository,
                 subscriptionRepository, subscriptionService, new PaymentMapperImpl(),
                 properties, transactionTemplate, mock(NotificationService.class),
-                mock(ActivityLogService.class), mock(SystemLogService.class),
+                mock(ActivityLogService.class), mock(SystemLogService.class), mock(EmailService.class),
                 new MockEnvironment(), List.of(gateway));
     }
 

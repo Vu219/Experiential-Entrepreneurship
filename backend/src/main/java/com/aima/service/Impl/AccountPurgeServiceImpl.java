@@ -11,6 +11,7 @@ import com.aima.repository.PlatformApiVersionHistoryRepository;
 import com.aima.repository.PlatformApiVersionRepository;
 import com.aima.repository.TokenCreditRepository;
 import com.aima.repository.UsageAdjustmentRepository;
+import com.aima.repository.UserFeedbackRepository;
 import com.aima.service.AccountPurgeService;
 import com.aima.service.MetaOAuthService;
 import lombok.AccessLevel;
@@ -37,6 +38,7 @@ public class AccountPurgeServiceImpl implements AccountPurgeService {
     PlatformApiVersionRepository platformApiVersionRepository;
     PlatformApiVersionHistoryRepository platformApiVersionHistoryRepository;
     UsageAdjustmentRepository usageAdjustmentRepository;
+    UserFeedbackRepository userFeedbackRepository;
     MetaOAuthService metaOAuthService;
 
     // MANDATORY: các UPDATE hàng loạt ở đây chỉ an toàn khi cùng transaction với lệnh DELETE user —
@@ -55,6 +57,7 @@ public class AccountPurgeServiceImpl implements AccountPurgeService {
         platformApiVersionRepository.clearUpdatedBy(userId);
         platformApiVersionHistoryRepository.clearChangedBy(userId);
         usageAdjustmentRepository.clearActor(userId);
+        userFeedbackRepository.deleteByUserId(userId);
         metaOAuthService.revokeAllForUserAfterCommit(userId);
         log.info("[AccountPurge] User {}: ẩn danh {} đơn, xoá {} credit, tách {} event AI", userId, payments, credits, usageEvents);
     }

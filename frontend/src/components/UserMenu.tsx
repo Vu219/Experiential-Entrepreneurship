@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { ChevronDown, CreditCard, Home, LayoutDashboard, LogOut, Settings, Shield, UserCircle } from "lucide-react";
+import { ChevronDown, CreditCard, Home, LayoutDashboard, LogOut, MessageSquareHeart, Settings, Shield, UserCircle } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { useApp } from "../context/AppContext";
 import { useBreakpoint } from "../hooks/useBreakpoint";
 import { alpha, C } from "../styles/colors";
+import { useUiStore } from "../store/useUiStore";
 
 /**
  * Chip người dùng đã đăng nhập trên header. Hover (desktop) hoặc click để mở dropdown.
@@ -131,6 +132,7 @@ export default function UserMenu({ variant = "landing" }: { variant?: "landing" 
             <MenuItem icon={<UserCircle size={17} />} label={t.navProfile} onClick={pick(() => go("profile"))} />
             <MenuItem icon={<CreditCard size={17} />} label={t.navBilling} onClick={pick(() => go("billing"))} />
             <MenuItem icon={<Settings size={17} />} label={t.navSettings} onClick={pick(() => go("settings"))} />
+            {isApp && <MenuItem icon={<MessageSquareHeart size={17} />} label={t.fbMenu} onClick={pick(() => useUiStore.getState().setFeedbackOpen(true))} />}
           </div>
 
           {/* Cụm 2: Không gian làm việc & Điều hướng */}

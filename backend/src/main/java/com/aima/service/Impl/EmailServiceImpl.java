@@ -109,6 +109,42 @@ public class EmailServiceImpl implements EmailService {
         brevoEmailSender.sendHtml(toEmail, title + " - " + BRAND_NAME, htmlContent, unsubscribeHeaders(unsubscribePage, token));
     }
 
+    @Override
+    public void sendPaymentReceiptEmail(String toEmail, String fullName, String invoiceNo, String planName, long amount,
+                                        LocalDateTime paidAt, LocalDateTime planExpiresAt) {
+        String greetingName = (fullName != null && !fullName.isBlank()) ? escapeHtml(fullName) : "bạn";
+        String billingUrl = frontendBaseUrl + "/billing";
+        String htmlContent = open() + header()
+                + "<div style='padding:32px;color:#241f3a;'>"
+                + "<div style='text-align:center;margin:0 0 16px;'>"
+                + "<span style='display:inline-block;width:56px;height:56px;line-height:56px;border-radius:50%;"
+                + "background:#e8f8ee;color:#16a34a;font-size:30px;font-weight:800;'>&#10003;</span></div>"
+                + "<h2 style='margin:0 0 12px;font-size:18px;text-align:center;'>Thanh toán thành công</h2>"
+                + "<p style='margin:0 0 20px;font-size:15px;line-height:1.6;color:#4b4660;'>Xin chào <b>" + greetingName + "</b>, "
+                + BRAND_NAME + " đã nhận được thanh toán của bạn và gói dịch vụ đã được kích hoạt.</p>"
+                + "<div style='background:#faf7ff;border:1px solid #efeaf8;border-radius:12px;padding:16px 20px;margin:0 0 20px;'>"
+                + receiptRow("Số hoá đơn", invoiceNo == null ? "—" : escapeHtml(invoiceNo))
+                + receiptRow("Gói", escapeHtml(planName))
+                + receiptRow("Số tiền", String.format("%,d", amount).replace(',', '.') + " đ")
+                + receiptRow("Thời gian thanh toán", paidAt != null ? DATE_TIME_FORMAT.format(paidAt) : "vừa xong")
+                + receiptRow("Hiệu lực đến", planExpiresAt != null ? DATE_TIME_FORMAT.format(planExpiresAt) : "không giới hạn")
+                + "</div>"
+                + "<div style='text-align:center;margin:0 0 8px;'>"
+                + "<a href='" + billingUrl + "' style='display:inline-block;padding:12px 24px;background:" + BRAND_ACCENT + ";"
+                + "color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;'>Xem lịch sử thanh toán</a></div>"
+                + "<hr style='border:none;border-top:1px solid #efeaf8;margin:16px 0;'>"
+                + "<p style='margin:0;font-size:12px;line-height:1.6;color:#a59fbb;'>"
+                + "Cần hỗ trợ hoặc muốn yêu cầu hoàn tiền? Xem <a href='" + frontendBaseUrl + "/terms' style='color:#a59fbb;'>"
+                + "Điều khoản sử dụng</a> hoặc liên hệ aimarketing.startup@gmail.com.</p>"
+                + "</div>" + footer();
+        brevoEmailSender.sendHtml(toEmail, "Biên lai thanh toán " + (invoiceNo == null ? "" : invoiceNo + " ") + "- " + BRAND_NAME,
+                htmlContent);
+    }
+
+    private static String receiptRow(String label, String value) {
+        return "<p style='margin:0 0 8px;font-size:14px;color:#4b4660;'><b>" + label + ":</b> " + value + "</p>";
+    }
+
     /**
      * List-Unsubscribe (+ List-Unsubscribe-Post khi có URL backend công khai — hộp thư POST thẳng, RFC 8058);
      * không có URL backend thì chỉ trỏ trang xác nhận của FE (hộp thư mở link, không one-click).

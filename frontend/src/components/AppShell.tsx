@@ -15,6 +15,7 @@ import NotificationToaster from './NotificationToaster';
 import { useSectionFocus } from '../hooks/useSectionFocus';
 import type { SearchArea } from '../search/types';
 import { C } from '../styles/colors';
+import FeedbackModal from './FeedbackModal';
 
 /** Globe / language switch button (shared between landing, auth and topbar). */
 export function LangButton({ compact = false }: { compact?: boolean }) {
@@ -146,6 +147,7 @@ const PAGE_KEYS = {
   adminRevenue: ['navAdminRevenue', 'pageSubAdminRevenue'],
   adminPlans: ['navAdminPlans', 'pageSubAdminPlans'],
   adminLanding: ['navAdminLanding', 'pageSubAdminLanding'],
+  adminFeedback: ['navAdminFeedback', 'pageSubAdminFeedback'],
   adminUsage: ['navAdminUsage', 'pageSubAdminUsage'],
   adminAiProviders: ['navAdminAiProviders', 'pageSubAdminAiProviders'],
   adminAiModels: ['navAdminAiModels', 'pageSubAdminAiModels'],
@@ -217,6 +219,7 @@ export default function AppShell({ children, variant = 'app' }: { children: Reac
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const area = useSearchArea(variant);
   const paletteOpen = useUiStore((s) => s.paletteOpen);
+  const feedbackOpen = useUiStore((s) => s.feedbackOpen);
   usePaletteHotkey();
   useSectionFocus();
   // Rời shell (đăng xuất / đổi khu vực) → palette không mở sẵn cho lần sau.
@@ -241,6 +244,7 @@ export default function AppShell({ children, variant = 'app' }: { children: Reac
       {paletteOpen && <CommandPalette area={area} />}
       <RealtimeConnector />
       <NotificationToaster />
+      {feedbackOpen && <FeedbackModal />}
     </div>
   );
 }

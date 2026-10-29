@@ -542,6 +542,12 @@ public enum ErrorCode {
     OAUTH_RESULT_NOT_FOUND(2213, "Kết quả liên kết đã hết hạn hoặc không tồn tại.", HttpStatus.NOT_FOUND),
     PLATFORM_LOCK_REASON_TOO_LONG(2214, "Lý do khoá nền tảng tối đa 300 ký tự.", HttpStatus.BAD_REQUEST),
     PLATFORM_AVAILABILITY_ENABLED_REQUIRED(2215, "Thiếu trạng thái mở/khoá của nền tảng.", HttpStatus.BAD_REQUEST),
+    // Đánh giá & góp ý trong app (G1.3, V23)
+    FEEDBACK_RATING_INVALID(2216, "Hãy chọn từ 1 đến 5 sao.", HttpStatus.BAD_REQUEST),
+    FEEDBACK_COMMENT_TOO_LONG(2217, "Nhận xét tối đa 1000 ký tự.", HttpStatus.BAD_REQUEST),
+    FEEDBACK_PAGE_TOO_LONG(2218, "Đường dẫn trang tối đa 120 ký tự.", HttpStatus.BAD_REQUEST),
+    DEV_FEEDBACK_SEED_DISABLED(2219,
+            "Công cụ dev đang tắt — bật AIMA_DEV_FEEDBACK_SEED=true (chỉ môi trường dev)", HttpStatus.FORBIDDEN),
     ;
 
     private int code;

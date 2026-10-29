@@ -1,5 +1,8 @@
 package com.aima.service.Impl;
 
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionSynchronization;
+import com.aima.service.EmailService;
 import com.aima.util.NotificationParams;
 import com.aima.enums.NotificationRefType;
 import com.aima.dto.notification.NotificationDraft;
@@ -136,6 +139,7 @@ public class PaymentServiceImpl implements PaymentService {
     NotificationService notificationService;
     ActivityLogService activityLogService;
     SystemLogService systemLogService;
+    EmailService emailService;
     Environment environment;
     SecureRandom secureRandom = new SecureRandom();
 
@@ -166,6 +170,7 @@ public class PaymentServiceImpl implements PaymentService {
                               NotificationService notificationService,
                               ActivityLogService activityLogService,
                               SystemLogService systemLogService,
+                              EmailService emailService,
                               Environment environment,
                               List<PaymentGatewayClient> clients) {
         this.paymentRepository = paymentRepository;
@@ -180,6 +185,7 @@ public class PaymentServiceImpl implements PaymentService {
         this.notificationService = notificationService;
         this.activityLogService = activityLogService;
         this.systemLogService = systemLogService;
+        this.emailService = emailService;
         this.environment = environment;
         // Cùng mẫu Map<Platform, PlatformPublisher> của worker đăng bài: thêm cổng = thêm bean.
         this.gatewayClients = clients.stream()
@@ -1084,6 +1090,38 @@ public class PaymentServiceImpl implements PaymentService {
                 Map.of("plan", payment.getPlan().getCode(),
                         "amount", payment.getAmount(),
                         "invoiceNo", payment.getInvoiceNo() == null ? "" : payment.getInvoiceNo())));
+        sendReceiptAfterCommit(user, payment, subscription);
+    }
+
+    /**
+     * Biên lai qua email (Brevo HTTP) — gửi SAU COMMIT vì không được gọi mạng khi đang giữ transaction (rule #24),
+     * và rollback thì không có gì để báo. Best-effort như {@code notify}: email hỏng không ảnh hưởng đơn đã PAID.
+     */
+    private void sendReceiptAfterCommit(User user, Payment payment, Subscription subscription) {
+        String email = user.getEmail();
+        String fullName = user.getFullName();
+        String invoiceNo = payment.getInvoiceNo();
+        String planName = payment.getPlan().getNameVi() != null ? payment.getPlan().getNameVi() : payment.getPlan().getCode();
+        long amount = payment.getAmount() == null ? 0L : payment.getAmount();
+        LocalDateTime paidAt = payment.getPaidAt();
+        LocalDateTime expiresAt = subscription.getPlanExpiresAt();
+        Runnable send = () -> {
+            try {
+                emailService.sendPaymentReceiptEmail(email, fullName, invoiceNo, planName, amount, paidAt, expiresAt);
+            } catch (Exception e) {
+                log.warn("[Payment] Không gửi được email biên lai đơn {}: {}", payment.getId(), e.getMessage());
+            }
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    send.run();
+                }
+            });
+        } else {
+            send.run();
+        }
     }
 
     private void closeIfOpen(Payment payment, PaymentStatus target, String reason) {

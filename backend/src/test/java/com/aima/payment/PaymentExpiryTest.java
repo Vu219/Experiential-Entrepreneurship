@@ -1,5 +1,6 @@
 package com.aima.payment;
 
+import com.aima.service.EmailService;
 import com.aima.config.PaymentProperties;
 import com.aima.entity.Payment;
 import com.aima.entity.Plan;
@@ -122,7 +123,7 @@ class PaymentExpiryTest {
                 mock(UserRepository.class), mock(SubscriptionRepository.class), subscriptionService,
                 new PaymentMapperImpl(), properties, transactionTemplate,
                 mock(NotificationService.class), mock(ActivityLogService.class),
-                mock(SystemLogService.class), new MockEnvironment(), List.of(gateway));
+                mock(SystemLogService.class), mock(EmailService.class), new MockEnvironment(), List.of(gateway));
     }
 
     private Payment seedOverdueOrder(int graceCount) {

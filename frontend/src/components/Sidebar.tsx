@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Reac
 import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh';
 import { motion } from 'framer-motion';
 import {
-  ChevronRight, ChevronLeft, X, type LucideIcon,
+  ChevronRight, ChevronLeft, MessageSquareHeart, X, type LucideIcon,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../auth/AuthContext';
@@ -272,6 +272,30 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
     </motion.button>
   );
 
+  // Mở hộp thoại Đánh giá & góp ý (G1.3) — chỉ ở khu người dùng, ghim ở đáy sidebar.
+  const feedbackBtn = (
+    <motion.button
+      onClick={() => {
+        useUiStore.getState().setFeedbackOpen(true);
+        if (isMobile && setMobileMenuOpen) setMobileMenuOpen(false);
+      }}
+      title={collapsed ? t.fbMenu : undefined}
+      style={itemBase(false)}
+      whileHover={{
+        y: isMobile ? 0 : -2,
+        x: isMobile ? 0 : (collapsed ? 0 : 3),
+        scale: isMobile ? 1 : 1.03,
+        boxShadow: '0 8px 16px -8px rgba(124,92,255,.25)',
+        background: C.surfaceMuted,
+      }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', ...springConfig }}
+    >
+      <Icon icon={MessageSquareHeart} stroke={C.ink350} />
+      {(!collapsed || isMobile) && <span style={{ flex: 1, textAlign: 'left' }}>{t.fbMenu}</span>}
+    </motion.button>
+  );
+
   // Nút quay lại ứng dụng (chỉ ở admin mode).
   const backBtn = (
     <motion.button
@@ -424,6 +448,7 @@ export default function Sidebar({ mode = 'app', mobileMenuOpen, setMobileMenuOpe
             {adminPortalBtn}
           </>
         )}
+        {!isAdminArea && feedbackBtn}
         {/* Widget token: click nhảy thẳng vào tab "Token & mức dùng" trong Cài đặt (mục 7). */}
         {!isAdminArea && !collapsed && usage && (
           <div

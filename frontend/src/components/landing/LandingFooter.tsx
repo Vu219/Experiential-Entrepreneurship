@@ -114,6 +114,7 @@ export default function LandingFooter() {
           </div>
           <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', justifyContent: 'center' }}>
             <LandingLink href="/terms" className="link-underline" style={legalLinkStyle}>{t.ftTerms}</LandingLink>
+            <LandingLink href="/terms#refund" className="link-underline" style={legalLinkStyle}>{t.ftRefund}</LandingLink>
             <LandingLink href="/privacy" className="link-underline" style={legalLinkStyle}>{t.ftPrivacy}</LandingLink>
             <LandingLink href="/data-deletion" className="link-underline" style={legalLinkStyle}>{t.ftDataDeletion}</LandingLink>
             <span className="link-underline" style={{ cursor: 'pointer', fontSize: 13, color: C.textMuted }}>{t.ftCookie}</span>

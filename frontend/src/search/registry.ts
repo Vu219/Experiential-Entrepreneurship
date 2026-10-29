@@ -41,6 +41,7 @@ const PAGE_KEYWORDS: Partial<Record<Route, readonly string[]>> = {
   adminRevenue: ['doanh thu', 'đơn hàng', 'thanh toán', 'revenue', 'orders', 'payments'],
   adminPlans: ['gói dịch vụ', 'bảng giá', 'plans', 'pricing'],
   adminLanding: ['trang chủ', 'landing', 'cms', 'nội dung trang chủ'],
+  adminFeedback: ['đánh giá', 'góp ý', 'phản hồi', 'feedback', 'rating', 'review'],
   adminUsage: ['token', 'hạn mức', 'mức dùng', 'usage', 'quota'],
   adminAiProviders: ['nhà cung cấp ai', 'api key', 'providers', 'anthropic', 'google'],
   adminAiModels: ['model', 'định tuyến', 'routing', 'fallback'],

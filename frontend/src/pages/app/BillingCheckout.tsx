@@ -20,6 +20,7 @@ import {
   type PaymentMethodCode,
 } from '../../api/payments';
 import type { ApiError } from '../../api/apiClient';
+import { trackEvent } from '../../analytics/ga4';
 import { C } from '../../styles/colors';
 
 /**
@@ -90,6 +91,8 @@ export default function BillingCheckout() {
     setPaying(true);
     try {
       const order = await checkout(plan.id, method, quote.total);
+      // Bước giữa phễu GA4: sign_up → begin_checkout → purchase (BillingReturn).
+      trackEvent('begin_checkout', { currency: 'VND', value: quote.total, items_plan: plan.code ?? '' });
       PAYMENT_METHODS[method].proceed(order);
     } catch (e) {
       const err = e as ApiError;

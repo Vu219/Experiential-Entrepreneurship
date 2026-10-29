@@ -256,6 +256,9 @@ aima:
     # DEV-ONLY: bật endpoint seed số liệu Phân tích mẫu (POST/DELETE /analytics/dev-seed) để dựng
     # trang Phân tích (UI-08) trước khi có bài đăng thật đủ 24h. GỠ/TẮT khi có dữ liệu thật.
     analytics-seed-enabled: ${AIMA_DEV_ANALYTICS_SEED:false}
+    # DEV-ONLY: bật endpoint seed đánh giá MÔ PHỎNG 14 ngày (POST/DELETE /admin/feedback/dev-seed) để dựng/demo
+    # trang Đánh giá & góp ý. Bị chặn khi AIMA_PRODUCTION_MODE=true. KHÔNG dùng làm bằng chứng đánh giá thật.
+    feedback-seed-enabled: ${AIMA_DEV_FEEDBACK_SEED:false}
   encryption:
     # 32 byte base64 (openssl rand -base64 32). Bắt buộc — app fail khi startup nếu thiếu.
     key: ${AIMA_ENCRYPTION_KEY}

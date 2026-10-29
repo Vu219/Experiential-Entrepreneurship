@@ -1,5 +1,6 @@
 package com.aima.payment;
 
+import com.aima.service.EmailService;
 import com.aima.config.PaymentProperties;
 import com.aima.entity.Payment;
 import com.aima.entity.Plan;
@@ -143,7 +144,7 @@ class PaymentWebhookTest {
                 planRepository, userRepository,
                 subscriptionRepository, subscriptionService, new PaymentMapperImpl(),
                 properties, transactionTemplate, notificationService, activityLogService,
-                mock(SystemLogService.class), new MockEnvironment(), List.of(gateway));
+                mock(SystemLogService.class), mock(EmailService.class), new MockEnvironment(), List.of(gateway));
     }
 
     // ------------------------------------------------------------------ tiện ích

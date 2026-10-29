@@ -17,4 +17,7 @@ public interface EmailService {
      */
     void sendPublishActionRequiredEmail(String toEmail, String fullName, String title, String message,
                                         String actionLabel, String actionPath, String unsubscribeToken);
+    /** Biên lai sau khi đơn mua gói đã thu tiền và gói đã kích hoạt (G1.2 — xác nhận đơn cho khách). */
+    void sendPaymentReceiptEmail(String toEmail, String fullName, String invoiceNo, String planName, long amount,
+                                 LocalDateTime paidAt, LocalDateTime planExpiresAt);
 }

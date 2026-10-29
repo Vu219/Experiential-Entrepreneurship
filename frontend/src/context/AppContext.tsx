@@ -44,6 +44,7 @@ const PATH_BY_ROUTE: Record<Route, string> = {
   adminRevenue: '/admin/revenue',
   adminPlans: '/admin/plans',
   adminLanding: '/admin/landing',
+  adminFeedback: '/admin/feedback',
   adminUsage: '/admin/usage',
   adminAiProviders: '/admin/ai/providers',
   adminAiModels: '/admin/ai/models',

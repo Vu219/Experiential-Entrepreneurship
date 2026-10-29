@@ -350,3 +350,11 @@
 - [x] (E) Bảng so sánh: ô dùng chung, dòng gắn `limitKey` tự động (Flyway V21 `plan_features.limit_key`) `[BE][FE]` — done 2026-10-21 (`components/plans/{CompareCell,ComparisonTable}`).
 - [x] Dữ liệu mẫu DEV-ONLY cho stack cô lập (`config/init/DevPlanLimitsSeeder`, cờ `aima.dev-seed.plan-limits`) — done 2026-10-21.
 - [ ] Áp Flyway **V20** + **V21** lên production (backup trước; rollback `docs/sql/rollback/V20__platform_availability_and_plan_platforms_down.sql`, `V21__plan_comparison_limit_link_down.sql`). Lưu ý: lịch Threads/IG chưa đăng sẽ bị Tạm giữ một lần ở lần khởi động đầu — người vận hành.
+
+## Yêu cầu G1 (sản phẩm chạy thật, giao dịch đo lường được, kênh góp ý) 2026-10-29 `[BE][FE]`
+- [x] Kênh đánh giá & góp ý trong app (G1.3) `[BE][FE]` — done 2026-10-29: Flyway **V23** (`user_feedback`, rollback `docs/sql/rollback/V23__user_feedback_down.sql`), `POST /feedback` (1–5 sao + nhận xét ≤1000 ký tự + pathname), admin `GET /admin/feedback` (lọc theo sao) + `/summary` (tổng, điểm TB, phân bố). FE: hộp thoại `FeedbackModal` mở từ sidebar và menu avatar, trang `/admin/feedback`. Xoá cứng tài khoản xoá luôn góp ý (`AccountPurgeService`).
+- [x] Dữ liệu đánh giá MÔ PHỎNG 14 ngày `[BE]` — done 2026-10-29: `POST/DELETE /admin/feedback/dev-seed` (cờ `AIMA_DEV_FEEDBACK_SEED`, mặc định tắt, chặn khi `AIMA_PRODUCTION_MODE=true`), cột `sample=true` + nhãn "Mẫu" ở trang admin. Không dùng làm bằng chứng đánh giá thật.
+- [x] GA4: giữ tham số `utm_*` trong `page_location` (phần còn lại của query vẫn bị bỏ), thêm `begin_checkout`, đếm `sign_up` cho tài khoản Google (khi hoàn tất hồ sơ) `[FE]` — done 2026-10-29 (`analytics/campaign.ts`, test `tests/campaign.test.ts`).
+- [x] Email biên lai sau khi thanh toán thành công `[BE]` — done 2026-10-29: `EmailService.sendPaymentReceiptEmail`, gửi SAU COMMIT từ `PaymentServiceImpl.announcePaid` (best-effort).
+- [x] Chính sách hoàn tiền trong Điều khoản (mục 6, neo `/terms#refund`, link ở footer landing) `[FE]` — done 2026-10-29: hoàn 100% trong 7 ngày nếu dùng dưới 20% token của gói; lỗi hệ thống luôn hoàn; xử lý thủ công qua email, chuyển khoản lại trong 5 ngày làm việc.
+- [ ] Áp Flyway **V23** lên production (backup trước) — người vận hành.
