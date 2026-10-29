@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { CheckCircle2, Star } from 'lucide-react';
 import Modal from './Modal';
 import { useApp } from '../context/AppContext';
@@ -14,7 +14,8 @@ const MAX_COMMENT = 1000;
  */
 export default function FeedbackModal() {
   const { t, brandGradient } = useApp();
-  const close = () => useUiStore.getState().setFeedbackOpen(false);
+  // Ổn định: Modal chạy lại effect focus theo onClose — hàm mới mỗi render sẽ cướp focus khỏi ô nhập sau từng phím.
+  const close = useCallback(() => useUiStore.getState().setFeedbackOpen(false), []);
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState('');
